@@ -1,0 +1,198 @@
+basePath: /
+definitions:
+  CreateExampleInput:
+    description: CreateExampleInput is the input payload to create an example_model.
+    properties:
+      age:
+        type: integer
+      name:
+        maxLength: 256
+        type: string
+    required:
+    - age
+    - name
+    type: object
+  Pagination:
+    description: Pagination is the struct designed to store the pagination data of
+      an entity list.
+    properties:
+      items: {}
+      limit:
+        example: 10
+        type: integer
+      next_cursor:
+        example: MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA==
+        type: string
+        x-omitempty: true
+      page:
+        example: 1
+        type: integer
+      prev_cursor:
+        example: MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA==
+        type: string
+        x-omitempty: true
+    type: object
+  UpdateExampleInput:
+    description: UpdateExampleInput is the input payload to update an example.
+    properties:
+      age:
+        example: 12
+        type: integer
+      name:
+        example: Example test
+        maxLength: 256
+        type: string
+    type: object
+  k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput:
+    description: ExampleOutput is the output payload.
+    properties:
+      age:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact: {}
+  description: This is a swagger documentation for K8s addons boilerplate
+  termsOfService: http://swagger.io/terms/
+  title: K8s addons boilerplate
+  version: 1.0.0
+paths:
+  /v1/example:
+    get:
+      description: Get all Example with the input metadata or without metadata
+      parameters:
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Start Date
+        in: query
+        name: start_date
+        type: string
+      - description: End Date
+        in: query
+        name: end_date
+        type: string
+      - description: Sort Order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/Pagination'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
+                  type: array
+                limit:
+                  type: integer
+                page:
+                  type: integer
+              type: object
+      summary: Get all Example
+      tags:
+      - Example
+    post:
+      consumes:
+      - application/json
+      description: Create an Example with the input payload
+      parameters:
+      - description: Example Input
+        in: body
+        name: example
+        required: true
+        schema:
+          $ref: '#/definitions/CreateExampleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
+      summary: Create an Example
+      tags:
+      - Example
+  /v1/example/{id}:
+    delete:
+      description: Delete an Example with the input ID
+      parameters:
+      - description: Example ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete an Example by ID
+      tags:
+      - Example
+    get:
+      description: Get an Example with the input ID
+      parameters:
+      - description: Example ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
+      summary: Get an Example by ID
+      tags:
+      - Example
+    patch:
+      consumes:
+      - application/json
+      description: Update an Example with the input payload
+      parameters:
+      - description: Example ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Example Input
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateExampleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
+      summary: Update an Example
+      tags:
+      - Example
+swagger: "2.0"

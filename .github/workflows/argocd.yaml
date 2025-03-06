@@ -1,0 +1,200 @@
+name: "Configure Repo in ArgoCD"
+
+on:
+  push:
+    branches:
+      - develop
+      - feature/adjust-boilerplate
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  start_runner:
+    name: Start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials - devops
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GH_OICD_TERRAFORM_ROLE }}
+          aws-region: 'us-east-2'
+          role-session-name: GITHUB-ACTIONS-RUNNER-SESSION-DEVOPS
+
+      - name: Configure AWS credentials - control-plane-dev
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: 'arn:aws:iam::891377226668:role/terraform-devops-assume-admin-control-plane-dev-role'
+          aws-region: 'us-east-2'
+          role-session-name: GITHUB-ACTIONS-EC2-RUNNER-SESSION
+          role-chaining: true
+          role-skip-session-tagging: true
+
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.MANAGE_TOKEN }}
+          ec2-image-id: 'ami-09d3a25ec0fe7ca29'
+          ec2-instance-type: t3.medium
+          subnet-id: 'subnet-02aec8542c3fd3693'
+          security-group-id:  'sg-0b88268be19033d72'
+          aws-resource-tags: >
+            [
+              {"Key": "Name", "Value": "ec2-github-runner"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ] 
+  
+
+  argocd:
+    needs: start_runner
+    runs-on: ${{ needs.start_runner.outputs.label }}
+    steps:
+#Checkout Repo/Branch
+      - name: Checkout code
+        uses: actions/checkout@v3
+# Install ArgoCD CLI
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd-linux-amd64
+          sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+#Install Helm
+      - name: Install Helm
+        run: |
+          curl https://get.helm.sh/helm-v3.9.1-linux-amd64.tar.gz -o helm-v3.9.1-linux-amd64.tar.gz
+          tar -zxvf helm-v3.9.1-linux-amd64.tar.gz
+          sudo mv linux-amd64/helm /usr/local/bin/helm
+          helm version
+          
+      - name: Run helm dependency update
+        run: |
+          echo "::info::Running helm dependency update for application '$APP_NAME'."
+          cd deploy
+          helm dependency update
+    
+
+# Passo para adicionar o arquivo .tgz ao repositório
+      - name: Commit and push .tgz file
+        run: |
+          cd deploy/charts/
+    
+          if ! git ls-files --error-unmatch *.tgz > /dev/null 2>&1; then
+            git add *.tgz
+            git commit -m "Add generated .tgz file"
+            git push
+          else
+            echo ".tgz file already committed. Skipping commit and push."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+# Login and Add repo if not exists.
+      - name: Login and Add repo if not exists
+        run: |
+          export HOME=/argocd
+          argocd login argocd.private.dev.midaz.io --username ${{ secrets.ARGOCD_ADMIN_USERNAME }}  --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} 
+          
+          REPO_EXISTS=$(argocd repo list | grep "https://github.com/${{ github.repository }}.git" || true)
+          
+          if [ -z "$REPO_EXISTS" ]; then
+            echo "::info::Repo não encontrado. Adicionando o repositório."
+            argocd repo add "https://github.com/${{ github.repository }}.git" \
+              --username ${{ secrets.GH_ARGOCD_USER }} \
+              --password ${{ secrets.GH_ARGOCD_PASSWORD }} \
+              --insecure-skip-server-verification
+            echo "::notice::Repo adicionado com sucesso."
+          else
+            echo "::notice::Repo já existe. Pulando a adição."
+          fi
+      
+      - name: Check if application exists
+        id: check-app
+        continue-on-error: true
+        run: |
+          export HOME=/argocd
+          argocd login argocd.private.dev.midaz.io --username ${{ secrets.ARGOCD_ADMIN_USERNAME }} --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} --insecure
+          
+          APP_NAME=${{ github.event.repository.name }}
+          echo "Checking if application '$APP_NAME' exists..."
+          
+          if argocd app get $APP_NAME; then
+            echo "::set-output name=app_exists::true"
+            echo "::notice::Application '$APP_NAME' already exists."
+          else
+            echo "::set-output name=app_exists::false"
+            echo "::warning::Application '$APP_NAME' does not exist."
+          fi
+        
+  #Create application in ArgoCD      
+      - name: Create Application in ArgoCD (if not exists)
+        run: |
+          APP_NAME=${{ github.event.repository.name }}
+          export HOME=/argocd  
+          if [[ "${{ steps.check-app.outputs.APP_EXISTS }}" == "false" ]]; then
+            echo "::info::Creating application '$APP_NAME' in ArgoCD."
+            argocd app create $APP_NAME \
+              --repo https://github.com/${{ github.repository }}.git \
+              --path deploy \
+              --dest-server https://kubernetes.default.svc \
+              --dest-namespace default \
+              --sync-policy automated \
+              --revision feature/adjust-boilerplate \
+              --values values.yaml
+          else
+            echo "::notice::Skipping application creation. '$APP_NAME' already exists."
+          fi
+  #Sync application in ArgoCD    
+      - name: Sync Application in ArgoCD
+        if: steps.check-app.outputs.app_exists == 'false'
+        run: |
+          APP_NAME=${{ github.event.repository.name }}
+          export HOME=/argocd
+          echo "::info::Syncing application '$APP_NAME' in ArgoCD for the first time."
+          
+          while argocd app get $APP_NAME | grep -q 'Sync Status: Unknown\|Syncing'; do
+            echo "ArgoCD is busy, waiting for current operation to finish..."
+            sleep 20
+
+          done
+          argocd app sync $APP_NAME # Sincroniza a primeira vez
+          argocd app wait $APP_NAME --health --timeout 120
+          echo "::success::Application '$APP_NAME' synced successfully."    
+
+  stop_runner:
+    name: Stop self-hosted EC2 runner
+    needs:
+      - start_runner
+      - argocd
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Configure AWS credentials - devops
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GH_OICD_TERRAFORM_ROLE }}
+          aws-region: 'us-east-2'
+          role-session-name: GITHUB-ACTIONS-RUNNER-SESSION-DEVOPS
+
+      - name: Configure AWS credentials - control-plane-dev
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: 'arn:aws:iam::891377226668:role/terraform-devops-assume-admin-control-plane-dev-role'
+          aws-region: 'us-east-2'
+          role-session-name: GITHUB-ACTIONS-EC2-RUNNER-SESSION
+          role-chaining: true
+          role-skip-session-tagging: true
+
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.MANAGE_TOKEN }}
+          label: ${{ needs.start_runner.outputs.label }}
+          ec2-instance-id: ${{ needs.start_runner.outputs.ec2-instance-id }}

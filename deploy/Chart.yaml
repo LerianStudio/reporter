@@ -1,0 +1,11 @@
+apiVersion: v2
+name: k8s-golang-1
+description: A Helm chart for Kubernetes
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: k8s-golang
+    version: "0.1.0"
+    repository: "oci://ghcr.io/lerianstudio/addon-helm-k8s-golang"

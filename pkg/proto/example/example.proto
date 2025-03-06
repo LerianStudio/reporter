@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option go_package = "./";
+
+import "google/protobuf/timestamp.proto";
+
+service Example {
+  rpc CreateExample(CreateExampleRequest) returns (ExampleResponse) {}
+  rpc GetExampleByID(ExampleID) returns (ExampleResponse) {}
+  rpc GetAllExamples(ExampleQuery) returns (PaginationExample) {}
+  rpc UpdateExample(ExampleRequest) returns (ExampleResponse) {}
+  rpc DeleteExampleByID(ExampleID) returns (DeleteExampleResponse) {}
+}
+
+message ExampleID {
+  string id = 1;
+}
+
+message ExampleQuery {
+  map<string, string> parameters = 1;
+}
+
+message CreateExampleRequest {
+  string name = 1;
+  int32 age = 2;
+}
+
+message ExampleRequest {
+  string name = 1;
+  int32 age = 2;
+  string id = 3;
+}
+
+message PaginationExample {
+  repeated ExampleResponse items = 1;
+  int32 page = 2;
+  string prev_cursor = 3;
+  string next_cursor = 4;
+  int32 limit = 5;
+  string sort_order = 6;
+  string start_date = 7;
+  string end_date = 8;
+  string alias = 9;
+}
+
+message ExampleResponse {
+  string id = 1;
+  string name = 2;
+  int64 age = 3;
+  string cratedAt = 4;
+  string updatedAt = 5;
+}
+
+message DeleteExampleResponse {
+  int32 code = 1;
+  string message = 2;
+}
