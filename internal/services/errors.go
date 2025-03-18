@@ -3,8 +3,8 @@ package services
 import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgconn"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/constant"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/constant"
 )
 
 // ErrDatabaseItemNotFound is throws an item informed was not found

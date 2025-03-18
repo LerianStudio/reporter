@@ -74,21 +74,9 @@ restart:
 	make stop && \
     make up
 
-.PHONY: logs
-logs:
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f $(c)
-
-.PHONY: logs-api
-logs-api:
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f midaz-audit
-
 .PHONY: ps
 ps:
 	@$(DOCKER_CMD) -f docker-compose.yml ps
-
-.PHONY: grpc-example-gen
-grpc-example-gen:
-	@protoc --go_out=pkg/mproto/example --go-grpc_out=pkg/mproto/example pkg/mproto/example/*.proto
 
 .PHONY: generate-docs
 generate-docs:

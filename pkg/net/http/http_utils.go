@@ -1,11 +1,15 @@
 package http
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/constant"
+	"io"
+	"mime/multipart"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/constant"
 	"strconv"
 	"strings"
 	"time"
@@ -124,6 +128,43 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 	}
 
 	return query, nil
+}
+
+// GetFileFromHeader method that get file from header and give a string
+func GetFileFromHeader(ctx *fiber.Ctx) (string, error) {
+	fileHeader, err := ctx.FormFile(file)
+	if err != nil {
+		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "")
+	}
+
+	if !strings.Contains(fileHeader.Filename, fileExtension) {
+		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "", fileHeader.Filename)
+	}
+
+	if fileHeader.Size == 0 {
+		return "", pkg.ValidateBusinessError(constant.ErrEmptyFile, "", fileHeader.Filename)
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			panic(0)
+		}
+	}(file)
+
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, file); err != nil {
+		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "", fileHeader.Filename)
+	}
+
+	fileString := buf.String()
+
+	return fileString, nil
 }
 
 func validateDates(startDate, endDate *time.Time) error {

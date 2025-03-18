@@ -26,4 +26,6 @@ var (
 	ErrMetadataKeyLengthExceeded    = errors.New("0014")
 	ErrMetadataValueLengthExceeded  = errors.New("0015")
 	ErrInvalidMetadataNesting       = errors.New("0016")
+	ErrInvalidFileFormat            = errors.New("TPE-0001")
+	ErrEmptyFile                    = errors.New("TPE-0002")
 )

@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS example (
-    id UUID PRIMARY KEY NOT NULL,
-    name TEXT NOT NULL,
-    age NUMERIC NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE,
-    updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_at TIMESTAMP WITH TIME ZONE
-);

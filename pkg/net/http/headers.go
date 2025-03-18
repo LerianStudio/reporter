@@ -2,7 +2,7 @@ package http
 
 const (
 	headerUserAgent = "User-Agent"
-	dsl             = "dsl"
-	fileExtension   = ".gold"
+	fileExtension   = ".txt"
 	idempotencyTTL  = "X-TTL"
+	file            = "file"
 )

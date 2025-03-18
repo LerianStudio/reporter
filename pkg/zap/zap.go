@@ -2,7 +2,7 @@ package zap
 
 import (
 	"go.uber.org/zap"
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"plugin-template-engine/pkg/log"
 )
 
 // ZapWithTraceLogger is a wrapper of otelzap.SugaredLogger.
@@ -14,12 +14,12 @@ type ZapWithTraceLogger struct {
 	defaultMessageTemplate string
 }
 
-// logWithHydration is a helper method to log messages with hydrated arguments using the default message template.
+// logWithHydration is a helper method to log messages with hydrated arguments using the default message templates.
 func (l *ZapWithTraceLogger) logWithHydration(logFunc func(...any), args ...any) {
 	logFunc(hydrateArgs(l.defaultMessageTemplate, args)...)
 }
 
-// logfWithHydration is a helper method to log formatted messages with hydrated arguments using the default message template.
+// logfWithHydration is a helper method to log formatted messages with hydrated arguments using the default message templates.
 func (l *ZapWithTraceLogger) logfWithHydration(logFunc func(string, ...any), format string, args ...any) {
 	logFunc(l.defaultMessageTemplate+format, args...)
 }
@@ -124,7 +124,7 @@ func (l *ZapWithTraceLogger) Sync() error {
 	return nil
 }
 
-// WithDefaultMessageTemplate sets the default message template for the logger.
+// WithDefaultMessageTemplate sets the default message templates for the logger.
 //
 //nolint:ireturn
 func (l *ZapWithTraceLogger) WithDefaultMessageTemplate(message string) log.Logger {

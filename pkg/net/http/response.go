@@ -1,8 +1,8 @@
 package http
 
 import (
-	"k8s-golang-addons-boilerplate/pkg"
 	"net/http"
+	"plugin-template-engine/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

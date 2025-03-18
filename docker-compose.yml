@@ -1,28 +1,18 @@
-x-k8s-golang-addons-boilerplate-postgres-common:
-  &k8s-golang-addons-boilerplate-postgres-common
-  image: postgres:latest
+x-plugin-template-engine-mongodb-common:
+  &plugin-template-engine-mongodb-common
+  image: mongo:latest
   restart: always
-  user: ${USER_EXECUTE_COMMAND}
   healthcheck:
-    test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -p ${DB_PORT}" ]
+    test: echo 'db.runCommand("ping").ok'
     interval: 10s
     timeout: 5s
     retries: 5
   networks:
-    - k8s_golang_addons_boilerplate_network
-
-x-k8s-golang-addons-boilerplate-redis-common:
-  &k8s-golang-addons-boilerplate-redis-common
-  image: redis:latest
-  restart: always
-  env_file:
-    - .env
-  networks:
-    - k8s_golang_addons_boilerplate_network
+    - plugins_template_engine_network
 
 services:
-  k8s-golang-addons-boilerplate:
-    container_name: k8s-golang-addons-boilerplate
+  plugin-template-engine:
+    container_name: plugin-template-engine
     restart: always
     build:
       context: .
@@ -31,89 +21,32 @@ services:
       - .env
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
-      - ${PROTO_PORT}:${PROTO_PORT}
     volumes:
       - .:/usr/src/app
     depends_on:
-      - k8s-golang-addons-boilerplate-postgres-primary
+      - plugin-template-engine-mongodb
     networks:
-      - k8s_golang_addons_boilerplate_network
+      - plugins_template_engine_network
 
-  k8s-golang-addons-boilerplate-redis:
-    <<: *k8s-golang-addons-boilerplate-redis-common
-    container_name: k8s-golang-addons-boilerplate-redis
+  plugin-template-engine-mongodb:
+    <<: *plugin-template-engine-mongodb-common
+    container_name: plugin-template-engine-mongo
     environment:
-      - REDIS_USER=${REDIS_USER}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}", "--user", "${REDIS_USER}",  "--port ${REDIS_PORT}" ]
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    command: mongod --port ${MONGO_PORT}
     ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
+      - ${MONGO_PORT}:${MONGO_PORT}
     volumes:
-      - redis-data:/data
+      - mongo-data:/data/db
 
-  k8s-golang-addons-boilerplate-postgres-primary:
-    <<: *k8s-golang-addons-boilerplate-postgres-common
-    container_name: k8s-golang-addons-boilerplate-postgres-primary
-    ports:
-      - ${DB_PORT}:${DB_PORT}
-    environment:
-      PGPORT: ${DB_PORT}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication all 0.0.0.0/0 md5"
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    command: |
-      postgres
-      -c wal_level=replica
-      -c hot_standby=on
-      -c max_wal_senders=10
-      -c max_replication_slots=10
-      -c hot_standby_feedback=on
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-
-  k8s-golang-addons-boilerplate-postgres-replica:
-    <<: *k8s-golang-addons-boilerplate-postgres-common
-    container_name: k8s-golang-addons-boilerplate-postgres-replica
-    ports:
-      - ${DB_REPLICA_PORT}:${DB_REPLICA_PORT}
-    environment:
-      PGPORT: ${DB_REPLICA_PORT}
-      PGUSER: ${REPLICATION_USER}
-      PGPASSWORD: ${REPLICATION_PASSWORD}
-    command: |
-      bash -c "
-      if [ ! -d \"/var/lib/postgresql/data\" ] || [ ! -f \"/var/lib/postgresql/data/postgresql.conf\" ]; then
-        until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=k8s-golang-addons-boilerplate-postgres-primary --port=${DB_PORT}
-        do
-          echo 'Waiting for k8s-golang-addons-boilerplate-postgres-primary to connect...'
-          sleep 1s
-        done
-        echo 'Backup done..., starting k8s-golang-addons-boilerplate-postgres-replica...'
-        chmod 0700 /var/lib/postgresql/data
-        # Ensure the port is set to use for the replica
-        sed -i 's/^#port.*/port = ${DB_REPLICA_PORT}/' /var/lib/postgresql/data/postgresql.conf
-      fi
-      exec postgres -c config_file=/var/lib/postgresql/data/postgresql.conf
-      "
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_REPLICA_USER} -p ${DB_REPLICA_PORT}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      k8s-golang-addons-boilerplate-postgres-primary:
-        condition: service_healthy
-
-  k8s-boilerplate-otel-lgtm:
-    container_name: k8s-boilerplate-otel-lgtm
-    image: grafana/otel-lgtm:0.8.3
+  plugin-template-engine-otel-lgtm:
+    container_name: plugin-template-engine-otel-lgtm
+    image: grafana/otel-lgtm:latest
     restart: always
     environment:
       GF_SECURITY_ADMIN_USER: ${OTEL_LGTM_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${OTEL_LGTM_ADMIN_PASSWORD}
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     ports:
       - ${OTEL_LGTM_EXTERNAL_PORT}:${OTEL_LGTM_INTERNAL_PORT}
       - ${OTEL_LGTM_RECEIVER_GRPC_PORT}:${OTEL_LGTM_RECEIVER_GRPC_PORT}
@@ -121,16 +54,14 @@ services:
     volumes:
       - grafana-data:/otel-lgtm/grafana/data
       - ./grafana/run-grafana.sh:/otel-lgtm/run-grafana.sh
-#    entrypoint: ["/bin/sh", "-c", "chmod +x /otel-lgtm/run-grafana.sh && /otel-lgtm/run-grafana.sh"]
     networks:
-      - k8s_golang_addons_boilerplate_network
+      - plugins_template_engine_network
 
 volumes:
-  postgres-data:
-  redis-data:
+  mongo-data:
   grafana-data:
 
 networks:
-  k8s_golang_addons_boilerplate_network:
-    name: k8s_golang_addons_boilerplate_network
+  plugins_template_engine_network:
+    name: plugins_template_engine_network
     driver: bridge

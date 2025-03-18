@@ -2,15 +2,13 @@ package bootstrap
 
 import (
 	"fmt"
-	grcpcin "k8s-golang-addons-boilerplate/internal/adapters/grpc/in"
-	"k8s-golang-addons-boilerplate/internal/adapters/http/in"
-	"k8s-golang-addons-boilerplate/internal/adapters/postgres/example"
-	command "k8s-golang-addons-boilerplate/internal/services/example/command"
-	"k8s-golang-addons-boilerplate/internal/services/example/query"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/opentelemetry"
-	"k8s-golang-addons-boilerplate/pkg/postgres"
-	"k8s-golang-addons-boilerplate/pkg/zap"
+	"plugin-template-engine/internal/adapters/http/in"
+	templateDB "plugin-template-engine/internal/adapters/mongodb/templates"
+	"plugin-template-engine/internal/services"
+	"plugin-template-engine/pkg"
+	mongoDB "plugin-template-engine/pkg/mongo"
+	"plugin-template-engine/pkg/opentelemetry"
+	"plugin-template-engine/pkg/zap"
 )
 
 const ApplicationName = "example-boilerplate"
@@ -18,7 +16,6 @@ const ApplicationName = "example-boilerplate"
 // Config is the top level configuration struct for the entire application.
 type Config struct {
 	EnvName                 string `env:"ENV_NAME"`
-	ProtoAddress            string `env:"PROTO_ADDRESS"`
 	ServerAddress           string `env:"SERVER_ADDRESS"`
 	LogLevel                string `env:"LOG_LEVEL"`
 	OtelServiceName         string `env:"OTEL_RESOURCE_SERVICE_NAME"`
@@ -26,20 +23,12 @@ type Config struct {
 	OtelServiceVersion      string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
 	OtelDeploymentEnv       string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
-	PrimaryDBHost           string `env:"DB_HOST"`
-	PrimaryDBUser           string `env:"DB_USER"`
-	PrimaryDBPassword       string `env:"DB_PASSWORD"`
-	PrimaryDBName           string `env:"DB_NAME"`
-	PrimaryDBPort           string `env:"DB_PORT"`
-	ReplicaDBHost           string `env:"DB_REPLICA_HOST"`
-	ReplicaDBUser           string `env:"DB_REPLICA_USER"`
-	ReplicaDBPassword       string `env:"DB_REPLICA_PASSWORD"`
-	ReplicaDBName           string `env:"DB_REPLICA_NAME"`
-	ReplicaDBPort           string `env:"DB_REPLICA_PORT"`
-	RedisHost               string `env:"REDIS_HOST"`
-	RedisPort               string `env:"REDIS_PORT"`
-	RedisUser               string `env:"REDIS_USER"`
-	RedisPassword           string `env:"REDIS_PASSWORD"`
+	MongoURI                string `env:"MONGO_URI"`
+	MongoDBHost             string `env:"MONGO_HOST"`
+	MongoDBName             string `env:"MONGO_NAME"`
+	MongoDBUser             string `env:"MONGO_USER"`
+	MongoDBPassword         string `env:"MONGO_PASSWORD"`
+	MongoDBPort             string `env:"MONGO_PORT"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -61,63 +50,32 @@ func InitServers() *Service {
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 	}
 
-	// Init database connection
-	postgresSQLSourcePrimary := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.PrimaryDBHost, cfg.PrimaryDBUser, cfg.PrimaryDBPassword, cfg.PrimaryDBName, cfg.PrimaryDBPort)
+	/*mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+	cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)*/
+	mongoSource := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=%s",
+		cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort, cfg.MongoDBName, cfg.MongoDBName)
 
-	postgresSQLSourceReplica := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.ReplicaDBHost, cfg.ReplicaDBUser, cfg.ReplicaDBPassword, cfg.ReplicaDBName, cfg.ReplicaDBPort)
-
-	postgresConnection := &postgres.PostgresConnection{
-		ConnectionStringPrimary: postgresSQLSourcePrimary,
-		ConnectionStringReplica: postgresSQLSourceReplica,
-		PrimaryDBName:           cfg.PrimaryDBName,
-		ReplicaDBName:           cfg.ReplicaDBName,
-		Component:               ApplicationName,
-		Logger:                  logger,
+	mongoConnection := &mongoDB.MongoConnection{
+		ConnectionStringSource: mongoSource,
+		Database:               cfg.MongoDBName,
+		Logger:                 logger,
 	}
 
-	/* Init Redis Cache
+	templateMongoDBRepository := templateDB.NewTemplateMongoDBRepository(mongoConnection)
 
-	redisSource := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
-
-	redisConnection := &mredis.RedisConnection{
-		Addr:     redisSource,
-		User:     cfg.RedisUser,
-		Password: cfg.RedisPassword,
-		DB:       0,
-		Protocol: 3,
-		Logger:   logger,
+	templateService := &services.UseCase{
+		TemplateRepo: templateMongoDBRepository,
 	}
 
-	redisConsumerRepository := redis.NewConsumerRedis(redisConnection)
-
-	*/
-
-	examplePostgreSQLRepository := example.NewExamplePostgresSQLRepository(postgresConnection)
-
-	exampleCommand := &command.ExampleCommand{
-		ExampleRepo: examplePostgreSQLRepository,
+	templateHandler := &in.TemplateHandler{
+		Service: templateService,
 	}
 
-	exampleQuery := &query.ExampleQuery{
-		ExampleRepo: examplePostgreSQLRepository,
-	}
-
-	exampleHandler := &in.ExampleHandler{
-		ExampleCommand: exampleCommand,
-		ExampleQuery:   exampleQuery,
-	}
-
-	httpApp := in.NewRoutes(logger, telemetry, exampleHandler)
+	httpApp := in.NewRoutes(logger, telemetry, templateHandler)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
-	grpcApp := grcpcin.NewRouterGRPC(logger, telemetry, exampleQuery, exampleCommand)
-	serverGRPC := NewServerGRPC(cfg, grpcApp, logger, telemetry)
-
 	return &Service{
-		Server:     serverAPI,
-		ServerGRPC: serverGRPC,
-		Logger:     logger,
+		Server: serverAPI,
+		Logger: logger,
 	}
 }

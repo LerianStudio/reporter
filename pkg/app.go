@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"plugin-template-engine/pkg/log"
 	"sync"
 )
 

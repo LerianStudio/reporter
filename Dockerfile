@@ -1,9 +1,6 @@
 FROM golang:1.23-alpine AS builder
 
-WORKDIR /k8s-golang-addons-boilerplate
-
-COPY go.mod go.sum ./
-RUN go mod download
+WORKDIR /plugin-template-engine
 
 COPY . .
 
@@ -13,8 +10,6 @@ FROM alpine:latest
 
 COPY --from=builder /app /app
 
-COPY --from=builder /k8s-golang-addons-boilerplate/migrations /migrations
-
-EXPOSE 3005 7001
+EXPOSE 4009
 
 ENTRYPOINT ["/app"]

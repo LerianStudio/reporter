@@ -4,9 +4,9 @@ import (
 	"go.opentelemetry.io/contrib/bridges/otelzap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	pkgLog "k8s-golang-addons-boilerplate/pkg/log"
 	"log"
 	"os"
+	pkgLog "plugin-template-engine/pkg/log"
 )
 
 // InitializeLogger initializes our log layer and returns it
