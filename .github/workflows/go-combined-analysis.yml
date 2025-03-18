@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   GoLangCI-Lint:
-    name: Run GoLangCI-Lint to Boilerplate
+    name: Run GoLangCI-Lint to Plugin Template Engine
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/create-github-app-token@v1
@@ -62,7 +62,7 @@ jobs:
           GIT_COMMITTER_EMAIL: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
 
   GoSec:
-    name: Run GoSec to Boilerplate
+    name: Run GoSec to Plugin Template Engine
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
           args: ./...
 
   unit-tests:
-    name: Run Unit Tests to Boilerplate
+    name: Run Unit Tests to Plugin Template Engine
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
         run: make test
 
   integration-tests:
-    name: Run Integrations Tests to Boilerplate
+    name: Run Integrations Tests to Plugin Template Engine
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository

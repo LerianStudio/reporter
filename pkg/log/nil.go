@@ -55,7 +55,7 @@ func (l *NoneLogger) WithFields(fields ...any) Logger {
 	return l
 }
 
-// WithDefaultMessageTemplate sets the default message template for the logger.
+// WithDefaultMessageTemplate sets the default message templates for the logger.
 //
 //nolint:ireturn
 func (l *NoneLogger) WithDefaultMessageTemplate(message string) Logger {

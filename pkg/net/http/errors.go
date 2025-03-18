@@ -3,7 +3,7 @@ package http
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"k8s-golang-addons-boilerplate/pkg"
+	"plugin-template-engine/pkg"
 )
 
 // WithError returns an error with the given status code and message.

@@ -3,9 +3,9 @@ package bootstrap
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/log"
-	"k8s-golang-addons-boilerplate/pkg/opentelemetry"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/log"
+	"plugin-template-engine/pkg/opentelemetry"
 )
 
 // Server represents the http server for Ledger services.

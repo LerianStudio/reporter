@@ -4,7 +4,7 @@ import (
 	"context"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"plugin-template-engine/pkg/log"
 )
 
 type customContextKey string

@@ -18,9 +18,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/log"
 	"os"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/log"
 )
 
 const MDTraceparent = "traceparent"

@@ -3,9 +3,9 @@ package http
 import (
 	"context"
 	"google.golang.org/grpc"
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/log"
 	"net/url"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/log"
 	"strconv"
 	"strings"
 	"time"

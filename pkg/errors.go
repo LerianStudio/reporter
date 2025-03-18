@@ -3,7 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"k8s-golang-addons-boilerplate/pkg/constant"
+	"plugin-template-engine/pkg/constant"
 	"strings"
 )
 

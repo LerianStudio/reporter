@@ -1,14 +1,13 @@
 package bootstrap
 
 import (
-	"k8s-golang-addons-boilerplate/pkg"
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/log"
 )
 
 // Service is the application glue where we put all top level components to be used.
 type Service struct {
 	*Server
-	*ServerGRPC
 	log.Logger
 }
 
@@ -18,6 +17,5 @@ func (app *Service) Run() {
 	pkg.NewLauncher(
 		pkg.WithLogger(app.Logger),
 		pkg.RunApp("HTTP Service", app.Server),
-		pkg.RunApp("gRPC server", app.ServerGRPC),
 	).Run()
 }

@@ -1,11 +1,11 @@
-package mmongo
+package mongo
 
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"plugin-template-engine/pkg/log"
 )
 
 // MongoConnection is a hub which deal with mongodb connections.

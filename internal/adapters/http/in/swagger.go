@@ -1,9 +1,9 @@
 package in
 
 import (
-	"k8s-golang-addons-boilerplate/api"
-	"k8s-golang-addons-boilerplate/pkg"
 	"os"
+	"plugin-template-engine/api"
+	"plugin-template-engine/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

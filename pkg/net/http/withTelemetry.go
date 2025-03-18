@@ -2,9 +2,9 @@ package http
 
 import (
 	"context"
-	"k8s-golang-addons-boilerplate/pkg"
-	cn "k8s-golang-addons-boilerplate/pkg/constant"
-	"k8s-golang-addons-boilerplate/pkg/opentelemetry"
+	"plugin-template-engine/pkg"
+	cn "plugin-template-engine/pkg/constant"
+	"plugin-template-engine/pkg/opentelemetry"
 	"strings"
 
 	"go.opentelemetry.io/otel"
