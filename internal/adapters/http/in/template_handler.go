@@ -81,54 +81,6 @@ func (ex *TemplateHandler) CreateTemplatePongo2(c *fiber.Ctx) error {
 	logger.Infof("Successfully created create template %v", res)
 
 	return http.OK(c, nil)
-	/*
-			re := regexp.MustCompile(`{{\s*([a-zA-Z0-9_.]+)\s*}}`)
-			matches := re.FindAllStringSubmatch(file, -1)
-
-			var keys []string
-			for _, match := range matches {
-				if len(match) > 1 {
-					keys = append(keys, match[1])
-				}
-			}
-
-			fmt.Println(keys)
-
-		tpl, err := pongo2.FromString(file)
-		if err != nil {
-			panic(err)
-		}
-
-		/*
-			!--- como é mapeado o executa ---!
-			out, err := tpl.Execute(pongo2.Context{
-				"onboarding": map[string]interface{}{
-					"organization": map[string]interface{}{
-						"legal_name": "Minha Empresa Ltda",
-					},
-				},
-			})
-
-
-
-		out, err := tpl.Execute(pongo2.Context{"test": "test"})
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(out)
-
-		template := pongo2.Must(tpl, err)
-
-		fmt.Println(template)
-
-		/*
-			response, err := ex.ExampleCommand.CreateExample(ctx, payload)
-			if err != nil {
-				opentelemetry.HandleSpanError(&span, "Failed to create example on services", err)
-
-				return http.WithError(c, err)
-			}
-	*/
 }
 
 func setValueKeyWithDot(context pongo2.Context, key string, value any) {
