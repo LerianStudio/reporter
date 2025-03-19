@@ -9,8 +9,8 @@ on:
       - hotfix/v*
     paths-ignore:
       - '.gitignore'
-      - '**/*.env'    # Ignora todos os arquivos .env
-      - '*.env'       # Ignora .env na raiz
+      - '../../components/template-reports/.env'    # Ignora todos os arquivos .env
+      - '../../components/template-reports/.env'       # Ignora .env na raiz
       - '**/*.md'     # Ignora arquivos .md
       - '*.md'        # Ignora .md na raiz
       - '**/*.txt'    # Ignora arquivos .txt

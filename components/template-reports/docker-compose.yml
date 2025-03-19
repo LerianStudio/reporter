@@ -15,8 +15,8 @@ services:
     container_name: plugin-template-engine
     restart: always
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: ./components/template-reports/Dockerfile
     env_file:
       - .env
     ports:

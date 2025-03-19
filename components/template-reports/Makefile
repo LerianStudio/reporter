@@ -50,7 +50,7 @@ info:
 up:
 	make set-env
 	@echo "$(BLUE)Starting all services...$(NC)"
-	@$(DOCKER_CMD) -f ./components/template-reports/docker-compose.yml up --build -d
+	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
 	@echo "$(BLUE)All services started successfully$(NC)"
 
 .PHONY: start
@@ -127,5 +127,5 @@ test:
 .PHONY: set-env
 set-env:
 	@echo "$(BLUE)Setting up environment files...$(NC)"
-	cp -r ./components/template-reports/.env.example ./components/template-reports/.env
+	cp -r ./.env.example ./.env
 	@echo "$(BLUE)Environment files created successfully$(NC)"

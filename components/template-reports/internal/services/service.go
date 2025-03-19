@@ -1,7 +1,7 @@
 package services
 
 import (
-	example "plugin-template-engine/internal/adapters/mongodb/templates"
+	example "plugin-template-engine/components/template-reports/internal/adapters/mongodb/templates"
 )
 
 // UseCase is a struct to implement the services methods

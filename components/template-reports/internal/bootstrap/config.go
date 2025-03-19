@@ -2,9 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
-	"plugin-template-engine/internal/adapters/http/in"
-	templateDB "plugin-template-engine/internal/adapters/mongodb/templates"
-	"plugin-template-engine/internal/services"
+	in2 "plugin-template-engine/components/template-reports/internal/adapters/http/in"
+	templateDB "plugin-template-engine/components/template-reports/internal/adapters/mongodb/templates"
+	"plugin-template-engine/components/template-reports/internal/services"
 	"plugin-template-engine/pkg"
 	mongoDB "plugin-template-engine/pkg/mongo"
 	"plugin-template-engine/pkg/opentelemetry"
@@ -67,11 +67,11 @@ func InitServers() *Service {
 		TemplateRepo: templateMongoDBRepository,
 	}
 
-	templateHandler := &in.TemplateHandler{
+	templateHandler := &in2.TemplateHandler{
 		Service: templateService,
 	}
 
-	httpApp := in.NewRoutes(logger, telemetry, templateHandler)
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{
