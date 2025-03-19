@@ -15,7 +15,7 @@ services:
     container_name: plugin-template-engine
     restart: always
     build:
-      context: .
+      context: ../..
       dockerfile: Dockerfile
     env_file:
       - .env
