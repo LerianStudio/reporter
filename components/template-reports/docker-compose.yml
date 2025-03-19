@@ -16,7 +16,7 @@ services:
     restart: always
     build:
       context: ../..
-      dockerfile: Dockerfile
+      dockerfile: ./components/template-reports/Dockerfile
     env_file:
       - .env
     ports:

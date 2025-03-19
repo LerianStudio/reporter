@@ -4,7 +4,7 @@ WORKDIR /plugin-template-engine
 
 COPY ../.. .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o /app cmd/app/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o /app components/template-reports/cmd/app/main.go
 
 FROM alpine:latest
 
