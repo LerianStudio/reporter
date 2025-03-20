@@ -1,0 +1,60 @@
+services:
+  plugin-template-engine-mongodb:
+    container_name: plugin-template-engine-mongodb
+    image: mongo:latest
+    restart: always
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    command: mongod --port ${MONGO_PORT}
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    volumes:
+      - plugin-template-engine-mongodb-data:/data/db
+    networks:
+      - plugin-template-engine-network
+
+  plugin-template-engine-rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    container_name: plugin-template-engine-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - ${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_HOST}
+      - ${RABBITMQ_PORT_AMPQ}:${RABBITMQ_PORT_AMPQ}
+    volumes:
+      - ./rabbitmq/etc/definitions.json:/etc/rabbitmq/definitions.json
+      - ./rabbitmq/etc/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - plugin-template-engine-network
+
+  plugin-template-engine-minio:
+    image: minio/minio:latest
+    container_name: plugin-template-engine-minio
+    ports:
+      - ${MINIO_API_PORT}:${MINIO_API_PORT}
+      - ${MINIO_ADMIN_PORT}:${MINIO_ADMIN_PORT}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - plugin-template-engine-minio-data:/data
+    command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+
+volumes:
+  plugin-template-engine-mongodb-data:
+  plugin-template-engine-minio-data:
+
+networks:
+  plugin-template-engine-network:
+    name: plugin-template-engine-network
+    driver: bridge
