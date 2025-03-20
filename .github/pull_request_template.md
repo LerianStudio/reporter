@@ -3,6 +3,8 @@
 ## Pull Request Type
 [//]: # (Check the appropriate box for the type of pull request.)
 
+- [ ] Template Engine Service
+- [ ] Template Engine Worker
 - [ ] Pipeline
 - [ ] Tests
 - [ ] Documentation

@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "name":"plugin-template-engine",
+      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "hashing_algorithm":"rabbit_password_hashing_sha256",
+      "tags":"administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "plugin-template-engine",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "plugin-template-engine.generate-report.queue",
+      "vhost": "/",
+      "durable": true
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "plugin-template-engine.generate-report.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true
+    }
+  ],
+  "bindings": [
+    {
+      "source": "plugin-template-engine.generate-report.exchange",
+      "vhost": "/",
+      "destination": "plugin-template-engine.generate-report.queue",
+      "destination_type": "queue",
+      "routing_key": "plugin-template-engine.generate-report.key"
+    }
+  ]
+}
