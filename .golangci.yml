@@ -66,6 +66,17 @@ linters-settings:
       - name: use-any
         severity: warning
         disabled: false
+
+output:
+  formats:
+    checkstyle:
+      path: 'report.xml'        # Gera o arquivo XML do Checkstyle
+    json:
+      path: 'stdout'             # Saída em JSON no terminal
+    text:
+      path: 'stdout'             # Saída de texto no terminal
+      color: true                # Colorir a saída no terminal
+
 issues:
   # The default exclusion rules are a bit too permissive, so copying the relevant ones below
   exclude-use-default: false
