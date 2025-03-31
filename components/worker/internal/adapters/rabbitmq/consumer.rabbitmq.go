@@ -7,6 +7,7 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/rabbitmq"
+	"github.com/rabbitmq/amqp091-go"
 	"sync"
 )
 
@@ -62,69 +63,87 @@ func (cr *ConsumerRoutes) RunConsumers(ctx context.Context, wg *sync.WaitGroup) 
 	for queueName, handler := range cr.routes {
 		cr.Logger.Info("Starting consumer for queue " + queueName)
 
-		err := cr.conn.Channel.Qos(1, 0, false)
+		if err := cr.setupQos(); err != nil {
+			return err
+		}
+
+		messages, err := cr.consumeMessages(queueName)
 		if err != nil {
 			return err
 		}
 
-		messages, err := cr.conn.Channel.Consume(
-			queueName,
-			"",
-			false,
-			false,
-			false,
-			false,
-			nil)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < cr.numWorkers; i++ {
-			wg.Add(1)
-
-			go func(workerID int, queue string, handlerFunc QueueHandlerFunc) {
-				defer wg.Done()
-
-				for {
-					select {
-					case <-ctx.Done():
-						cr.Logger.Infof("Worker %d: Shutting down gracefully", workerID)
-						return
-					case message, ok := <-messages:
-						if !ok {
-							cr.Logger.Infof("Worker %d: Message channel closed", workerID)
-							return
-						}
-
-						requestID, found := message.Headers[constant.HeaderID]
-						if !found {
-							requestID = commons.GenerateUUIDv7().String()
-						}
-
-						logWithFields := cr.Logger.WithFields(
-							constant.HeaderID, requestID.(string),
-						).WithDefaultMessageTemplate(requestID.(string) + " | ")
-
-						ctx := commons.ContextWithLogger(
-							commons.ContextWithHeaderID(context.Background(), requestID.(string)),
-							logWithFields,
-						)
-
-						err := handlerFunc(ctx, message.Body)
-						if err != nil {
-							cr.Logger.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
-
-							_ = message.Nack(false, true)
-
-							continue
-						}
-
-						_ = message.Ack(false)
-					}
-				}
-			}(i, queueName, handler)
-		}
+		cr.startWorkers(ctx, wg, messages, queueName, handler)
 	}
 
 	return nil
+}
+
+func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, messages <-chan amqp091.Delivery, queueName string, handler QueueHandlerFunc) {
+	for i := 0; i < cr.numWorkers; i++ {
+		wg.Add(1)
+
+		go func(workerID int, queue string, handlerFunc QueueHandlerFunc) {
+			defer wg.Done()
+
+			for {
+				select {
+				case <-ctx.Done():
+					cr.Logger.Infof("Worker %d: Shutting down gracefully", workerID)
+					return
+				case message, ok := <-messages:
+					if !ok {
+						cr.Logger.Infof("Worker %d: Message channel closed", workerID)
+						return
+					}
+
+					cr.processMessage(workerID, queue, handlerFunc, message)
+				}
+			}
+		}(i, queueName, handler)
+	}
+}
+
+func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) bool {
+	requestID, found := message.Headers[constant.HeaderID]
+	if !found {
+		requestID = commons.GenerateUUIDv7().String()
+	}
+
+	logWithFields := cr.Logger.WithFields(
+		constant.HeaderID, requestID.(string),
+	).WithDefaultMessageTemplate(requestID.(string) + " | ")
+
+	ctx := commons.ContextWithLogger(
+		commons.ContextWithHeaderID(context.Background(), requestID.(string)),
+		logWithFields,
+	)
+
+	err := handlerFunc(ctx, message.Body)
+	if err != nil {
+		cr.Logger.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
+
+		_ = message.Nack(false, true)
+
+		return true
+	}
+
+	_ = message.Ack(false)
+
+	return false
+}
+
+func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Delivery, error) {
+	return cr.conn.Channel.Consume(
+		queueName,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil)
+}
+
+// setupQos configures a QOS
+func (cr *ConsumerRoutes) setupQos() error {
+	return cr.conn.Channel.Qos(1, 0, false)
 }

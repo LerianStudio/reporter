@@ -68,7 +68,7 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "consumer.handler_generate_report")
+	_, span := tracer.Start(ctx, "consumer.handler_generate_report")
 	defer span.End()
 
 	logger.Info("Processing message from generate report queue")
