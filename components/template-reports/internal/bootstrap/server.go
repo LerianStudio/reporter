@@ -37,8 +37,8 @@ func (s *Server) Run(l *pkg.Launcher) error {
 	defer s.ShutdownTelemetry()
 
 	defer func() {
-		if err := s.Logger.Sync(); err != nil {
-			s.Logger.Fatalf("Failed to sync logger: %s", err)
+		if err := s.Sync(); err != nil {
+			s.Fatalf("Failed to sync logger: %s", err)
 		}
 	}()
 

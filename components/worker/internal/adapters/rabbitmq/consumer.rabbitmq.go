@@ -61,7 +61,7 @@ func (cr *ConsumerRoutes) Register(queueName string, handler QueueHandlerFunc) {
 // RunConsumers  init consume for all registry queues.
 func (cr *ConsumerRoutes) RunConsumers(ctx context.Context, wg *sync.WaitGroup) error {
 	for queueName, handler := range cr.routes {
-		cr.Logger.Info("Starting consumer for queue " + queueName)
+		cr.Info("Starting consumer for queue " + queueName)
 
 		if err := cr.setupQos(); err != nil {
 			return err
@@ -88,11 +88,11 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 			for {
 				select {
 				case <-ctx.Done():
-					cr.Logger.Infof("Worker %d: Shutting down gracefully", workerID)
+					cr.Infof("Worker %d: Shutting down gracefully", workerID)
 					return
 				case message, ok := <-messages:
 					if !ok {
-						cr.Logger.Infof("Worker %d: Message channel closed", workerID)
+						cr.Infof("Worker %d: Message channel closed", workerID)
 						return
 					}
 
@@ -120,7 +120,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 	err := handlerFunc(ctx, message.Body)
 	if err != nil {
-		cr.Logger.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
+		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
 
 		_ = message.Nack(false, true)
 
