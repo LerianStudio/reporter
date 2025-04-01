@@ -27,6 +27,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	defer span.End()
 
 	var message GenerateReportMessage
+
 	err := json.Unmarshal(body, &message)
 	if err != nil {
 		logger.Errorf("Error unmarshalling message: %s", err.Error())

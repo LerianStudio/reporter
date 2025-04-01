@@ -37,6 +37,7 @@ func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte
 	defer file.Close()
 
 	var buf bytes.Buffer
+
 	_, err = io.Copy(&buf, file)
 	if err != nil {
 		return nil, err
