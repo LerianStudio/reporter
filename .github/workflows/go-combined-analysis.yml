@@ -38,6 +38,7 @@ jobs:
           lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
           go_version: '1.23'  # Versão do Go
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          golangci_lint_version: 'latest'
 
   #Execute Security checks
   GoSec:
