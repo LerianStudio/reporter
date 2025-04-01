@@ -6,7 +6,12 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"plugin-template-engine/components/worker/internal/adapters/minio/report"
+	"plugin-template-engine/components/worker/internal/adapters/minio/template"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
+	"plugin-template-engine/components/worker/internal/services"
 )
 
 type Config struct {
@@ -26,6 +31,11 @@ type Config struct {
 	OtelDeploymentEnv           string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
+	MinioAPIHost                string `env:"MINIO_API_HOST"`
+	MinioAPIPort                string `env:"MINIO_API_PORT"`
+	MinioSSLEnabled             bool   `env:"MINIO_SSL_ENABLED"`
+	MinioAppUsername            string `env:"MINIO_APP_USER"`
+	MinioAppPassword            string `env:"MINIO_APP_PASSWORD"`
 }
 
 func InitWorker() *Service {
@@ -63,12 +73,22 @@ func InitWorker() *Service {
 
 	routes := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
 
-	//useCase := &service.UseCase{
-	//	// TODO
-	//}
+	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
 
-	//TODO multiQueueConsumer := NewMultiQueueConsumer(routes, useCase)
-	multiQueueConsumer := NewMultiQueueConsumer(routes)
+	minioClient, err := minio.New(minioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
+		Secure: cfg.MinioSSLEnabled,
+	})
+	if err != nil {
+		logger.Fatalf("Error creating minio client: %v", err)
+	}
+
+	service := &services.UseCase{
+		TemplateFileRepo: template.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:   report.NewMinioRepository(minioClient, "reports"),
+	}
+
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,

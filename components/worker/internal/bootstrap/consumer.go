@@ -2,13 +2,12 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/google/uuid"
 	"os"
 	"os/signal"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
+	"plugin-template-engine/components/worker/internal/services"
 	"sync"
 	"syscall"
 )
@@ -16,20 +15,14 @@ import (
 // MultiQueueConsumer represents a multi-queue consumer.
 type MultiQueueConsumer struct {
 	consumerRoutes *rabbitmq.ConsumerRoutes
-}
-
-// GenerateReportMessage message structure for report generation.
-type GenerateReportMessage struct {
-	ID           uuid.UUID        `json:"id"`
-	Type         string           `json:"type"`
-	FileURL      string           `json:"fileUrl"`
-	MappedFields []map[string]any `json:"mappedFields"`
+	UseCase        *services.UseCase
 }
 
 // NewMultiQueueConsumer create a new instance of MultiQueueConsumer.
-func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes) *MultiQueueConsumer {
+func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes, useCase *services.UseCase) *MultiQueueConsumer {
 	consumer := &MultiQueueConsumer{
 		consumerRoutes: routes,
+		UseCase:        useCase,
 	}
 
 	// Registry handlers for each queue
@@ -73,20 +66,14 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	logger.Info("Processing message from generate report queue")
 
-	var message GenerateReportMessage
-
-	err := json.Unmarshal(body, &message)
+	err := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Error unmarshalling message JSON", err)
+		opentelemetry.HandleSpanError(&span, "Error generating report", err)
 
-		logger.Errorf("Error unmarshalling accounts message JSON: %v", err)
+		logger.Errorf("Error generating report: %v", err)
 
 		return err
 	}
-
-	logger.Infof("Generate report message consumed: %s", message)
-
-	// TODO: generate report use case here
 
 	return nil
 }
