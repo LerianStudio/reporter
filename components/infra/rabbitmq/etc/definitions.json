@@ -23,14 +23,14 @@
   ],
   "queues": [
     {
-      "name": "plugin-template-engine.generate-report.queue",
+      "name": "template-engine.generate-report.queue",
       "vhost": "/",
       "durable": true
     }
   ],
   "exchanges": [
     {
-      "name": "plugin-template-engine.generate-report.exchange",
+      "name": "template-engine.generate-report.exchange",
       "vhost": "/",
       "type": "direct",
       "durable": true
@@ -38,11 +38,11 @@
   ],
   "bindings": [
     {
-      "source": "plugin-template-engine.generate-report.exchange",
+      "source": "template-engine.generate-report.exchange",
       "vhost": "/",
-      "destination": "plugin-template-engine.generate-report.queue",
+      "destination": "template-engine.generate-report.queue",
       "destination_type": "queue",
-      "routing_key": "plugin-template-engine.generate-report.key"
+      "routing_key": "template-engine.generate-report.key"
     }
   ]
 }
