@@ -48,6 +48,13 @@ This repository is a boilerplate for creating Go-based projects with Kubernetes 
 }
 ```
 
+## File storage with MinIO
+
+We use MinIO to store both the template files and the generated reports in their final format.
+
+When starting the MinIO container using the project’s docker-compose, it uses the minio/mc image, which is the official image of the MinIO Client. This is a CLI utility similar to awscli, used to interact with MinIO servers.
+The CLI image is used to create a user with upload and read permissions, which will be used by the service and the worker. It also creates two buckets: one for templates and another for the generated reports.
+
 ## Swagger Documentation
 
 The boilerplate includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4000/swagger/index.html`.

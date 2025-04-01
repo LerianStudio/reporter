@@ -46,9 +46,30 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_APP_USER: ${MINIO_APP_USER}
+      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD}
     volumes:
       - plugin-template-engine-minio-data:/data
     command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+
+  plugin-template-engine-minio-mc:
+    image: minio/mc
+    container_name: plugin-template-engine-minio-mc
+    depends_on:
+      - plugin-template-engine-minio
+    entrypoint: >
+      sh -c "
+        sleep 5 && \
+        mc alias set local http://plugin-template-engine-minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
+        mc mb local/templates || true && \
+        mc mb local/reports || true && \
+        mc admin user add local $MINIO_APP_USER $MINIO_APP_PASSWORD && \
+        mc admin policy create local app-policy /policies/app-policy.json && \
+        mc admin policy attach local app-policy --user $MINIO_APP_USER && \
+        echo 'User and buckets created.'
+      "
+    volumes:
+      - ./minio/policies:/policies
 
 volumes:
   plugin-template-engine-mongodb-data:
