@@ -28,9 +28,9 @@ func NewMinioRepository(minioClient *minio.Client, bucketName string) *MinioRepo
 	}
 }
 
-// Get retrieves the content of a .txt file from the MinIO bucket.
+// Get the content of a .txt file from the MinIO bucket.
 func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	file, err := repo.minioClient.GetObject(ctx, repo.BucketName, objectName+".txt", minio.GetObjectOptions{})
+	file, err := repo.minioClient.GetObject(ctx, repo.BucketName, objectName+".tpl", minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
