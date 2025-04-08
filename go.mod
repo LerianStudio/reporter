@@ -12,8 +12,9 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.4
 	github.com/joho/godotenv v1.5.1
+	github.com/minio/minio-go/v7 v7.0.89
 	github.com/pkg/errors v0.9.1
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/swaggo/fiber-swagger v1.3.0
@@ -64,7 +65,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.89 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/xid v1.6.0 // indirect
