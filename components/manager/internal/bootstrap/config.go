@@ -2,9 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
-	in2 "plugin-template-engine/components/template-reports/internal/adapters/http/in"
-	templateDB "plugin-template-engine/components/template-reports/internal/adapters/mongodb/templates"
-	"plugin-template-engine/components/template-reports/internal/services"
+	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
+	templateDB "plugin-template-engine/components/manager/internal/adapters/mongodb/templates"
+	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
 	mongoDB "plugin-template-engine/pkg/mongo"
 	"plugin-template-engine/pkg/opentelemetry"

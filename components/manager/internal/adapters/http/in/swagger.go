@@ -2,7 +2,7 @@ package in
 
 import (
 	"os"
-	"plugin-template-engine/components/template-reports/api"
+	"plugin-template-engine/components/manager/api"
 	"plugin-template-engine/pkg"
 
 	"github.com/gofiber/fiber/v2"

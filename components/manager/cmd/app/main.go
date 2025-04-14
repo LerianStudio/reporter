@@ -1,7 +1,7 @@
 package main
 
 import (
-	"plugin-template-engine/components/template-reports/internal/bootstrap"
+	"plugin-template-engine/components/manager/internal/bootstrap"
 	"plugin-template-engine/pkg"
 )
 
