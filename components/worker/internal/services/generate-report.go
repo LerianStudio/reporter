@@ -63,7 +63,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	logger.Infof("Template found: %s", string(fileBytes))
 
-	result := make(map[string]map[string][]map[string]interface{})
+	result := make(map[string]map[string][]map[string]any)
 
 	for databaseName, tables := range message.DataQueries {
 		logger.Infof("Querying database %s", databaseName)
@@ -72,11 +72,11 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		// Initialize inner map for this database
 		if _, exists := result[databaseName]; !exists {
-			result[databaseName] = make(map[string][]map[string]interface{})
+			result[databaseName] = make(map[string][]map[string]any)
 		}
 
 		for table, fields := range tables {
-			var tableResult []map[string]interface{}
+			var tableResult []map[string]any
 
 			var err error
 

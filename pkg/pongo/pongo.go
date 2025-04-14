@@ -15,7 +15,7 @@ func NewTemplateRenderer() *TemplateRenderer {
 }
 
 // RenderFromBytes renders a template from bytes using the provided data context
-func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]interface{}) (string, error) {
+func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any) (string, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 
 	tpl, err := pongo2.FromBytes(templateBytes)
