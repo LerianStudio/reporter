@@ -27,7 +27,7 @@ MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
 
 # Define a list of all component directories for easier iteration
-COMPONENTS := $(INFRA_DIR) $(MANAGER_DIR) $(WORKER_DIR)
+COMPONENTS := $(INFRA_DIR) #$(WORKER_DIR) $(MANAGER_DIR) TODO
 
 # Include shared color definitions and utility functions
 include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
@@ -63,13 +63,18 @@ info:
 	@echo "                                                                                                                                       "
 	@echo "                                                                                                                                       "
 
-# Docker Compose Commands
 .PHONY: up
 up:
-	make set-env
-	@echo "$(BLUE)Starting all services...$(NC)"
-	@$(DOCKER_CMD) -f ./components/template-reports/docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	$(call title1,"Starting all services with Docker Compose")
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "$(CYAN)Starting services in $$dir...$(NC)"; \
+			(cd $$dir && $(MAKE) up) || exit 1; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services started successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: start
 start:
