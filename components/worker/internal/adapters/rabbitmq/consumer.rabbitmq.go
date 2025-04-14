@@ -103,6 +103,8 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 	}
 }
 
+// processMessage processes a single message from a specified queue using the provided handler function.
+// Returns true if an error occurred during processing and the message was requeued; otherwise, returns false.
 func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) bool {
 	requestID, found := message.Headers[constant.HeaderID]
 	if !found {
@@ -132,6 +134,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 	return false
 }
 
+// consumeMessages establishes a consumer for the specified queue and returns a channel for message deliveries.
 func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Delivery, error) {
 	return cr.conn.Channel.Consume(
 		queueName,
@@ -143,7 +146,7 @@ func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Deli
 		nil)
 }
 
-// setupQos configures a QOS
+// setupQos configures QoS settings for the RabbitMQ channel to limit message prefetch count and improve message processing.
 func (cr *ConsumerRoutes) setupQos() error {
 	return cr.conn.Channel.Qos(1, 0, false)
 }
