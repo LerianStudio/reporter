@@ -64,6 +64,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	logger.Infof("Template found: %s", string(fileBytes))
 
 	result := make(map[string]map[string][]map[string]interface{})
+
 	for databaseName, tables := range message.DataQueries {
 		logger.Infof("Querying database %s", databaseName)
 
@@ -76,6 +77,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		for table, fields := range tables {
 			var tableResult []map[string]interface{}
+
 			var err error
 
 			if dataSource.DatabaseType == "mongodb" {
@@ -97,6 +99,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	}
 
 	renderer := pongo.NewTemplateRenderer()
+
 	out, err := renderer.RenderFromBytes(ctx, fileBytes, result)
 	if err != nil {
 		logger.Errorf("Error rendering template: %s", err.Error())
@@ -124,5 +127,6 @@ func getContentType(ext string) string {
 	if contentType, ok := mimeTypes[ext]; ok {
 		return contentType
 	}
+
 	return "text/plain"
 }

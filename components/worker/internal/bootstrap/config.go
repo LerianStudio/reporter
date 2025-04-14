@@ -100,7 +100,7 @@ func InitWorker() *Service {
 	onboardingString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazOnboardingDBName)
 
-	onboardingConnection := &pg.PostgresConnection{
+	onboardingConnection := &pg.Connection{
 		ConnectionString:   onboardingString,
 		DBName:             cfg.MidazOnboardingDBName,
 		Logger:             logger,
@@ -119,7 +119,7 @@ func InitWorker() *Service {
 	transactionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazTransactionDBName)
 
-	transactionConnection := &pg.PostgresConnection{
+	transactionConnection := &pg.Connection{
 		ConnectionString:   transactionString,
 		DBName:             cfg.MidazTransactionDBName,
 		Logger:             logger,

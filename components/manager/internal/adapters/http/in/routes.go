@@ -1,12 +1,12 @@
 package in
 
 import (
+	"github.com/LerianStudio/lib-commons/commons/log"
+	"github.com/LerianStudio/lib-commons/commons/net/http"
+	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
-	"plugin-template-engine/pkg/log"
-	"plugin-template-engine/pkg/net/http"
-	"plugin-template-engine/pkg/opentelemetry"
 )
 
 func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler) *fiber.App {

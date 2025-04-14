@@ -2,13 +2,13 @@ package bootstrap
 
 import (
 	"fmt"
+	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
+	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/commons/zap"
 	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
 	templateDB "plugin-template-engine/components/manager/internal/adapters/mongodb/templates"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
-	mongoDB "plugin-template-engine/pkg/mongo"
-	"plugin-template-engine/pkg/opentelemetry"
-	"plugin-template-engine/pkg/zap"
 )
 
 const ApplicationName = "example-boilerplate"

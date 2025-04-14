@@ -1,11 +1,11 @@
 package bootstrap
 
 import (
+	"github.com/LerianStudio/lib-commons/commons/log"
+	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
 	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/log"
-	"plugin-template-engine/pkg/opentelemetry"
 )
 
 // Server represents the http server for Ledger services.

@@ -11,10 +11,10 @@ type Repository interface {
 }
 
 type DataSource struct {
-	connection *postgres.PostgresConnection
+	connection *postgres.Connection
 }
 
-func NewRepository(pc *postgres.PostgresConnection) *DataSource {
+func NewRepository(pc *postgres.Connection) *DataSource {
 	c := &DataSource{
 		connection: pc,
 	}
@@ -42,6 +42,7 @@ func (ds *DataSource) Query(ctx context.Context, table string, fields []string) 
 	cols, _ := rows.Columns()
 	vals := make([]interface{}, len(cols))
 	ptrs := make([]interface{}, len(cols))
+
 	for i := range vals {
 		ptrs[i] = &vals[i]
 	}

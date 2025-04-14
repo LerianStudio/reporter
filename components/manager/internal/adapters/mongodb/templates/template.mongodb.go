@@ -2,7 +2,7 @@ package templates
 
 import (
 	"context"
-	pkgMongo "plugin-template-engine/pkg/mongo"
+	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
 )
 
 // Repository provides an interface for operations related on mongo a metadata entities.
@@ -14,12 +14,12 @@ type Repository interface {
 
 // TemplateMongoDBRepository is a MongoDD-specific implementation of the PackageRepository.
 type TemplateMongoDBRepository struct {
-	connection *pkgMongo.MongoConnection
+	connection *libMongo.MongoConnection
 	Database   string
 }
 
 // NewTemplateMongoDBRepository returns a new instance of TemplateMongoDBRepository using the given MongoDB connection.
-func NewTemplateMongoDBRepository(mc *pkgMongo.MongoConnection) *TemplateMongoDBRepository {
+func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDBRepository {
 	r := &TemplateMongoDBRepository{
 		connection: mc,
 		Database:   mc.Database,

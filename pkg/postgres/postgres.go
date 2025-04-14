@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// PostgresConnection is a hub which deals with postgres connections.
-type PostgresConnection struct {
+// Connection is a hub which deals with postgres connections.
+type Connection struct {
 	ConnectionString   string
 	DBName             string
 	ConnectionDB       *sql.DB
@@ -19,7 +19,7 @@ type PostgresConnection struct {
 }
 
 // Connect initializes the connection with the PostgreSQL DB.
-func (c *PostgresConnection) Connect() error {
+func (c *Connection) Connect() error {
 	c.Logger.Info("Connecting to PostgreSQL...")
 
 	db, err := sql.Open("pgx", c.ConnectionString)
@@ -29,8 +29,13 @@ func (c *PostgresConnection) Connect() error {
 	}
 
 	if err := db.Ping(); err != nil {
-		db.Close()
+		closeErr := db.Close()
+		if closeErr != nil {
+			c.Logger.Errorf("Error closing connection: %v", closeErr)
+		}
+
 		c.Logger.Errorf("Error pinging PostgreSQL: %v", err)
+
 		return err
 	}
 
@@ -42,16 +47,18 @@ func (c *PostgresConnection) Connect() error {
 	c.Connected = true
 
 	c.Logger.Infof("Connected to PostgreSQL [%s]", c.DBName)
+
 	return nil
 }
 
 // GetDB returns a pointer to the postgres connection, initializing it if necessary.
-func (pc *PostgresConnection) GetDB() (*sql.DB, error) {
+func (pc *Connection) GetDB() (*sql.DB, error) {
 	if pc.ConnectionDB == nil {
 		if err := pc.Connect(); err != nil {
 			pc.Logger.Infof("ERRCONECT %s", err)
 			return nil, err
 		}
 	}
+
 	return pc.ConnectionDB, nil
 }

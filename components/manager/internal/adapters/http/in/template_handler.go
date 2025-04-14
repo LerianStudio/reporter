@@ -1,12 +1,12 @@
 package in
 
 import (
+	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/flosch/pongo2/v6"
 	"github.com/gofiber/fiber/v2"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/net/http"
-	"plugin-template-engine/pkg/opentelemetry"
 	"regexp"
 	"strings"
 )
