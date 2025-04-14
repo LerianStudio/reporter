@@ -10,8 +10,10 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"plugin-template-engine/components/worker/internal/adapters/minio/report"
 	"plugin-template-engine/components/worker/internal/adapters/minio/template"
+	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
+	pg "plugin-template-engine/pkg/postgres"
 )
 
 type Config struct {
@@ -36,6 +38,13 @@ type Config struct {
 	MinioSSLEnabled             bool   `env:"MINIO_SSL_ENABLED"`
 	MinioAppUsername            string `env:"MINIO_APP_USER"`
 	MinioAppPassword            string `env:"MINIO_APP_PASSWORD"`
+	// Midaz
+	MidazDBHost            string `env:"MIDAZ_DB_HOST"`
+	MidazDBPort            string `env:"MIDAZ_DB_PORT"`
+	MidazDBUser            string `env:"MIDAZ_DB_USER"`
+	MidazDBPass            string `env:"MIDAZ_DB_PASSWORD"`
+	MidazOnboardingDBName  string `env:"MIDAZ_ONBOARDING_DB_NAME"`
+	MidazTransactionDBName string `env:"MIDAZ_TRANSACTION_DB_NAME"`
 }
 
 func InitWorker() *Service {
@@ -83,9 +92,52 @@ func InitWorker() *Service {
 		logger.Fatalf("Error creating minio client: %v", err)
 	}
 
+	// TODO: on demand database connection
+
+	externalDataSources := make(map[string]services.DataSource)
+
+	// Midaz Onboarding
+	onboardingString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazOnboardingDBName)
+
+	onboardingConnection := &pg.PostgresConnection{
+		ConnectionString:   onboardingString,
+		DBName:             cfg.MidazOnboardingDBName,
+		Logger:             logger,
+		MaxOpenConnections: 10,
+		MaxIdleConnections: 5,
+	}
+
+	onboardingRepository := postgres.NewRepository(onboardingConnection)
+
+	externalDataSources["onboarding"] = services.DataSource{
+		DatabaseType:       "postgres",
+		PostgresRepository: onboardingRepository,
+	}
+
+	// Midaz Transactions
+	transactionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazTransactionDBName)
+
+	transactionConnection := &pg.PostgresConnection{
+		ConnectionString:   transactionString,
+		DBName:             cfg.MidazTransactionDBName,
+		Logger:             logger,
+		MaxOpenConnections: 10,
+		MaxIdleConnections: 5,
+	}
+
+	transactionRepository := postgres.NewRepository(transactionConnection)
+
+	externalDataSources["transaction"] = services.DataSource{
+		DatabaseType:       "postgres",
+		PostgresRepository: transactionRepository,
+	}
+
 	service := &services.UseCase{
-		TemplateFileRepo: template.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:   report.NewMinioRepository(minioClient, "reports"),
+		TemplateFileRepo:    template.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:      report.NewMinioRepository(minioClient, "reports"),
+		ExternalDataSources: externalDataSources,
 	}
 
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
