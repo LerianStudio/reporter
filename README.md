@@ -1,8 +1,9 @@
-# K8s Addons Boilerplate
+# Plugin Template Engine
 
 ## Overview
 
-This repository is a boilerplate for creating Go-based projects with Kubernetes addons. It provides a structure to help you start quickly with Go, Kubernetes, and microservices development. The boilerplate includes basic CRUD endpoints and Swagger documentation.
+
+
 ## Quick Start
 
 1. **Clone the Repository:**
@@ -23,8 +24,17 @@ This repository is a boilerplate for creating Go-based projects with Kubernetes 
    
 4. **Access the API:**
    Visit `http://localhost:4000` to interact with the API.
-   
-## Endpoints
+
+## Components
+
+### Service
+
+
+
+### Worker
+
+Responsible for report generation, the worker is initialized whenever there are messages of this type in the RabbitMQ queue.
+Based on the fields requested in the report, it connects to the respective databases and performs queries dynamically.
 
 ## Generate report RabbitMQ message
 
@@ -35,13 +45,24 @@ This repository is a boilerplate for creating Go-based projects with Kubernetes 
 ```json
 {
    "id": "019538ee-deee-769c-8859-cbe84fce9af7",
-   "type": "html",
-   "fileUrl": "s3://client-reports-bucket/templates/report_ativos_21022025.txt",
-   "mappedFields":[
+   "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
+   "outputFormat": "html",
+   "mappedFields": {
+      "onboarding": {
+         "organization": ["legal_name"],
+         "ledger": ["name", "description"]
+      }
+   }
+}
+```
+
+The field mapping should be:
+```json
+{
+   "mappedFields": [
       {
-         "midaz":{
-            "organization":["legal_name"],
-            "ledger":["name","description"]
+         "<database-name>": {
+            "<table-name>": ["<field-name>, <field-name>"]
          }
       }
    ]

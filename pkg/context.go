@@ -2,9 +2,9 @@ package pkg
 
 import (
 	"context"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"plugin-template-engine/pkg/log"
 )
 
 type customContextKey string

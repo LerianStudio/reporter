@@ -1,3 +1,9 @@
+# Project Root Makefile.
+# Coordinates all component Makefiles and provides centralized commands.
+
+# Define the root directory of the project
+PROJECT_ROOT := $(shell pwd)
+
 service_name := plugin-template-engine
 bin_dir := ./.bin
 
@@ -14,6 +20,18 @@ DOCKER_CMD := $(shell \
 		echo "docker-compose"; \
 	fi \
 )
+
+# Component directories
+INFRA_DIR := ./components/infra
+MANAGER_DIR := ./components/manager
+WORKER_DIR := ./components/worker
+
+# Define a list of all component directories for easier iteration
+COMPONENTS := $(INFRA_DIR) #$(WORKER_DIR) $(MANAGER_DIR) TODO
+
+# Include shared color definitions and utility functions
+include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
+include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
 
 # Display available commands
 .PHONY: info
@@ -45,13 +63,18 @@ info:
 	@echo "                                                                                                                                       "
 	@echo "                                                                                                                                       "
 
-# Docker Compose Commands
 .PHONY: up
 up:
-	make set-env
-	@echo "$(BLUE)Starting all services...$(NC)"
-	@$(DOCKER_CMD) -f ./components/template-reports/docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	$(call title1,"Starting all services with Docker Compose")
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "$(CYAN)Starting services in $$dir...$(NC)"; \
+			(cd $$dir && $(MAKE) up) || exit 1; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services started successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: start
 start:
@@ -124,8 +147,21 @@ test:
 	fi
 	go test -v ./... ./...
 
+#-------------------------------------------------------
+# Setup Commands
+#-------------------------------------------------------
+
 .PHONY: set-env
 set-env:
-	@echo "$(BLUE)Setting up environment files...$(NC)"
-	cp -r ./components/template-reports/.env.example ./components/template-reports/.env
-	@echo "$(BLUE)Environment files created successfully$(NC)"
+	$(call title1,"Setting up environment files")
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/.env.example" ] && [ ! -f "$$dir/.env" ]; then \
+			echo "$(CYAN)Creating .env in $$dir from .env.example$(NC)"; \
+			cp "$$dir/.env.example" "$$dir/.env"; \
+		elif [ ! -f "$$dir/.env.example" ]; then \
+			echo "$(YELLOW)Warning: No .env.example found in $$dir$(NC)"; \
+		else \
+			echo "$(GREEN).env already exists in $$dir$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Environment files set up successfully$(GREEN) ✔️$(NC)"

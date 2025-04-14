@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"plugin-template-engine/pkg/log"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	"sync"
 )
 
