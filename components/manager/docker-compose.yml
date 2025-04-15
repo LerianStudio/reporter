@@ -1,67 +1,30 @@
-x-plugin-template-engine-mongodb-common:
-  &plugin-template-engine-mongodb-common
-  image: mongo:latest
-  restart: always
-  healthcheck:
-    test: echo 'db.runCommand("ping").ok'
-    interval: 10s
-    timeout: 5s
-    retries: 5
-  networks:
-    - plugins_template_engine_network
-
 services:
-  plugin-template-engine:
-    container_name: plugin-template-engine
+  manager:
+    container_name: plugin-template-engine-manager
     restart: always
     build:
-      context: ../..
-      dockerfile: ./components/template-reports/Dockerfile
+      context: ../../
+      dockerfile: ./components/manager/Dockerfile
     env_file:
       - .env
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
       - .:/usr/src/app
-    depends_on:
-      - plugin-template-engine-mongodb
     networks:
-      - plugins_template_engine_network
-
-  plugin-template-engine-mongodb:
-    <<: *plugin-template-engine-mongodb-common
-    container_name: plugin-template-engine-mongo
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-    command: mongod --port ${MONGO_PORT}
-    ports:
-      - ${MONGO_PORT}:${MONGO_PORT}
-    volumes:
-      - mongo-data:/data/db
-
-  plugin-template-engine-otel-lgtm:
-    container_name: plugin-template-engine-otel-lgtm
-    image: grafana/otel-lgtm:latest
-    restart: always
-    environment:
-      GF_SECURITY_ADMIN_USER: ${OTEL_LGTM_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${OTEL_LGTM_ADMIN_PASSWORD}
-    ports:
-      - ${OTEL_LGTM_EXTERNAL_PORT}:${OTEL_LGTM_INTERNAL_PORT}
-      - ${OTEL_LGTM_RECEIVER_GRPC_PORT}:${OTEL_LGTM_RECEIVER_GRPC_PORT}
-      - ${OTEL_LGTM_RECEIVER_HTTP_PORT}:${OTEL_LGTM_RECEIVER_HTTP_PORT}
-    volumes:
-      - grafana-data:/otel-lgtm/grafana/data
-      - ./grafana/run-grafana.sh:/otel-lgtm/run-grafana.sh
-    networks:
-      - plugins_template_engine_network
-
-volumes:
-  mongo-data:
-  grafana-data:
+      - template-engine-infra-network
+      - template-engine-manager-network
+      - infra-network
 
 networks:
-  plugins_template_engine_network:
-    name: plugins_template_engine_network
+  infra-network:
+    name: infra-network
+    driver: bridge
+    external: true
+  template-engine-infra-network:
+    name: template-engine-infra-network
+    driver: bridge
+    external: true
+  template-engine-manager-network:
+    name: template-engine-manager-network
     driver: bridge

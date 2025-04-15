@@ -28,4 +28,5 @@ var (
 	ErrInvalidMetadataNesting       = errors.New("0016")
 	ErrInvalidFileFormat            = errors.New("TPE-0001")
 	ErrEmptyFile                    = errors.New("TPE-0002")
+	ErrInvalidHeaderParameter       = errors.New("TPE-0003")
 )

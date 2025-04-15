@@ -88,6 +88,10 @@ jobs:
       - name: Setup .env files
         run: make set-env
 
+      - name: Create External Network if not exists
+        run: |
+          docker network create infra-network || true
+
       - name: Start Docker Compose Services
         run: make up
 
