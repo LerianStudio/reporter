@@ -22,7 +22,7 @@ DOCKER_CMD := $(shell \
 )
 
 # Component directories
-INFRA_DIR := ./components/infra-template
+INFRA_DIR := ./components/infra
 MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
 
@@ -130,8 +130,17 @@ check-hooks:
 
 .PHONY: lint
 lint:
-	@echo "$(BLUE)Running linter and performance checks...$(NC)"
-	./make.sh "lint"
+	$(call title1,"Running linters on all components")
+	@for dir in $(COMPONENTS); do \
+		echo "$(CYAN)Checking for Go files in $$dir...$(NC)"; \
+		if find "$$dir" -name "*.go" -type f | grep -q .; then \
+			echo "$(CYAN)Linting in $$dir...$(NC)"; \
+			(cd $$dir && $(MAKE) lint) || exit 1; \
+		else \
+			echo "$(YELLOW)No Go files found in $$dir, skipping linting$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: tidy
 tidy:

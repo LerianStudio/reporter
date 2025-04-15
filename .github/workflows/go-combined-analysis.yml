@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
 
       # Using GolangCI-Lint Module
-      - name: Run GoLangCI Lint to Boilerplate
+      - name: Run GoLangCI Lint to Plugin Template Engine
         uses: LerianStudio/github-actions-golangci-lint@main
         with:
           lerian_studio_midaz_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
@@ -87,6 +87,10 @@ jobs:
 
       - name: Setup .env files
         run: make set-env
+
+      - name: Create External Network if not exists
+        run: |
+          docker network create infra-network || true
 
       - name: Start Docker Compose Services
         run: make up
