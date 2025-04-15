@@ -27,7 +27,7 @@ MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
 
 # Define a list of all component directories for easier iteration
-COMPONENTS := $(INFRA_DIR) #$(WORKER_DIR) $(MANAGER_DIR) TODO
+COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) #$(MANAGER_DIR) TODO
 
 # Include shared color definitions and utility functions
 include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
