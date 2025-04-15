@@ -6,14 +6,19 @@ import (
 	"plugin-template-engine/pkg/postgres"
 )
 
+// Repository defines an interface for querying data from a specified table and fields.
+//
+//go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
 	Query(ctx context.Context, table string, fields []string) ([]map[string]any, error)
 }
 
+// DataSource provides an interface for interacting with a PostgreSQL database connection.
 type DataSource struct {
 	connection *postgres.Connection
 }
 
+// NewRepository creates a new DataSource instance using the provided postgres.Connection, initializing the database connection.
 func NewRepository(pc *postgres.Connection) *DataSource {
 	c := &DataSource{
 		connection: pc,
@@ -27,6 +32,7 @@ func NewRepository(pc *postgres.Connection) *DataSource {
 	return c
 }
 
+// Query retrieves data from a specified table and fields, returning a slice of maps with column names as keys.
 func (ds *DataSource) Query(ctx context.Context, table string, fields []string) ([]map[string]any, error) {
 	query, args, err := squirrel.Select(fields...).From(table).ToSql()
 	if err != nil {
