@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"plugin-template-engine/pkg/pongo"
 	"strings"
@@ -49,13 +50,19 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	err := json.Unmarshal(body, &message)
 	if err != nil {
+		libOtel.HandleSpanError(&span, "Error unmarshalling message.", err)
+
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
 		return err
 	}
 
+	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
+
 	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
 	if err != nil {
+		libOtel.HandleSpanError(&spanTemplate, "Error getting file from template bucket.", err)
+
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
 		return err
@@ -63,9 +70,65 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	logger.Infof("Template found: %s", string(fileBytes))
 
+	spanTemplate.End()
+
 	result := make(map[string]map[string][]map[string]any)
 
+	err = uc.queryExternalData(ctx, message, result)
+	if err != nil {
+		logger.Errorf("Error querying external data: %s", err.Error())
+
+		return err
+	}
+
+	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
+
+	renderer := pongo.NewTemplateRenderer()
+
+	out, err := renderer.RenderFromBytes(ctx, fileBytes, result)
+	if err != nil {
+		libOtel.HandleSpanError(&spanRender, "Error rendering template.", err)
+
+		logger.Errorf("Error rendering template: %s", err.Error())
+
+		return err
+	}
+
+	spanRender.End()
+
+	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
+
+	outputFormat := strings.ToLower(message.OutputFormat)
+	contentType := getContentType(outputFormat)
+	objectName := message.ReportID.String() + "/" + time.Now().Format("20060102_150405") + "." + outputFormat
+
+	err = uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	if err != nil {
+		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
+
+		logger.Errorf("Error putting report file: %s", err.Error())
+
+		return err
+	}
+
+	spanSaveReport.End()
+
+	return nil
+}
+
+// queryExternalData retrieves data from external data sources specified in the message and populates the result map.
+// It supports querying PostgreSQL databases and skips MongoDB queries with a warning logger until implemented.
+// Returns an error if there is an issue with querying any of the data sources.
+func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
+	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "service.generate_report.query_external_data")
+	defer span.End()
+
 	for databaseName, tables := range message.DataQueries {
+		ctx, spanDatabase := tracer.Start(ctx, "service.generate_report.query_external_data.database")
+
 		logger.Infof("Querying database %s", databaseName)
 
 		dataSource := uc.ExternalDataSources[databaseName]
@@ -76,17 +139,24 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		}
 
 		for table, fields := range tables {
+			ctx, spanTable := tracer.Start(ctx, "service.generate_report.query_external_data.table")
+
 			var tableResult []map[string]any
 
 			var err error
 
 			if dataSource.DatabaseType == "mongodb" {
+				libOtel.HandleSpanError(&spanTable, "MongoDB queries not yet implemented.", nil)
+
 				// TODO: Implement MongoDB query
 				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
+
 				continue // Skip for now
 			} else {
 				tableResult, err = dataSource.PostgresRepository.Query(ctx, table, fields)
 				if err != nil {
+					libOtel.HandleSpanError(&spanTable, "Error querying table.", err)
+
 					logger.Errorf("Error querying table %s: %s", table, err.Error())
 
 					return err
@@ -95,27 +165,11 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 			// Set the query results for this table
 			result[databaseName][table] = tableResult
+
+			spanTable.End()
 		}
-	}
 
-	renderer := pongo.NewTemplateRenderer()
-
-	out, err := renderer.RenderFromBytes(ctx, fileBytes, result)
-	if err != nil {
-		logger.Errorf("Error rendering template: %s", err.Error())
-
-		return err
-	}
-
-	templateType := strings.ToLower(message.OutputFormat)
-	contentType := getContentType(templateType)
-	objectName := message.ReportID.String() + "/" + time.Now().Format("20060102_150405") + "." + templateType
-
-	err = uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
-	if err != nil {
-		logger.Errorf("Error putting report file: %s", err.Error())
-
-		return err
+		spanDatabase.End()
 	}
 
 	return nil
