@@ -22,12 +22,12 @@ DOCKER_CMD := $(shell \
 )
 
 # Component directories
-INFRA_DIR := ./components/infra
+INFRA_DIR := ./components/infra-template
 MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
 
 # Define a list of all component directories for easier iteration
-COMPONENTS := $(INFRA_DIR) #$(WORKER_DIR) $(MANAGER_DIR) TODO
+COMPONENTS := $(INFRA_DIR) $(MANAGER_DIR) #$(WORKER_DIR) TODO
 
 # Include shared color definitions and utility functions
 include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
@@ -82,7 +82,17 @@ start:
 
 .PHONY: down
 down:
-	@$(DOCKER_CMD) -f docker-compose.yml down $(c)
+	$(call title1,"Stopping all services with Docker Compose")
+	@for dir in $(COMPONENTS); do \
+		component_name=$$(basename $$dir); \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "$(CYAN)Stopping services in component: $(BOLD)$$component_name$(NC)"; \
+			(cd $$dir && (docker compose -f docker-compose.yml down 2>/dev/null || docker-compose -f docker-compose.yml down)) || exit 1; \
+		else \
+			echo "$(YELLOW)No docker-compose.yml found in $$component_name, skipping$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services stopped successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: destroy
 destroy:
@@ -165,3 +175,18 @@ set-env:
 		fi; \
 	done
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Environment files set up successfully$(GREEN) ✔️$(NC)"
+
+.PHONY: clean-docker
+clean-docker:
+	$(call title1,"Cleaning all Docker resources")
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "$(CYAN)Cleaning Docker resources in $$dir...$(NC)"; \
+			(cd $$dir && $(MAKE) clean-docker) || exit 1; \
+		fi; \
+	done
+	@echo "$(YELLOW)Pruning system-wide Docker resources...$(NC)"
+	@docker system prune -f
+	@echo "$(YELLOW)Pruning system-wide Docker volumes...$(NC)"
+	@docker volume prune -f
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) All Docker resources cleaned successfully$(GREEN) ✔️$(NC)"

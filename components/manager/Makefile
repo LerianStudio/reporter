@@ -1,4 +1,4 @@
-service_name := plugin-template-engine
+service_name := plugin-template-engine-manager
 bin_dir := ./.bin
 
 BLUE := \033[36m

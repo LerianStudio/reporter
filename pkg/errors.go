@@ -73,6 +73,15 @@ type EntityConflictError struct {
 	Err        error
 }
 
+// ValidationKnownFieldsError records an error that occurred during a validation of known fields.
+type ValidationKnownFieldsError struct {
+	EntityType string           `json:"entityType,omitempty"`
+	Title      string           `json:"title,omitempty"`
+	Code       string           `json:"code,omitempty"`
+	Message    string           `json:"message,omitempty"`
+	Fields     FieldValidations `json:"fields,omitempty"`
+}
+
 // Error implements the error interface.
 func (e EntityConflictError) Error() string {
 	if e.Err != nil && strings.TrimSpace(e.Message) == "" {
@@ -178,15 +187,6 @@ type ResponseError struct {
 // Returns a string.
 func (r ResponseError) Error() string {
 	return r.Message
-}
-
-// ValidationKnownFieldsError records an error that occurred during a validation of known fields.
-type ValidationKnownFieldsError struct {
-	EntityType string           `json:"entityType,omitempty"`
-	Title      string           `json:"title,omitempty"`
-	Code       string           `json:"code,omitempty"`
-	Message    string           `json:"message,omitempty"`
-	Fields     FieldValidations `json:"fields,omitempty"`
 }
 
 // Error returns the error message for a ValidationKnownFieldsError.
@@ -371,6 +371,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrInvalidMetadataNesting.Error(),
 			Title:      "Invalid Metadata Nesting",
 			Message:    fmt.Sprintf("The metadata object cannot contain nested values. Please ensure that the value %v is not nested and try again.", args...),
+		},
+		constant.ErrInvalidHeaderParameter: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidHeaderParameter.Error(),
+			Title:      "Invalid header parameter",
+			Message:    fmt.Sprintf("One or more headers parameters are in an incorrect format. Please check the following parameters %v and ensure they meet the required format before trying again.", args),
 		},
 	}
 
