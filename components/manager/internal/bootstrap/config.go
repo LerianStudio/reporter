@@ -6,12 +6,10 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/zap"
 	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
-	templateDB "plugin-template-engine/components/manager/internal/adapters/mongodb/templates"
+	"plugin-template-engine/components/manager/internal/adapters/mongodb/template"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
 )
-
-const ApplicationName = "example-boilerplate"
 
 // Config is the top level configuration struct for the entire application.
 type Config struct {
@@ -50,10 +48,9 @@ func InitServers() *Service {
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 	}
 
-	/*mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-	cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)*/
-	mongoSource := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=%s",
-		cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort, cfg.MongoDBName, cfg.MongoDBName)
+	// Init mongo DB connection
+	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
 
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
@@ -61,7 +58,7 @@ func InitServers() *Service {
 		Logger:                 logger,
 	}
 
-	templateMongoDBRepository := templateDB.NewTemplateMongoDBRepository(mongoConnection)
+	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 
 	templateService := &services.UseCase{
 		TemplateRepo: templateMongoDBRepository,

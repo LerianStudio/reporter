@@ -1,29 +1,34 @@
 package in
 
 import (
+	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/constant"
+	"plugin-template-engine/pkg/net/http"
 )
 
-// ParseUUIDPathParameters validate ids passing into path parameters values
-func ParseUUIDPathParameters(c *fiber.Ctx) error {
-	params := c.AllParams()
+var (
+	OrgIDHeaderParameter = "X-Organization-Id"
+)
 
-	var invalidUUIDs []string
+// ParseHeaderParameters convert and validate if the header parameters is UUID
+func ParseHeaderParameters(c *fiber.Ctx) error {
+	headerParam := c.Get(OrgIDHeaderParameter)
 
-	for param, value := range params {
-		parsedUUID, err := uuid.Parse(value)
-		if err != nil {
-			invalidUUIDs = append(invalidUUIDs, param)
-			continue
-		}
-
-		c.Locals(param, parsedUUID)
+	if commons.IsNilOrEmpty(&headerParam) {
+		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
+		return http.WithError(c, err)
 	}
 
-	if len(invalidUUIDs) > 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid UUIDs", "invalid_uuids": invalidUUIDs})
+	parsedHeaderUUID, errHeader := uuid.Parse(headerParam)
+	if errHeader != nil {
+		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
+		return http.WithError(c, err)
 	}
+
+	c.Locals(OrgIDHeaderParameter, parsedHeaderUUID)
 
 	return c.Next()
 }
