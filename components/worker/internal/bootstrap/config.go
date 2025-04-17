@@ -3,13 +3,15 @@ package bootstrap
 import (
 	"fmt"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"plugin-template-engine/components/worker/internal/adapters/minio/report"
-	"plugin-template-engine/components/worker/internal/adapters/minio/template"
+	reportFile "plugin-template-engine/components/worker/internal/adapters/minio/report"
+	templateFile "plugin-template-engine/components/worker/internal/adapters/minio/template"
+	reportData "plugin-template-engine/components/worker/internal/adapters/mongodb/report"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
@@ -33,11 +35,20 @@ type Config struct {
 	OtelDeploymentEnv           string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
-	MinioAPIHost                string `env:"MINIO_API_HOST"`
-	MinioAPIPort                string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled             bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername            string `env:"MINIO_APP_USER"`
-	MinioAppPassword            string `env:"MINIO_APP_PASSWORD"`
+	// MINIO
+	MinioAPIHost     string `env:"MINIO_API_HOST"`
+	MinioAPIPort     string `env:"MINIO_API_PORT"`
+	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
+	MinioAppUsername string `env:"MINIO_APP_USER"`
+	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	// MongoDB
+	MongoURI        string `env:"MONGO_URI"`
+	MongoDBHost     string `env:"MONGO_HOST"`
+	MongoDBName     string `env:"MONGO_NAME"`
+	MongoDBUser     string `env:"MONGO_USER"`
+	MongoDBPassword string `env:"MONGO_PASSWORD"`
+	MongoDBPort     string `env:"MONGO_PORT"`
+	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
 	// Midaz
 	MidazDBHost            string `env:"MIDAZ_DB_HOST"`
 	MidazDBPort            string `env:"MIDAZ_DB_PORT"`
@@ -92,6 +103,21 @@ func InitWorker() *Service {
 		logger.Fatalf("Error creating minio client: %v", err)
 	}
 
+	// Init mongo DB connection
+	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
+
+	if cfg.MaxPoolSize <= 0 {
+		cfg.MaxPoolSize = 100
+	}
+
+	mongoConnection := &mongoDB.MongoConnection{
+		ConnectionStringSource: mongoSource,
+		Database:               cfg.MongoDBName,
+		Logger:                 logger,
+		MaxPoolSize:            uint64(cfg.MaxPoolSize),
+	}
+
 	// TODO: on demand database connection
 
 	externalDataSources := make(map[string]services.DataSource)
@@ -135,8 +161,8 @@ func InitWorker() *Service {
 	}
 
 	service := &services.UseCase{
-		TemplateFileRepo:    template.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:      report.NewMinioRepository(minioClient, "reports"),
+		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
 		ExternalDataSources: externalDataSources,
 	}
 
