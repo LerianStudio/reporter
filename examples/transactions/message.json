@@ -1,0 +1,17 @@
+{
+   "templateId": "019644a0-dd0e-7519-883a-b4b90e26257e",
+   "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
+   "ledgerIds": ["01963aba-18c3-77a5-adcc-18028fc7420d"],
+   "outputFormat": "html",
+   "mappedFields": {
+      "onboarding": {
+         "organization": ["legal_name", "doing_business_as", "legal_document", "address"],
+         "ledger":["name", "status"],
+         "asset": ["name", "type", "code"]
+      },
+      "transaction": {
+         "transaction": ["id", "description", "created_at", "template", "status", "amount", "amount_scale", "asset_code", "chart_of_accounts_group_name"],
+         "operation": ["id", "description", "type", "account_alias", "amount", "available_balance_after"]
+      }
+   }
+}
