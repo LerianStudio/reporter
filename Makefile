@@ -42,7 +42,7 @@ info:
 	@echo "                                                                                                                                       "
 	@echo "make audit COMMAND=\"any\"                                                                                                            "
 	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the audit container. Replace \"any\" with the desired command you want to execute. "
+	@echo "This command will run the specified command inside the container. Replace \"any\" with the desired command you want to execute. "
 	@echo "                                                                                                                         "
 	@echo "## Docker commands:"
 	@echo "                                                                                                                         "
