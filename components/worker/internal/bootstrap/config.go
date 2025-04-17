@@ -164,6 +164,7 @@ func InitWorker() *Service {
 		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
 		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
 		ExternalDataSources: externalDataSources,
+		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
 	}
 
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
