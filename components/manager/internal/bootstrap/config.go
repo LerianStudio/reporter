@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"fmt"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/zap"
 	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
 	"plugin-template-engine/components/manager/internal/adapters/mongodb/template"
@@ -21,6 +21,7 @@ type Config struct {
 	OtelServiceVersion      string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
 	OtelDeploymentEnv       string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	EnableTelemetry         bool   `env:"ENABLE_TELEMETRY"`
 	MongoURI                string `env:"MONGO_URI"`
 	MongoDBHost             string `env:"MONGO_HOST"`
 	MongoDBName             string `env:"MONGO_NAME"`
@@ -40,12 +41,13 @@ func InitServers() *Service {
 	logger := zap.InitializeLogger()
 
 	// Init Open telemetry to control logs and flows
-	telemetry := &opentelemetry.Telemetry{
+	telemetry := &libOtel.Telemetry{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
 		DeploymentEnv:             cfg.OtelDeploymentEnv,
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
+		EnableTelemetry:           cfg.EnableTelemetry,
 	}
 
 	// Init mongo DB connection
