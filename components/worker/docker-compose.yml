@@ -10,11 +10,11 @@ services:
     volumes:
       - .:/usr/src/worker
     networks:
-      - plugin-template-engine-network
+      - plugin-template-engine-infra-network
       - infra-network
 
 networks:
-  plugin-template-engine-network:
+  plugin-template-engine-infra-network:
     external: true
   infra-network:
     external: true

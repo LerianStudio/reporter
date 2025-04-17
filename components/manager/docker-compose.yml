@@ -12,8 +12,8 @@ services:
     volumes:
       - .:/usr/src/app
     networks:
-      - template-engine-infra-network
-      - template-engine-manager-network
+      - plugin-template-engine-infra-network
+      - plugin-template-engine-manager-network
       - infra-network
 
 networks:
@@ -21,10 +21,10 @@ networks:
     name: infra-network
     driver: bridge
     external: true
-  template-engine-infra-network:
-    name: template-engine-infra-network
+  plugin-template-engine-infra-network:
+    name: plugin-template-engine-infra-network
     driver: bridge
     external: true
-  template-engine-manager-network:
-    name: template-engine-manager-network
+  plugin-template-engine-manager-network:
+    name: plugin-template-engine-manager-network
     driver: bridge
