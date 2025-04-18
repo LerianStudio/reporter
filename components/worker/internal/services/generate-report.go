@@ -6,6 +6,7 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
+	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/pkg/pongo"
 	"strings"
 	"time"
@@ -135,7 +136,26 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 		logger.Infof("Querying database %s", databaseName)
 
-		dataSource := uc.ExternalDataSources[databaseName]
+		dataSource, exists := uc.ExternalDataSources[databaseName]
+		if !exists {
+			libOtel.HandleSpanError(&spanDatabase, "Unknown data source.", nil)
+
+			logger.Errorf("Unknown data source: %s", databaseName)
+
+			continue
+		}
+
+		// Initialize the database connection if not already initialized
+		if !dataSource.Initialized && dataSource.DatabaseType == "postgres" {
+			// Create repository and update the data source
+			dataSource.PostgresRepository = postgres.NewRepository(dataSource.DatabaseConfig)
+			dataSource.Initialized = true
+
+			// Update the data source in the map
+			uc.ExternalDataSources[databaseName] = dataSource
+
+			logger.Infof("Established connection to %s database on demand", databaseName)
+		}
 
 		// Initialize inner map for this database
 		if _, exists := result[databaseName]; !exists {
@@ -149,14 +169,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			var err error
 
-			if dataSource.DatabaseType == "mongodb" {
-				libOtel.HandleSpanError(&spanTable, "MongoDB queries not yet implemented.", nil)
-
-				// TODO: Implement MongoDB query
-				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
-
-				continue // Skip for now
-			} else {
+			if dataSource.DatabaseType == "postgres" && dataSource.PostgresRepository != nil {
 				tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
 				if err != nil {
 					libOtel.HandleSpanError(&spanTable, "Error querying table.", err)
@@ -165,6 +178,13 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 					return err
 				}
+			} else if dataSource.DatabaseType == "mongodb" {
+				libOtel.HandleSpanError(&spanTable, "MongoDB queries not yet implemented.", nil)
+
+				// TODO: Implement MongoDB query
+				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
+
+				continue // Skip for now
 			}
 
 			// Set the query results for this table

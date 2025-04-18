@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"fmt"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
@@ -12,7 +13,6 @@ import (
 	reportFile "plugin-template-engine/components/worker/internal/adapters/minio/report"
 	templateFile "plugin-template-engine/components/worker/internal/adapters/minio/template"
 	reportData "plugin-template-engine/components/worker/internal/adapters/mongodb/report"
-	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
 	pg "plugin-template-engine/pkg/postgres"
@@ -118,10 +118,23 @@ func InitWorker() *Service {
 		MaxPoolSize:            uint64(cfg.MaxPoolSize),
 	}
 
-	// TODO: on demand database connection
+	service := &services.UseCase{
+		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
+		ExternalDataSources: externalDatasourceConnections(cfg, logger),
+		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
+	}
 
-	externalDataSources := make(map[string]services.DataSource)
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
 
+	return &Service{
+		MultiQueueConsumer: multiQueueConsumer,
+		Logger:             logger,
+	}
+}
+
+// externalDatasourceConnections initializes and returns a map of external data source connections using the provided config and logger.
+func externalDatasourceConnections(cfg *Config, logger log.Logger) map[string]services.DataSource {
 	// Midaz Onboarding
 	onboardingString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazOnboardingDBName)
@@ -132,13 +145,6 @@ func InitWorker() *Service {
 		Logger:             logger,
 		MaxOpenConnections: 10,
 		MaxIdleConnections: 5,
-	}
-
-	onboardingRepository := postgres.NewRepository(onboardingConnection)
-
-	externalDataSources["onboarding"] = services.DataSource{
-		DatabaseType:       "postgres",
-		PostgresRepository: onboardingRepository,
 	}
 
 	// Midaz Transactions
@@ -153,24 +159,18 @@ func InitWorker() *Service {
 		MaxIdleConnections: 5,
 	}
 
-	transactionRepository := postgres.NewRepository(transactionConnection)
-
-	externalDataSources["transaction"] = services.DataSource{
-		DatabaseType:       "postgres",
-		PostgresRepository: transactionRepository,
+	externalDataSources := map[string]services.DataSource{
+		"onboarding": {
+			DatabaseType:   "postgres",
+			DatabaseConfig: onboardingConnection,
+			Initialized:    false,
+		},
+		"transaction": {
+			DatabaseType:   "postgres",
+			DatabaseConfig: transactionConnection,
+			Initialized:    false,
+		},
 	}
 
-	service := &services.UseCase{
-		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: externalDataSources,
-		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
-	}
-
-	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
-
-	return &Service{
-		MultiQueueConsumer: multiQueueConsumer,
-		Logger:             logger,
-	}
+	return externalDataSources
 }
