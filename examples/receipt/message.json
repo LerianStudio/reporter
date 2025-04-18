@@ -1,8 +1,9 @@
 {
    "templateId": "019644a0-b748-7981-84af-fae601a6e99b",
    "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
-   "ledgerIds": ["01963aba-18c3-77a5-adcc-18028fc7420d"],
-   "outputFormat": "html",
+   "organizationId": "019649e7-011f-7ec1-a662-10cca8c91dfe",
+   "ledgerIds": ["019649e7-012c-76a4-a62a-b42b9ceebfc2"],
+   "outputFormat": "txt",
    "mappedFields": {
       "onboarding": {
          "organization": ["legal_name", "doing_business_as", "legal_document", "address"],
@@ -11,7 +12,7 @@
       },
       "transaction": {
          "transaction": ["id", "description", "created_at", "template", "status", "amount", "amount_scale", "asset_code", "chart_of_accounts_group_name"],
-         "operation": ["id", "description", "type", "account_alias", "amount", "available_balance_after"]
+         "operation": ["id", "description", "type", "account_alias", "amount", "available_balance_after", "transaction_id"]
       }
    }
 }
