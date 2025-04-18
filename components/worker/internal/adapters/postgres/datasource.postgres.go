@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/Masterminds/squirrel"
+	"github.com/google/uuid"
 	"plugin-template-engine/pkg/postgres"
 )
 
@@ -10,7 +12,7 @@ import (
 //
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
-	Query(ctx context.Context, table string, fields []string) ([]map[string]any, error)
+	Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error)
 }
 
 // DataSource provides an interface for interacting with a PostgreSQL database connection.
@@ -33,9 +35,42 @@ func NewRepository(pc *postgres.Connection) *DataSource {
 }
 
 // Query retrieves data from a specified table and fields, returning a slice of maps with column names as keys.
-func (ds *DataSource) Query(ctx context.Context, table string, fields []string) ([]map[string]any, error) {
-	query, args, err := squirrel.Select(fields...).From(table).ToSql()
+func (ds *DataSource) Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error) {
+	logger := libCommons.NewLoggerFromContext(ctx)
+
+	logger.Infof("Querying %s table with fields %s", table, fields)
+
+	// Use PostgreSQL-specific builder with $ placeholders
+	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+
+	queryBuilder := psql.Select(fields...).From(table)
+
+	// TODO: improve this
+	if table == "organization" {
+		queryBuilder = queryBuilder.Where("id = ?", organizationID.String())
+	} else {
+		queryBuilder = queryBuilder.Where("organization_id = ?", organizationID.String())
+	}
+
+	// Only add the WHERE clause if ledgers is not empty
+	if len(ledgers) > 0 && table != "organization" {
+		args := make([]any, len(ledgers))
+		for i, v := range ledgers {
+			args[i] = v
+		}
+		// TODO: create field name mapping between databases and tables?
+		if table == "ledger" {
+			queryBuilder = queryBuilder.Where("id IN ("+squirrel.Placeholders(len(ledgers))+")", args...)
+		} else {
+			queryBuilder = queryBuilder.Where("ledger_id IN ("+squirrel.Placeholders(len(ledgers))+")", args...)
+		}
+	}
+
+	// Generate the SQL
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
+		logger.Errorf("Error generating SQL: %s", err.Error())
+
 		return nil, err
 	}
 

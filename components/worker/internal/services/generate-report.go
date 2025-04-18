@@ -19,6 +19,10 @@ type GenerateReportMessage struct {
 	// ReportID uniquely identifies this report generation request
 	ReportID uuid.UUID `json:"reportId"`
 
+	OrganizationID uuid.UUID `json:"organizationId"`
+
+	Ledgers []string `json:"ledgerIds"`
+
 	// OutputFormat specifies the format of the generated report (e.g., html, csv, json)
 	OutputFormat string `json:"outputFormat"`
 
@@ -153,7 +157,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 				continue // Skip for now
 			} else {
-				tableResult, err = dataSource.PostgresRepository.Query(ctx, table, fields)
+				tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
 				if err != nil {
 					libOtel.HandleSpanError(&spanTable, "Error querying table.", err)
 
