@@ -98,7 +98,25 @@ func (ds *MidazDataSource) Query(ctx context.Context, organizationID uuid.UUID, 
 
 		rowMap := make(map[string]any)
 		for i, col := range cols {
-			rowMap[col] = vals[i]
+			// Special handling for address column if it contains []uint8 data
+			if col == "address" && vals[i] != nil {
+				// Check if the value is of type []uint8
+				if byteData, ok := vals[i].([]uint8); ok {
+					// Try to unmarshal it into a map[string]string
+					addressMap := make(map[string]string)
+					if err := json.Unmarshal(byteData, &addressMap); err == nil {
+						rowMap[col] = addressMap
+					} else {
+						// Fall back to the original value if unmarshaling fails
+						rowMap[col] = vals[i]
+					}
+				} else {
+					rowMap[col] = vals[i]
+				}
+			} else {
+				rowMap[col] = vals[i]
+			}
+
 		}
 
 		result = append(result, rowMap)
