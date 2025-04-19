@@ -26,7 +26,7 @@ Plano de Contas: {{ t.chart_of_accounts_group_name }}
 Nome Legal: {{ org.legal_name }}
 Nome Fantasia: {{ org.doing_business_as }}
 CNPJ: {{ org.legal_document }}
-Endereço: {{ org.address }}
+Endereço: {{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}
 {% endfor %}
 
 ------------------------------------------
