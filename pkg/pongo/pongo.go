@@ -4,7 +4,22 @@ import (
 	"context"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/flosch/pongo2/v6"
+	"html"
 )
+
+func init() {
+	// Register a filter to escape XML attribute values
+	// This filter is useful when rendering XML templates
+	pongo2.RegisterFilter("xmlattr", func(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+		return pongo2.AsValue(html.EscapeString(in.String())), nil
+	})
+
+	// Register a filter to escape XML content
+	pongo2.RegisterFilter("xmlcontent", func(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+		return pongo2.AsValue(html.EscapeString(in.String())), nil
+	})
+
+}
 
 // TemplateRenderer handles rendering templates using pongo2
 type TemplateRenderer struct{}
