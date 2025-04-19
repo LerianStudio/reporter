@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/pkg/pongo"
 	"strings"
@@ -101,6 +104,19 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	spanRender.End()
 
+	err = uc.saveReport(ctx, tracer, message, err, out, logger)
+	if err != nil {
+		libOtel.HandleSpanError(&span, "Error saving report.", err)
+
+		logger.Errorf("Error saving report: %s", err.Error())
+
+		return err
+	}
+
+	return nil
+}
+
+func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, err error, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
 
 	outputFormat := strings.ToLower(message.OutputFormat)
@@ -117,7 +133,6 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	}
 
 	spanSaveReport.End()
-
 	return nil
 }
 
@@ -127,74 +142,82 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
-
 	ctx, span := tracer.Start(ctx, "service.generate_report.query_external_data")
 	defer span.End()
 
 	for databaseName, tables := range message.DataQueries {
-		ctx, spanDatabase := tracer.Start(ctx, "service.generate_report.query_external_data.database")
-
+		ctx, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
 		logger.Infof("Querying database %s", databaseName)
 
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
-			libOtel.HandleSpanError(&spanDatabase, "Unknown data source.", nil)
-
+			libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
 			logger.Errorf("Unknown data source: %s", databaseName)
-
 			continue
 		}
 
-		// Initialize the database connection if not already initialized
-		if !dataSource.Initialized && dataSource.DatabaseType == "postgres" {
-			// Create repository and update the data source
-			dataSource.PostgresRepository = postgres.NewRepository(dataSource.DatabaseConfig)
-			dataSource.Initialized = true
+		if !dataSource.Initialized {
+			if err := uc.connectToDataSource(databaseName, &dataSource, logger); err != nil {
+				libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
 
-			// Update the data source in the map
-			uc.ExternalDataSources[databaseName] = dataSource
-
-			logger.Infof("Established connection to %s database on demand", databaseName)
+				return err
+			}
 		}
 
-		// Initialize inner map for this database
+		// Prepare results map for this database
 		if _, exists := result[databaseName]; !exists {
 			result[databaseName] = make(map[string][]map[string]any)
 		}
 
 		for table, fields := range tables {
-			ctx, spanTable := tracer.Start(ctx, "service.generate_report.query_external_data.table")
-
+			ctx, tableSpan := tracer.Start(ctx, "service.generate_report.query_external_data.table")
 			var tableResult []map[string]any
-
 			var err error
 
-			if dataSource.DatabaseType == "postgres" && dataSource.PostgresRepository != nil {
-				tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
-				if err != nil {
-					libOtel.HandleSpanError(&spanTable, "Error querying table.", err)
+			switch dataSource.DatabaseType {
+			case "postgres":
+				if dataSource.PostgresRepository != nil {
+					tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
+					if err != nil {
+						libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
 
-					logger.Errorf("Error querying table %s: %s", table, err.Error())
+						logger.Errorf("Error querying table %s: %s", table, err.Error())
 
-					return err
+						return err
+					}
 				}
-			} else if dataSource.DatabaseType == "mongodb" {
-				libOtel.HandleSpanError(&spanTable, "MongoDB queries not yet implemented.", nil)
+			case "mongodb":
+				libOtel.HandleSpanError(&tableSpan, "MongoDB queries not yet implemented.", nil)
 
-				// TODO: Implement MongoDB query
 				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
 
-				continue // Skip for now
+				continue
 			}
 
-			// Set the query results for this table
+			// Add the query results to the result map
 			result[databaseName][table] = tableResult
-
-			spanTable.End()
+			tableSpan.End()
 		}
 
-		spanDatabase.End()
+		dbSpan.End()
 	}
+
+	return nil
+}
+
+// connectToDataSource establishes a connection to a data source if not already initialized.
+func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
+	switch databaseName {
+	case "onboarding", "transaction":
+		dataSource.PostgresRepository = postgres.NewMidazRepository(dataSource.DatabaseConfig)
+	default:
+		return fmt.Errorf("unknown database: %s", databaseName)
+	}
+
+	dataSource.Initialized = true
+
+	uc.ExternalDataSources[databaseName] = *dataSource
+	logger.Infof("Established connection to %s database on demand", databaseName)
 
 	return nil
 }

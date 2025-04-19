@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"plugin-template-engine/pkg/postgres"
@@ -21,8 +23,8 @@ type MidazDataSource struct {
 	connection *postgres.Connection
 }
 
-// NewRepository creates a new MidazDataSource instance using the provided postgres.Connection, initializing the database connection.
-func NewRepository(pc *postgres.Connection) *MidazDataSource {
+// NewMidazRepository creates a new MidazDataSource instance using the provided postgres.Connection, initializing the database connection.
+func NewMidazRepository(pc *postgres.Connection) *MidazDataSource {
 	c := &MidazDataSource{
 		connection: pc,
 	}
@@ -35,39 +37,20 @@ func NewRepository(pc *postgres.Connection) *MidazDataSource {
 	return c
 }
 
-// Query retrieves data from a specified table and fields, returning a slice of maps with column names as keys.
 func (ds *MidazDataSource) Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 
 	logger.Infof("Querying %s table with fields %s", table, fields)
 
-	// Use PostgreSQL-specific builder with $ placeholders
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-
 	queryBuilder := psql.Select(fields...).From(table)
 
-	// TODO: improve this
-	if table == "organization" {
-		queryBuilder = queryBuilder.Where("id = ?", organizationID.String())
-	} else {
-		queryBuilder = queryBuilder.Where("organization_id = ?", organizationID.String())
-	}
+	queryBuilder = applyOrganizationFilter(queryBuilder, table, organizationID)
 
-	// Only add the WHERE clause if ledgers is not empty
 	if len(ledgers) > 0 && table != "organization" {
-		args := make([]any, len(ledgers))
-		for i, v := range ledgers {
-			args[i] = v
-		}
-		// TODO: create field name mapping between databases and tables?
-		if table == "ledger" {
-			queryBuilder = queryBuilder.Where("id IN ("+squirrel.Placeholders(len(ledgers))+")", args...)
-		} else {
-			queryBuilder = queryBuilder.Where("ledger_id IN ("+squirrel.Placeholders(len(ledgers))+")", args...)
-		}
+		queryBuilder = applyLedgerFilter(queryBuilder, table, ledgers)
 	}
 
-	// Generate the SQL
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		logger.Errorf("Error generating SQL: %s", err.Error())
@@ -77,50 +60,93 @@ func (ds *MidazDataSource) Query(ctx context.Context, organizationID uuid.UUID, 
 
 	rows, err := ds.connection.ConnectionDB.Query(query, args...)
 	if err != nil {
+		logger.Errorf("Error executing query: %s", err.Error())
+
 		return nil, err
 	}
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
-	vals := make([]any, len(cols))
-	ptrs := make([]any, len(cols))
+	return scanRows(rows, logger)
+}
 
-	for i := range vals {
-		ptrs[i] = &vals[i]
+// applyOrganizationFilter adds the correct `WHERE` clause for organization filtering.
+func applyOrganizationFilter(queryBuilder squirrel.SelectBuilder, table string, organizationID uuid.UUID) squirrel.SelectBuilder {
+	if table == "organization" {
+		return queryBuilder.Where("id = ?", organizationID.String())
+	}
+	return queryBuilder.Where("organization_id = ?", organizationID.String())
+}
+
+// applyLedgerFilter adds `WHERE` clauses for ledgers, depending on the table.
+func applyLedgerFilter(queryBuilder squirrel.SelectBuilder, table string, ledgers []string) squirrel.SelectBuilder {
+	args := toInterfaceSlice(ledgers)
+	placeholder := squirrel.Placeholders(len(ledgers))
+
+	if table == "ledger" {
+		return queryBuilder.Where("id IN ("+placeholder+")", args...)
 	}
 
-	result := make([]map[string]any, 0)
+	return queryBuilder.Where("ledger_id IN ("+placeholder+")", args...)
+}
 
+// toInterfaceSlice converts a slice of strings to a slice of interface{} for placeholders.
+func toInterfaceSlice(input []string) []any {
+	result := make([]any, len(input))
+	for i, v := range input {
+		result[i] = v
+	}
+	return result
+}
+
+// scanRows processes the query rows and creates the resulting slice of maps.
+func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
+	columns, _ := rows.Columns()
+	values := make([]any, len(columns))
+	pointers := make([]any, len(columns))
+	for i := range values {
+		pointers[i] = &values[i]
+	}
+
+	var result []map[string]any
 	for rows.Next() {
-		if err := rows.Scan(ptrs...); err != nil {
+		if err := rows.Scan(pointers...); err != nil {
 			return nil, err
 		}
-
-		rowMap := make(map[string]any)
-		for i, col := range cols {
-			// Special handling for address column if it contains []uint8 data
-			if col == "address" && vals[i] != nil {
-				// Check if the value is of type []uint8
-				if byteData, ok := vals[i].([]uint8); ok {
-					// Try to unmarshal it into a map[string]string
-					addressMap := make(map[string]string)
-					if err := json.Unmarshal(byteData, &addressMap); err == nil {
-						rowMap[col] = addressMap
-					} else {
-						// Fall back to the original value if unmarshaling fails
-						rowMap[col] = vals[i]
-					}
-				} else {
-					rowMap[col] = vals[i]
-				}
-			} else {
-				rowMap[col] = vals[i]
-			}
-
-		}
-
+		rowMap := createRowMap(columns, values, logger)
 		result = append(result, rowMap)
 	}
 
 	return result, nil
+}
+
+// createRowMap maps column names to their respective values.
+func createRowMap(columns []string, values []any, logger log.Logger) map[string]any {
+	rowMap := make(map[string]any)
+	for i, column := range columns {
+		if column == "address" {
+			rowMap[column] = parseAddress(values[i], logger)
+		} else {
+			rowMap[column] = values[i]
+		}
+	}
+
+	return rowMap
+}
+
+// parseAddress unmarshals the address column if it contains JSON.
+func parseAddress(value any, logger log.Logger) any {
+	if value == nil {
+		return nil
+	}
+
+	if byteData, ok := value.([]uint8); ok {
+		addressMap := make(map[string]string)
+		if err := json.Unmarshal(byteData, &addressMap); err == nil {
+			return addressMap
+		}
+
+		logger.Warnf("Failed to unmarshal address.")
+	}
+
+	return value
 }
