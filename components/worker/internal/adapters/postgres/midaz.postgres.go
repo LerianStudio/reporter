@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -10,19 +11,19 @@ import (
 
 // Repository defines an interface for querying data from a specified table and fields.
 //
-//go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
+//go:generate mockgen --destination=midaz.postgres.mock.go --package=postgres . Repository
 type Repository interface {
 	Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error)
 }
 
-// DataSource provides an interface for interacting with a PostgreSQL database connection.
-type DataSource struct {
+// MidazDataSource provides an interface for interacting with a PostgreSQL database connection.
+type MidazDataSource struct {
 	connection *postgres.Connection
 }
 
-// NewRepository creates a new DataSource instance using the provided postgres.Connection, initializing the database connection.
-func NewRepository(pc *postgres.Connection) *DataSource {
-	c := &DataSource{
+// NewRepository creates a new MidazDataSource instance using the provided postgres.Connection, initializing the database connection.
+func NewRepository(pc *postgres.Connection) *MidazDataSource {
+	c := &MidazDataSource{
 		connection: pc,
 	}
 
@@ -35,7 +36,7 @@ func NewRepository(pc *postgres.Connection) *DataSource {
 }
 
 // Query retrieves data from a specified table and fields, returning a slice of maps with column names as keys.
-func (ds *DataSource) Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error) {
+func (ds *MidazDataSource) Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 
 	logger.Infof("Querying %s table with fields %s", table, fields)
