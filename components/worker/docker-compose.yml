@@ -1,2 +1,20 @@
-# incluir rede infra do midaz como external
-# vai precisar para acessar as bases e o otel
+services:
+  plugin-template-engine-worker:
+    build:
+      context: ../../
+      dockerfile: ./components/worker/Dockerfile
+    container_name: plugin-template-engine-worker
+    restart: always
+    env_file:
+      - ./.env
+    volumes:
+      - .:/usr/src/worker
+    networks:
+      - plugin-template-engine-infra-network
+      - infra-network
+
+networks:
+  plugin-template-engine-infra-network:
+    external: true
+  infra-network:
+    external: true

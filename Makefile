@@ -27,11 +27,12 @@ MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
 
 # Define a list of all component directories for easier iteration
-COMPONENTS := $(INFRA_DIR) $(MANAGER_DIR) #$(WORKER_DIR) TODO
+COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR)
 
 # Include shared color definitions and utility functions
 include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
 include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
+include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
 
 # Display available commands
 .PHONY: info
@@ -42,7 +43,7 @@ info:
 	@echo "                                                                                                                                       "
 	@echo "make audit COMMAND=\"any\"                                                                                                            "
 	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the audit container. Replace \"any\" with the desired command you want to execute. "
+	@echo "This command will run the specified command inside the container. Replace \"any\" with the desired command you want to execute. "
 	@echo "                                                                                                                         "
 	@echo "## Docker commands:"
 	@echo "                                                                                                                         "
@@ -127,20 +128,6 @@ setup-git-hooks:
 check-hooks:
 	@echo "$(BLUE)Checking git hooks status...$(NC)"
 	./make.sh "checkHooks"
-
-.PHONY: lint
-lint:
-	$(call title1,"Running linters on all components")
-	@for dir in $(COMPONENTS); do \
-		echo "$(CYAN)Checking for Go files in $$dir...$(NC)"; \
-		if find "$$dir" -name "*.go" -type f | grep -q .; then \
-			echo "$(CYAN)Linting in $$dir...$(NC)"; \
-			(cd $$dir && $(MAKE) lint) || exit 1; \
-		else \
-			echo "$(YELLOW)No Go files found in $$dir, skipping linting$(NC)"; \
-		fi; \
-	done
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: tidy
 tidy:

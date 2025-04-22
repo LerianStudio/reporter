@@ -3,14 +3,16 @@ package bootstrap
 import (
 	"fmt"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
+	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"plugin-template-engine/components/worker/internal/adapters/minio/report"
-	"plugin-template-engine/components/worker/internal/adapters/minio/template"
-	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	reportFile "plugin-template-engine/components/worker/internal/adapters/minio/report"
+	templateFile "plugin-template-engine/components/worker/internal/adapters/minio/template"
+	reportData "plugin-template-engine/components/worker/internal/adapters/mongodb/report"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
 	pg "plugin-template-engine/pkg/postgres"
@@ -33,11 +35,20 @@ type Config struct {
 	OtelDeploymentEnv           string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
-	MinioAPIHost                string `env:"MINIO_API_HOST"`
-	MinioAPIPort                string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled             bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername            string `env:"MINIO_APP_USER"`
-	MinioAppPassword            string `env:"MINIO_APP_PASSWORD"`
+	// MINIO
+	MinioAPIHost     string `env:"MINIO_API_HOST"`
+	MinioAPIPort     string `env:"MINIO_API_PORT"`
+	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
+	MinioAppUsername string `env:"MINIO_APP_USER"`
+	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	// MongoDB
+	MongoURI        string `env:"MONGO_URI"`
+	MongoDBHost     string `env:"MONGO_HOST"`
+	MongoDBName     string `env:"MONGO_NAME"`
+	MongoDBUser     string `env:"MONGO_USER"`
+	MongoDBPassword string `env:"MONGO_PASSWORD"`
+	MongoDBPort     string `env:"MONGO_PORT"`
+	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
 	// Midaz
 	MidazDBHost            string `env:"MIDAZ_DB_HOST"`
 	MidazDBPort            string `env:"MIDAZ_DB_PORT"`
@@ -92,10 +103,38 @@ func InitWorker() *Service {
 		logger.Fatalf("Error creating minio client: %v", err)
 	}
 
-	// TODO: on demand database connection
+	// Init mongo DB connection
+	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
 
-	externalDataSources := make(map[string]services.DataSource)
+	if cfg.MaxPoolSize <= 0 {
+		cfg.MaxPoolSize = 100
+	}
 
+	mongoConnection := &mongoDB.MongoConnection{
+		ConnectionStringSource: mongoSource,
+		Database:               cfg.MongoDBName,
+		Logger:                 logger,
+		MaxPoolSize:            uint64(cfg.MaxPoolSize),
+	}
+
+	service := &services.UseCase{
+		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
+		ExternalDataSources: externalDatasourceConnections(cfg, logger),
+		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
+	}
+
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
+
+	return &Service{
+		MultiQueueConsumer: multiQueueConsumer,
+		Logger:             logger,
+	}
+}
+
+// externalDatasourceConnections initializes and returns a map of external data source connections using the provided config and logger.
+func externalDatasourceConnections(cfg *Config, logger log.Logger) map[string]services.DataSource {
 	// Midaz Onboarding
 	onboardingString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazOnboardingDBName)
@@ -106,13 +145,6 @@ func InitWorker() *Service {
 		Logger:             logger,
 		MaxOpenConnections: 10,
 		MaxIdleConnections: 5,
-	}
-
-	onboardingRepository := postgres.NewRepository(onboardingConnection)
-
-	externalDataSources["onboarding"] = services.DataSource{
-		DatabaseType:       "postgres",
-		PostgresRepository: onboardingRepository,
 	}
 
 	// Midaz Transactions
@@ -127,23 +159,18 @@ func InitWorker() *Service {
 		MaxIdleConnections: 5,
 	}
 
-	transactionRepository := postgres.NewRepository(transactionConnection)
-
-	externalDataSources["transaction"] = services.DataSource{
-		DatabaseType:       "postgres",
-		PostgresRepository: transactionRepository,
+	externalDataSources := map[string]services.DataSource{
+		"onboarding": {
+			DatabaseType:   "postgres",
+			DatabaseConfig: onboardingConnection,
+			Initialized:    false,
+		},
+		"transaction": {
+			DatabaseType:   "postgres",
+			DatabaseConfig: transactionConnection,
+			Initialized:    false,
+		},
 	}
 
-	service := &services.UseCase{
-		TemplateFileRepo:    template.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:      report.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: externalDataSources,
-	}
-
-	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
-
-	return &Service{
-		MultiQueueConsumer: multiQueueConsumer,
-		Logger:             logger,
-	}
+	return externalDataSources
 }

@@ -9,7 +9,7 @@ import (
 
 // Repository provides an interface for MinIO storage operations
 //
-//go:generate mockgen --destination=template.mock.go --package=template . Repository
+//go:generate mockgen --destination=template.minio.mock.go --package=template . Repository
 type Repository interface {
 	Get(ctx context.Context, objectName string) ([]byte, error)
 }
@@ -28,7 +28,7 @@ func NewMinioRepository(minioClient *minio.Client, bucketName string) *MinioRepo
 	}
 }
 
-// Get the content of a .txt file from the MinIO bucket.
+// Get the content of a .tpl file from the MinIO bucket.
 func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
 	file, err := repo.minioClient.GetObject(ctx, repo.BucketName, objectName+".tpl", minio.GetObjectOptions{})
 	if err != nil {

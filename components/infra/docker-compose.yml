@@ -16,25 +16,11 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     ports:
       - ${MONGO_PORT}:${MONGO_PORT}
-    command: [ "sh", "-c", "chmod 400 /data/mongo-keyfile && mongod --replSet rs0 --bind_ip_all --port ${MONGO_PORT}" ]
+    command: mongod --port ${MONGO_PORT}
     volumes:
-      - ./mongo/mongo-keyfile:/data/mongo-keyfile
-      - mongodb-data:/data/db
+      - plugin-template-engine-mongodb-data:/data/db
     networks:
-      - template-engine-infra-network
-
-  plugin-template-engine-mongodb-init:
-    container_name: plugin-template-engine-mongodb-init
-    env_file:
-      - .env
-    image: mongo:latest
-    depends_on:
-      - plugin-template-engine-mongodb
-    volumes:
-      - ./mongo/mongo.sh:/data/mongo.sh
-    entrypoint: [ "sh", "-c", "chmod +x /data/mongo.sh && sh /data/mongo.sh" ]
-    networks:
-      - template-engine-infra-network
+      - plugin-template-engine-infra-network
 
   plugin-template-engine-rabbitmq:
     image: rabbitmq:4.0-management-alpine
@@ -52,7 +38,7 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - template-engine-infra-network
+      - plugin-template-engine-infra-network
 
   plugin-template-engine-minio:
     image: minio/minio:latest
@@ -89,10 +75,10 @@ services:
       - ./minio/policies:/policies
 
 volumes:
-  mongodb-data:
+  plugin-template-engine-mongodb-data:
   plugin-template-engine-minio-data:
 
 networks:
-  template-engine-infra-network:
-    name: template-engine-infra-network
+  plugin-template-engine-infra-network:
+    name: plugin-template-engine-infra-network
     driver: bridge

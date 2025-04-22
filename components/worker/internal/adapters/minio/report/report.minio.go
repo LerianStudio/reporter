@@ -8,7 +8,7 @@ import (
 
 // Repository provides an interface for MinIO storage operations
 //
-//go:generate mockgen --destination=template.mock.go --package=template . Repository
+//go:generate mockgen --destination=report.minio.mock.go --package=report . Repository
 type Repository interface {
 	Put(ctx context.Context, objectName string, contentType string, data []byte) error
 }

@@ -44,13 +44,14 @@ Based on the fields requested in the report, it connects to the respective datab
 
 ```json
 {
-   "id": "019538ee-deee-769c-8859-cbe84fce9af7",
+   "templateId": "019538ee-deee-769c-8859-cbe84fce9af7",
    "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
+   "ledgerIds": ["01963aba-18c3-77a5-adcc-18028fc7420d"],
    "outputFormat": "html",
    "mappedFields": {
       "onboarding": {
          "organization": ["legal_name"],
-         "ledger": ["name", "description"]
+         "ledger": ["name", "status"]
       }
    }
 }
