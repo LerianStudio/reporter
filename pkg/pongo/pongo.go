@@ -8,17 +8,11 @@ import (
 )
 
 func init() {
-	// Register a filter to escape XML attribute values
-	// This filter is useful when rendering XML templates
-	pongo2.RegisterFilter("xmlattr", func(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
-		return pongo2.AsValue(html.EscapeString(in.String())), nil
-	})
-
-	// Register a filter to escape XML content
-	pongo2.RegisterFilter("xmlcontent", func(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
-		return pongo2.AsValue(html.EscapeString(in.String())), nil
-	})
-
+	if err := pongo2.RegisterFilter("xmlattr", func(input *pongo2.Value, _ *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+		return pongo2.AsValue(html.EscapeString(input.String())), nil
+	}); err != nil {
+		panic("Failed to register XML attribute filter: " + err.Error())
+	}
 }
 
 // TemplateRenderer handles rendering templates using pongo2
