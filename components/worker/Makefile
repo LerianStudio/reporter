@@ -82,3 +82,17 @@ set-env:
 	@echo "$(BLUE)Setting up environment files...$(NC)"
 	cp -r ./.env.example ./.env
 	@echo "$(BLUE)Environment files created successfully$(NC)"
+
+.PHONY: lint
+lint:
+	$(call title1,"Running linters on all components")
+	@for dir in $(COMPONENTS); do \
+		echo "$(CYAN)Checking for Go files in $$dir...$(NC)"; \
+		if find "$$dir" -name "*.go" -type f | grep -q .; then \
+			echo "$(CYAN)Linting in $$dir...$(NC)"; \
+			(cd $$dir && $(MAKE) lint) || exit 1; \
+		else \
+			echo "$(YELLOW)No Go files found in $$dir, skipping linting$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
