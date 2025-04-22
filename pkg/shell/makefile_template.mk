@@ -10,7 +10,7 @@ ARTIFACTS_DIR := ./artifacts
 $(shell mkdir -p $(ARTIFACTS_DIR))
 
 # Define the root directory of the project
-APP_ROOT ?= $(shell cd ../.. && pwd)
+APP_ROOT ?= $(shell pwd)
 
 # Include shared color definitions and utility functions
 include $(APP_ROOT)/pkg/shell/makefile_colors.mk

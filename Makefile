@@ -32,6 +32,7 @@ COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR)
 # Include shared color definitions and utility functions
 include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
 include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
+include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
 
 # Display available commands
 .PHONY: info
@@ -127,20 +128,6 @@ setup-git-hooks:
 check-hooks:
 	@echo "$(BLUE)Checking git hooks status...$(NC)"
 	./make.sh "checkHooks"
-
-.PHONY: lint
-lint:
-	$(call title1,"Running linters on all components")
-	@for dir in $(COMPONENTS); do \
-		echo "$(CYAN)Checking for Go files in $$dir...$(NC)"; \
-		if find "$$dir" -name "*.go" -type f | grep -q .; then \
-			echo "$(CYAN)Linting in $$dir...$(NC)"; \
-			(cd $$dir && $(MAKE) lint) || exit 1; \
-		else \
-			echo "$(YELLOW)No Go files found in $$dir, skipping linting$(NC)"; \
-		fi; \
-	done
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: tidy
 tidy:
