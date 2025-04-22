@@ -74,6 +74,7 @@ func applyOrganizationFilter(queryBuilder squirrel.SelectBuilder, table string, 
 	if table == "organization" {
 		return queryBuilder.Where("id = ?", organizationID.String())
 	}
+
 	return queryBuilder.Where("organization_id = ?", organizationID.String())
 }
 
@@ -95,6 +96,7 @@ func toInterfaceSlice(input []string) []any {
 	for i, v := range input {
 		result[i] = v
 	}
+
 	return result
 }
 
@@ -103,15 +105,18 @@ func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 	columns, _ := rows.Columns()
 	values := make([]any, len(columns))
 	pointers := make([]any, len(columns))
+
 	for i := range values {
 		pointers[i] = &values[i]
 	}
 
 	var result []map[string]any
+
 	for rows.Next() {
 		if err := rows.Scan(pointers...); err != nil {
 			return nil, err
 		}
+
 		rowMap := createRowMap(columns, values, logger)
 		result = append(result, rowMap)
 	}
@@ -122,6 +127,7 @@ func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 // createRowMap maps column names to their respective values.
 func createRowMap(columns []string, values []any, logger log.Logger) map[string]any {
 	rowMap := make(map[string]any)
+
 	for i, column := range columns {
 		if column == "address" {
 			rowMap[column] = parseAddress(values[i], logger)

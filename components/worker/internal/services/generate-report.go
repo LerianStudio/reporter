@@ -104,7 +104,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	spanRender.End()
 
-	err = uc.saveReport(ctx, tracer, message, err, out, logger)
+	err = uc.saveReport(ctx, tracer, message, out, logger)
 	if err != nil {
 		libOtel.HandleSpanError(&span, "Error saving report.", err)
 
@@ -119,7 +119,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
 // It determines the object name, content type, and stores the file using the ReportFileRepo interface.
 // Returns an error if the file storage operation fails.
-func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, err error, out string, logger log.Logger) error {
+func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
 	defer spanSaveReport.End()
 
@@ -127,7 +127,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.ReportID.String() + "/" + time.Now().Format("20060102_150405") + "." + outputFormat
 
-	err = uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 
@@ -145,17 +145,20 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.generate_report.query_external_data")
 	defer span.End()
 
 	for databaseName, tables := range message.DataQueries {
-		ctx, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
+		_, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
+
 		logger.Infof("Querying database %s", databaseName)
 
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
 			libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
 			logger.Errorf("Unknown data source: %s", databaseName)
+
 			continue
 		}
 
@@ -168,18 +171,20 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 		}
 
 		// Prepare results map for this database
-		if _, exists := result[databaseName]; !exists {
+		if _, dbExists := result[databaseName]; !dbExists {
 			result[databaseName] = make(map[string][]map[string]any)
 		}
 
 		for table, fields := range tables {
-			ctx, tableSpan := tracer.Start(ctx, "service.generate_report.query_external_data.table")
+			ctxTable, tableSpan := tracer.Start(ctx, "service.generate_report.query_external_data.table")
+
 			var tableResult []map[string]any
+
 			var err error
 
 			switch dataSource.DatabaseType {
 			case "postgres":
-				tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
+				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, message.OrganizationID, table, message.Ledgers, fields)
 				if err != nil {
 					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
 
@@ -197,6 +202,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			// Add the query results to the result map
 			result[databaseName][table] = tableResult
+
 			tableSpan.End()
 		}
 
@@ -218,6 +224,7 @@ func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSour
 	dataSource.Initialized = true
 
 	uc.ExternalDataSources[databaseName] = *dataSource
+
 	logger.Infof("Established connection to %s database on demand", databaseName)
 
 	return nil

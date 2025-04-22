@@ -15,7 +15,7 @@ import (
 //
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
-	UpdateReportStatusById(ctx context.Context, collection string, id uuid.UUID, status string, completedAt time.Time, metadata map[string]interface{}) error
+	UpdateReportStatusById(ctx context.Context, collection string, id uuid.UUID, status string, completedAt time.Time, metadata map[string]any) error
 }
 
 // ReportMongoDBRepository is a MongoDB-specific implementation of the ReportRepository.
@@ -44,7 +44,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	id uuid.UUID,
 	status string,
 	completedAt time.Time,
-	metadata map[string]interface{},
+	metadata map[string]any,
 ) error {
 	tracer := commons.NewTracerFromContext(ctx)
 
