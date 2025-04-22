@@ -116,8 +116,12 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	return nil
 }
 
+// saveReport handles saving the generated report file to the report repository and logs any encountered errors.
+// It determines the object name, content type, and stores the file using the ReportFileRepo interface.
+// Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, err error, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
+	defer spanSaveReport.End()
 
 	outputFormat := strings.ToLower(message.OutputFormat)
 	contentType := getContentType(outputFormat)
@@ -132,7 +136,6 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 		return err
 	}
 
-	spanSaveReport.End()
 	return nil
 }
 
@@ -176,15 +179,13 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			switch dataSource.DatabaseType {
 			case "postgres":
-				if dataSource.PostgresRepository != nil {
-					tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
-					if err != nil {
-						libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
+				tableResult, err = dataSource.PostgresRepository.Query(ctx, message.OrganizationID, table, message.Ledgers, fields)
+				if err != nil {
+					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
 
-						logger.Errorf("Error querying table %s: %s", table, err.Error())
+					logger.Errorf("Error querying table %s: %s", table, err.Error())
 
-						return err
-					}
+					return err
 				}
 			case "mongodb":
 				libOtel.HandleSpanError(&tableSpan, "MongoDB queries not yet implemented.", nil)
