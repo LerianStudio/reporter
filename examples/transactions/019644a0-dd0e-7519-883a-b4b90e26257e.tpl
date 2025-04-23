@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 {%- if not transaction_id -%}
-{% set transaction_id = "019649e7-0166-7d94-8a4c-c9016d8b2a16" %}
+{% set transaction_id = "01965f04-7087-735f-a284-3d3e4edc6a48" %}
 {%- endif -%}
 {%- for t in transaction.transaction -%}
 {%- if transaction_id == "" or t.id == transaction_id -%}
-{% set total_movimentado = 0 %}
 <Transacao>
     <Identificador>{{ t.id }}</Identificador>
     <Descricao>{{ t.description }}</Descricao>
     <Template>{{ t.template }}</Template>
     <DataCriacao>{{ t.created_at }}</DataCriacao>
     <Status>{{ t.status }}</Status>
-    <Valor scale="{{ t.amount_scale|xmlattr }}">
+    <Valor scale="{{ t.amount_scale }}">
         {{ t.amount }}
     </Valor>
     <Moeda>{{ t.asset_code }}</Moeda>
@@ -43,8 +42,7 @@
 
     <Operacoes>
         {% for operation in transaction.operation -%}
-        {% if operation.transaction_id == transaction_id %}
-            {% set total_movimentado = total_movimentado|add:operation.amount %}
+        {% if operation.transaction_id == transaction_id and operation.account_alias != "@external/BRL" %}
             <Operacao>
                 <ID>{{ operation.id }}</ID>
                 <Descricao>{{ operation.description }}</Descricao>
@@ -52,18 +50,40 @@
                 <Conta>
                     <Alias>{{ operation.account_alias }}</Alias>
                 </Conta>
-                <Valor scale="{{ operation.amount_scale|xmlattr }}">{{ operation.amount }}</Valor>
-                <SaldoDisponivelApos scale="{{ operation.balance_scale|xmlattr }}">
-                    {{ operation.available_balance_after }}
+                <Valor scale="{{ operation.amount_scale }}">{{ operation.amount }}</Valor>
+                <SaldoDisponivelApos scale="{{ operation.balance_scale_after }}">
+                    {{ operation.available_balance_after|scale:operation.balance_scale_after }}
                 </SaldoDisponivelApos>
+                <Porcentagem>
+                    {{ operation.amount|percent_of:t.amount }}
+                </Porcentagem>
             </Operacao>
         {% endif %}
         {%- endfor %}
     </Operacoes>
 
     <TotalMovimentado>
-        {{ total_movimentado }}
+        {% sum_by transaction.operation by "amount" if transaction_id == "01965f04-7087-735f-a284-3d3e4edc6a48" and account_alias != "@external/BRL" scale 2 %}
     </TotalMovimentado>
+
+    <Totais>
+        <Soma>
+            {% sum_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+        </Soma>
+        <Contagem>
+            {% count_by transaction.operation if account_alias != "@external/BRL" %}
+        </Contagem>
+        <Media>
+            {% avg_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+        </Media>
+        <Minimo>
+            {% min_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+        </Minimo>
+        <Maximo>
+            {% max_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+        </Maximo>
+    </Totais>
+
 </Transacao>
 {% endif %}
 {%- endfor %}
