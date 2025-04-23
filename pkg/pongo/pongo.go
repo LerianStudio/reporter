@@ -1,48 +1,34 @@
 package pongo
 
 import (
-	"context"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"fmt"
 	"github.com/flosch/pongo2/v6"
-	"html"
 )
 
+// init initializes custom filters and tags for the Pongo2 template engine. It registers filters and aggregation tags.
 func init() {
-	if err := pongo2.RegisterFilter("xmlattr", func(input *pongo2.Value, _ *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
-		return pongo2.AsValue(html.EscapeString(input.String())), nil
-	}); err != nil {
-		panic("Failed to register XML attribute filter: " + err.Error())
-	}
-}
-
-// TemplateRenderer handles rendering templates using pongo2
-type TemplateRenderer struct{}
-
-// NewTemplateRenderer creates a new TemplateRenderer
-func NewTemplateRenderer() *TemplateRenderer {
-	return &TemplateRenderer{}
-}
-
-// RenderFromBytes renders a template from bytes using the provided data context
-func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any) (string, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-
-	tpl, err := pongo2.FromBytes(templateBytes)
-	if err != nil {
-		logger.Errorf("Error parsing template: %s", err.Error())
-		return "", err
+	if err := pongo2.RegisterFilter("scale", scaleFilter); err != nil {
+		panic("Failed to register scale filter: " + err.Error())
 	}
 
-	pongoCtx := pongo2.Context{}
-	for k, v := range data {
-		pongoCtx[k] = v
+	if err := pongo2.RegisterFilter("percent_of", percentOfFilter); err != nil {
+		panic("Failed to register percent_of filter: " + err.Error())
 	}
 
-	out, err := tpl.Execute(pongoCtx)
-	if err != nil {
-		logger.Errorf("Error executing template: %s", err.Error())
-		return "", err
+	tags := []struct {
+		name string
+		op   string
+	}{
+		{"sum_by", "sum"},
+		{"count_by", "count"},
+		{"avg_by", "avg"},
+		{"min_by", "min"},
+		{"max_by", "max"},
 	}
 
-	return out, nil
+	for _, tag := range tags {
+		if err := pongo2.RegisterTag(tag.name, makeAggregateTag(tag.op)); err != nil {
+			panic(fmt.Sprintf("Failed to register tag '%s': %s", tag.name, err.Error()))
+		}
+	}
 }
