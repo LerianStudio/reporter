@@ -23,17 +23,16 @@ type GenerateReportMessage struct {
 	// ReportID uniquely identifies this report generation request
 	ReportID uuid.UUID `json:"reportId"`
 
-	OrganizationID uuid.UUID `json:"organizationId"`
-
-	Ledgers []string `json:"ledgerIds"`
-
-	// OutputFormat specifies the format of the generated report (e.g., html, csv, json)
+	// OutputFormat specifies the format of the generated report (e.g., html, csv, json).
 	OutputFormat string `json:"outputFormat"`
 
-	// DataQueries maps database names to tables and their fields
-	// Format: map[databaseName]map[tableName][]fieldName
-	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}
+	// DataQueries maps database names to tables and their fields.
+	// Format: map[databaseName]map[tableName][]fieldName.
+	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}.
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
+
+	// Filters specifies the filtering criteria for the data queries, mapping filter keys to their respective values.
+	Filters map[string][]string `json:"filters"`
 }
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -184,7 +183,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			switch dataSource.DatabaseType {
 			case "postgres":
-				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, message.OrganizationID, table, message.Ledgers, fields)
+				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, table, fields, message.Filters)
 				if err != nil {
 					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
 
