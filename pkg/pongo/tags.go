@@ -11,11 +11,11 @@ import (
 // aggregateTagNode represents a data structure to hold information for custom aggregation operations in templates.
 // It includes the operation type, collection expression, field expression, filter expression, and scaling expression.
 type aggregateTagNode struct {
-	op             string
-	collectionExpr pongo2.IEvaluator
-	fieldExpr      pongo2.IEvaluator
-	filterExpr     pongo2.IEvaluator
-	scaleExpr      pongo2.IEvaluator
+	op             string            // Aggregation type ("count", "sum", "avg", "min", "max")
+	collectionExpr pongo2.IEvaluator // Expression representing the data collection
+	fieldExpr      pongo2.IEvaluator // Field expression for selecting specific fields (e.g., "by field")
+	filterExpr     pongo2.IEvaluator // Condition to filter items in the dataset (e.g., "if condition" in the template tag)
+	scaleExpr      pongo2.IEvaluator // Expression for scaling results (e.g., formatting decimals like "scale 2")
 }
 
 // makeAggregateTag returns a pongo2.TagParser for creating custom aggregate template tags based on the specified operation.
@@ -28,7 +28,7 @@ func makeAggregateTag(op string) pongo2.TagParser {
 
 		var fieldExpr pongo2.IEvaluator
 
-		if op != "count" {
+		if op != "count" { // "count"` operation doesn't need a specific field to operate on (simply counts the number of elements)
 			if t := args.Match(pongo2.TokenIdentifier, "by"); t == nil {
 				return nil, args.Error("Expected 'by' keyword", nil)
 			}
