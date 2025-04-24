@@ -31,6 +31,7 @@ func scaleFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 				OrigError: fmt.Errorf("failed to parse string to int: %w", err),
 			}
 		}
+
 		intVal = parsed
 	default:
 		return pongo2.AsSafeValue("NaN"), &pongo2.Error{
@@ -41,6 +42,7 @@ func scaleFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 
 	factor := math.Pow10(scale)
 	scaled := float64(intVal) / factor
+
 	return pongo2.AsValue(fmt.Sprintf("%.*f", scale, scaled)), nil
 }
 
@@ -76,5 +78,6 @@ func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pon
 	}
 
 	percent := (float64(num) / float64(den)) * 100
+
 	return pongo2.AsValue(fmt.Sprintf("%.2f%%", percent)), nil
 }
