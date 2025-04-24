@@ -6,6 +6,7 @@
 - [ ] Manager
 - [ ] Worker
 - [ ] Infrastructure
+- [ ] Packages
 - [ ] Pipeline
 - [ ] Tests
 - [ ] Documentation
