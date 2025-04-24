@@ -1,9 +1,12 @@
 {
    "templateId": "019644a0-b748-7981-84af-fae601a6e99b",
-   "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
-   "organizationId": "019649e7-011f-7ec1-a662-10cca8c91dfe",
-   "ledgerIds": ["019649e7-012c-76a4-a62a-b42b9ceebfc2"],
+   "reportId": "01966834-818f-7faa-bac5-70305bebb774",
    "outputFormat": "txt",
+   "filters": {
+      "organization_id": ["01965efd-7d3e-76f4-9950-e90aa00f13a0"],
+      "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"],
+      "transaction_id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+   },
    "mappedFields": {
       "onboarding": {
          "organization": ["legal_name", "doing_business_as", "legal_document", "address"],
