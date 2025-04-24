@@ -4,18 +4,32 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/Masterminds/squirrel"
-	"github.com/google/uuid"
 	"plugin-template-engine/pkg/postgres"
+	"strings"
 )
+
+var filterableIDs = map[string][]string{
+	"organization": {"organization_id", "parent_organization_id"},
+	"ledger":       {"organization_id", "ledger_id"},
+	"asset":        {"organization_id", "ledger_id", "asset_id"},
+	"account":      {"organization_id", "ledger_id", "account_id", "parent_account_id", "portfolio_id", "segment_id"},
+	"portfolio":    {"organization_id", "ledger_id", "portfolio_id"},
+	"segment":      {"organization_id", "ledger_id", "segment_id"},
+	"transaction":  {"organization_id", "ledger_id", "transaction_id", "parent_transaction_id"},
+	"operation":    {"organization_id", "ledger_id", "transaction_id", "operation_id", "account_id", "balance_id"},
+	"asset_rate":   {"organization_id", "ledger_id"},
+	"balance":      {"organization_id", "ledger_id", "account_id", "balance_id"},
+}
 
 // Repository defines an interface for querying data from a specified table and fields.
 //
 //go:generate mockgen --destination=midaz.postgres.mock.go --package=postgres . Repository
 type Repository interface {
-	Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error)
+	Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error)
 }
 
 // MidazDataSource provides an interface for interacting with a PostgreSQL database connection.
@@ -37,57 +51,59 @@ func NewMidazRepository(pc *postgres.Connection) *MidazDataSource {
 	return c
 }
 
-func (ds *MidazDataSource) Query(ctx context.Context, organizationID uuid.UUID, table string, ledgers, fields []string) ([]map[string]any, error) {
+func (ds *MidazDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	logger.Infof("Querying %s table with fields %v", table, fields)
 
-	logger.Infof("Querying %s table with fields %s", table, fields)
+	filterableFields, isTableValid := filterableIDs[table]
+	if !isTableValid {
+		return nil, fmt.Errorf("invalid table: %s", table)
+	}
 
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 	queryBuilder := psql.Select(fields...).From(table)
 
-	queryBuilder = applyOrganizationFilter(queryBuilder, table, organizationID)
-
-	if len(ledgers) > 0 && table != "organization" {
-		queryBuilder = applyLedgerFilter(queryBuilder, table, ledgers)
-	}
+	queryBuilder = buildQueryWithFilters(queryBuilder, filter, filterableFields, table)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		logger.Errorf("Error generating SQL: %s", err.Error())
-
-		return nil, err
+		return nil, fmt.Errorf("error generating SQL: %w", err)
 	}
 
 	rows, err := ds.connection.ConnectionDB.Query(query, args...)
 	if err != nil {
-		logger.Errorf("Error executing query: %s", err.Error())
-
-		return nil, err
+		return nil, fmt.Errorf("error executing query: %w", err)
 	}
 	defer rows.Close()
 
 	return scanRows(rows, logger)
 }
 
-// applyOrganizationFilter adds the correct `WHERE` clause for organization filtering.
-func applyOrganizationFilter(queryBuilder squirrel.SelectBuilder, table string, organizationID uuid.UUID) squirrel.SelectBuilder {
-	if table == "organization" {
-		return queryBuilder.Where("id = ?", organizationID.String())
+// buildQueryWithFilters applies filter criteria to the query builder based on the filterable fields.
+func buildQueryWithFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]string, filterableFields []string, table string) squirrel.SelectBuilder {
+	for _, field := range filterableFields {
+		if ids, exists := filter[field]; exists {
+			queryBuilder = applyIdFilter(queryBuilder, field, table, ids)
+		}
 	}
 
-	return queryBuilder.Where("organization_id = ?", organizationID.String())
+	return queryBuilder
 }
 
-// applyLedgerFilter adds `WHERE` clauses for ledgers, depending on the table.
-func applyLedgerFilter(queryBuilder squirrel.SelectBuilder, table string, ledgers []string) squirrel.SelectBuilder {
-	args := toInterfaceSlice(ledgers)
-	placeholder := squirrel.Placeholders(len(ledgers))
+// applyIdFilter adiciona condições WHERE genéricas para qualquer tabela ou campo.
+func applyIdFilter(queryBuilder squirrel.SelectBuilder, fieldName string, table string, ids []string) squirrel.SelectBuilder {
+	if len(ids) == 0 {
+		return queryBuilder
+	}
 
-	if table == "ledger" {
+	args := toInterfaceSlice(ids)
+	placeholder := squirrel.Placeholders(len(ids))
+
+	if strings.HasPrefix(fieldName, table) {
 		return queryBuilder.Where("id IN ("+placeholder+")", args...)
 	}
 
-	return queryBuilder.Where("ledger_id IN ("+placeholder+")", args...)
+	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", args...)
 }
 
 // toInterfaceSlice converts a slice of strings to a slice of interface{} for placeholders.

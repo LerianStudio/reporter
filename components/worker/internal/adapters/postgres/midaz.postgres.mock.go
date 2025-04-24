@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,16 +40,16 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // Query mocks base method.
-func (m *MockRepository) Query(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3, arg4 []string) ([]map[string]any, error) {
+func (m *MockRepository) Query(arg0 context.Context, arg1 string, arg2 []string, arg3 map[string][]string) ([]map[string]any, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]map[string]any)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Query indicates an expected call of Query.
-func (mr *MockRepositoryMockRecorder) Query(arg0, arg1, arg2, arg3, arg4 any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Query(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockRepository)(nil).Query), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockRepository)(nil).Query), arg0, arg1, arg2, arg3)
 }

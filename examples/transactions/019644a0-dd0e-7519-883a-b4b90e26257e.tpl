@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-{%- if not transaction_id -%}
-{% set transaction_id = "01965f04-7087-735f-a284-3d3e4edc6a48" %}
-{%- endif -%}
-{%- for t in transaction.transaction -%}
-{%- if transaction_id == "" or t.id == transaction_id -%}
+{% for t in transaction.transaction -%}
 <Transacao>
     <Identificador>{{ t.id }}</Identificador>
     <Descricao>{{ t.description }}</Descricao>
@@ -42,7 +38,7 @@
 
     <Operacoes>
         {% for operation in transaction.operation -%}
-        {% if operation.transaction_id == transaction_id and operation.account_alias != "@external/BRL" %}
+        {% if operation.account_alias != "@external/BRL" %}
             <Operacao>
                 <ID>{{ operation.id }}</ID>
                 <Descricao>{{ operation.description }}</Descricao>
@@ -63,7 +59,7 @@
     </Operacoes>
 
     <TotalMovimentado>
-        {% sum_by transaction.operation by "amount" if transaction_id == "01965f04-7087-735f-a284-3d3e4edc6a48" and account_alias != "@external/BRL" scale 2 %}
+        {% sum_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
     </TotalMovimentado>
 
     <Totais>
@@ -85,5 +81,4 @@
     </Totais>
 
 </Transacao>
-{% endif %}
-{%- endfor %}
+{% endfor %}
