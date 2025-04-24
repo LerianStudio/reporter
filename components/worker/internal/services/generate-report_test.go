@@ -1,6 +1,16 @@
 package services
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	libCommons "github.com/LerianStudio/lib-commons/commons"
+	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
+	"plugin-template-engine/components/worker/internal/adapters/minio/report"
+	"plugin-template-engine/components/worker/internal/adapters/minio/template"
+	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	"strings"
 	"testing"
 )
 
@@ -34,5 +44,159 @@ func Test_getContentType(t *testing.T) {
 				t.Errorf("getContentType(%q) = %q; want %q", tt.extension, got, tt.expectedType)
 			}
 		})
+	}
+}
+
+func TestGenerateReport_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockReportRepo := report.NewMockRepository(ctrl)
+	mockPostgresRepo := postgres.NewMockRepository(ctrl)
+	//mockReportDataRepo := reportData.NewMockRepository(ctrl) // TODO
+
+	templateID := uuid.New()
+	reportID := uuid.New()
+	body := GenerateReportMessage{
+		TemplateID:   templateID,
+		ReportID:     reportID,
+		OutputFormat: "txt",
+		DataQueries: map[string]map[string][]string{
+			"onboarding": {"organization": {"name"}},
+		},
+		Filters: map[string][]string{},
+	}
+	bodyBytes, _ := json.Marshal(body)
+
+	mockTemplateRepo.
+		EXPECT().
+		Get(gomock.Any(), templateID.String()).
+		Return([]byte("Hello {{ organization.name }}"), nil)
+
+	mockPostgresRepo.
+		EXPECT().
+		Query(gomock.Any(), "organization", []string{"name"}, body.Filters).
+		Return([]map[string]any{{"name": "World"}}, nil)
+
+	mockReportRepo.
+		EXPECT().
+		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any()).
+		Return(nil)
+
+	useCase := &UseCase{
+		TemplateFileRepo: mockTemplateRepo,
+		ReportFileRepo:   mockReportRepo,
+		ExternalDataSources: map[string]DataSource{
+			"onboarding": {
+				Initialized:        true,
+				DatabaseType:       "postgres",
+				PostgresRepository: mockPostgresRepo,
+			},
+		},
+	}
+
+	err := useCase.GenerateReport(context.Background(), bodyBytes)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestGenerateReport_TemplateRepoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+
+	templateID := uuid.New()
+	reportID := uuid.New()
+
+	body := GenerateReportMessage{
+		TemplateID:   templateID,
+		ReportID:     reportID,
+		OutputFormat: "txt",
+		DataQueries:  map[string]map[string][]string{},
+	}
+	bodyBytes, _ := json.Marshal(body)
+
+	mockTemplateRepo.
+		EXPECT().
+		Get(gomock.Any(), templateID.String()).
+		Return(nil, errors.New("failed to get file"))
+
+	useCase := &UseCase{
+		TemplateFileRepo:    mockTemplateRepo,
+		ExternalDataSources: map[string]DataSource{},
+	}
+
+	err := useCase.GenerateReport(context.Background(), bodyBytes)
+	if err == nil || !strings.Contains(err.Error(), "failed to get file") {
+		t.Errorf("expected template get error, got: %v", err)
+	}
+}
+
+func TestSaveReport_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockReportRepo := report.NewMockRepository(ctrl)
+
+	useCase := &UseCase{
+		ReportFileRepo: mockReportRepo,
+	}
+
+	reportID := uuid.New()
+	message := GenerateReportMessage{
+		ReportID:     reportID,
+		OutputFormat: "csv",
+	}
+	renderedOutput := "id,name\n1,Jane"
+
+	mockReportRepo.
+		EXPECT().
+		Put(gomock.Any(), gomock.Any(), "text/csv", []byte(renderedOutput)).
+		Return(nil)
+
+	ctx := context.Background()
+
+	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+
+	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestSaveReport_ErrorOnPut(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockReportRepo := report.NewMockRepository(ctrl)
+
+	useCase := &UseCase{
+		ReportFileRepo: mockReportRepo,
+	}
+
+	reportID := uuid.New()
+	message := GenerateReportMessage{
+		ReportID:     reportID,
+		OutputFormat: "html",
+	}
+	output := "<html></html>"
+
+	mockReportRepo.
+		EXPECT().
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
+		Return(errors.New("failed to put file"))
+
+	ctx := context.Background()
+
+	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+
+	err := useCase.saveReport(ctx, tracer, message, output, logger)
+	if err == nil || !strings.Contains(err.Error(), "failed to put file") {
+		t.Errorf("expected error on Put, got: %v", err)
 	}
 }
