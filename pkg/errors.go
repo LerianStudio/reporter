@@ -340,7 +340,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrEntityNotFound.Error(),
 			Title:      "Entity Not Found",
-			Message:    "No entity was found for the given ID. Please make sure to use the correct ID for the entity you are trying to manage.",
+			Message:    fmt.Sprintf("No %v entity was found for the given ID. Please make sure to use the correct ID for the entity you are trying to manage.", args...),
 		},
 		constant.ErrActionNotPermitted: ValidationError{
 			EntityType: entityType,
@@ -432,6 +432,18 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrMapFieldKeyUnexpected.Error(),
 			Title:      "Error Key Unexpected",
 			Message:    fmt.Sprintf("The key %s is unexpected. Please check the uploaded file.", args),
+		},
+		constant.ErrInvalidPathParameter: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidPathParameter.Error(),
+			Title:      "Invalid Path Parameter",
+			Message:    fmt.Sprintf("Path parameters is in an incorrect format. Please check the following parameter %v and ensure they meet the required format before trying again.", args),
+		},
+		constant.ErrOutputFormatWithoutTemplateFile: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrOutputFormatWithoutTemplateFile.Error(),
+			Title:      "Update Output format without template File",
+			Message:    "Can not update output format without passing template file. Please check information passed and try again.",
 		},
 	}
 
