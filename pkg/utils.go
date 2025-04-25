@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"math"
 	"os/exec"
+	"plugin-template-engine/pkg/constant"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -118,6 +119,52 @@ func GetMemUsage(ctx context.Context, exc SyscmdI) int64 {
 // It's use TrimSpace so, a string "  " and "" and "null" and "nil" will be considered empty
 func IsNilOrEmpty(s *string) bool {
 	return s == nil || strings.TrimSpace(*s) == "" || strings.TrimSpace(*s) == "null" || strings.TrimSpace(*s) == "nil"
+}
+
+// ValidateFormDataFields returns error if data from form data is invalid
+func ValidateFormDataFields(outFormat, description *string) error {
+	if IsNilOrEmpty(outFormat) {
+		return ValidateBusinessError(constant.ErrMissingRequiredFields, "")
+	}
+
+	if IsNilOrEmpty(description) {
+		return ValidateBusinessError(constant.ErrMissingRequiredFields, "")
+	}
+
+	if !IsOutputFormatValuesValid(outFormat) {
+		return ValidateBusinessError(constant.ErrInvalidOutputFormat, "")
+	}
+
+	return nil
+}
+
+// IsOutputFormatValuesValid returns a boolean indicating if the output format value is valid
+func IsOutputFormatValuesValid(outFormat *string) bool {
+	outFormatUpper := strings.ToUpper(*outFormat)
+	return outFormatUpper == "HTML" || outFormatUpper == "JSON" || outFormatUpper == "XML"
+}
+
+// ValidateFileFormat returns error if the templateFile content is not the same of outputFormat
+func ValidateFileFormat(outFormat, templateFile string) error {
+	format := strings.ToUpper(outFormat)
+
+	switch format {
+	case "HTML":
+		if !strings.Contains(templateFile, "<html") && !strings.Contains(templateFile, "<!DOCTYPE html") {
+			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
+		}
+	case "XML":
+		if !strings.Contains(templateFile, "<?xml") && !strings.Contains(templateFile, "<") {
+			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
+		}
+	case "CSV":
+		lines := strings.Split(templateFile, "\n")
+		if len(lines) < 2 || !strings.Contains(lines[0], ",") && !strings.Contains(lines[0], ";") {
+			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
+		}
+	}
+
+	return nil
 }
 
 // ValidateServerAddress checks if the value matches the pattern <some-address>:<some-port> and returns the value if it does.

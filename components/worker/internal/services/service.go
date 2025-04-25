@@ -1,10 +1,10 @@
 package services
 
 import (
-	reportFile "plugin-template-engine/components/worker/internal/adapters/minio/report"
-	templateFile "plugin-template-engine/components/worker/internal/adapters/minio/template"
-	reportData "plugin-template-engine/components/worker/internal/adapters/mongodb/report"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	reportFile "plugin-template-engine/pkg/minio/report"
+	templateFile "plugin-template-engine/pkg/minio/template"
+	reportData "plugin-template-engine/pkg/mongodb/report"
 	pg "plugin-template-engine/pkg/postgres"
 )
 

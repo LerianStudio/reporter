@@ -2,7 +2,6 @@ package http
 
 const (
 	headerUserAgent = "User-Agent"
-	fileExtension   = ".txt"
+	fileExtension   = ".tpl"
 	idempotencyTTL  = "X-TTL"
-	file            = "file"
 )
