@@ -5,10 +5,13 @@ import (
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/zap"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
-	"plugin-template-engine/components/manager/internal/adapters/mongodb/template"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
+	templateMinio "plugin-template-engine/pkg/minio/template"
+	"plugin-template-engine/pkg/mongodb/template"
 )
 
 // Config is the top level configuration struct for the entire application.
@@ -28,6 +31,11 @@ type Config struct {
 	MongoDBUser             string `env:"MONGO_USER"`
 	MongoDBPassword         string `env:"MONGO_PASSWORD"`
 	MongoDBPort             string `env:"MONGO_PORT"`
+	MinioAPIHost            string `env:"MINIO_API_HOST"`
+	MinioAPIPort            string `env:"MINIO_API_PORT"`
+	MinioSSLEnabled         bool   `env:"MINIO_SSL_ENABLED"`
+	MinioAppUsername        string `env:"MINIO_APP_USER"`
+	MinioAppPassword        string `env:"MINIO_APP_PASSWORD"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -50,6 +58,17 @@ func InitServers() *Service {
 		EnableTelemetry:           cfg.EnableTelemetry,
 	}
 
+	// Config minio connection
+	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
+
+	minioClient, err := minio.New(minioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
+		Secure: cfg.MinioSSLEnabled,
+	})
+	if err != nil {
+		logger.Fatalf("Error creating minio client: %v", err)
+	}
+
 	// Init mongo DB connection
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
@@ -63,7 +82,8 @@ func InitServers() *Service {
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 
 	templateService := &services.UseCase{
-		TemplateRepo: templateMongoDBRepository,
+		TemplateRepo:  templateMongoDBRepository,
+		TemplateMinio: templateMinio.NewMinioRepository(minioClient, "templates"),
 	}
 
 	templateHandler := &in2.TemplateHandler{

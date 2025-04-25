@@ -10,11 +10,11 @@ import (
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	reportFile "plugin-template-engine/components/worker/internal/adapters/minio/report"
-	templateFile "plugin-template-engine/components/worker/internal/adapters/minio/template"
-	reportData "plugin-template-engine/components/worker/internal/adapters/mongodb/report"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
+	reportFile "plugin-template-engine/pkg/minio/report"
+	templateFile "plugin-template-engine/pkg/minio/template"
+	reportData "plugin-template-engine/pkg/mongodb/report"
 	pg "plugin-template-engine/pkg/postgres"
 )
 

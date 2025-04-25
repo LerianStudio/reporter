@@ -14,13 +14,8 @@ services:
     networks:
       - plugin-template-engine-infra-network
       - plugin-template-engine-manager-network
-      - infra-network
 
 networks:
-  infra-network:
-    name: infra-network
-    driver: bridge
-    external: true
   plugin-template-engine-infra-network:
     name: plugin-template-engine-infra-network
     driver: bridge

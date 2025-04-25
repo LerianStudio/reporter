@@ -5,15 +5,14 @@ import (
 	"github.com/LerianStudio/lib-commons/commons"
 	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/google/uuid"
 	"strings"
 )
 
 // Repository provides an interface for operations related on mongo a metadata entities.
 //
-//go:generate mockgen --destination=../../../mocks/mongodb/templates/template_mondogdb_mock.go --package=templates . Repository
+//go:generate mockgen --destination=template.mongodb.mock.go --package=template . Repository
 type Repository interface {
-	Create(ctx context.Context, collection string, t *Template, organizationID uuid.UUID) (*Template, error)
+	Create(ctx context.Context, collection string, record *TemplateMongoDBModel) (*Template, error)
 }
 
 // TemplateMongoDBRepository is a MongoDD-specific implementation of the PackageRepository.
@@ -36,7 +35,7 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDB
 }
 
 // Create inserts a new package entity into mongo.
-func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection string, t *Template, organizationID uuid.UUID) (*Template, error) {
+func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection string, record *TemplateMongoDBModel) (*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_template")
@@ -50,13 +49,6 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 	}
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
-	record := &TemplateMongoDBModel{}
-
-	if err := record.FromEntity(t, organizationID); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to convert template to model", err)
-
-		return nil, err
-	}
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
 

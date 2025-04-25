@@ -372,11 +372,66 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Invalid Metadata Nesting",
 			Message:    fmt.Sprintf("The metadata object cannot contain nested values. Please ensure that the value %v is not nested and try again.", args...),
 		},
+
+		constant.ErrMissingRequiredFields: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingRequiredFields.Error(),
+			Title:      "Missing required fields",
+			Message:    "One or more required fields are missing. Please ensure all required fields like 'description', 'template', and 'outputFormat' are included.",
+		},
+		constant.ErrInvalidFileFormat: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidFileFormat.Error(),
+			Title:      "Invalid file format",
+			Message:    "The uploaded file must be a .tpl file. Other formats are not supported.",
+		},
+		constant.ErrInvalidOutputFormat: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidOutputFormat.Error(),
+			Title:      "Invalid output format",
+			Message:    "The outputFormat field must be one of: html, csv, or xml. ",
+		},
 		constant.ErrInvalidHeaderParameter: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrInvalidHeaderParameter.Error(),
-			Title:      "Invalid header parameter",
-			Message:    fmt.Sprintf("One or more headers parameters are in an incorrect format. Please check the following parameters %v and ensure they meet the required format before trying again.", args),
+			Title:      "Invalid header",
+			Message:    fmt.Sprintf("One or more header values are missing or incorrectly formatted. Please verify required headers %v.", args),
+		},
+		constant.ErrInvalidFileUploaded: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidFileUploaded.Error(),
+			Title:      "Invalid File Uploaded",
+			Message:    fmt.Sprintf("The file you submitted is invalid. Please check the uploaded file with error: %v", args),
+		},
+		constant.ErrEmptyFile: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrEmptyFile.Error(),
+			Title:      "Error File Empty",
+			Message:    "The file you submitted is empty. Please check the uploaded file.",
+		},
+		constant.ErrFileContentInvalid: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrFileContentInvalid.Error(),
+			Title:      "Error File Content Invalid",
+			Message:    fmt.Sprintf("The file content is invalid because is not %s. Please check the uploaded file.", args),
+		},
+		constant.ErrKeyNotAllowed: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrKeyNotAllowed.Error(),
+			Title:      "Error Key Not Allowed",
+			Message:    fmt.Sprintf("The key %s on mapped fields is not allowed. Please check the uploaded file.", args),
+		},
+		constant.ErrInvalidMapFields: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidMapFields.Error(),
+			Title:      "Invalid Map Fields",
+			Message:    fmt.Sprintf("The field on template file is invalid. Invalid field %s on %s.", args...),
+		},
+		constant.ErrMapFieldKeyUnexpected: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMapFieldKeyUnexpected.Error(),
+			Title:      "Error Key Unexpected",
+			Message:    fmt.Sprintf("The key %s is unexpected. Please check the uploaded file.", args),
 		},
 	}
 

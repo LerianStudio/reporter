@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"plugin-template-engine/pkg"
 )
 
 // Repository provides an interface for MinIO storage operations
@@ -12,6 +13,7 @@ import (
 //go:generate mockgen --destination=template.minio.mock.go --package=template . Repository
 type Repository interface {
 	Get(ctx context.Context, objectName string) ([]byte, error)
+	Put(ctx context.Context, objectName string, contentType string, data []byte) error
 }
 
 // MinioRepository provides access to a MinIO bucket for file operations.
@@ -44,4 +46,21 @@ func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte
 	}
 
 	return buf.Bytes(), nil
+}
+
+// Put uploads data to the MinIO bucket with the given object name and content type.
+func (repo *MinioRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
+	fileReader := bytes.NewReader(data)
+	fileSize := int64(len(data))
+	logger := pkg.NewLoggerFromContext(ctx)
+
+	_, err := repo.minioClient.PutObject(ctx, repo.BucketName, objectName, fileReader, fileSize, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	if err != nil {
+		logger.Errorf("Erro to comunicate with minio, Err: %v", err)
+		return err
+	}
+
+	return nil
 }

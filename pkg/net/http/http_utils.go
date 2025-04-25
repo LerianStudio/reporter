@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"io"
@@ -131,18 +130,13 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 }
 
 // GetFileFromHeader method that get file from header and give a string
-func GetFileFromHeader(ctx *fiber.Ctx) (string, error) {
-	fileHeader, err := ctx.FormFile(file)
-	if err != nil {
+func GetFileFromHeader(fileHeader *multipart.FileHeader) (string, error) {
+	if !strings.Contains(fileHeader.Filename, fileExtension) {
 		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "")
 	}
 
-	if !strings.Contains(fileHeader.Filename, fileExtension) {
-		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "", fileHeader.Filename)
-	}
-
 	if fileHeader.Size == 0 {
-		return "", pkg.ValidateBusinessError(constant.ErrEmptyFile, "", fileHeader.Filename)
+		return "", pkg.ValidateBusinessError(constant.ErrEmptyFile, "")
 	}
 
 	file, err := fileHeader.Open()
@@ -159,12 +153,22 @@ func GetFileFromHeader(ctx *fiber.Ctx) (string, error) {
 
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, file); err != nil {
-		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileFormat, "", fileHeader.Filename)
+		return "", pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err)
 	}
 
 	fileString := buf.String()
 
 	return fileString, nil
+}
+
+func ReadMultipartFile(fileHeader *multipart.FileHeader) ([]byte, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return io.ReadAll(file)
 }
 
 func validateDates(startDate, endDate *time.Time) error {

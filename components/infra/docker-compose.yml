@@ -54,6 +54,8 @@ services:
     volumes:
       - plugin-template-engine-minio-data:/data
     command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+    networks:
+      - plugin-template-engine-infra-network
 
   plugin-template-engine-minio-mc:
     image: minio/mc
