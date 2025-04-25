@@ -215,7 +215,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
 	switch databaseName {
 	case "onboarding", "transaction":
-		dataSource.PostgresRepository = postgres.NewMidazRepository(dataSource.DatabaseConfig)
+		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
 	default:
 		return fmt.Errorf("unknown database: %s", databaseName)
 	}

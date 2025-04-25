@@ -27,19 +27,19 @@ var filterableIDs = map[string][]string{
 
 // Repository defines an interface for querying data from a specified table and fields.
 //
-//go:generate mockgen --destination=midaz.postgres.mock.go --package=postgres . Repository
+//go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
 	Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error)
 }
 
-// MidazDataSource provides an interface for interacting with a PostgreSQL database connection.
-type MidazDataSource struct {
+// ExternalDataSource provides an interface for interacting with a PostgreSQL database connection.
+type ExternalDataSource struct {
 	connection *postgres.Connection
 }
 
-// NewMidazRepository creates a new MidazDataSource instance using the provided postgres.Connection, initializing the database connection.
-func NewMidazRepository(pc *postgres.Connection) *MidazDataSource {
-	c := &MidazDataSource{
+// NewDataSourceRepository creates a new ExternalDataSource instance using the provided postgres.Connection, initializing the database connection.
+func NewDataSourceRepository(pc *postgres.Connection) *ExternalDataSource {
+	c := &ExternalDataSource{
 		connection: pc,
 	}
 
@@ -51,7 +51,9 @@ func NewMidazRepository(pc *postgres.Connection) *MidazDataSource {
 	return c
 }
 
-func (ds *MidazDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error) {
+// Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.
+// It returns the query results as a slice of maps or an error in case of failure.
+func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
@@ -90,7 +92,7 @@ func buildQueryWithFilters(queryBuilder squirrel.SelectBuilder, filter map[strin
 	return queryBuilder
 }
 
-// applyIdFilter adiciona condições WHERE genéricas para qualquer tabela ou campo.
+// applyIdFilter adds generic WHERE conditions for any table or field.
 func applyIdFilter(queryBuilder squirrel.SelectBuilder, fieldName string, table string, ids []string) squirrel.SelectBuilder {
 	if len(ids) == 0 {
 		return queryBuilder
@@ -145,29 +147,42 @@ func createRowMap(columns []string, values []any, logger log.Logger) map[string]
 	rowMap := make(map[string]any)
 
 	for i, column := range columns {
-		if column == "address" {
-			rowMap[column] = parseAddress(values[i], logger)
-		} else {
-			rowMap[column] = values[i]
-		}
+		// Attempt to parse any value that could be JSONB
+		rowMap[column] = parseJSONBField(values[i], logger)
 	}
 
 	return rowMap
 }
 
-// parseAddress unmarshals the address column if it contains JSON.
-func parseAddress(value any, logger log.Logger) any {
+// parseJSONBField unmarshals any field that might be a JSONB type
+func parseJSONBField(value any, logger log.Logger) any {
 	if value == nil {
 		return nil
 	}
 
+	// Check if the value is []uint8, which is how the PostgreSQL driver
+	// represents JSONB and JSON fields
 	if byteData, ok := value.([]uint8); ok {
-		addressMap := make(map[string]string)
-		if err := json.Unmarshal(byteData, &addressMap); err == nil {
-			return addressMap
+		// Try to deserialize as a generic map[string]any
+		var jsonMap map[string]any
+		if err := json.Unmarshal(byteData, &jsonMap); err == nil {
+			return jsonMap
 		}
 
-		logger.Warnf("Failed to unmarshal address.")
+		// If object parsing fails, try as array
+		var jsonArray []any
+		if err := json.Unmarshal(byteData, &jsonArray); err == nil {
+			return jsonArray
+		}
+
+		// Try as string in case it's a JSON string format
+		var jsonString string
+		if err := json.Unmarshal(byteData, &jsonString); err == nil {
+			return jsonString
+		}
+
+		// If all attempts fail, log a warning and return the original value
+		logger.Warnf("Failed to unmarshal potential JSONB data for value: %v", string(byteData))
 	}
 
 	return value

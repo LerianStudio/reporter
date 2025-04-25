@@ -2,6 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
@@ -49,13 +52,16 @@ type Config struct {
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
-	// Midaz
-	MidazDBHost            string `env:"MIDAZ_DB_HOST"`
-	MidazDBPort            string `env:"MIDAZ_DB_PORT"`
-	MidazDBUser            string `env:"MIDAZ_DB_USER"`
-	MidazDBPass            string `env:"MIDAZ_DB_PASSWORD"`
-	MidazOnboardingDBName  string `env:"MIDAZ_ONBOARDING_DB_NAME"`
-	MidazTransactionDBName string `env:"MIDAZ_TRANSACTION_DB_NAME"`
+}
+
+// DataSourceConfig representa uma configuração de fonte de dados externa
+type DataSourceConfig struct {
+	Name     string
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
 }
 
 func InitWorker() *Service {
@@ -121,7 +127,7 @@ func InitWorker() *Service {
 	service := &services.UseCase{
 		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
 		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: externalDatasourceConnections(cfg, logger),
+		ExternalDataSources: externalDatasourceConnections(logger),
 		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
 	}
 
@@ -133,44 +139,103 @@ func InitWorker() *Service {
 	}
 }
 
-// externalDatasourceConnections initializes and returns a map of external data source connections using the provided config and logger.
-func externalDatasourceConnections(cfg *Config, logger log.Logger) map[string]services.DataSource {
-	// Midaz Onboarding
-	onboardingString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazOnboardingDBName)
+// externalDatasourceConnections inicializa e retorna um mapa de conexões de fontes de dados externas.
+func externalDatasourceConnections(logger log.Logger) map[string]services.DataSource {
+	externalDataSources := make(map[string]services.DataSource)
 
-	onboardingConnection := &pg.Connection{
-		ConnectionString:   onboardingString,
-		DBName:             cfg.MidazOnboardingDBName,
-		Logger:             logger,
-		MaxOpenConnections: 10,
-		MaxIdleConnections: 5,
-	}
+	// Obtém todas as fontes de dados a partir das variáveis de ambiente
+	dataSourceConfigs := getDataSourceConfigs(logger)
 
-	// Midaz Transactions
-	transactionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.MidazDBUser, cfg.MidazDBPass, cfg.MidazDBHost, cfg.MidazDBPort, cfg.MidazTransactionDBName)
+	// Cria uma conexão para cada fonte de dados
+	for _, dataSource := range dataSourceConfigs {
+		connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
 
-	transactionConnection := &pg.Connection{
-		ConnectionString:   transactionString,
-		DBName:             cfg.MidazTransactionDBName,
-		Logger:             logger,
-		MaxOpenConnections: 10,
-		MaxIdleConnections: 5,
-	}
+		connection := &pg.Connection{
+			ConnectionString:   connectionString,
+			DBName:             dataSource.Database,
+			Logger:             logger,
+			MaxOpenConnections: 10,
+			MaxIdleConnections: 5,
+		}
 
-	externalDataSources := map[string]services.DataSource{
-		"onboarding": {
+		externalDataSources[dataSource.Name] = services.DataSource{
 			DatabaseType:   "postgres",
-			DatabaseConfig: onboardingConnection,
+			DatabaseConfig: connection,
 			Initialized:    false,
-		},
-		"transaction": {
-			DatabaseType:   "postgres",
-			DatabaseConfig: transactionConnection,
-			Initialized:    false,
-		},
+		}
+
+		logger.Infof("Configured external data source: %s", dataSource.Name)
 	}
 
 	return externalDataSources
+}
+
+// getDataSourceConfigs busca todas as fontes de dados a partir das variáveis de ambiente
+func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
+	var dataSources []DataSourceConfig
+
+	// Mapeia o nome dos data sources pelo prefixo das variáveis de ambiente
+	dataSourceNamesMap := make(map[string]bool)
+
+	// Busca todas as variáveis de ambiente
+	envVars := os.Environ()
+
+	// Prefixo para identificar variáveis de fontes de dados
+	prefixPattern := "DATASOURCE_"
+
+	// Primeiro, identifica todos os nomes de data sources disponíveis
+	for _, env := range envVars {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := parts[0]
+
+		// Verifica se a variável tem o prefixo DATASOURCE_
+		if strings.HasPrefix(key, prefixPattern) {
+			// Extrai o nome da fonte de dados (parte entre DATASOURCE_ e _HOST/_PORT/etc)
+			remaining := key[len(prefixPattern):]
+			lastUnderscore := strings.LastIndex(remaining, "_")
+
+			if lastUnderscore > 0 {
+				name := strings.ToLower(remaining[:lastUnderscore])
+				dataSourceNamesMap[name] = true
+			}
+		}
+	}
+
+	// Para cada data source identificado, busca as configurações completas
+	for name := range dataSourceNamesMap {
+		host := os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, strings.ToUpper(name)))
+		port := os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, strings.ToUpper(name)))
+		user := os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, strings.ToUpper(name)))
+		password := os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, strings.ToUpper(name)))
+		database := os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, strings.ToUpper(name)))
+
+		// Verifica se todas as configurações necessárias estão disponíveis
+		if host != "" && port != "" && user != "" && password != "" && database != "" {
+			dataSource := DataSourceConfig{
+				Name:     name,
+				Host:     host,
+				Port:     port,
+				User:     user,
+				Password: password,
+				Database: database,
+			}
+
+			logger.Infof("Found external data source: %s with database: %s", name, database)
+			dataSources = append(dataSources, dataSource)
+		} else {
+			logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
+		}
+	}
+
+	// Se nenhuma fonte de dados for encontrada, registra um aviso
+	if len(dataSources) == 0 {
+		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE format.")
+	}
+
+	return dataSources
 }
