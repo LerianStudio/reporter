@@ -7,9 +7,9 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
-	"plugin-template-engine/components/worker/internal/adapters/minio/report"
-	"plugin-template-engine/components/worker/internal/adapters/minio/template"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	"plugin-template-engine/pkg/minio/report"
+	"plugin-template-engine/pkg/minio/template"
 	"strings"
 	"testing"
 )
