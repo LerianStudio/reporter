@@ -22,13 +22,9 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	defer span.End()
 
 	logger.Infof("Creating template")
-	mappedFields, errMappedFields := uc.mappedFieldsOfTemplate(templateFile)
-	if errMappedFields != nil {
-		logger.Errorf("Error to mapped fields of template, Error: %v", errMappedFields)
-		return nil, errMappedFields
-	}
 
-	logger.Info("Fields is valid to continue.")
+	mappedFields := uc.mappedFieldsOfTemplate(templateFile)
+	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
 	templateId := commons.GenerateUUIDv7()
 	timestamp := time.Now().Unix()
@@ -55,12 +51,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	return resultTemplateModel, nil
 }
 
-func (uc *UseCase) mappedFieldsOfTemplate(templateFile string) (map[string]any, error) {
+func (uc *UseCase) mappedFieldsOfTemplate(templateFile string) map[string]any {
 	// Variable present on for loops of template
 	variableMap := map[string][]string{}
 
 	// Process for loops of template
 	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+
 	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range forMatches {
 		variable := match[1]
@@ -69,7 +66,7 @@ func (uc *UseCase) mappedFieldsOfTemplate(templateFile string) (map[string]any, 
 	}
 
 	// Process {{ ... }}
-	fieldRegex := regexp.MustCompile(`{{\s*([\w\.\[\]_]+)\s*}}`)
+	fieldRegex := regexp.MustCompile(`{{\s*([\w.\[\]_]+)\s*}}`)
 	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
 
 	result := map[string]any{}
@@ -92,5 +89,5 @@ func (uc *UseCase) mappedFieldsOfTemplate(templateFile string) (map[string]any, 
 		}
 	}
 
-	return result, nil
+	return result
 }

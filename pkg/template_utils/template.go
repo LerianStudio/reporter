@@ -5,19 +5,22 @@ import (
 )
 
 // InsertField inserts a field into a nested map structure based on the given path
-func InsertField(m map[string]interface{}, path []string, field string) {
+func InsertField(m map[string]any, path []string, field string) {
 	current := m
+
 	for i, p := range path {
 		if i == len(path)-1 {
 			if _, ok := current[p]; !ok {
 				current[p] = []string{}
 			}
+
 			current[p] = appendIfMissing(current[p].([]string), field)
 		} else {
 			if _, ok := current[p]; !ok {
-				current[p] = map[string]interface{}{}
+				current[p] = map[string]any{}
 			}
-			current = current[p].(map[string]interface{})
+
+			current = current[p].(map[string]any)
 		}
 	}
 }
@@ -29,6 +32,7 @@ func appendIfMissing(slice []string, val string) []string {
 			return slice
 		}
 	}
+
 	return append(slice, val)
 }
 
@@ -38,5 +42,6 @@ func CleanPath(path string) []string {
 	for i, p := range parts {
 		parts[i] = strings.Split(p, "[")[0]
 	}
+
 	return parts
 }
