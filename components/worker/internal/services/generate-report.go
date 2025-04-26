@@ -32,7 +32,7 @@ type GenerateReportMessage struct {
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
 
 	// Filters specify the filtering criteria for the data queries, mapping filter keys to their respective values.
-	Filters map[string][]string `json:"filters"`
+	Filters map[string]map[string]map[string][]any `json:"filters"`
 }
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -183,12 +183,17 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			switch dataSource.DatabaseType {
 			case "postgres":
-				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, table, fields, message.Filters)
+				// Extract the table-specific filters from the nested structure
+				var tableFilters map[string][]any
+				if dbFilters, exists := message.Filters[databaseName]; exists {
+					tableFilters = dbFilters[table] // Get filters specific to this table
+				}
+
+				// Pass the table-specific filters to the Query method
+				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, table, fields, tableFilters)
 				if err != nil {
 					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
-
 					logger.Errorf("Error querying table %s: %s", table, err.Error())
-
 					return err
 				}
 			case "mongodb":

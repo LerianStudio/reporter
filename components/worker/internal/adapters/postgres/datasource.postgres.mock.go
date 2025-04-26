@@ -39,8 +39,23 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// GetDatabaseSchema mocks base method.
+func (m *MockRepository) GetDatabaseSchema(arg0 context.Context) ([]TableSchema, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDatabaseSchema", arg0)
+	ret0, _ := ret[0].([]TableSchema)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDatabaseSchema indicates an expected call of GetDatabaseSchema.
+func (mr *MockRepositoryMockRecorder) GetDatabaseSchema(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatabaseSchema", reflect.TypeOf((*MockRepository)(nil).GetDatabaseSchema), arg0)
+}
+
 // Query mocks base method.
-func (m *MockRepository) Query(arg0 context.Context, arg1 string, arg2 []string, arg3 map[string][]string) ([]map[string]any, error) {
+func (m *MockRepository) Query(arg0 context.Context, arg1 string, arg2 []string, arg3 map[string][]any) ([]map[string]any, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]map[string]any)

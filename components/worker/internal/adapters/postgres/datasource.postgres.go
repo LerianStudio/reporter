@@ -9,14 +9,13 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/Masterminds/squirrel"
 	"plugin-template-engine/pkg/postgres"
-	"strings"
 )
 
 // Repository defines an interface for querying data from a specified table and fields.
 //
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
-	Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error)
+	Query(ctx context.Context, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
 }
 
@@ -55,7 +54,7 @@ func NewDataSourceRepository(pc *postgres.Connection) *ExternalDataSource {
 
 // Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.
 // It returns the query results as a slice of maps or an error in case of failure.
-func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error) {
+func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
@@ -215,43 +214,6 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	return schema, nil
 }
 
-// buildQueryWithFilters applies filter criteria to the query builder based on the filterable fields.
-func buildQueryWithFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]string, filterableFields []string, table string) squirrel.SelectBuilder {
-	for _, field := range filterableFields {
-		if ids, exists := filter[field]; exists {
-			queryBuilder = applyIdFilter(queryBuilder, field, table, ids)
-		}
-	}
-
-	return queryBuilder
-}
-
-// applyIdFilter adds generic WHERE conditions for any table or field.
-func applyIdFilter(queryBuilder squirrel.SelectBuilder, fieldName string, table string, ids []string) squirrel.SelectBuilder {
-	if len(ids) == 0 {
-		return queryBuilder
-	}
-
-	args := toInterfaceSlice(ids)
-	placeholder := squirrel.Placeholders(len(ids))
-
-	if strings.HasPrefix(fieldName, table) {
-		return queryBuilder.Where("id IN ("+placeholder+")", args...)
-	}
-
-	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", args...)
-}
-
-// toInterfaceSlice converts a slice of strings to a slice of interface{} for placeholders.
-func toInterfaceSlice(input []string) []any {
-	result := make([]any, len(input))
-	for i, v := range input {
-		result[i] = v
-	}
-
-	return result
-}
-
 // scanRows processes the query rows and creates the resulting slice of maps.
 func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 	columns, _ := rows.Columns()
@@ -392,7 +354,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 }
 
 // buildDynamicFilters applies filter criteria to the query builder based on valid columns.
-func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]string, validColumns map[string]bool) squirrel.SelectBuilder {
+func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]any, validColumns map[string]bool) squirrel.SelectBuilder {
 	for field, values := range filter {
 		// Only apply filters for valid columns
 		if validColumns[field] && len(values) > 0 {
@@ -404,13 +366,13 @@ func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, filter map[string]
 }
 
 // applyFilter adds a WHERE condition for a field with multiple possible values.
-func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values []string) squirrel.SelectBuilder {
+func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values []any) squirrel.SelectBuilder {
 	if len(values) == 0 {
 		return queryBuilder
 	}
 
-	args := toInterfaceSlice(values)
+	// No need for conversion since values is already []any
 	placeholder := squirrel.Placeholders(len(values))
 
-	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", args...)
+	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", values...)
 }
