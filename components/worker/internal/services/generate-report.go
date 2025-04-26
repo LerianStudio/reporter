@@ -218,18 +218,19 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 // connectToDataSource establishes a connection to a data source if not already initialized.
 func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
-	switch databaseName {
-	case "onboarding", "transaction":
+	switch dataSource.DatabaseType {
+	case "postgres":
 		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
+		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
+	case "mongodb":
+		return fmt.Errorf("MongoDB connections not yet implemented")
 	default:
-		return fmt.Errorf("unknown database: %s", databaseName)
+		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 	}
 
 	dataSource.Initialized = true
 
 	uc.ExternalDataSources[databaseName] = *dataSource
-
-	logger.Infof("Established connection to %s database on demand", databaseName)
 
 	return nil
 }
