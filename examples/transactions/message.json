@@ -2,9 +2,25 @@
    "templateId": "019644a0-dd0e-7519-883a-b4b90e26257e",
    "reportId": "01964acc-0135-7bfe-b6b2-9e9dffebe161",
    "filters": {
-      "organization_id": ["01965efd-7d3e-76f4-9950-e90aa00f13a0"],
-      "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"],
-      "transaction_id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+      "onboarding": {
+         "organization": {
+            "id": ["01965efd-7d3e-76f4-9950-e90aa00f13a0"]
+         },
+         "ledger": {
+            "id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"]
+         },
+         "asset": {
+            "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"]
+         }
+      },
+      "transaction": {
+         "transaction": {
+            "id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+         },
+         "operation": {
+            "transaction_id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+         }
+      }
    },
    "outputFormat": "xml",
    "mappedFields": {
