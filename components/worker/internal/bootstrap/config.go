@@ -21,6 +21,7 @@ import (
 	pg "plugin-template-engine/pkg/postgres"
 )
 
+// Config holds the application's configurable parameters read from environment variables.
 type Config struct {
 	EnvName                     string `env:"ENV_NAME"`
 	LogLevel                    string `env:"LOG_LEVEL"`
@@ -54,7 +55,8 @@ type Config struct {
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
 }
 
-// DataSourceConfig representa uma configuração de fonte de dados externa
+// DataSourceConfig represents the configuration required to establish a connection to a data source.
+// Fields include name, connection details, authentication, database, type, and SSL mode.
 type DataSourceConfig struct {
 	Name     string
 	Host     string
@@ -62,8 +64,11 @@ type DataSourceConfig struct {
 	User     string
 	Password string
 	Database string
+	Type     string
+	SSLMode  string
 }
 
+// InitWorker initializes and configures the application's dependencies and returns the Service instance.
 func InitWorker() *Service {
 	cfg := &Config{}
 
@@ -139,17 +144,16 @@ func InitWorker() *Service {
 	}
 }
 
-// externalDatasourceConnections inicializa e retorna um mapa de conexões de fontes de dados externas.
+// externalDatasourceConnections initializes connections to external data sources using configuration from environment variables.
+// It returns a map of data source names to their respective configurations as DataSource instances.
 func externalDatasourceConnections(logger log.Logger) map[string]services.DataSource {
 	externalDataSources := make(map[string]services.DataSource)
 
-	// Obtém todas as fontes de dados a partir das variáveis de ambiente
 	dataSourceConfigs := getDataSourceConfigs(logger)
 
-	// Cria uma conexão para cada fonte de dados
 	for _, dataSource := range dataSourceConfigs {
-		connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-			dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
+		connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+			dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
 
 		connection := &pg.Connection{
 			ConnectionString:   connectionString,
@@ -160,7 +164,7 @@ func externalDatasourceConnections(logger log.Logger) map[string]services.DataSo
 		}
 
 		externalDataSources[dataSource.Name] = services.DataSource{
-			DatabaseType:   "postgres",
+			DatabaseType:   dataSource.Type,
 			DatabaseConfig: connection,
 			Initialized:    false,
 		}
@@ -171,20 +175,18 @@ func externalDatasourceConnections(logger log.Logger) map[string]services.DataSo
 	return externalDataSources
 }
 
-// getDataSourceConfigs busca todas as fontes de dados a partir das variáveis de ambiente
+// getDataSourceConfigs retrieves data source configurations from environment variables in the DATASOURCE_[NAME]_* format.
+// It validates and returns a slice of DataSourceConfig, logging warnings for incomplete or missing configurations.
 func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 	var dataSources []DataSourceConfig
 
-	// Mapeia o nome dos data sources pelo prefixo das variáveis de ambiente
 	dataSourceNamesMap := make(map[string]bool)
 
-	// Busca todas as variáveis de ambiente
 	envVars := os.Environ()
 
-	// Prefixo para identificar variáveis de fontes de dados
 	prefixPattern := "DATASOURCE_"
 
-	// Primeiro, identifica todos os nomes de data sources disponíveis
+	// identify all available data source names
 	for _, env := range envVars {
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) != 2 {
@@ -193,9 +195,7 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 
 		key := parts[0]
 
-		// Verifica se a variável tem o prefixo DATASOURCE_
 		if strings.HasPrefix(key, prefixPattern) {
-			// Extrai o nome da fonte de dados (parte entre DATASOURCE_ e _HOST/_PORT/etc)
 			remaining := key[len(prefixPattern):]
 			lastUnderscore := strings.LastIndex(remaining, "_")
 
@@ -206,16 +206,16 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 		}
 	}
 
-	// Para cada data source identificado, busca as configurações completas
 	for name := range dataSourceNamesMap {
 		host := os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, strings.ToUpper(name)))
 		port := os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, strings.ToUpper(name)))
 		user := os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, strings.ToUpper(name)))
 		password := os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, strings.ToUpper(name)))
 		database := os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, strings.ToUpper(name)))
+		dbType := os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, strings.ToUpper(name)))
+		sslMode := os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, strings.ToUpper(name)))
 
-		// Verifica se todas as configurações necessárias estão disponíveis
-		if host != "" && port != "" && user != "" && password != "" && database != "" {
+		if host != "" && port != "" && user != "" && password != "" && database != "" && dbType != "" && sslMode != "" {
 			dataSource := DataSourceConfig{
 				Name:     name,
 				Host:     host,
@@ -223,18 +223,41 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 				User:     user,
 				Password: password,
 				Database: database,
+				Type:     dbType,
+				SSLMode:  sslMode,
 			}
 
-			logger.Infof("Found external data source: %s with database: %s", name, database)
+			logger.Infof("Found external data source: %s with database: %s (type: %s, sslmode: %s)",
+				name, database, dbType, sslMode)
 			dataSources = append(dataSources, dataSource)
 		} else {
 			logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
+			if host == "" {
+				logger.Warnf("Missing HOST for data source %s", name)
+			}
+			if port == "" {
+				logger.Warnf("Missing PORT for data source %s", name)
+			}
+			if user == "" {
+				logger.Warnf("Missing USER for data source %s", name)
+			}
+			if password == "" {
+				logger.Warnf("Missing PASSWORD for data source %s", name)
+			}
+			if database == "" {
+				logger.Warnf("Missing DATABASE for data source %s", name)
+			}
+			if dbType == "" {
+				logger.Warnf("Missing TYPE for data source %s", name)
+			}
+			if sslMode == "" {
+				logger.Warnf("Missing SSLMODE for data source %s", name)
+			}
 		}
 	}
 
-	// Se nenhuma fonte de dados for encontrada, registra um aviso
 	if len(dataSources) == 0 {
-		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE format.")
+		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE/TYPE/SSLMODE format.")
 	}
 
 	return dataSources
