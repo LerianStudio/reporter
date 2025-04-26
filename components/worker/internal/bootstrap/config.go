@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"fmt"
 	"os"
+	"plugin-template-engine/pkg"
 	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/commons"
@@ -144,14 +145,19 @@ func InitWorker() *Service {
 	}
 }
 
-// externalDatasourceConnections initializes connections to external data sources using configuration from environment variables.
-// It returns a map of data source names to their respective configurations as DataSource instances.
+// externalDatasourceConnections initializes and returns a map of external data source connections.
 func externalDatasourceConnections(logger log.Logger) map[string]services.DataSource {
 	externalDataSources := make(map[string]services.DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
 
 	for _, dataSource := range dataSourceConfigs {
+		if !pkg.IsSupportedDatabaseType(strings.ToLower(dataSource.Type)) {
+			logger.Warnf("Unsupported database type '%s' for data source '%s'. Only PostgreSQL is currently supported. Skipping this data source.",
+				dataSource.Type, dataSource.Name)
+			continue
+		}
+
 		connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
 			dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
 

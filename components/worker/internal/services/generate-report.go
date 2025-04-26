@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/pongo"
 	"strings"
 	"time"
@@ -219,7 +220,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 // connectToDataSource establishes a connection to a data source if not already initialized.
 func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
 	switch dataSource.DatabaseType {
-	case "postgres":
+	case pkg.PostgreSQLType:
 		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 	case "mongodb":
