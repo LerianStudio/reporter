@@ -12,24 +12,26 @@ import (
 	"strings"
 )
 
-var filterableIDs = map[string][]string{
-	"organization": {"organization_id", "parent_organization_id"},
-	"ledger":       {"organization_id", "ledger_id"},
-	"asset":        {"organization_id", "ledger_id", "asset_id"},
-	"account":      {"organization_id", "ledger_id", "account_id", "parent_account_id", "portfolio_id", "segment_id"},
-	"portfolio":    {"organization_id", "ledger_id", "portfolio_id"},
-	"segment":      {"organization_id", "ledger_id", "segment_id"},
-	"transaction":  {"organization_id", "ledger_id", "transaction_id", "parent_transaction_id"},
-	"operation":    {"organization_id", "ledger_id", "transaction_id", "operation_id", "account_id", "balance_id"},
-	"asset_rate":   {"organization_id", "ledger_id"},
-	"balance":      {"organization_id", "ledger_id", "account_id", "balance_id"},
-}
-
 // Repository defines an interface for querying data from a specified table and fields.
 //
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
 	Query(ctx context.Context, table string, fields []string, filter map[string][]string) ([]map[string]any, error)
+	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
+}
+
+// TableSchema represents the structure of a database table
+type TableSchema struct {
+	TableName string              `json:"table_name"`
+	Columns   []ColumnInformation `json:"columns"`
+}
+
+// ColumnInformation contains the details of a database column
+type ColumnInformation struct {
+	Name         string `json:"name"`
+	DataType     string `json:"data_type"`
+	IsNullable   bool   `json:"is_nullable"`
+	IsPrimaryKey bool   `json:"is_primary_key"`
 }
 
 // ExternalDataSource provides an interface for interacting with a PostgreSQL database connection.
@@ -57,20 +59,45 @@ func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []
 	logger := libCommons.NewLoggerFromContext(ctx)
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
-	filterableFields, isTableValid := filterableIDs[table]
-	if !isTableValid {
-		return nil, fmt.Errorf("invalid table: %s", table)
+	// First, validate the table and fields
+	validFields, err := ds.ValidateTableAndFields(ctx, table, fields)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the table schema to validate filters
+	schema, err := ds.GetDatabaseSchema(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving database schema: %w", err)
+	}
+
+	// Find the table's column information
+	var tableColumns []ColumnInformation
+	for _, t := range schema {
+		if t.TableName == table {
+			tableColumns = t.Columns
+			break
+		}
+	}
+
+	// Create a map of valid column names for efficient lookup
+	validColumns := make(map[string]bool)
+	for _, col := range tableColumns {
+		validColumns[col.Name] = true
 	}
 
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(fields...).From(table)
+	queryBuilder := psql.Select(validFields...).From(table)
 
-	queryBuilder = buildQueryWithFilters(queryBuilder, filter, filterableFields, table)
+	// Apply filters, but only if they correspond to valid columns
+	queryBuilder = buildDynamicFilters(queryBuilder, filter, validColumns)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("error generating SQL: %w", err)
 	}
+
+	logger.Infof("Executing SQL: %s with args: %v", query, args)
 
 	rows, err := ds.connection.ConnectionDB.Query(query, args...)
 	if err != nil {
@@ -79,6 +106,113 @@ func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []
 	defer rows.Close()
 
 	return scanRows(rows, logger)
+}
+
+// GetDatabaseSchema retrieves all tables and their column details from the database
+// It returns a slice of TableSchema objects or an error if the operation fails
+func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSchema, error) {
+	logger := libCommons.NewLoggerFromContext(ctx)
+	logger.Info("Retrieving database schema information")
+
+	// Query to get all user tables in the database
+	tableQuery := `
+		SELECT table_name 
+		FROM information_schema.tables 
+		WHERE table_schema = 'public' 
+		AND table_type = 'BASE TABLE'
+		ORDER BY table_name
+	`
+
+	rows, err := ds.connection.ConnectionDB.Query(tableQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error querying tables: %w", err)
+	}
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, fmt.Errorf("error scanning table name: %w", err)
+		}
+		tables = append(tables, tableName)
+	}
+
+	// Query to get primary key information
+	pkQuery := `
+		SELECT tc.table_name, kc.column_name
+		FROM information_schema.table_constraints tc
+		JOIN information_schema.key_column_usage kc 
+			ON kc.table_name = tc.table_name 
+			AND kc.table_schema = tc.table_schema
+			AND kc.constraint_name = tc.constraint_name
+		WHERE tc.constraint_type = 'PRIMARY KEY'
+		AND tc.table_schema = 'public'
+	`
+
+	pkRows, err := ds.connection.ConnectionDB.Query(pkQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error querying primary keys: %w", err)
+	}
+	defer pkRows.Close()
+
+	// Map to store primary key columns by table name
+	primaryKeys := make(map[string]map[string]bool)
+	for pkRows.Next() {
+		var tableName, columnName string
+		if err := pkRows.Scan(&tableName, &columnName); err != nil {
+			return nil, fmt.Errorf("error scanning primary key info: %w", err)
+		}
+
+		if _, exists := primaryKeys[tableName]; !exists {
+			primaryKeys[tableName] = make(map[string]bool)
+		}
+		primaryKeys[tableName][columnName] = true
+	}
+
+	// Build the complete schema information
+	var schema []TableSchema
+	for _, tableName := range tables {
+		// Query to get column information for the current table
+		columnQuery := `
+			SELECT column_name, data_type, 
+			       CASE WHEN is_nullable = 'YES' THEN true ELSE false END as is_nullable
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = $1
+			ORDER BY ordinal_position
+		`
+
+		colRows, err := ds.connection.ConnectionDB.Query(columnQuery, tableName)
+		if err != nil {
+			return nil, fmt.Errorf("error querying columns for table %s: %w", tableName, err)
+		}
+
+		var columns []ColumnInformation
+		for colRows.Next() {
+			var col ColumnInformation
+			if err := colRows.Scan(&col.Name, &col.DataType, &col.IsNullable); err != nil {
+				colRows.Close()
+				return nil, fmt.Errorf("error scanning column info: %w", err)
+			}
+
+			// Check if this column is a primary key
+			if pkCols, exists := primaryKeys[tableName]; exists {
+				col.IsPrimaryKey = pkCols[col.Name]
+			}
+
+			columns = append(columns, col)
+		}
+		colRows.Close()
+
+		schema = append(schema, TableSchema{
+			TableName: tableName,
+			Columns:   columns,
+		})
+	}
+
+	logger.Infof("Retrieved schema for %d tables", len(schema))
+	return schema, nil
 }
 
 // buildQueryWithFilters applies filter criteria to the query builder based on the filterable fields.
@@ -186,4 +320,97 @@ func parseJSONBField(value any, logger log.Logger) any {
 	}
 
 	return value
+}
+
+// ValidateTableAndFields checks if the specified table exists and validates that
+// all requested fields exist in that table.
+// It returns a list of valid fields and an error if the table doesn't exist or fields are invalid.
+func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string) ([]string, error) {
+	logger := libCommons.NewLoggerFromContext(ctx)
+	logger.Infof("Validating table '%s' and fields %v", tableName, requestedFields)
+
+	// Get the database schema information
+	schema, err := ds.GetDatabaseSchema(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving database schema: %w", err)
+	}
+
+	// Check if table exists
+	var tableFound bool
+	var tableColumns []ColumnInformation
+
+	for _, table := range schema {
+		if table.TableName == tableName {
+			tableFound = true
+			tableColumns = table.Columns
+			break
+		}
+	}
+
+	if !tableFound {
+		return nil, fmt.Errorf("table '%s' does not exist in the database", tableName)
+	}
+
+	// Create a map of valid column names for efficient lookup
+	validColumns := make(map[string]bool)
+	for _, col := range tableColumns {
+		validColumns[col.Name] = true
+	}
+
+	// Special case: if "*" is in the fields, return all columns
+	if len(requestedFields) == 1 && requestedFields[0] == "*" {
+		allFields := make([]string, len(tableColumns))
+		for i, col := range tableColumns {
+			allFields[i] = col.Name
+		}
+		return allFields, nil
+	}
+
+	// Validate each requested field
+	var validFields []string
+	var invalidFields []string
+
+	for _, field := range requestedFields {
+		if validColumns[field] {
+			validFields = append(validFields, field)
+		} else {
+			invalidFields = append(invalidFields, field)
+		}
+	}
+
+	if len(invalidFields) > 0 {
+		return nil, fmt.Errorf("invalid fields for table '%s': %v", tableName, invalidFields)
+	}
+
+	// If no valid fields were found, return an error
+	if len(validFields) == 0 {
+		return nil, fmt.Errorf("no valid fields specified for table '%s'", tableName)
+	}
+
+	logger.Infof("Successfully validated table '%s' and fields %v", tableName, validFields)
+	return validFields, nil
+}
+
+// buildDynamicFilters applies filter criteria to the query builder based on valid columns.
+func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]string, validColumns map[string]bool) squirrel.SelectBuilder {
+	for field, values := range filter {
+		// Only apply filters for valid columns
+		if validColumns[field] && len(values) > 0 {
+			queryBuilder = applyFilter(queryBuilder, field, values)
+		}
+	}
+
+	return queryBuilder
+}
+
+// applyFilter adds a WHERE condition for a field with multiple possible values.
+func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values []string) squirrel.SelectBuilder {
+	if len(values) == 0 {
+		return queryBuilder
+	}
+
+	args := toInterfaceSlice(values)
+	placeholder := squirrel.Placeholders(len(values))
+
+	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", args...)
 }

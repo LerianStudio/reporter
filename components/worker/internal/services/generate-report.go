@@ -31,7 +31,7 @@ type GenerateReportMessage struct {
 	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}.
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
 
-	// Filters specifies the filtering criteria for the data queries, mapping filter keys to their respective values.
+	// Filters specify the filtering criteria for the data queries, mapping filter keys to their respective values.
 	Filters map[string][]string `json:"filters"`
 }
 
