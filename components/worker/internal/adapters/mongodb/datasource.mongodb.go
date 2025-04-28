@@ -2,8 +2,10 @@ package mongodb
 
 import (
 	"context"
+	"encoding/hex"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -164,6 +166,18 @@ func convertBsonValue(value any) any {
 	case primitive.ObjectID:
 		// Convert ObjectID to string
 		return v.Hex()
+
+	case primitive.Binary:
+		// Check if Binary is a UUID
+		if len(v.Data) == 16 {
+			u, err := uuid.FromBytes(v.Data)
+			if err == nil {
+				return u.String() // Retorna UUID formatado
+			}
+		}
+
+		// For non-UUID binary data or if UUID parsing fails, fall back to hex
+		return hex.EncodeToString(v.Data)
 
 	case nil:
 		return nil
