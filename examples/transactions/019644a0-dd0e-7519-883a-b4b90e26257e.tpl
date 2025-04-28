@@ -12,14 +12,12 @@
     <Moeda>{{ t.asset_code }}</Moeda>
     <PlanoContas>{{ t.chart_of_accounts_group_name }}</PlanoContas>
 
-    {% for org in onboarding.organization %}
     <Organizacao>
-        <CNPJ>{{ org.legal_document }}</CNPJ>
-        <NomeLegal>{{ org.legal_name }}</NomeLegal>
-        <NomeFantasia>{{ org.doing_business_as }}</NomeFantasia>
-        <Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
+        <CNPJ>{{ onboarding.organization.0.legal_document }}</CNPJ>
+        <NomeLegal>{{ onboarding.organization.0.legal_name }}</NomeLegal>
+        <NomeFantasia>{{ onboarding.organization.0.doing_business_as }}</NomeFantasia>
+        <Endereco>{{ onboarding.organization.0.address.line1 }}, {{ onboarding.organization.0.address.city }} - {{ onboarding.organization.0.address.state }}</Endereco>
     </Organizacao>
-    {% endfor %}
 
     {% for l in onboarding.ledger %}
     <Ledger>
