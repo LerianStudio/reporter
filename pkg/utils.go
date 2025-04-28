@@ -141,7 +141,7 @@ func ValidateFormDataFields(outFormat, description *string) error {
 // IsOutputFormatValuesValid returns a boolean indicating if the output format value is valid
 func IsOutputFormatValuesValid(outFormat *string) bool {
 	outFormatUpper := strings.ToUpper(*outFormat)
-	return outFormatUpper == "HTML" || outFormatUpper == "JSON" || outFormatUpper == "XML"
+	return outFormatUpper == "HTML" || outFormatUpper == "CSV" || outFormatUpper == "XML" || outFormatUpper == "TXT"
 }
 
 // ValidateFileFormat returns error if the templateFile content is not the same of outputFormat
@@ -160,6 +160,11 @@ func ValidateFileFormat(outFormat, templateFile string) error {
 	case "CSV":
 		lines := strings.Split(templateFile, "\n")
 		if len(lines) < 2 || !strings.Contains(lines[0], ",") && !strings.Contains(lines[0], ";") {
+			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
+		}
+	case "TXT":
+		trimmed := strings.TrimSpace(templateFile)
+		if len(trimmed) == 0 {
 			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
 		}
 	}

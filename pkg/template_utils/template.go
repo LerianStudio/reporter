@@ -1,11 +1,53 @@
 package template_utils
 
 import (
+	"regexp"
 	"strings"
 )
 
-// InsertField inserts a field into a nested map structure based on the given path
-func InsertField(m map[string]any, path []string, field string) {
+func MappedFieldsOfTemplate(templateFile string) map[string]any {
+	// Variable present on for loops of template
+	variableMap := map[string][]string{}
+
+	// Process for loops of template
+	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+
+	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range forMatches {
+		variable := match[1]
+		path := CleanPath(match[2])
+		variableMap[variable] = path
+	}
+
+	// Process {{ ... }}
+	fieldRegex := regexp.MustCompile(`{{\s*([\w.\[\]_]+)\s*}}`)
+	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
+
+	result := map[string]any{}
+
+	for _, match := range fieldMatches {
+		expr := match[1]
+		parts := CleanPath(expr)
+
+		if len(parts) < 2 {
+			continue
+		}
+
+		if loopPath, ok := variableMap[parts[0]]; ok {
+			// ex: t.id → loopPath = organization.transaction.account
+			last := loopPath[len(loopPath)-1]
+			insertField(result, append(loopPath[:len(loopPath)-1], last), parts[1])
+		} else {
+			// ex: organization.user.legal_name
+			insertField(result, parts[:len(parts)-1], parts[len(parts)-1])
+		}
+	}
+
+	return result
+}
+
+// insertField inserts a field into a nested map structure based on the given path
+func insertField(m map[string]any, path []string, field string) {
 	current := m
 
 	for i, p := range path {

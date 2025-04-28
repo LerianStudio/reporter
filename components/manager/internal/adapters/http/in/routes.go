@@ -19,8 +19,12 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Use(cors.New())
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
 
-	// Example routes
+	// Plugin templates routes
 	f.Post("/v1/templates", ParseHeaderParameters, templateHandler.CreateTemplate)
+	f.Patch("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.UpdateTemplateByID)
+	f.Get("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.GetTemplateByID)
+	f.Get("/v1/templates", ParseHeaderParameters, templateHandler.GetAllTemplates)
+	f.Delete("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.DeleteTemplateByID)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)

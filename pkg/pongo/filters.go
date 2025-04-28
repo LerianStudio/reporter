@@ -1,6 +1,7 @@
 package pongo
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -73,7 +74,7 @@ func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pon
 	if err1 != nil || err2 != nil || den == 0 {
 		return pongo2.AsSafeValue("NaN"), &pongo2.Error{
 			Sender:    "percentOfFilter",
-			OrigError: fmt.Errorf("invalid input or denominator is zero"),
+			OrigError: errors.New("invalid input or denominator is zero"),
 		}
 	}
 

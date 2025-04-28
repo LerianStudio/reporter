@@ -6,8 +6,11 @@ package template
 
 import (
 	context "context"
+	http "plugin-template-engine/pkg/net/http"
 	reflect "reflect"
 
+	uuid "github.com/google/uuid"
+	primitive "go.mongodb.org/mongo-driver/bson/primitive"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -47,4 +50,77 @@ func (m *MockRepository) Create(arg0 context.Context, arg1 string, arg2 *Templat
 func (mr *MockRepositoryMockRecorder) Create(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRepository)(nil).Create), arg0, arg1, arg2)
+}
+
+// FindByID mocks base method.
+func (m *MockRepository) FindByID(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) (*Template, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByID", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*Template)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByID indicates an expected call of FindByID.
+func (mr *MockRepositoryMockRecorder) FindByID(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockRepository)(nil).FindByID), arg0, arg1, arg2, arg3)
+}
+
+// FindList mocks base method.
+func (m *MockRepository) FindList(arg0 context.Context, arg1 string, arg2 http.QueryHeader) ([]*Template, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindList", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*Template)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindList indicates an expected call of FindList.
+func (mr *MockRepositoryMockRecorder) FindList(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindList", reflect.TypeOf((*MockRepository)(nil).FindList), arg0, arg1, arg2)
+}
+
+// FindOutputFormatByID mocks base method.
+func (m *MockRepository) FindOutputFormatByID(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) (*string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindOutputFormatByID", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindOutputFormatByID indicates an expected call of FindOutputFormatByID.
+func (mr *MockRepositoryMockRecorder) FindOutputFormatByID(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOutputFormatByID", reflect.TypeOf((*MockRepository)(nil).FindOutputFormatByID), arg0, arg1, arg2, arg3)
+}
+
+// SoftDelete mocks base method.
+func (m *MockRepository) SoftDelete(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftDelete", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SoftDelete indicates an expected call of SoftDelete.
+func (mr *MockRepositoryMockRecorder) SoftDelete(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDelete", reflect.TypeOf((*MockRepository)(nil).SoftDelete), arg0, arg1, arg2, arg3)
+}
+
+// Update mocks base method.
+func (m *MockRepository) Update(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID, arg4 *primitive.M) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockRepositoryMockRecorder) Update(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRepository)(nil).Update), arg0, arg1, arg2, arg3, arg4)
 }
