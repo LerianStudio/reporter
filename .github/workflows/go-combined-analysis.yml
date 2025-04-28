@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   GoLangCI-Lint:
-    name: Run GoLangCI-Lint to Plugin Template Engine
+    name: Run GoLangCI-Lint to Plugin Smart Template
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repository
@@ -42,7 +42,7 @@ jobs:
 
   #Execute Security checks
   GoSec:
-    name: Run GoSec to Plugin Template Engine
+    name: Run GoSec to Plugin Smart Template
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
           
   #Execute Unit tests
   unit-tests:
-    name: Run Unit Tests to Plugin Template Engine
+    name: Run Unit Tests to Plugin Smart Template
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
         run: make test
 
   integration-tests:
-    name: Run Integrations Tests to Plugin Template Engine
+    name: Run Integrations Tests to Plugin Smart Template
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository

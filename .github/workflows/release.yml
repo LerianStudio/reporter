@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: create_release
-    name: Create Release to Fees Plugin Template Engine
+    name: Create Release to Plugin Smart Template
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
