@@ -24,11 +24,12 @@ permissions:
   pull-requests: write
 
 jobs:
+# Generate release using semantic-release
   publish_release:
+    name: 🏷️ Create Release to Plugin Smart Template
     runs-on: ubuntu-24.04
     environment:
       name: create_release
-    name: Create Release to Plugin Smart Template
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
@@ -39,12 +40,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Certifique-se de obter todo o histórico de git, incluindo tags
-
-      - uses: actions/checkout@v4
-        with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+
+      - name: Sync with remote branch
+        run: |
+          git fetch origin ${{ github.ref_name }}
+          git reset --hard origin/${{ github.ref_name }}
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -58,6 +60,14 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
 
+      - name: Init package.json
+        run: npm init -y
+
+# Install semantic-release plugins
+      - name: Install missing plugin @semantic-release/exec
+        run: npm install --save-dev @semantic-release/exec
+        
+#Execute the release process
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         id: semantic
@@ -78,3 +88,18 @@ jobs:
         with:
           go-version: '1.23'
           cache: false
+
+# Generate changelog with gptchangelog
+  generate_changelog:
+    name: 📝 Generate AI-powered Changelog
+    runs-on: ubuntu-22.04
+    needs: publish_release
+    steps:
+      - uses: LerianStudio/github-actions-gptchangelog@develop
+        with:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LERIAN_CI_CD_USER_GPG_KEY: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
+          LERIAN_CI_CD_USER_GPG_KEY_PASSWORD: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
+          LERIAN_CI_CD_USER_NAME: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
+          LERIAN_CI_CD_USER_EMAIL: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
