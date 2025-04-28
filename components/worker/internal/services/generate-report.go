@@ -9,6 +9,7 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
+	"plugin-template-engine/components/worker/internal/adapters/mongodb"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/pongo"
@@ -140,8 +141,6 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 }
 
 // queryExternalData retrieves data from external data sources specified in the message and populates the result map.
-// It supports querying PostgreSQL databases and skips MongoDB queries with a warning logger until implemented.
-// Returns an error if there is an issue with querying any of the data sources.
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
@@ -186,8 +185,6 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 			for table, fields := range tables {
 				var tableResult []map[string]any
 
-				var err error
-
 				var filter map[string][]any
 				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
 					filter = databaseFilters[table] // Get filters specific to this table
@@ -203,10 +200,28 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 				// Add the query results to the result map
 				result[databaseName][table] = tableResult
 			}
-		case "mongodb":
-			logger.Warnf("MongoDB queries not yet implemented.")
 
-			continue
+		case pkg.MongoDBType:
+			for collection, fields := range tables {
+				var filter map[string][]any
+				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
+					filter = databaseFilters[collection] // Get filters specific to this collection
+				}
+
+				collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, filter)
+				if err != nil {
+					logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+					return err
+				}
+
+				// Add the query results to the result map
+				result[databaseName][collection] = collectionResult
+			}
+
+		default:
+			err := fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
+			logger.Errorf("%v", err)
+			return err
 		}
 
 		dbSpan.End()
@@ -220,16 +235,17 @@ func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSour
 	switch dataSource.DatabaseType {
 	case pkg.PostgreSQLType:
 		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
-
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
-	case "mongodb":
-		return fmt.Errorf("MongoDB connections not yet implemented")
+
+	case pkg.MongoDBType:
+		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName)
+		logger.Infof("Established MongoDB connection to %s database", databaseName)
+
 	default:
 		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 	}
 
 	dataSource.Initialized = true
-
 	uc.ExternalDataSources[databaseName] = *dataSource
 
 	return nil
