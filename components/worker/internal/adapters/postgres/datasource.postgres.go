@@ -108,11 +108,13 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	defer rows.Close()
 
 	var tables []string
+
 	for rows.Next() {
 		var tableName string
 		if err := rows.Scan(&tableName); err != nil {
 			return nil, fmt.Errorf("error scanning table name: %w", err)
 		}
+
 		tables = append(tables, tableName)
 	}
 
@@ -136,6 +138,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 
 	// Map to store primary key columns by table name
 	primaryKeys := make(map[string]map[string]bool)
+
 	for pkRows.Next() {
 		var tableName, columnName string
 		if err := pkRows.Scan(&tableName, &columnName); err != nil {
@@ -145,6 +148,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 
 	// Build the complete schema information
 	var schema []TableSchema
+
 	for _, tableName := range tables {
 		// Query to get column information for the current table
 		columnQuery := `
@@ -162,12 +166,14 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		}
 
 		var columns []ColumnInformation
+
 		for colRows.Next() {
 			var col ColumnInformation
 			if err := colRows.Scan(&col.Name, &col.DataType, &col.IsNullable); err != nil {
 				if closeErr := colRows.Close(); closeErr != nil {
 					logger.Warnf("error closing rows after scan error: %v", closeErr)
 				}
+
 				return nil, fmt.Errorf("error scanning column info: %w", err)
 			}
 
@@ -178,6 +184,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 
 			columns = append(columns, col)
 		}
+
 		if err := colRows.Close(); err != nil {
 			logger.Warnf("error closing column rows: %v", err)
 		}
@@ -189,6 +196,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	}
 
 	logger.Infof("Retrieved schema for %d tables", len(schema))
+
 	return schema, nil
 }
 
@@ -271,12 +279,14 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 
 	// Check if table exists
 	var tableFound bool
+
 	var tableColumns []ColumnInformation
 
 	for _, table := range schema {
 		if table.TableName == tableName {
 			tableFound = true
 			tableColumns = table.Columns
+
 			break
 		}
 	}
@@ -297,11 +307,13 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		for i, col := range tableColumns {
 			allFields[i] = col.Name
 		}
+
 		return allFields, nil
 	}
 
 	// Validate each requested field
 	var validFields []string
+
 	var invalidFields []string
 
 	for _, field := range requestedFields {
@@ -321,6 +333,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 	}
 
 	logger.Infof("Successfully validated table '%s' and fields %v", tableName, validFields)
+
 	return validFields, nil
 }
 
@@ -328,6 +341,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, schema []TableSchema, table string, filter map[string][]any) squirrel.SelectBuilder {
 	// Find the table's column information
 	var tableColumns []ColumnInformation
+
 	for _, t := range schema {
 		if t.TableName == table {
 			tableColumns = t.Columns

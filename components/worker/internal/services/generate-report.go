@@ -185,6 +185,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 			for table, fields := range tables {
 				var tableResult []map[string]any
+
 				var err error
 
 				var filter map[string][]any
@@ -219,6 +220,7 @@ func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSour
 	switch dataSource.DatabaseType {
 	case pkg.PostgreSQLType:
 		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
+
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 	case "mongodb":
 		return fmt.Errorf("MongoDB connections not yet implemented")

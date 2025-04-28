@@ -235,27 +235,35 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 
 			logger.Infof("Found external data source: %s with database: %s (type: %s, sslmode: %s)",
 				name, database, dbType, sslMode)
+
 			dataSources = append(dataSources, dataSource)
 		} else {
 			logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
+
 			if host == "" {
 				logger.Warnf("Missing HOST for data source %s", name)
 			}
+
 			if port == "" {
 				logger.Warnf("Missing PORT for data source %s", name)
 			}
+
 			if user == "" {
 				logger.Warnf("Missing USER for data source %s", name)
 			}
+
 			if password == "" {
 				logger.Warnf("Missing PASSWORD for data source %s", name)
 			}
+
 			if database == "" {
 				logger.Warnf("Missing DATABASE for data source %s", name)
 			}
+
 			if dbType == "" {
 				logger.Warnf("Missing TYPE for data source %s", name)
 			}
+
 			if sslMode == "" {
 				logger.Warnf("Missing SSLMODE for data source %s", name)
 			}
