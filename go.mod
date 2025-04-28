@@ -24,7 +24,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.3
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
-	go.uber.org/mock v0.5.1
+	go.uber.org/mock v0.5.2
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
 
