@@ -162,11 +162,6 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		if err := pkRows.Scan(&tableName, &columnName); err != nil {
 			return nil, fmt.Errorf("error scanning primary key info: %w", err)
 		}
-
-		if _, exists := primaryKeys[tableName]; !exists {
-			primaryKeys[tableName] = make(map[string]bool)
-		}
-		primaryKeys[tableName][columnName] = true
 	}
 
 	// Build the complete schema information
@@ -191,7 +186,9 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		for colRows.Next() {
 			var col ColumnInformation
 			if err := colRows.Scan(&col.Name, &col.DataType, &col.IsNullable); err != nil {
-				colRows.Close()
+				if closeErr := colRows.Close(); closeErr != nil {
+					logger.Warnf("error closing rows after scan error: %v", closeErr)
+				}
 				return nil, fmt.Errorf("error scanning column info: %w", err)
 			}
 
@@ -202,7 +199,9 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 
 			columns = append(columns, col)
 		}
-		colRows.Close()
+		if err := colRows.Close(); err != nil {
+			logger.Warnf("error closing column rows: %v", err)
+		}
 
 		schema = append(schema, TableSchema{
 			TableName: tableName,
