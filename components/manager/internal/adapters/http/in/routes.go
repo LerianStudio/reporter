@@ -21,6 +21,8 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 
 	// Example routes
 	f.Post("/v1/templates", ParseHeaderParameters, templateHandler.CreateTemplate)
+	f.Patch("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.UpdateTemplateByID)
+	f.Get("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.GetTemplateByID)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)
