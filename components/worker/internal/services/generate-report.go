@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/pongo"
 	"strings"
 	"time"
@@ -31,8 +32,8 @@ type GenerateReportMessage struct {
 	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}.
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
 
-	// Filters specifies the filtering criteria for the data queries, mapping filter keys to their respective values.
-	Filters map[string][]string `json:"filters"`
+	// Filters specify the filtering criteria for the data queries, mapping filter keys to their respective values.
+	Filters map[string]map[string]map[string][]any `json:"filters"`
 }
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -170,39 +171,42 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 		}
 
 		// Prepare results map for this database
-		if _, dbExists := result[databaseName]; !dbExists {
+		if _, databaseExists := result[databaseName]; !databaseExists {
 			result[databaseName] = make(map[string][]map[string]any)
 		}
 
-		for table, fields := range tables {
-			ctxTable, tableSpan := tracer.Start(ctx, "service.generate_report.query_external_data.table")
-
-			var tableResult []map[string]any
-
-			var err error
-
-			switch dataSource.DatabaseType {
-			case "postgres":
-				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, table, fields, message.Filters)
-				if err != nil {
-					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
-
-					logger.Errorf("Error querying table %s: %s", table, err.Error())
-
-					return err
-				}
-			case "mongodb":
-				libOtel.HandleSpanError(&tableSpan, "MongoDB queries not yet implemented.", nil)
-
-				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
-
-				continue
+		switch dataSource.DatabaseType {
+		case pkg.PostgreSQLType:
+			schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+			if err != nil {
+				logger.Errorf("Error getting database schema: %s", err.Error())
+				return err
 			}
 
-			// Add the query results to the result map
-			result[databaseName][table] = tableResult
+			for table, fields := range tables {
+				var tableResult []map[string]any
 
-			tableSpan.End()
+				var err error
+
+				var filter map[string][]any
+				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
+					filter = databaseFilters[table] // Get filters specific to this table
+				}
+
+				// Pass the table-specific filters to the Query method
+				tableResult, err = dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
+				if err != nil {
+					logger.Errorf("Error querying table %s: %s", table, err.Error())
+					return err
+				}
+
+				// Add the query results to the result map
+				result[databaseName][table] = tableResult
+			}
+		case "mongodb":
+			logger.Warnf("MongoDB queries not yet implemented.")
+
+			continue
 		}
 
 		dbSpan.End()
@@ -213,18 +217,20 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 
 // connectToDataSource establishes a connection to a data source if not already initialized.
 func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
-	switch databaseName {
-	case "onboarding", "transaction":
-		dataSource.PostgresRepository = postgres.NewMidazRepository(dataSource.DatabaseConfig)
+	switch dataSource.DatabaseType {
+	case pkg.PostgreSQLType:
+		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
+
+		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
+	case "mongodb":
+		return fmt.Errorf("MongoDB connections not yet implemented")
 	default:
-		return fmt.Errorf("unknown database: %s", databaseName)
+		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 	}
 
 	dataSource.Initialized = true
 
 	uc.ExternalDataSources[databaseName] = *dataSource
-
-	logger.Infof("Established connection to %s database on demand", databaseName)
 
 	return nil
 }

@@ -221,3 +221,19 @@ func SafeIntToInt32(val int) (int32, error) {
 
 	return int32(val), nil
 }
+
+// Supported database types
+const (
+	// PostgreSQLType represents PostgreSQL database type
+	PostgreSQLType = "postgresql"
+)
+
+// IsSupportedDatabaseType checks if the provided database type is supported
+func IsSupportedDatabaseType(dbType string) bool {
+	switch dbType {
+	case PostgreSQLType:
+		return true
+	default:
+		return false
+	}
+}

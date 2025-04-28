@@ -58,6 +58,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	templateID := uuid.New()
 	reportID := uuid.New()
+
 	body := GenerateReportMessage{
 		TemplateID:   templateID,
 		ReportID:     reportID,
@@ -65,18 +66,43 @@ func TestGenerateReport_Success(t *testing.T) {
 		DataQueries: map[string]map[string][]string{
 			"onboarding": {"organization": {"name"}},
 		},
-		Filters: map[string][]string{},
+		Filters: map[string]map[string]map[string][]any{
+			"onboarding": {
+				"organization": {
+					"id": {1, 2, 3},
+				},
+			},
+		},
 	}
 	bodyBytes, _ := json.Marshal(body)
 
 	mockTemplateRepo.
 		EXPECT().
 		Get(gomock.Any(), templateID.String()).
-		Return([]byte("Hello {{ organization.name }}"), nil)
+		Return([]byte("Hello {{ onboarding.organization.0.name }}"), nil)
 
 	mockPostgresRepo.
 		EXPECT().
-		Query(gomock.Any(), "organization", []string{"name"}, body.Filters).
+		GetDatabaseSchema(gomock.Any()).
+		Return([]postgres.TableSchema{
+			{
+				TableName: "organization",
+				Columns: []postgres.ColumnInformation{
+					{Name: "name", DataType: "text"},
+					{Name: "id", DataType: "integer", IsPrimaryKey: true},
+				},
+			},
+		}, nil)
+
+	mockPostgresRepo.
+		EXPECT().
+		Query(
+			gomock.Any(),
+			gomock.Any(),
+			"organization",
+			[]string{"name"},
+			gomock.Any(),
+		).
 		Return([]map[string]any{{"name": "World"}}, nil)
 
 	mockReportRepo.
@@ -90,7 +116,7 @@ func TestGenerateReport_Success(t *testing.T) {
 		ExternalDataSources: map[string]DataSource{
 			"onboarding": {
 				Initialized:        true,
-				DatabaseType:       "postgres",
+				DatabaseType:       "postgresql",
 				PostgresRepository: mockPostgresRepo,
 			},
 		},
