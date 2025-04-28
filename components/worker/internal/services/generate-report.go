@@ -171,44 +171,41 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 		}
 
 		// Prepare results map for this database
-		if _, dbExists := result[databaseName]; !dbExists {
+		if _, databaseExists := result[databaseName]; !databaseExists {
 			result[databaseName] = make(map[string][]map[string]any)
 		}
 
-		for table, fields := range tables {
-			ctxTable, tableSpan := tracer.Start(ctx, "service.generate_report.query_external_data.table")
+		switch dataSource.DatabaseType {
+		case pkg.PostgreSQLType:
+			schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+			if err != nil {
+				logger.Errorf("Error getting database schema: %s", err.Error())
+				return err
+			}
 
-			var tableResult []map[string]any
+			for table, fields := range tables {
+				var tableResult []map[string]any
+				var err error
 
-			var err error
-
-			switch dataSource.DatabaseType {
-			case "postgres":
-				// Extract the table-specific filters from the nested structure
-				var tableFilters map[string][]any
-				if dbFilters, exists := message.Filters[databaseName]; exists {
-					tableFilters = dbFilters[table] // Get filters specific to this table
+				var filter map[string][]any
+				if databaseFilters, exists := message.Filters[databaseName]; exists {
+					filter = databaseFilters[table] // Get filters specific to this table
 				}
 
 				// Pass the table-specific filters to the Query method
-				tableResult, err = dataSource.PostgresRepository.Query(ctxTable, table, fields, tableFilters)
+				tableResult, err = dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
 				if err != nil {
-					libOtel.HandleSpanError(&tableSpan, "Error querying table.", err)
 					logger.Errorf("Error querying table %s: %s", table, err.Error())
 					return err
 				}
-			case "mongodb":
-				libOtel.HandleSpanError(&tableSpan, "MongoDB queries not yet implemented.", nil)
 
-				logger.Warnf("MongoDB queries not yet implemented for table: %s", table)
-
-				continue
+				// Add the query results to the result map
+				result[databaseName][table] = tableResult
 			}
+		case "mongodb":
+			logger.Warnf("MongoDB queries not yet implemented.")
 
-			// Add the query results to the result map
-			result[databaseName][table] = tableResult
-
-			tableSpan.End()
+			continue
 		}
 
 		dbSpan.End()

@@ -15,7 +15,7 @@ import (
 //
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
-	Query(ctx context.Context, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
+	Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
 }
 
@@ -54,42 +54,21 @@ func NewDataSourceRepository(pc *postgres.Connection) *ExternalDataSource {
 
 // Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.
 // It returns the query results as a slice of maps or an error in case of failure.
-func (ds *ExternalDataSource) Query(ctx context.Context, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
+func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
-	// First, validate the table and fields
-	validFields, err := ds.ValidateTableAndFields(ctx, table, fields)
+	// Validate requested table and fields
+	queriedFields, err := ds.ValidateTableAndFields(ctx, table, fields, schema)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the table schema to validate filters
-	schema, err := ds.GetDatabaseSchema(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving database schema: %w", err)
-	}
-
-	// Find the table's column information
-	var tableColumns []ColumnInformation
-	for _, t := range schema {
-		if t.TableName == table {
-			tableColumns = t.Columns
-			break
-		}
-	}
-
-	// Create a map of valid column names for efficient lookup
-	validColumns := make(map[string]bool)
-	for _, col := range tableColumns {
-		validColumns[col.Name] = true
-	}
-
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(validFields...).From(table)
+	queryBuilder := psql.Select(queriedFields...).From(table)
 
 	// Apply filters, but only if they correspond to valid columns
-	queryBuilder = buildDynamicFilters(queryBuilder, filter, validColumns)
+	queryBuilder = buildDynamicFilters(queryBuilder, schema, table, filter)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -117,7 +96,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	tableQuery := `
 		SELECT table_name 
 		FROM information_schema.tables 
-		WHERE table_schema = 'public' 
+		WHERE table_schema = 'public'
 		AND table_type = 'BASE TABLE'
 		ORDER BY table_name
 	`
@@ -286,15 +265,9 @@ func parseJSONBField(value any, logger log.Logger) any {
 // ValidateTableAndFields checks if the specified table exists and validates that
 // all requested fields exist in that table.
 // It returns a list of valid fields and an error if the table doesn't exist or fields are invalid.
-func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string) ([]string, error) {
+func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string, schema []TableSchema) ([]string, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	logger.Infof("Validating table '%s' and fields %v", tableName, requestedFields)
-
-	// Get the database schema information
-	schema, err := ds.GetDatabaseSchema(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving database schema: %w", err)
-	}
 
 	// Check if table exists
 	var tableFound bool
@@ -343,7 +316,6 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		return nil, fmt.Errorf("invalid fields for table '%s': %v", tableName, invalidFields)
 	}
 
-	// If no valid fields were found, return an error
 	if len(validFields) == 0 {
 		return nil, fmt.Errorf("no valid fields specified for table '%s'", tableName)
 	}
@@ -353,7 +325,22 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 }
 
 // buildDynamicFilters applies filter criteria to the query builder based on valid columns.
-func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, filter map[string][]any, validColumns map[string]bool) squirrel.SelectBuilder {
+func buildDynamicFilters(queryBuilder squirrel.SelectBuilder, schema []TableSchema, table string, filter map[string][]any) squirrel.SelectBuilder {
+	// Find the table's column information
+	var tableColumns []ColumnInformation
+	for _, t := range schema {
+		if t.TableName == table {
+			tableColumns = t.Columns
+			break
+		}
+	}
+
+	// Create a map of valid column names for efficient lookup
+	validColumns := make(map[string]bool)
+	for _, col := range tableColumns {
+		validColumns[col.Name] = true
+	}
+
 	for field, values := range filter {
 		// Only apply filters for valid columns
 		if validColumns[field] && len(values) > 0 {
