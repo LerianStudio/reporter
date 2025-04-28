@@ -189,7 +189,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 				var err error
 
 				var filter map[string][]any
-				if databaseFilters, exists := message.Filters[databaseName]; exists {
+				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
 					filter = databaseFilters[table] // Get filters specific to this table
 				}
 

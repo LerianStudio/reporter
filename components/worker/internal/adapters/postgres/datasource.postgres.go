@@ -147,7 +147,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	}
 
 	// Build the complete schema information
-	var schema []TableSchema
+	schema := make([]TableSchema, 0, len(tables))
 
 	for _, tableName := range tables {
 		// Query to get column information for the current table

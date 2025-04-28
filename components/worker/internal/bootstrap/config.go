@@ -186,13 +186,28 @@ func externalDatasourceConnections(logger log.Logger) map[string]services.DataSo
 func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 	var dataSources []DataSourceConfig
 
+	dataSourceNames := collectDataSourceNames()
+
+	for name := range dataSourceNames {
+		if config, isComplete := buildDataSourceConfig(name, logger); isComplete {
+			dataSources = append(dataSources, config)
+		}
+	}
+
+	if len(dataSources) == 0 {
+		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE/TYPE/SSLMODE format.")
+	}
+
+	return dataSources
+}
+
+// collectDataSourceNames identifies all available data source names from environment variables.
+func collectDataSourceNames() map[string]bool {
 	dataSourceNamesMap := make(map[string]bool)
+	prefixPattern := "DATASOURCE_"
 
 	envVars := os.Environ()
 
-	prefixPattern := "DATASOURCE_"
-
-	// identify all available data source names
 	for _, env := range envVars {
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) != 2 {
@@ -212,67 +227,66 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 		}
 	}
 
-	for name := range dataSourceNamesMap {
-		host := os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, strings.ToUpper(name)))
-		port := os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, strings.ToUpper(name)))
-		user := os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, strings.ToUpper(name)))
-		password := os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, strings.ToUpper(name)))
-		database := os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, strings.ToUpper(name)))
-		dbType := os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, strings.ToUpper(name)))
-		sslMode := os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, strings.ToUpper(name)))
+	return dataSourceNamesMap
+}
 
-		if host != "" && port != "" && user != "" && password != "" && database != "" && dbType != "" && sslMode != "" {
-			dataSource := DataSourceConfig{
-				Name:     name,
-				Host:     host,
-				Port:     port,
-				User:     user,
-				Password: password,
-				Database: database,
-				Type:     dbType,
-				SSLMode:  sslMode,
-			}
+// buildDataSourceConfig creates a DataSourceConfig for the given name, validating all required fields.
+// Returns the config and a boolean indicating if the configuration is complete.
+func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bool) {
+	prefixPattern := "DATASOURCE_"
+	upperName := strings.ToUpper(name)
 
-			logger.Infof("Found external data source: %s with database: %s (type: %s, sslmode: %s)",
-				name, database, dbType, sslMode)
+	configFields := map[string]string{
+		"HOST":     os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
+		"PORT":     os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
+		"USER":     os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
+		"PASSWORD": os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
+		"DATABASE": os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
+		"TYPE":     os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
+		"SSLMODE":  os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
+	}
 
-			dataSources = append(dataSources, dataSource)
-		} else {
-			logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
+	if isConfigComplete(configFields) {
+		dataSource := DataSourceConfig{
+			Name:     name,
+			Host:     configFields["HOST"],
+			Port:     configFields["PORT"],
+			User:     configFields["USER"],
+			Password: configFields["PASSWORD"],
+			Database: configFields["DATABASE"],
+			Type:     configFields["TYPE"],
+			SSLMode:  configFields["SSLMODE"],
+		}
 
-			if host == "" {
-				logger.Warnf("Missing HOST for data source %s", name)
-			}
+		logger.Infof("Found external data source: %s with database: %s (type: %s, sslmode: %s)",
+			name, dataSource.Database, dataSource.Type, dataSource.SSLMode)
 
-			if port == "" {
-				logger.Warnf("Missing PORT for data source %s", name)
-			}
+		return dataSource, true
+	}
 
-			if user == "" {
-				logger.Warnf("Missing USER for data source %s", name)
-			}
+	logMissingFields(name, configFields, logger)
 
-			if password == "" {
-				logger.Warnf("Missing PASSWORD for data source %s", name)
-			}
+	return DataSourceConfig{}, false
+}
 
-			if database == "" {
-				logger.Warnf("Missing DATABASE for data source %s", name)
-			}
-
-			if dbType == "" {
-				logger.Warnf("Missing TYPE for data source %s", name)
-			}
-
-			if sslMode == "" {
-				logger.Warnf("Missing SSLMODE for data source %s", name)
-			}
+// isConfigComplete checks if all required fields for a data source configuration are present.
+func isConfigComplete(fields map[string]string) bool {
+	for _, value := range fields {
+		if value == "" {
+			return false
 		}
 	}
 
-	if len(dataSources) == 0 {
-		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE/TYPE/SSLMODE format.")
-	}
+	return true
+}
 
-	return dataSources
+// logMissingFields logs warnings for any missing configuration fields.
+func logMissingFields(name string, fields map[string]string, logger log.Logger) {
+	logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
+
+	for field, value := range fields {
+		if value == "" {
+			logger.Warnf("Missing %s for data source %s", field, name)
+		}
+	}
 }
