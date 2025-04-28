@@ -149,85 +149,125 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 	defer span.End()
 
 	for databaseName, tables := range message.DataQueries {
-		_, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
-
-		logger.Infof("Querying database %s", databaseName)
-
-		dataSource, exists := uc.ExternalDataSources[databaseName]
-		if !exists {
-			libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
-			logger.Errorf("Unknown data source: %s", databaseName)
-
-			continue
-		}
-
-		if !dataSource.Initialized {
-			if err := uc.connectToDataSource(databaseName, &dataSource, logger); err != nil {
-				libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
-
-				return err
-			}
-		}
-
-		// Prepare results map for this database
-		if _, databaseExists := result[databaseName]; !databaseExists {
-			result[databaseName] = make(map[string][]map[string]any)
-		}
-
-		switch dataSource.DatabaseType {
-		case pkg.PostgreSQLType:
-			schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
-			if err != nil {
-				logger.Errorf("Error getting database schema: %s", err.Error())
-				return err
-			}
-
-			for table, fields := range tables {
-				var tableResult []map[string]any
-
-				var filter map[string][]any
-				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
-					filter = databaseFilters[table] // Get filters specific to this table
-				}
-
-				// Pass the table-specific filters to the Query method
-				tableResult, err = dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
-				if err != nil {
-					logger.Errorf("Error querying table %s: %s", table, err.Error())
-					return err
-				}
-
-				// Add the query results to the result map
-				result[databaseName][table] = tableResult
-			}
-
-		case pkg.MongoDBType:
-			for collection, fields := range tables {
-				var filter map[string][]any
-				if databaseFilters, filtersExist := message.Filters[databaseName]; filtersExist {
-					filter = databaseFilters[collection] // Get filters specific to this collection
-				}
-
-				collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, filter)
-				if err != nil {
-					logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-					return err
-				}
-
-				// Add the query results to the result map
-				result[databaseName][collection] = collectionResult
-			}
-
-		default:
-			err := fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
-			logger.Errorf("%v", err)
+		if err := uc.queryDatabase(ctx, databaseName, tables, message.Filters, result, logger, tracer); err != nil {
 			return err
 		}
-
-		dbSpan.End()
 	}
 
 	return nil
+}
+
+// queryDatabase handles data retrieval for a specific database
+func (uc *UseCase) queryDatabase(
+	ctx context.Context,
+	databaseName string,
+	tables map[string][]string,
+	allFilters map[string]map[string]map[string][]any,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+	tracer trace.Tracer,
+) error {
+	ctx, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
+	defer dbSpan.End()
+
+	logger.Infof("Querying database %s", databaseName)
+
+	dataSource, exists := uc.ExternalDataSources[databaseName]
+	if !exists {
+		libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
+		logger.Errorf("Unknown data source: %s", databaseName)
+		return nil // Continue with next database
+	}
+
+	if !dataSource.Initialized {
+		if err := uc.connectToDataSource(databaseName, &dataSource, logger); err != nil {
+			libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
+			return err
+		}
+	}
+
+	// Prepare results map for this database
+	if _, databaseExists := result[databaseName]; !databaseExists {
+		result[databaseName] = make(map[string][]map[string]any)
+	}
+
+	// Get filters for this database
+	databaseFilters := allFilters[databaseName]
+
+	switch dataSource.DatabaseType {
+	case pkg.PostgreSQLType:
+		return uc.queryPostgresDatabase(ctx, &dataSource, databaseName, tables, databaseFilters, result, logger)
+	case pkg.MongoDBType:
+		return uc.queryMongoDatabase(ctx, &dataSource, databaseName, tables, databaseFilters, result, logger)
+	default:
+		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
+	}
+}
+
+// queryPostgresDatabase handles querying PostgreSQL databases
+func (uc *UseCase) queryPostgresDatabase(
+	ctx context.Context,
+	dataSource *DataSource,
+	databaseName string,
+	tables map[string][]string,
+	databaseFilters map[string]map[string][]any,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+) error {
+	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	if err != nil {
+		logger.Errorf("Error getting database schema: %s", err.Error())
+		return err
+	}
+
+	for table, fields := range tables {
+		filter := getTableFilters(databaseFilters, table)
+
+		tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
+		if err != nil {
+			logger.Errorf("Error querying table %s: %s", table, err.Error())
+			return err
+		}
+
+		// Add the query results to the result map
+		result[databaseName][table] = tableResult
+	}
+
+	return nil
+}
+
+// queryMongoDatabase handles querying MongoDB databases
+func (uc *UseCase) queryMongoDatabase(
+	ctx context.Context,
+	dataSource *DataSource,
+	databaseName string,
+	collections map[string][]string,
+	databaseFilters map[string]map[string][]any,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+) error {
+	for collection, fields := range collections {
+		filter := getTableFilters(databaseFilters, collection)
+
+		collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, filter)
+		if err != nil {
+			logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+			return err
+		}
+
+		// Add the query results to the result map
+		result[databaseName][collection] = collectionResult
+	}
+
+	return nil
+}
+
+// getTableFilters extracts filters for a specific table/collection
+func getTableFilters(databaseFilters map[string]map[string][]any, tableName string) map[string][]any {
+	if databaseFilters == nil {
+		return nil
+	}
+	return databaseFilters[tableName]
 }
 
 // connectToDataSource establishes a connection to a data source if not already initialized.
@@ -235,10 +275,12 @@ func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSour
 	switch dataSource.DatabaseType {
 	case pkg.PostgreSQLType:
 		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
+
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 
 	case pkg.MongoDBType:
 		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName)
+
 		logger.Infof("Established MongoDB connection to %s database", databaseName)
 
 	default:

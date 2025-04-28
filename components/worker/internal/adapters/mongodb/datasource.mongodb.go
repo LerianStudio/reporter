@@ -68,6 +68,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 
 	// Convert filter to MongoDB format
 	mongoFilter := bson.M{}
+
 	for key, values := range filter {
 		if len(values) == 1 {
 			mongoFilter[key] = values[0]
@@ -78,6 +79,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 
 	// Create projection for specified fields
 	projection := bson.M{}
+
 	if len(fields) > 0 && fields[0] != "*" {
 		for _, field := range fields {
 			projection[field] = 1
@@ -90,13 +92,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 	}
 
 	database := client.Database(ds.Database)
+
 	cursor, err := database.Collection(collection).Find(ctx, mongoFilter, findOptions)
 	if err != nil {
 		return nil, err
 	}
+
 	defer cursor.Close(ctx)
 
 	var results []map[string]any
+
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
@@ -140,6 +145,7 @@ func convertBsonValue(value any) any {
 		for i, elem := range v {
 			result[i] = convertBsonValue(elem)
 		}
+
 		return result
 
 	case bson.D:
@@ -148,11 +154,12 @@ func convertBsonValue(value any) any {
 		for _, elem := range v {
 			doc[elem.Key] = convertBsonValue(elem.Value)
 		}
+
 		return doc
 
 	case primitive.DateTime:
 		// Convert to time.Time for easier template usage
-		return primitive.DateTime(v).Time()
+		return v.Time()
 
 	case primitive.ObjectID:
 		// Convert ObjectID to string
@@ -184,13 +191,14 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		return nil, err
 	}
 
-	var schema []CollectionSchema
+	schema := make([]CollectionSchema, 0, len(collections))
 
 	for _, collName := range collections {
 		coll := database.Collection(collName)
 
 		// Sample a document to infer schema
 		sampleDoc := bson.M{}
+
 		cursor, err := coll.Find(ctx, bson.M{}, options.Find().SetLimit(1))
 		if err != nil {
 			logger.Warnf("Could not query collection %s: %v", collName, err)
@@ -198,11 +206,13 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		}
 
 		hasDoc := false
+
 		if cursor.Next(ctx) {
 			if err := cursor.Decode(&sampleDoc); err == nil {
 				hasDoc = true
 			}
 		}
+
 		err = cursor.Close(ctx)
 		if err != nil {
 			return nil, err
@@ -240,5 +250,6 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 	}
 
 	logger.Infof("Retrieved schema for %d collections", len(schema))
+
 	return schema, nil
 }
