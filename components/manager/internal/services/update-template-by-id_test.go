@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,7 @@ func createFileHeaderFromString(content, filename string) (*multipart.FileHeader
 
 	files := form.File["file"]
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no file found in form")
+		return nil, errors.New("no file found in form")
 	}
 
 	return files[0], nil

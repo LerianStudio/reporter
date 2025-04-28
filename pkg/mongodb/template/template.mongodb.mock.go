@@ -6,6 +6,7 @@ package template
 
 import (
 	context "context"
+	http "plugin-template-engine/pkg/net/http"
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
@@ -66,6 +67,21 @@ func (mr *MockRepositoryMockRecorder) FindByID(arg0, arg1, arg2, arg3 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockRepository)(nil).FindByID), arg0, arg1, arg2, arg3)
 }
 
+// FindList mocks base method.
+func (m *MockRepository) FindList(arg0 context.Context, arg1 string, arg2 http.QueryHeader) ([]*Template, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindList", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*Template)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindList indicates an expected call of FindList.
+func (mr *MockRepositoryMockRecorder) FindList(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindList", reflect.TypeOf((*MockRepository)(nil).FindList), arg0, arg1, arg2)
+}
+
 // FindOutputFormatByID mocks base method.
 func (m *MockRepository) FindOutputFormatByID(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) (*string, error) {
 	m.ctrl.T.Helper()
@@ -79,6 +95,20 @@ func (m *MockRepository) FindOutputFormatByID(arg0 context.Context, arg1 string,
 func (mr *MockRepositoryMockRecorder) FindOutputFormatByID(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOutputFormatByID", reflect.TypeOf((*MockRepository)(nil).FindOutputFormatByID), arg0, arg1, arg2, arg3)
+}
+
+// SoftDelete mocks base method.
+func (m *MockRepository) SoftDelete(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftDelete", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SoftDelete indicates an expected call of SoftDelete.
+func (mr *MockRepositoryMockRecorder) SoftDelete(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDelete", reflect.TypeOf((*MockRepository)(nil).SoftDelete), arg0, arg1, arg2, arg3)
 }
 
 // Update mocks base method.
