@@ -12,7 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/constant"
+	"plugin-template-engine/pkg/net/http"
 	"strings"
+	"time"
 )
 
 // Repository provides an interface for operations related on mongo a metadata entities.
@@ -20,8 +22,10 @@ import (
 //go:generate mockgen --destination=template.mongodb.mock.go --package=template . Repository
 type Repository interface {
 	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Template, error)
+	FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Template, error)
 	Create(ctx context.Context, collection string, record *TemplateMongoDBModel) (*Template, error)
 	Update(ctx context.Context, collection string, id, organizationID uuid.UUID, updateFields *bson.M) error
+	SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error
 	FindOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, error)
 }
 
@@ -79,6 +83,68 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 	spanFindOne.End()
 
 	return record.ToEntity(), nil
+}
+
+// FindList retrieves all templates from the mongodb using the provided organization_id.
+func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Template, error) {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongodb.find_all_templates")
+	defer span.End()
+
+	db, err := tm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		return nil, err
+	}
+
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+
+	queryFilter := bson.M{}
+	queryFilter["deleted_at"] = bson.D{{Key: "$eq", Value: nil}}
+
+	limit := int64(filters.Limit)
+	skip := int64(filters.Page*filters.Limit - filters.Limit)
+	opts := options.FindOptions{Limit: &limit, Skip: &skip}
+
+	ctx, spanFind := tracer.Start(ctx, "mongodb.find_templates.find")
+
+	cur, err := coll.Find(ctx, queryFilter, &opts)
+	if err != nil {
+		opentelemetry.HandleSpanError(&spanFind, "Failed to find templates", err)
+		return nil, err
+	}
+
+	spanFind.End()
+
+	var results []*TemplateMongoDBModel
+
+	for cur.Next(ctx) {
+		var record TemplateMongoDBModel
+		if err := cur.Decode(&record); err != nil {
+			opentelemetry.HandleSpanError(&span, "Failed to decode template", err)
+			return nil, err
+		}
+
+		results = append(results, &record)
+	}
+
+	if err := cur.Err(); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to iterate templates", err)
+		return nil, err
+	}
+
+	if err := cur.Close(ctx); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to close cursor", err)
+		return nil, err
+	}
+
+	templates := make([]*Template, 0, len(results))
+	for i := range results {
+		templates = append(templates, results[i].ToEntity())
+	}
+
+	return templates, nil
 }
 
 // FindOutputFormatByID retrieves outputFormat of a template provided entity_id.
@@ -189,6 +255,42 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 	}
 
 	spanUpdate.End()
+
+	return nil
+}
+
+// SoftDelete a template entity into mongodb.
+func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
+	defer span.End()
+
+	db, err := tm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+
+		return err
+	}
+
+	logger := commons.NewLoggerFromContext(ctx)
+
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+
+	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
+
+	filter := bson.D{{Key: "_id", Value: id}, {Key: "organization_id", Value: organizationID}}
+	deletedAt := bson.D{{Key: "$set", Value: bson.D{{Key: "deleted_at", Value: time.Now()}}}}
+
+	deleted, err := coll.UpdateOne(ctx, filter, deletedAt)
+	if err != nil {
+		opentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
+
+		return err
+	}
+
+	logger.Infof("Return from delete one: %v", deleted)
+	spanDelete.End()
 
 	return nil
 }

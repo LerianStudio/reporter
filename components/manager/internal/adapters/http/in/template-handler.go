@@ -9,6 +9,7 @@ import (
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/constant"
+	"plugin-template-engine/pkg/model"
 	_ "plugin-template-engine/pkg/mongodb/template"
 	"plugin-template-engine/pkg/net/http"
 )
@@ -26,6 +27,7 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
@@ -106,6 +108,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
@@ -180,6 +183,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
@@ -211,4 +215,96 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	logger.Infof("Successfully retrieve Template with ID: %s", id)
 
 	return commonsHttp.OK(c, templateModel)
+}
+
+// GetAllTemplates is a method that recovery all Templates information.
+//
+//	@Summary		Get all templates
+//	@Description	List all the templates
+//	@Tags			Templates
+//	@Produce		json
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			limit				query		int		false	"Limit"	default(10)
+//	@Param			page				query		int		false	"Page"	default(1)
+//	@Success		200					{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
+//	@Router			/v1/templates [get]
+func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "handler.get_all_template")
+	defer span.End()
+
+	headerParams, err := http.ValidateParameters(c.Queries())
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+
+		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	pagination := model.Pagination{
+		Limit: headerParams.Limit,
+		Page:  headerParams.Page,
+	}
+
+	logger.Infof("Initiating retrieval all templates")
+
+	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
+
+	templates, err := th.Service.GetAllTemplates(ctx, *headerParams, organizationID)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
+
+		logger.Errorf("Failed to retrieve all Templates, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	logger.Infof("Successfully retrieved all Templates")
+
+	pagination.SetItems(templates)
+	pagination.SetTotal(len(templates))
+
+	return commonsHttp.OK(c, pagination)
+}
+
+// DeleteTemplateByID is a method that removes a template information by a given id.
+//
+//	@Summary		SoftDelete a Template by ID
+//	@Description	SoftDelete a Template with the input ID
+//	@Tags			Templates
+//	@Param			Authorization		header	string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header	string	true	"Organization ID"
+//	@Param			id					path	string	true	"Template ID"
+//	@Success		204
+//	@Router			/v1/templates/{id} [delete]
+func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "handler.delete_template_by_id")
+	defer span.End()
+
+	id := c.Locals("id").(uuid.UUID)
+	logger.Infof("Initiating removal of Template with ID: %s", id.String())
+
+	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
+	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
+
+		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	logger.Infof("Successfully removed Template with ID: %s", id.String())
+
+	return commonsHttp.NoContent(c)
 }
