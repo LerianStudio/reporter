@@ -176,6 +176,7 @@ func (uc *UseCase) queryDatabase(
 	if !exists {
 		libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
 		logger.Errorf("Unknown data source: %s", databaseName)
+
 		return nil // Continue with next database
 	}
 
@@ -267,6 +268,7 @@ func getTableFilters(databaseFilters map[string]map[string][]any, tableName stri
 	if databaseFilters == nil {
 		return nil
 	}
+
 	return databaseFilters[tableName]
 }
 
