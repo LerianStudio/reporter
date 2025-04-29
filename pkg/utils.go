@@ -226,12 +226,15 @@ func SafeIntToInt32(val int) (int32, error) {
 const (
 	// PostgreSQLType represents PostgreSQL database type
 	PostgreSQLType = "postgresql"
+
+	// MongoDBType represents the MongoDB database type constant.
+	MongoDBType = "mongodb"
 )
 
 // IsSupportedDatabaseType checks if the provided database type is supported
 func IsSupportedDatabaseType(dbType string) bool {
 	switch dbType {
-	case PostgreSQLType:
+	case PostgreSQLType, MongoDBType:
 		return true
 	default:
 		return false

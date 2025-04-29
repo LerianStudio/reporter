@@ -1,6 +1,7 @@
 package services
 
 import (
+	"plugin-template-engine/components/worker/internal/adapters/mongodb"
 	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	reportFile "plugin-template-engine/pkg/minio/report"
 	templateFile "plugin-template-engine/pkg/minio/template"
@@ -10,14 +11,23 @@ import (
 
 // DataSource represents a configuration for an external data source, specifying the database type and repository used.
 type DataSource struct {
-	// DatabaseType specifies the type of database being used, such as "postgres" or "mongodb".
+	// DatabaseType specifies the type of database being used, such as "postgresql" or "mongodb".
 	DatabaseType string
 
 	// PostgresRepository is an interface for querying PostgreSQL tables and fields in an external data source.
 	PostgresRepository postgres.Repository
 
+	// MongoDBRepository is an interface for querying MongoDB collections and fields in an external data source.
+	MongoDBRepository mongodb.Repository
+
 	// DatabaseConfig holds the configuration needed to establish a connection
 	DatabaseConfig *pg.Connection
+
+	// MongoURI holds the MongoDB connection string
+	MongoURI string
+
+	// MongoDBName holds the MongoDB database name
+	MongoDBName string
 
 	// Connection holds the actual database connection that can be closed
 	Connection *pg.Connection

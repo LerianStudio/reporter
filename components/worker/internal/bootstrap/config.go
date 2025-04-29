@@ -22,6 +22,20 @@ import (
 	pg "plugin-template-engine/pkg/postgres"
 )
 
+// DataSourceConfig represents the configuration required to establish a connection to a data source.
+// Fields include name, connection details, authentication, database, type, and SSL mode.
+type DataSourceConfig struct {
+	ConfigName string
+	Name       string
+	Host       string
+	Port       string
+	User       string
+	Password   string
+	Database   string
+	Type       string
+	SSLMode    string
+}
+
 // Config holds the application's configurable parameters read from environment variables.
 type Config struct {
 	EnvName                     string `env:"ENV_NAME"`
@@ -54,19 +68,6 @@ type Config struct {
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
-}
-
-// DataSourceConfig represents the configuration required to establish a connection to a data source.
-// Fields include name, connection details, authentication, database, type, and SSL mode.
-type DataSourceConfig struct {
-	Name     string
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Database string
-	Type     string
-	SSLMode  string
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -152,30 +153,42 @@ func externalDatasourceConnections(logger log.Logger) map[string]services.DataSo
 	dataSourceConfigs := getDataSourceConfigs(logger)
 
 	for _, dataSource := range dataSourceConfigs {
-		if !pkg.IsSupportedDatabaseType(strings.ToLower(dataSource.Type)) {
-			logger.Warnf("Unsupported database type '%s' for data source '%s'. Only PostgreSQL is currently supported. Skipping this data source.",
-				dataSource.Type, dataSource.Name)
+		switch strings.ToLower(dataSource.Type) {
+		case pkg.MongoDBType:
+			mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?authSource=admin&directConnection=true", // TODO
+				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
+
+			externalDataSources[dataSource.ConfigName] = services.DataSource{
+				DatabaseType: pkg.MongoDBType,
+				MongoURI:     mongoURI,
+				MongoDBName:  dataSource.Database,
+				Initialized:  false,
+			}
+
+		case pkg.PostgreSQLType:
+			connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
+
+			connection := &pg.Connection{
+				ConnectionString:   connectionString,
+				DBName:             dataSource.Database,
+				Logger:             logger,
+				MaxOpenConnections: 10,
+				MaxIdleConnections: 5,
+			}
+
+			externalDataSources[dataSource.ConfigName] = services.DataSource{
+				DatabaseType:   dataSource.Type,
+				DatabaseConfig: connection,
+				Initialized:    false,
+			}
+
+		default:
+			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
 			continue
 		}
 
-		connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
-			dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
-
-		connection := &pg.Connection{
-			ConnectionString:   connectionString,
-			DBName:             dataSource.Database,
-			Logger:             logger,
-			MaxOpenConnections: 10,
-			MaxIdleConnections: 5,
-		}
-
-		externalDataSources[dataSource.Name] = services.DataSource{
-			DatabaseType:   dataSource.Type,
-			DatabaseConfig: connection,
-			Initialized:    false,
-		}
-
-		logger.Infof("Configured external data source: %s", dataSource.Name)
+		logger.Infof("Configured external data source: %s with config name: %s", dataSource.Name, dataSource.ConfigName)
 	}
 
 	return externalDataSources
@@ -237,56 +250,30 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 	upperName := strings.ToUpper(name)
 
 	configFields := map[string]string{
-		"HOST":     os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
-		"PORT":     os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
-		"USER":     os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
-		"PASSWORD": os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
-		"DATABASE": os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
-		"TYPE":     os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
-		"SSLMODE":  os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
+		"CONFIG_NAME": os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
+		"HOST":        os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
+		"PORT":        os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
+		"USER":        os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
+		"PASSWORD":    os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
+		"DATABASE":    os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
+		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
+		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
 	}
 
-	if isConfigComplete(configFields) {
-		dataSource := DataSourceConfig{
-			Name:     name,
-			Host:     configFields["HOST"],
-			Port:     configFields["PORT"],
-			User:     configFields["USER"],
-			Password: configFields["PASSWORD"],
-			Database: configFields["DATABASE"],
-			Type:     configFields["TYPE"],
-			SSLMode:  configFields["SSLMODE"],
-		}
-
-		logger.Infof("Found external data source: %s with database: %s (type: %s, sslmode: %s)",
-			name, dataSource.Database, dataSource.Type, dataSource.SSLMode)
-
-		return dataSource, true
+	dataSource := DataSourceConfig{
+		Name:       name,
+		ConfigName: configFields["CONFIG_NAME"],
+		Host:       configFields["HOST"],
+		Port:       configFields["PORT"],
+		User:       configFields["USER"],
+		Password:   configFields["PASSWORD"],
+		Database:   configFields["DATABASE"],
+		Type:       configFields["TYPE"],
+		SSLMode:    configFields["SSLMODE"],
 	}
 
-	logMissingFields(name, configFields, logger)
+	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s)",
+		name, dataSource.ConfigName, dataSource.Database, dataSource.Type, dataSource.SSLMode)
 
-	return DataSourceConfig{}, false
-}
-
-// isConfigComplete checks if all required fields for a data source configuration are present.
-func isConfigComplete(fields map[string]string) bool {
-	for _, value := range fields {
-		if value == "" {
-			return false
-		}
-	}
-
-	return true
-}
-
-// logMissingFields logs warnings for any missing configuration fields.
-func logMissingFields(name string, fields map[string]string, logger log.Logger) {
-	logger.Warnf("Incomplete configuration for data source %s. Skipping.", name)
-
-	for field, value := range fields {
-		if value == "" {
-			logger.Warnf("Missing %s for data source %s", field, name)
-		}
-	}
+	return dataSource, true
 }

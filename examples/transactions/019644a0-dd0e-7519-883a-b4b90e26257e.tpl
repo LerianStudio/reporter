@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-{% for t in transaction.transaction -%}
+{% for t in midaz_transaction.transaction -%}
 <Transacao>
     <Identificador>{{ t.id }}</Identificador>
     <Descricao>{{ t.description }}</Descricao>
@@ -11,22 +11,25 @@
     </Valor>
     <Moeda>{{ t.asset_code }}</Moeda>
     <PlanoContas>{{ t.chart_of_accounts_group_name }}</PlanoContas>
+    <Mensagem>
+        {{ midaz_transaction_metadata.transaction.0.metadata.mensagem }}
+    </Mensagem>
 
     <Organizacao>
-        <CNPJ>{{ onboarding.organization.0.legal_document }}</CNPJ>
-        <NomeLegal>{{ onboarding.organization.0.legal_name }}</NomeLegal>
-        <NomeFantasia>{{ onboarding.organization.0.doing_business_as }}</NomeFantasia>
-        <Endereco>{{ onboarding.organization.0.address.line1 }}, {{ onboarding.organization.0.address.city }} - {{ onboarding.organization.0.address.state }}</Endereco>
+        <CNPJ>{{ midaz_onboarding.organization.0.legal_document }}</CNPJ>
+        <NomeLegal>{{ midaz_onboarding.organization.0.legal_name }}</NomeLegal>
+        <NomeFantasia>{{ midaz_onboarding.organization.0.doing_business_as }}</NomeFantasia>
+        <Endereco>{{ midaz_onboarding.organization.0.address.line1 }}, {{ midaz_onboarding.organization.0.address.city }} - {{ midaz_onboarding.organization.0.address.state }}</Endereco>
     </Organizacao>
 
-    {% for l in onboarding.ledger %}
+    {% for l in midaz_onboarding.ledger %}
     <Ledger>
         <Nome>{{ l.name }}</Nome>
         <Status>{{ l.status }}</Status>
     </Ledger>
     {% endfor %}
 
-    {% for a in onboarding.asset %}
+    {% for a in midaz_onboarding.asset %}
     <Ativo>
         <Nome>{{ a.name }}</Nome>
         <Tipo>{{ a.type }}</Tipo>
@@ -35,7 +38,7 @@
     {% endfor %}
 
     <Operacoes>
-        {% for operation in transaction.operation -%}
+        {% for operation in midaz_transaction.operation -%}
         {% if operation.account_alias != "@external/BRL" %}
             <Operacao>
                 <ID>{{ operation.id }}</ID>
@@ -57,24 +60,24 @@
     </Operacoes>
 
     <TotalMovimentado>
-        {% sum_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+        {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
     </TotalMovimentado>
 
     <Totais>
         <Soma>
-            {% sum_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+            {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
         </Soma>
         <Contagem>
-            {% count_by transaction.operation if account_alias != "@external/BRL" %}
+            {% count_by midaz_transaction.operation if account_alias != "@external/BRL" %}
         </Contagem>
         <Media>
-            {% avg_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+            {% avg_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
         </Media>
         <Minimo>
-            {% min_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+            {% min_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
         </Minimo>
         <Maximo>
-            {% max_by transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
+            {% max_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
         </Maximo>
     </Totais>
 
