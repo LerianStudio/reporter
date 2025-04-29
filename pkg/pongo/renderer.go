@@ -2,6 +2,7 @@ package pongo
 
 import (
 	"context"
+	"fmt"
 
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/flosch/pongo2/v6"
@@ -25,7 +26,24 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 		return "", err
 	}
 
-	pongoCtx := pongo2.Context{}
+	pongoCtx := pongo2.Context{
+		"filter": func(collection any, field string, value any) []map[string]any {
+			var result []map[string]any
+
+			items, ok := collection.([]map[string]any)
+			if !ok {
+				return result
+			}
+
+			for _, item := range items {
+				if v, ok := item[field]; ok && fmt.Sprintf("%v", v) == fmt.Sprintf("%v", value) {
+					result = append(result, item)
+				}
+			}
+
+			return result
+		},
+	}
 	for k, v := range data {
 		pongoCtx[k] = v
 	}
