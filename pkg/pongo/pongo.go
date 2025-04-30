@@ -15,6 +15,10 @@ func init() {
 		panic("Failed to register percent_of filter: " + err.Error())
 	}
 
+	if err := pongo2.RegisterFilter("slice_str", sliceFilter); err != nil {
+		panic("Failed to register slice filter: " + err.Error())
+	}
+
 	tags := []struct {
 		name string
 		op   string

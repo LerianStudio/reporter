@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/flosch/pongo2/v6"
 )
@@ -81,4 +82,38 @@ func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pon
 	percent := (float64(num) / float64(den)) * 100
 
 	return pongo2.AsValue(fmt.Sprintf("%.2f%%", percent)), nil
+}
+
+func sliceFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+	s := in.String()
+
+	parts := strings.Split(param.String(), ":")
+	if len(parts) != 2 {
+		return nil, &pongo2.Error{
+			Sender:    "slice",
+			OrigError: fmt.Errorf("invalid slice format, expected 'start:end'"),
+		}
+	}
+
+	start, err1 := strconv.Atoi(parts[0])
+	end, err2 := strconv.Atoi(parts[1])
+
+	if err1 != nil || err2 != nil {
+		return nil, &pongo2.Error{
+			Sender:    "slice",
+			OrigError: fmt.Errorf("invalid start or end in slice"),
+		}
+	}
+
+	if start < 0 {
+		start = 0
+	}
+	if end > len(s) {
+		end = len(s)
+	}
+	if start > end {
+		start = end
+	}
+
+	return pongo2.AsValue(s[start:end]), nil
 }
