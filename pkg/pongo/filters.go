@@ -84,6 +84,8 @@ func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pon
 	return pongo2.AsValue(fmt.Sprintf("%.2f%%", percent)), nil
 }
 
+// sliceFilter extracts a substring from the input string based on the specified "start:end" slice format in the parameter.
+// Returns the sliced string or an error if the format is invalid or indices are out of bounds.
 func sliceFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	s := in.String()
 
@@ -108,9 +110,11 @@ func sliceFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 	if start < 0 {
 		start = 0
 	}
+
 	if end > len(s) {
 		end = len(s)
 	}
+
 	if start > end {
 		start = end
 	}
