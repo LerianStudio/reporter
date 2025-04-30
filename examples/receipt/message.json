@@ -3,17 +3,36 @@
    "reportId": "01966834-818f-7faa-bac5-70305bebb774",
    "outputFormat": "txt",
    "filters": {
-      "organization_id": ["01965efd-7d3e-76f4-9950-e90aa00f13a0"],
-      "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"],
-      "transaction_id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+      "midaz_onboarding": {
+         "organization": {
+            "id": ["01965efd-7d3e-76f4-9950-e90aa00f13a0"]
+         },
+         "ledger": {
+            "id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"]
+         },
+         "asset": {
+            "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"]
+         },
+         "account": {
+            "ledger_id": ["01965efe-0d5d-77b2-a8d8-da090c86b724"]
+         }
+      },
+      "midaz_transaction": {
+         "transaction": {
+            "id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+         },
+         "operation": {
+            "transaction_id": ["01965f04-7087-735f-a284-3d3e4edc6a48"]
+         }
+      }
    },
    "mappedFields": {
-      "onboarding": {
+      "midaz_onboarding": {
          "organization": ["legal_name", "doing_business_as", "legal_document", "address"],
          "ledger":["name", "status"],
          "asset": ["name", "type", "code"]
       },
-      "transaction": {
+      "midaz_transaction": {
          "transaction": ["id", "description", "created_at", "template", "status", "amount", "amount_scale", "asset_code", "chart_of_accounts_group_name"],
          "operation": ["id", "description", "type", "account_alias", "amount", "available_balance_after", "transaction_id"]
       }
