@@ -445,6 +445,18 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Update Output format without template File",
 			Message:    "Can not update output format without passing template file. Please check information passed and try again.",
 		},
+		constant.ErrInvalidTemplateID: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidTemplateID.Error(),
+			Title:      "Invalid templateID",
+			Message:    "The specified templateID is not a valid UUID. Please check the value passed.",
+		},
+		constant.ErrInvalidLedgerIDList: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrInvalidLedgerIDList.Error(),
+			Title:      "Invalid ledgerID",
+			Message:    fmt.Sprintf("The specified ledgerID inside ledger ID list is not a valid UUID. Please check the value passed %v.", args),
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

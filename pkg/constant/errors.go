@@ -39,4 +39,6 @@ var (
 	ErrInvalidPathParameter            = errors.New("TPL-0011")
 	ErrOutputFormatWithoutTemplateFile = errors.New("TPL-0012")
 	ErrEntityNotFound                  = errors.New("TPL-0013")
+	ErrInvalidTemplateID               = errors.New("TPL-0014")
+	ErrInvalidLedgerIDList             = errors.New("TPL-0015")
 )

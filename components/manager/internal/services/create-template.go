@@ -26,8 +26,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
 	templateId := commons.GenerateUUIDv7()
-	timestamp := time.Now().Unix()
-	fileName := fmt.Sprintf("%s_%d.tpl", templateId.String(), timestamp)
+	fileName := fmt.Sprintf("%s.tpl", templateId.String())
 
 	templateModel := &template.TemplateMongoDBModel{
 		ID:             templateId,
