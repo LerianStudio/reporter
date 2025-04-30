@@ -27,6 +27,7 @@ type Repository interface {
 	Update(ctx context.Context, collection string, id, organizationID uuid.UUID, updateFields *bson.M) error
 	SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error
 	FindOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, error)
+	FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]any, error)
 }
 
 // TemplateMongoDBRepository is a MongoDD-specific implementation of the PackageRepository.
@@ -293,4 +294,47 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 	spanDelete.End()
 
 	return nil
+}
+
+// FindMappedFieldsAndOutputFormatByID find mapped fields of template and output format.
+func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]any, error) {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
+	defer span.End()
+
+	db, err := tm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+
+		return nil, nil, err
+	}
+
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+
+	var record struct {
+		OutputFormat string         `bson:"output_format"`
+		MappedFields map[string]any `bson:"mapped_fields"`
+	}
+
+	opts := options.FindOne().SetProjection(bson.M{
+		"output_format": 1,
+		"mapped_fields": 1,
+		"_id":           0,
+	})
+
+	if err = coll.
+		FindOne(ctx, bson.M{
+			"_id":             id,
+			"organization_id": organizationID,
+			"deleted_at":      bson.D{{Key: "$eq", Value: nil}},
+		}, opts).
+		Decode(&record); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to find template output_format and mapped_fields by entity ID", err)
+		return nil, nil, err
+	}
+
+	span.End()
+
+	return &record.OutputFormat, record.MappedFields, nil
 }
