@@ -10,6 +10,7 @@ import (
 	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/minio/report"
 	"plugin-template-engine/pkg/minio/template"
+	reportData "plugin-template-engine/pkg/mongodb/report"
 	postgres2 "plugin-template-engine/pkg/postgres"
 	"strings"
 	"testing"
@@ -55,7 +56,7 @@ func TestGenerateReport_Success(t *testing.T) {
 	mockTemplateRepo := template.NewMockRepository(ctrl)
 	mockReportRepo := report.NewMockRepository(ctrl)
 	mockPostgresRepo := postgres2.NewMockRepository(ctrl)
-	//mockReportDataRepo := reportData.NewMockRepository(ctrl) // TODO
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
 	reportID := uuid.New()
@@ -111,9 +112,15 @@ func TestGenerateReport_Success(t *testing.T) {
 		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any()).
 		Return(nil)
 
+	mockReportDataRepo.
+		EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
+		Return(nil)
+
 	useCase := &UseCase{
 		TemplateFileRepo: mockTemplateRepo,
 		ReportFileRepo:   mockReportRepo,
+		ReportDataRepo:   mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
