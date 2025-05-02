@@ -80,3 +80,7 @@ The CLI image is used to create a user with upload and read permissions, which w
 ## Swagger Documentation
 
 The boilerplate includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4000/swagger/index.html`.
+
+## References
+
+- https://github.com/flosch/pongo2/blob/master/template_tests/filters.tpl

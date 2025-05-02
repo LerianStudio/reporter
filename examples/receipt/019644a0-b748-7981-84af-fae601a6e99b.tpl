@@ -1,4 +1,4 @@
-{%- for t in transaction.transaction -%}
+{%- for t in midaz_transaction.transaction -%}
 ##########################################
 #        COMPROVANTE DE TRANSAÇÃO        #
 ##########################################
@@ -17,7 +17,7 @@ Plano de Contas: {{ t.chart_of_accounts_group_name }}
 ------------------------------------------
 # Dados da Organização
 ------------------------------------------
-{% for org in onboarding.organization %}
+{% for org in midaz_onboarding.organization %}
 Nome Legal: {{ org.legal_name }}
 Nome Fantasia: {{ org.doing_business_as }}
 CNPJ: {{ org.legal_document }}
@@ -27,7 +27,7 @@ Endereço: {{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.stat
 ------------------------------------------
 # Dados do Ledger
 ------------------------------------------
-{% for l in onboarding.ledger %}
+{% for l in midaz_onboarding.ledger %}
 Ledger: {{ l.name }}
 Status: {{ l.status }}
 {% endfor %}
@@ -35,7 +35,7 @@ Status: {{ l.status }}
 ------------------------------------------
 # Ativo
 ------------------------------------------
-{% for a in onboarding.asset %}
+{% for a in midaz_onboarding.asset %}
 Ativo: {{ a.name }}
 Tipo: {{ a.type }}
 Código: {{ a.code }}
@@ -44,7 +44,7 @@ Código: {{ a.code }}
 ------------------------------------------
 # Contas Envolvidas na Operação
 ------------------------------------------
-{% for operation in transaction.operation -%}
+{% for operation in midaz_transaction.operation -%}
 Operação ID: {{ operation.id }}
 Descrição: {{ operation.description }}
 Tipo: {{ operation.type }}

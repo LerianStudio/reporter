@@ -34,7 +34,7 @@
     <div class="container">
         <h1>Account Listing</h1>
 
-        {% if onboarding.account %}
+        {% if midaz_onboarding.account %}
             <table>
                 <thead>
                     <tr>
@@ -45,7 +45,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for a in onboarding.account %}
+                    {% for a in midaz_onboarding.account %}
                         <tr>
                             <td>{{ a.id }}</td>
                             <td>{{ a.name }}</td>
