@@ -76,5 +76,6 @@ func ValidateFieldsInSchemaPostgres(expectedFields []string, schema TableSchema)
 			missing = append(missing, field)
 		}
 	}
+
 	return
 }

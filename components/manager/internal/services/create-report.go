@@ -23,7 +23,8 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	logger.Infof("Creating report")
 
 	// Validate ledgerID list if all values is uuid
-	var ledgerIDsConverted []uuid.UUID
+	ledgerIDsConverted := make([]uuid.UUID, 0, len(reportInput.LedgerID))
+
 	for _, ledgerId := range reportInput.LedgerID {
 		ledgerConverted, errParseLedgerID := uuid.Parse(ledgerId)
 		if errParseLedgerID != nil {

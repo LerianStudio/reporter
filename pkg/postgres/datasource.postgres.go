@@ -67,6 +67,7 @@ func (ds *ExternalDataSource) CloseConnection() error {
 		ds.connection.ConnectionDB = nil
 		ds.connection.Logger.Info("PostgreSQL connection closed successfully.")
 	}
+
 	return nil
 }
 

@@ -12,6 +12,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 	// Regex to capture blocks (ex: {% for t in midaz_transaction.transaction %})
 	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+
 	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range forMatches {
 		variable := match[1]
@@ -32,6 +33,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 	// Regex for fields {{ t.id }}, {{ user.name }}, etc
 	fieldRegex := regexp.MustCompile(`{{\s*(.*?)\s*}}`)
+
 	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range fieldMatches {
 		expr := match[1]
@@ -57,27 +59,27 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	return normalizeStructure(result)
 }
 
-func normalizeStructure(input map[string]interface{}) map[string]map[string][]string {
+func normalizeStructure(input map[string]any) map[string]map[string][]string {
 	result := make(map[string]map[string][]string)
 
 	for topKey, topVal := range input {
 		section := make(map[string][]string)
 
-		if m, ok := topVal.(map[string]interface{}); ok {
+		if m, ok := topVal.(map[string]any); ok {
 			for subKey, subVal := range m {
 				switch v := subVal.(type) {
-				case []interface{}:
+				case []any:
 					for _, item := range v {
 						switch itemVal := item.(type) {
 						case string:
 							section[subKey] = append(section[subKey], itemVal)
-						case map[string]interface{}:
+						case map[string]any:
 							for nestedKey := range itemVal {
 								section[subKey] = append(section[subKey], nestedKey)
 							}
 						}
 					}
-				case map[string]interface{}: // Caso especial como em "transaction": { "metadata": [...] }
+				case map[string]any: // Caso especial como em "transaction": { "metadata": [...] }
 					section[subKey] = append(section[subKey], getMapKeys(v)...)
 				}
 			}
@@ -89,11 +91,12 @@ func normalizeStructure(input map[string]interface{}) map[string]map[string][]st
 	return result
 }
 
-func getMapKeys(m map[string]interface{}) []string {
+func getMapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}
+
 	return keys
 }
 
@@ -156,18 +159,21 @@ func isSingleKeyWithStringArray(m map[string]any) bool {
 		if !ok {
 			return false
 		}
+
 		for _, item := range arr {
 			if _, ok := item.(string); !ok {
 				return false
 			}
 		}
 	}
+
 	return true
 }
 
 // extractFieldsFromExpression Get all fields of expression tags
 func extractFieldsFromExpression(expr string) []string {
 	fields := []string{}
+
 	parts := strings.Split(expr, "|")
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
@@ -214,6 +220,7 @@ func insertField(m map[string]any, path []string, field string) {
 
 	// Pass throw struct normally
 	current := m
+
 	for i, p := range path {
 		if i == len(path)-1 {
 			val := current[p]
@@ -232,13 +239,16 @@ func insertField(m map[string]any, path []string, field string) {
 				current = val
 			case []any:
 				found := false
+
 				for _, item := range val {
 					if m2, ok := item.(map[string]any); ok {
 						current = m2
 						found = true
+
 						break
 					}
 				}
+
 				if !found {
 					newMap := map[string]any{}
 					current[p] = append(val, newMap)
@@ -277,19 +287,24 @@ func appendIfMissingAny(slice []any, val any) []any {
 			}
 		}
 	}
+
 	return append(slice, val)
 }
 
 // CleanPath remove indexes and brackets of paths like foo[0].bar or foo.0.bar
 func CleanPath(path string) []string {
 	parts := strings.Split(path, ".")
-	var clean []string
+
+	clean := make([]string, 0, len(parts))
+
 	for _, p := range parts {
 		base := strings.Split(p, "[")[0]
 		if _, err := strconv.Atoi(base); err == nil {
 			continue
 		}
+
 		clean = append(clean, base)
 	}
+
 	return clean
 }

@@ -75,6 +75,7 @@ func (ds *ExternalDataSource) CloseConnection(ctx context.Context) error {
 
 		ds.connection.Logger.Info("MongoDB connection closed successfully.")
 	}
+
 	return nil
 }
 

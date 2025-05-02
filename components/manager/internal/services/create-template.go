@@ -60,7 +60,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 // validateIfFieldsExistOnTables Validate all fields mapped from template file if exist on tables schema
 func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
-	for databaseName, _ := range mappedFields {
+	for databaseName := range mappedFields {
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
 			logger.Errorf("Unknown data source: %s", "transaction")
@@ -77,46 +77,64 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 
 		switch dataSource.DatabaseType {
 		case pkg.PostgreSQLType:
-			schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
-			if err != nil {
-				logger.Errorf("Error getting database schema: %s", err.Error())
-				return err
-			}
-
-			for _, s := range schema {
-				fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s)
-				if len(fieldsMissing) > 0 {
-					return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
-				}
-			}
-
-			errClose := dataSource.PostgresRepository.CloseConnection()
-			if errClose != nil {
-				logger.Errorf("Error to close database PostgreSQL: %s", errClose.Error())
-				return errClose
+			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			if errValidate != nil {
+				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
+				return errValidate
 			}
 		case pkg.MongoDBType:
-			schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
-			if err != nil {
-				logger.Errorf("Error getting database schema: %s", err.Error())
-				return err
-			}
-
-			for _, s := range schema {
-				fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s)
-				if len(fieldsMissing) > 0 {
-					return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
-				}
-			}
-
-			errClose := dataSource.MongoDBRepository.CloseConnection(ctx)
-			if errClose != nil {
-				logger.Errorf("Error to close database PostgreSQL: %s", errClose.Error())
-				return errClose
+			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			if errValidate != nil {
+				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
+				return errValidate
 			}
 		default:
 			return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 		}
+	}
+
+	return nil
+}
+
+// validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
+func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range schema {
+		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s)
+		if len(fieldsMissing) > 0 {
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+		}
+	}
+
+	errClose := dataSource.PostgresRepository.CloseConnection()
+	if errClose != nil {
+		return errClose
+	}
+
+	return nil
+}
+
+// validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
+func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range schema {
+		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s)
+		if len(fieldsMissing) > 0 {
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+		}
+	}
+
+	errClose := dataSource.MongoDBRepository.CloseConnection(ctx)
+	if errClose != nil {
+		return errClose
 	}
 
 	return nil

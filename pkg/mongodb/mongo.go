@@ -1,6 +1,8 @@
 package mongodb
 
-import "strings"
+import (
+	"strings"
+)
 
 // ValidateFieldsInSchemaMongo validate if all fields exist on mongo DB collection
 func ValidateFieldsInSchemaMongo(expectedFields []string, schema CollectionSchema) (missing []string) {
@@ -14,5 +16,6 @@ func ValidateFieldsInSchemaMongo(expectedFields []string, schema CollectionSchem
 			missing = append(missing, field)
 		}
 	}
+
 	return
 }
