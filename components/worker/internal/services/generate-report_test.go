@@ -7,9 +7,11 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
-	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	"plugin-template-engine/pkg"
 	"plugin-template-engine/pkg/minio/report"
 	"plugin-template-engine/pkg/minio/template"
+	reportData "plugin-template-engine/pkg/mongodb/report"
+	postgres2 "plugin-template-engine/pkg/postgres"
 	"strings"
 	"testing"
 )
@@ -53,8 +55,8 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockTemplateRepo := template.NewMockRepository(ctrl)
 	mockReportRepo := report.NewMockRepository(ctrl)
-	mockPostgresRepo := postgres.NewMockRepository(ctrl)
-	//mockReportDataRepo := reportData.NewMockRepository(ctrl) // TODO
+	mockPostgresRepo := postgres2.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
 	reportID := uuid.New()
@@ -84,10 +86,10 @@ func TestGenerateReport_Success(t *testing.T) {
 	mockPostgresRepo.
 		EXPECT().
 		GetDatabaseSchema(gomock.Any()).
-		Return([]postgres.TableSchema{
+		Return([]postgres2.TableSchema{
 			{
 				TableName: "organization",
-				Columns: []postgres.ColumnInformation{
+				Columns: []postgres2.ColumnInformation{
 					{Name: "name", DataType: "text"},
 					{Name: "id", DataType: "integer", IsPrimaryKey: true},
 				},
@@ -110,10 +112,16 @@ func TestGenerateReport_Success(t *testing.T) {
 		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any()).
 		Return(nil)
 
+	mockReportDataRepo.
+		EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
+		Return(nil)
+
 	useCase := &UseCase{
 		TemplateFileRepo: mockTemplateRepo,
 		ReportFileRepo:   mockReportRepo,
-		ExternalDataSources: map[string]DataSource{
+		ReportDataRepo:   mockReportDataRepo,
+		ExternalDataSources: map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
 				DatabaseType:       "postgresql",
@@ -152,7 +160,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 
 	useCase := &UseCase{
 		TemplateFileRepo:    mockTemplateRepo,
-		ExternalDataSources: map[string]DataSource{},
+		ExternalDataSources: map[string]pkg.DataSource{},
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)

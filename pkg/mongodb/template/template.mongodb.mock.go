@@ -82,6 +82,22 @@ func (mr *MockRepositoryMockRecorder) FindList(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindList", reflect.TypeOf((*MockRepository)(nil).FindList), arg0, arg1, arg2)
 }
 
+// FindMappedFieldsAndOutputFormatByID mocks base method.
+func (m *MockRepository) FindMappedFieldsAndOutputFormatByID(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) (*string, map[string]map[string][]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindMappedFieldsAndOutputFormatByID", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*string)
+	ret1, _ := ret[1].(map[string]map[string][]string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// FindMappedFieldsAndOutputFormatByID indicates an expected call of FindMappedFieldsAndOutputFormatByID.
+func (mr *MockRepositoryMockRecorder) FindMappedFieldsAndOutputFormatByID(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindMappedFieldsAndOutputFormatByID", reflect.TypeOf((*MockRepository)(nil).FindMappedFieldsAndOutputFormatByID), arg0, arg1, arg2, arg3)
+}
+
 // FindOutputFormatByID mocks base method.
 func (m *MockRepository) FindOutputFormatByID(arg0 context.Context, arg1 string, arg2, arg3 uuid.UUID) (*string, error) {
 	m.ctrl.T.Helper()

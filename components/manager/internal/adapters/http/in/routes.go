@@ -7,9 +7,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
+	"plugin-template-engine/pkg/model"
+	"plugin-template-engine/pkg/net/http"
 )
 
-func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler) *fiber.App {
+func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler) *fiber.App {
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
@@ -25,6 +27,8 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Get("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.GetTemplateByID)
 	f.Get("/v1/templates", ParseHeaderParameters, templateHandler.GetAllTemplates)
 	f.Delete("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.DeleteTemplateByID)
+
+	f.Post("/v1/reports", ParseHeaderParameters, http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)

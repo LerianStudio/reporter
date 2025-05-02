@@ -16,6 +16,7 @@ import (
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
 	UpdateReportStatusById(ctx context.Context, collection string, id uuid.UUID, status string, completedAt time.Time, metadata map[string]any) error
+	Create(ctx context.Context, collection string, record *Report) (*Report, error)
 }
 
 // ReportMongoDBRepository is a MongoDB-specific implementation of the ReportRepository.
@@ -98,4 +99,41 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	}
 
 	return nil
+}
+
+// Create inserts a new report entity into mongo.
+func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string, report *Report) (*Report, error) {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongo.create_report")
+	defer span.End()
+
+	db, err := rm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+
+		return nil, err
+	}
+
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+	record := &ReportMongoDBModel{}
+
+	if err := record.FromEntity(report); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to convert report to model", err)
+
+		return nil, err
+	}
+
+	ctx, spanInsert := tracer.Start(ctx, "mongo.create_report.insert")
+
+	_, err = coll.InsertOne(ctx, record)
+	if err != nil {
+		opentelemetry.HandleSpanError(&spanInsert, "Failed to insert report", err)
+
+		return nil, err
+	}
+
+	spanInsert.End()
+
+	return record.ToEntity(report.LedgerID, report.Filters), nil
 }

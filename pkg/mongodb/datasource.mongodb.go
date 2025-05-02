@@ -17,6 +17,7 @@ import (
 type Repository interface {
 	Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error)
+	CloseConnection(ctx context.Context) error
 }
 
 // CollectionSchema represents the structure of a MongoDB collection
@@ -56,6 +57,26 @@ func NewDataSourceRepository(mongoURI string, dbName string) *ExternalDataSource
 		connection: mongoConnection,
 		Database:   dbName,
 	}
+}
+
+// CloseConnection close the connection with MongoDB.
+func (ds *ExternalDataSource) CloseConnection(ctx context.Context) error {
+	if ds.connection.DB != nil {
+		ds.connection.Logger.Info("Closing MongoDB connection...")
+
+		err := ds.connection.DB.Disconnect(ctx)
+		if err != nil {
+			ds.connection.Logger.Errorf("Error closing MongoDB connection: %v", err)
+			return err
+		}
+
+		ds.connection.DB = nil
+		ds.connection.Connected = false
+
+		ds.connection.Logger.Info("MongoDB connection closed successfully.")
+	}
+
+	return nil
 }
 
 // Query executes a query on the specified collection with the given fields and filter criteria.

@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/google/uuid"
 	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/constant"
+	"plugin-template-engine/pkg/mongodb"
 	"plugin-template-engine/pkg/mongodb/template"
+	"plugin-template-engine/pkg/postgres"
 	templateUtils "plugin-template-engine/pkg/template_utils"
 	"reflect"
 	"time"
@@ -25,9 +29,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
+	if errValidateFields := uc.validateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
+		return nil, errValidateFields
+	}
+
 	templateId := commons.GenerateUUIDv7()
-	timestamp := time.Now().Unix()
-	fileName := fmt.Sprintf("%s_%d.tpl", templateId.String(), timestamp)
+	fileName := fmt.Sprintf("%s.tpl", templateId.String())
 
 	templateModel := &template.TemplateMongoDBModel{
 		ID:             templateId,
@@ -48,4 +56,86 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	}
 
 	return resultTemplateModel, nil
+}
+
+// validateIfFieldsExistOnTables Validate all fields mapped from template file if exist on tables schema
+func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
+	for databaseName := range mappedFields {
+		dataSource, exists := uc.ExternalDataSources[databaseName]
+		if !exists {
+			logger.Errorf("Unknown data source: %s", "transaction")
+
+			return nil // Continue with next database
+		}
+
+		if !dataSource.Initialized {
+			if err := pkg.ConnectToDataSource("transaction", &dataSource, logger, uc.ExternalDataSources); err != nil {
+				logger.Errorf("Error initializing database connection, Err: %s", err)
+				return err
+			}
+		}
+
+		switch dataSource.DatabaseType {
+		case pkg.PostgreSQLType:
+			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			if errValidate != nil {
+				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
+				return errValidate
+			}
+		case pkg.MongoDBType:
+			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			if errValidate != nil {
+				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
+				return errValidate
+			}
+		default:
+			return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
+		}
+	}
+
+	return nil
+}
+
+// validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
+func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range schema {
+		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s)
+		if len(fieldsMissing) > 0 {
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+		}
+	}
+
+	errClose := dataSource.PostgresRepository.CloseConnection()
+	if errClose != nil {
+		return errClose
+	}
+
+	return nil
+}
+
+// validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
+func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range schema {
+		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s)
+		if len(fieldsMissing) > 0 {
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+		}
+	}
+
+	errClose := dataSource.MongoDBRepository.CloseConnection(ctx)
+	if errClose != nil {
+		return errClose
+	}
+
+	return nil
 }
