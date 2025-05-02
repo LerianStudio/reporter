@@ -29,9 +29,9 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
-	if errValidateFiedls := uc.validateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFiedls != nil {
-		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFiedls)
-		return nil, errValidateFiedls
+	if errValidateFields := uc.validateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
+		return nil, errValidateFields
 	}
 
 	templateId := commons.GenerateUUIDv7()
