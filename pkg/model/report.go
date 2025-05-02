@@ -18,9 +18,9 @@ type CreateReportInput struct {
 //
 // @Description ReportMessage represents a report struct of message sent it in RabbitMQ
 type ReportMessage struct {
-	TemplateID   uuid.UUID      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
-	ReportID     uuid.UUID      `json:"reportId" example:"00000000-0000-0000-0000-000000000000"`
-	OutputFormat string         `json:"outputFormat" example:"html"`
-	Filters      map[string]any `json:"filters"`
-	MappedFields map[string]any `json:"mappedFields"`
+	TemplateID   uuid.UUID                      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
+	ReportID     uuid.UUID                      `json:"reportId" example:"00000000-0000-0000-0000-000000000000"`
+	OutputFormat string                         `json:"outputFormat" example:"html"`
+	Filters      map[string]any                 `json:"filters"`
+	MappedFields map[string]map[string][]string `json:"mappedFields"`
 } // @name ReportMessage

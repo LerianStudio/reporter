@@ -457,6 +457,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Invalid ledgerID",
 			Message:    fmt.Sprintf("The specified ledgerID inside ledger ID list is not a valid UUID. Please check the value passed %v.", args),
 		},
+		constant.ErrMissingTableFields: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingTableFields.Error(),
+			Title:      "Missing required fields",
+			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed %v.", args...),
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

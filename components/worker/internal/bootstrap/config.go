@@ -2,12 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"os"
-	"plugin-template-engine/pkg"
-	"strings"
-
 	libCommons "github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
@@ -16,25 +11,11 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/worker/internal/services"
+	"plugin-template-engine/pkg"
 	reportFile "plugin-template-engine/pkg/minio/report"
 	templateFile "plugin-template-engine/pkg/minio/template"
 	reportData "plugin-template-engine/pkg/mongodb/report"
-	pg "plugin-template-engine/pkg/postgres"
 )
-
-// DataSourceConfig represents the configuration required to establish a connection to a data source.
-// Fields include name, connection details, authentication, database, type, and SSL mode.
-type DataSourceConfig struct {
-	ConfigName string
-	Name       string
-	Host       string
-	Port       string
-	User       string
-	Password   string
-	Database   string
-	Type       string
-	SSLMode    string
-}
 
 // Config holds the application's configurable parameters read from environment variables.
 type Config struct {
@@ -134,7 +115,7 @@ func InitWorker() *Service {
 	service := &services.UseCase{
 		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
 		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: externalDatasourceConnections(logger),
+		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
 	}
 
@@ -144,136 +125,4 @@ func InitWorker() *Service {
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 	}
-}
-
-// externalDatasourceConnections initializes and returns a map of external data source connections.
-func externalDatasourceConnections(logger log.Logger) map[string]services.DataSource {
-	externalDataSources := make(map[string]services.DataSource)
-
-	dataSourceConfigs := getDataSourceConfigs(logger)
-
-	for _, dataSource := range dataSourceConfigs {
-		switch strings.ToLower(dataSource.Type) {
-		case pkg.MongoDBType:
-			mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?authSource=admin&directConnection=true", // TODO
-				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
-
-			externalDataSources[dataSource.ConfigName] = services.DataSource{
-				DatabaseType: pkg.MongoDBType,
-				MongoURI:     mongoURI,
-				MongoDBName:  dataSource.Database,
-				Initialized:  false,
-			}
-
-		case pkg.PostgreSQLType:
-			connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
-				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
-
-			connection := &pg.Connection{
-				ConnectionString:   connectionString,
-				DBName:             dataSource.Database,
-				Logger:             logger,
-				MaxOpenConnections: 10,
-				MaxIdleConnections: 5,
-			}
-
-			externalDataSources[dataSource.ConfigName] = services.DataSource{
-				DatabaseType:   dataSource.Type,
-				DatabaseConfig: connection,
-				Initialized:    false,
-			}
-
-		default:
-			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
-			continue
-		}
-
-		logger.Infof("Configured external data source: %s with config name: %s", dataSource.Name, dataSource.ConfigName)
-	}
-
-	return externalDataSources
-}
-
-// getDataSourceConfigs retrieves data source configurations from environment variables in the DATASOURCE_[NAME]_* format.
-// It validates and returns a slice of DataSourceConfig, logging warnings for incomplete or missing configurations.
-func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
-	var dataSources []DataSourceConfig
-
-	dataSourceNames := collectDataSourceNames()
-
-	for name := range dataSourceNames {
-		if config, isComplete := buildDataSourceConfig(name, logger); isComplete {
-			dataSources = append(dataSources, config)
-		}
-	}
-
-	if len(dataSources) == 0 {
-		logger.Warn("No external data sources found in environment variables. Configure them with DATASOURCE_[NAME]_HOST/PORT/USER/PASSWORD/DATABASE/TYPE/SSLMODE format.")
-	}
-
-	return dataSources
-}
-
-// collectDataSourceNames identifies all available data source names from environment variables.
-func collectDataSourceNames() map[string]bool {
-	dataSourceNamesMap := make(map[string]bool)
-	prefixPattern := "DATASOURCE_"
-
-	envVars := os.Environ()
-
-	for _, env := range envVars {
-		parts := strings.SplitN(env, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		key := parts[0]
-
-		if strings.HasPrefix(key, prefixPattern) {
-			remaining := key[len(prefixPattern):]
-			lastUnderscore := strings.LastIndex(remaining, "_")
-
-			if lastUnderscore > 0 {
-				name := strings.ToLower(remaining[:lastUnderscore])
-				dataSourceNamesMap[name] = true
-			}
-		}
-	}
-
-	return dataSourceNamesMap
-}
-
-// buildDataSourceConfig creates a DataSourceConfig for the given name, validating all required fields.
-// Returns the config and a boolean indicating if the configuration is complete.
-func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bool) {
-	prefixPattern := "DATASOURCE_"
-	upperName := strings.ToUpper(name)
-
-	configFields := map[string]string{
-		"CONFIG_NAME": os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
-		"HOST":        os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
-		"PORT":        os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
-		"USER":        os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
-		"PASSWORD":    os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
-		"DATABASE":    os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
-		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
-		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
-	}
-
-	dataSource := DataSourceConfig{
-		Name:       name,
-		ConfigName: configFields["CONFIG_NAME"],
-		Host:       configFields["HOST"],
-		Port:       configFields["PORT"],
-		User:       configFields["USER"],
-		Password:   configFields["PASSWORD"],
-		Database:   configFields["DATABASE"],
-		Type:       configFields["TYPE"],
-		SSLMode:    configFields["SSLMODE"],
-	}
-
-	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s)",
-		name, dataSource.ConfigName, dataSource.Database, dataSource.Type, dataSource.SSLMode)
-
-	return dataSource, true
 }

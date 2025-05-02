@@ -9,10 +9,10 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
-	"plugin-template-engine/components/worker/internal/adapters/mongodb"
-	"plugin-template-engine/components/worker/internal/adapters/postgres"
 	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/mongodb/report"
 	"plugin-template-engine/pkg/pongo"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -114,6 +114,16 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return err
 	}
 
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
+		"Finished", time.Now(), nil)
+	if errUpdate != nil {
+		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdate)
+
+		logger.Errorf("Error saving report: %s", errUpdate.Error())
+
+		return errUpdate
+	}
+
 	return nil
 }
 
@@ -181,7 +191,7 @@ func (uc *UseCase) queryDatabase(
 	}
 
 	if !dataSource.Initialized {
-		if err := uc.connectToDataSource(databaseName, &dataSource, logger); err != nil {
+		if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
 			libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
 			return err
 		}
@@ -208,7 +218,7 @@ func (uc *UseCase) queryDatabase(
 // queryPostgresDatabase handles querying PostgreSQL databases
 func (uc *UseCase) queryPostgresDatabase(
 	ctx context.Context,
-	dataSource *DataSource,
+	dataSource *pkg.DataSource,
 	databaseName string,
 	tables map[string][]string,
 	databaseFilters map[string]map[string][]any,
@@ -240,7 +250,7 @@ func (uc *UseCase) queryPostgresDatabase(
 // queryMongoDatabase handles querying MongoDB databases
 func (uc *UseCase) queryMongoDatabase(
 	ctx context.Context,
-	dataSource *DataSource,
+	dataSource *pkg.DataSource,
 	databaseName string,
 	collections map[string][]string,
 	databaseFilters map[string]map[string][]any,
@@ -270,29 +280,6 @@ func getTableFilters(databaseFilters map[string]map[string][]any, tableName stri
 	}
 
 	return databaseFilters[tableName]
-}
-
-// connectToDataSource establishes a connection to a data source if not already initialized.
-func (uc *UseCase) connectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger) error {
-	switch dataSource.DatabaseType {
-	case pkg.PostgreSQLType:
-		dataSource.PostgresRepository = postgres.NewDataSourceRepository(dataSource.DatabaseConfig)
-
-		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
-
-	case pkg.MongoDBType:
-		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName)
-
-		logger.Infof("Established MongoDB connection to %s database", databaseName)
-
-	default:
-		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
-	}
-
-	dataSource.Initialized = true
-	uc.ExternalDataSources[databaseName] = *dataSource
-
-	return nil
 }
 
 // getContentType returns the MIME type for a given file extension.

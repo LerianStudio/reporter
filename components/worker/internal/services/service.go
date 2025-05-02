@@ -1,40 +1,11 @@
 package services
 
 import (
-	"plugin-template-engine/components/worker/internal/adapters/mongodb"
-	"plugin-template-engine/components/worker/internal/adapters/postgres"
+	pkgConfig "plugin-template-engine/pkg"
 	reportFile "plugin-template-engine/pkg/minio/report"
 	templateFile "plugin-template-engine/pkg/minio/template"
 	reportData "plugin-template-engine/pkg/mongodb/report"
-	pg "plugin-template-engine/pkg/postgres"
 )
-
-// DataSource represents a configuration for an external data source, specifying the database type and repository used.
-type DataSource struct {
-	// DatabaseType specifies the type of database being used, such as "postgresql" or "mongodb".
-	DatabaseType string
-
-	// PostgresRepository is an interface for querying PostgreSQL tables and fields in an external data source.
-	PostgresRepository postgres.Repository
-
-	// MongoDBRepository is an interface for querying MongoDB collections and fields in an external data source.
-	MongoDBRepository mongodb.Repository
-
-	// DatabaseConfig holds the configuration needed to establish a connection
-	DatabaseConfig *pg.Connection
-
-	// MongoURI holds the MongoDB connection string
-	MongoURI string
-
-	// MongoDBName holds the MongoDB database name
-	MongoDBName string
-
-	// Connection holds the actual database connection that can be closed
-	Connection *pg.Connection
-
-	// Initialized indicates if the connection has been established
-	Initialized bool
-}
 
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.
 type UseCase struct {
@@ -45,7 +16,7 @@ type UseCase struct {
 	ReportFileRepo reportFile.Repository
 
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
-	ExternalDataSources map[string]DataSource
+	ExternalDataSources map[string]pkgConfig.DataSource
 
 	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case.
 	ReportDataRepo reportData.Repository

@@ -8,7 +8,6 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/Masterminds/squirrel"
-	"plugin-template-engine/pkg/postgres"
 )
 
 // Repository defines an interface for querying data from a specified table and fields.
@@ -17,6 +16,7 @@ import (
 type Repository interface {
 	Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
+	CloseConnection() error
 }
 
 // TableSchema represents the structure of a database table
@@ -35,11 +35,11 @@ type ColumnInformation struct {
 
 // ExternalDataSource provides an interface for interacting with a PostgreSQL database connection.
 type ExternalDataSource struct {
-	connection *postgres.Connection
+	connection *Connection
 }
 
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided postgres.Connection, initializing the database connection.
-func NewDataSourceRepository(pc *postgres.Connection) *ExternalDataSource {
+func NewDataSourceRepository(pc *Connection) *ExternalDataSource {
 	c := &ExternalDataSource{
 		connection: pc,
 	}
@@ -50,6 +50,24 @@ func NewDataSourceRepository(pc *postgres.Connection) *ExternalDataSource {
 	}
 
 	return c
+}
+
+// CloseConnection closing the connection with PostgreSQL.
+func (ds *ExternalDataSource) CloseConnection() error {
+	if ds.connection.ConnectionDB != nil {
+		ds.connection.Logger.Info("Closing connection to PostgreSQL...")
+
+		err := ds.connection.ConnectionDB.Close()
+		if err != nil {
+			ds.connection.Logger.Errorf("Error closing PostgreSQL connection: %v", err)
+			return err
+		}
+
+		ds.connection.Connected = false
+		ds.connection.ConnectionDB = nil
+		ds.connection.Logger.Info("PostgreSQL connection closed successfully.")
+	}
+	return nil
 }
 
 // Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.

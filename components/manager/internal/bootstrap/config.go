@@ -109,8 +109,9 @@ func InitServers() *Service {
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
 	templateService := &services.UseCase{
-		TemplateRepo:  templateMongoDBRepository,
-		TemplateMinio: templateMinio.NewMinioRepository(minioClient, "templates"),
+		TemplateRepo:        templateMongoDBRepository,
+		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, "templates"),
+		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
 	templateHandler := &in2.TemplateHandler{

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	_ "github.com/jackc/pgx/v5/stdlib" // Registers the "pgx" driver with database/sql via init() – required for sql.Open("pgx", ...)
+	"strings"
 	"time"
 )
 
@@ -61,4 +62,19 @@ func (pc *Connection) GetDB() (*sql.DB, error) {
 	}
 
 	return pc.ConnectionDB, nil
+}
+
+// ValidateFieldsInSchemaPostgres validate if all fields exist on postgres schema table
+func ValidateFieldsInSchemaPostgres(expectedFields []string, schema TableSchema) (missing []string) {
+	columnSet := make(map[string]struct{}, len(schema.Columns))
+	for _, col := range schema.Columns {
+		columnSet[strings.ToLower(col.Name)] = struct{}{}
+	}
+
+	for _, field := range expectedFields {
+		if _, exists := columnSet[strings.ToLower(field)]; !exists {
+			missing = append(missing, field)
+		}
+	}
+	return
 }

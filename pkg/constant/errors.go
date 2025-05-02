@@ -41,4 +41,5 @@ var (
 	ErrEntityNotFound                  = errors.New("TPL-0013")
 	ErrInvalidTemplateID               = errors.New("TPL-0014")
 	ErrInvalidLedgerIDList             = errors.New("TPL-0015")
+	ErrMissingTableFields              = errors.New("TPL-0016")
 )

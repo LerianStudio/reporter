@@ -27,7 +27,7 @@ type Repository interface {
 	Update(ctx context.Context, collection string, id, organizationID uuid.UUID, updateFields *bson.M) error
 	SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error
 	FindOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, error)
-	FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]any, error)
+	FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error)
 }
 
 // TemplateMongoDBRepository is a MongoDD-specific implementation of the PackageRepository.
@@ -297,7 +297,7 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 }
 
 // FindMappedFieldsAndOutputFormatByID find mapped fields of template and output format.
-func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]any, error) {
+func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
@@ -313,8 +313,8 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
 
 	var record struct {
-		OutputFormat string         `bson:"output_format"`
-		MappedFields map[string]any `bson:"mapped_fields"`
+		OutputFormat string                         `bson:"output_format"`
+		MappedFields map[string]map[string][]string `bson:"mapped_fields"`
 	}
 
 	opts := options.FindOne().SetProjection(bson.M{

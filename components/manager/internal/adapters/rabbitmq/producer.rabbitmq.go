@@ -12,7 +12,8 @@ import (
 )
 
 // ProducerRepository provides an interface for Producer related to rabbitmq.
-// It is used to send messages to a queue.
+//
+//go:generate mockgen --destination=producer.mock.go --package=rabbitmq . ProducerRepository
 type ProducerRepository interface {
 	ProducerDefault(ctx context.Context, exchange, key string, message model.ReportMessage) (*string, error)
 }

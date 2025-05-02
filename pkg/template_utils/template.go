@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-func MappedFieldsOfTemplate(templateFile string) map[string]any {
+// MappedFieldsOfTemplate Map all fields of template file creating a map[string]map[string][]string
+func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string {
 	variableMap := map[string][]string{}
 
 	// Regex to capture blocks (ex: {% for t in midaz_transaction.transaction %})
@@ -53,7 +54,47 @@ func MappedFieldsOfTemplate(templateFile string) map[string]any {
 		}
 	}
 
-	return HydrateMappedFields(result)
+	return normalizeStructure(result)
+}
+
+func normalizeStructure(input map[string]interface{}) map[string]map[string][]string {
+	result := make(map[string]map[string][]string)
+
+	for topKey, topVal := range input {
+		section := make(map[string][]string)
+
+		if m, ok := topVal.(map[string]interface{}); ok {
+			for subKey, subVal := range m {
+				switch v := subVal.(type) {
+				case []interface{}:
+					for _, item := range v {
+						switch itemVal := item.(type) {
+						case string:
+							section[subKey] = append(section[subKey], itemVal)
+						case map[string]interface{}:
+							for nestedKey := range itemVal {
+								section[subKey] = append(section[subKey], nestedKey)
+							}
+						}
+					}
+				case map[string]interface{}: // Caso especial como em "transaction": { "metadata": [...] }
+					section[subKey] = append(section[subKey], getMapKeys(v)...)
+				}
+			}
+		}
+
+		result[topKey] = section
+	}
+
+	return result
+}
+
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // HydrateMappedFields Adjust the map[string]any if the value be an object, (ex: [ { "address": ["city"] } ])
@@ -149,26 +190,27 @@ func insertField(m map[string]any, path []string, field string) {
 		return
 	}
 
-	if len(path) >= 2 {
-		parent := path[len(path)-2]
-		last := path[len(path)-1]
+	/*
+		if len(path) >= 2 {
+			parent := path[len(path)-2]
+			last := path[len(path)-1]
 
-		// List of subfields that should be grouped
-		groupFields := map[string][]string{
-			"address": {"line1", "line2", "city", "state", "zip", "country"},
-		}
+			// List of subfields that should be grouped
+			groupFields := map[string][]string{
+				"address": {"line1", "line2", "city", "state", "zip", "country"},
+			}
 
-		// If actual field is "line1", "city", etc e o pai é "address", vamos registrar só "address"
-		if subs, ok := groupFields[parent]; ok {
-			for _, sub := range subs {
-				if sub == last {
-					// Remove the last element and use the principal field
-					insertField(m, path[:len(path)-2], parent)
-					return
+			// If actual field is "line1", "city", etc e o pai é "address", vamos registrar só "address"
+			if subs, ok := groupFields[parent]; ok {
+				for _, sub := range subs {
+					if sub == last {
+						// Remove the last element and use the principal field
+						insertField(m, path[:len(path)-2], parent)
+						return
+					}
 				}
 			}
-		}
-	}
+		} */
 
 	// Pass throw struct normally
 	current := m
