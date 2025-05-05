@@ -20,14 +20,14 @@ permissions:
 
 jobs:
   GoLangCI-Lint:
-    name: Run GoLangCI-Lint to Plugin Smart Template
+    name: Run GoLangCI-Lint to Plugin Smart Templates
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       # Using GolangCI-Lint Module
-      - name: Run GoLangCI Lint to Boilerplate
+      - name: Run GoLangCI Lint to Plugin Smart Templates
         uses: LerianStudio/github-actions-golangci-lint@main
         with:
           lerian_studio_midaz_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
@@ -42,7 +42,7 @@ jobs:
 
   #Execute Security checks
   GoSec:
-    name: Run GoSec to Plugin Smart Template
+    name: Run GoSec to Plugin Smart Templates
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
           
   #Execute Unit tests
   unit-tests:
-    name: Run Unit Tests to Plugin Smart Template
+    name: Run Unit Tests to Plugin Smart Templates
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
         run: make test
 
   integration-tests:
-    name: Run Integrations Tests to Plugin Smart Template
+    name: Run Integrations Tests to Plugin Smart Templates
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
