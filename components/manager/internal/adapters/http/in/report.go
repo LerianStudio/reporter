@@ -102,6 +102,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 		return http.WithError(c, err)
 	}
+
 	location, errLocation := time.LoadLocation("America/Sao_Paulo")
 	if errLocation != nil {
 		logger.Errorf("Failed load location time: %s", errLocation.Error())
@@ -110,11 +111,13 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	completedAtInBR := reportModel.CompletedAt.In(location)
 	objectName := reportModel.ID.String() + "/" + completedAtInBR.Format("20060102_150405") + "." + templateModel.OutputFormat
+
 	fileBytes, errFile := rh.Service.ReportMinio.Get(ctx, objectName)
 	if errFile != nil {
 		logger.Errorf("Failed to download file from MinIO: %s", errFile.Error())
 		return http.WithError(c, errFile)
 	}
+
 	contentType := templateUtils.GetMimeType(templateModel.OutputFormat)
 	c.Set("Content-Type", contentType)
 	c.Set("Content-Disposition", "attachment; filename=\""+objectName+"\"")

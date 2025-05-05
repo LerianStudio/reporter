@@ -107,6 +107,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	dateNow := time.Now()
 	dateNowFormatted := dateNow.Format("20060102_150405")
+
 	err = uc.saveReport(ctx, tracer, message, out, dateNowFormatted, logger)
 	if err != nil {
 		libOtel.HandleSpanError(&span, "Error saving report.", err)
