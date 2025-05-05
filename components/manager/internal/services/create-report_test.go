@@ -52,7 +52,7 @@ func Test_createReport(t *testing.T) {
 	reportEntity := &report.Report{
 		ID:         reportId,
 		TemplateID: tempId,
-		LedgerIDs:  nil,
+		LedgerID:   nil,
 		Filters:    nil,
 		Status:     "processing",
 	}
@@ -86,7 +86,7 @@ func Test_createReport(t *testing.T) {
 			expectedResult: &report.Report{
 				ID:         reportId,
 				TemplateID: tempId,
-				LedgerIDs:  nil,
+				LedgerID:   nil,
 				Filters:    nil,
 				Status:     "processing",
 			},
@@ -141,7 +141,7 @@ func Test_createReport(t *testing.T) {
 			expectedResult: &report.Report{
 				ID:         reportId,
 				TemplateID: tempId,
-				LedgerIDs:  nil,
+				LedgerID:   nil,
 				Filters:    nil,
 				Status:     "processing",
 			},
