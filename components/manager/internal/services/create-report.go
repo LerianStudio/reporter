@@ -56,7 +56,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		Status:     "processing",
 	}
 
-	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel)
+	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel, organizationID)
 	if err != nil {
 		logger.Errorf("Error creating report in database: %v", err)
 		return nil, err

@@ -11,6 +11,7 @@ import (
 //go:generate mockgen --destination=report.minio.mock.go --package=report . Repository
 type Repository interface {
 	Put(ctx context.Context, objectName string, contentType string, data []byte) error
+	Get(ctx context.Context, objectName string) ([]byte, error)
 }
 
 // MinioRepository provides access to a MinIO bucket for file operations.
@@ -40,4 +41,20 @@ func (repo *MinioRepository) Put(ctx context.Context, objectName string, content
 	}
 
 	return nil
+}
+
+// Get download data of MinIO bucket with the given object name
+func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
+	obj, err := repo.minioClient.GetObject(ctx, repo.BucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Close()
+
+	var buffer bytes.Buffer
+	if _, err := buffer.ReadFrom(obj); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }

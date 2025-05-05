@@ -27,11 +27,11 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
-//	@Success		201					{object}	template.Template
+//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description		formData	string	true	"Description of the template"
+//	@Success		201				{object}	template.Template
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -108,11 +108,11 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
-//	@Success		200					{object}	template.Template
+//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description		formData	string	true	"Description of the template"
+//	@Success		200				{object}	template.Template
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -183,11 +183,11 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	 	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
-//	@Success		200					{object}	template.Template
+//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description		formData	string	true	"Description of the template"
+//	@Success		200				{object}	template.Template
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
