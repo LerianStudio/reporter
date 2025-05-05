@@ -112,6 +112,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Param			templateFile	formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description		formData	string	true	"Description of the template"
+//	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
@@ -187,6 +188,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Param			templateFile	formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description		formData	string	true	"Description of the template"
+//	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {

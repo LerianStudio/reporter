@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"io"
@@ -26,7 +25,6 @@ type QueryHeader struct {
 	OrganizationID uuid.UUID
 	Alias          string
 	UseMetadata    bool
-	PortfolioID    string
 	ToAssetCodes   []string
 }
 
@@ -56,7 +54,6 @@ func (qh *QueryHeader) ToOffsetPagination() Pagination {
 func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 	var (
 		metadata     *bson.M
-		portfolioID  string
 		toAssetCodes []string
 		startDate    time.Time
 		endDate      time.Time
@@ -82,13 +79,9 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		case strings.Contains(key, "sort_order"):
 			sortOrder = strings.ToLower(value)
 		case strings.Contains(key, "start_date"):
-			fmt.Println("teste")
-
 			startDate, _ = time.Parse("2006-01-02", value)
 		case strings.Contains(key, "end_date"):
 			endDate, _ = time.Parse("2006-01-02", value)
-		case strings.Contains(key, "portfolio_id"):
-			portfolioID = value
 		case strings.Contains(key, "to"):
 			toAssetCodes = strings.Split(value, ",")
 		case key == "alias":
@@ -106,13 +99,6 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		return nil, err
 	}
 
-	if !pkg.IsNilOrEmpty(&portfolioID) {
-		_, err := uuid.Parse(portfolioID)
-		if err != nil {
-			return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "portfolio_id")
-		}
-	}
-
 	query := &QueryHeader{
 		Metadata:     metadata,
 		Limit:        limit,
@@ -123,7 +109,6 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		EndDate:      endDate,
 		Alias:        alias,
 		UseMetadata:  useMetadata,
-		PortfolioID:  portfolioID,
 		ToAssetCodes: toAssetCodes,
 	}
 

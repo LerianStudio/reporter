@@ -9,7 +9,7 @@ import (
 type Report struct {
 	ID          uuid.UUID      `json:"id" example:"00000000-0000-0000-0000-000000000000"`
 	TemplateID  uuid.UUID      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
-	LedgerID    []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
+	LedgerIDs   []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
 	Filters     map[string]any `json:"filters"`
 	Status      string         `json:"status" example:"processing"`
 	CompletedAt *time.Time     `json:"completedAt"`
@@ -23,6 +23,7 @@ type ReportMongoDBModel struct {
 	ID             uuid.UUID      `bson:"_id"`
 	TemplateID     uuid.UUID      `bson:"template_id"`
 	OrganizationID uuid.UUID      `bson:"organization_id"`
+	LedgerIDs      []uuid.UUID    `bson:"ledger_ids"`
 	Status         string         `bson:"status"`
 	Metadata       map[string]any `bson:"metadata"`
 	CompletedAt    *time.Time     `bson:"completed_at"`
@@ -32,12 +33,12 @@ type ReportMongoDBModel struct {
 }
 
 // ToEntity converts ReportMongoDBModel to Report
-func (rm *ReportMongoDBModel) ToEntity(ledgerIDs []uuid.UUID, filters map[string]any) *Report {
+func (rm *ReportMongoDBModel) ToEntity(filters map[string]any) *Report {
 	return &Report{
 		ID:          rm.ID,
 		TemplateID:  rm.TemplateID,
 		Status:      rm.Status,
-		LedgerID:    ledgerIDs,
+		LedgerIDs:   rm.LedgerIDs,
 		Filters:     filters,
 		CompletedAt: rm.CompletedAt,
 		CreatedAt:   rm.CreatedAt,
@@ -51,6 +52,7 @@ func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
 	return &Report{
 		ID:          rm.ID,
 		TemplateID:  rm.TemplateID,
+		LedgerIDs:   rm.LedgerIDs,
 		Status:      rm.Status,
 		CompletedAt: rm.CompletedAt,
 		CreatedAt:   rm.CreatedAt,
@@ -65,6 +67,7 @@ func (rm *ReportMongoDBModel) FromEntity(r *Report, organizationID uuid.UUID) er
 	rm.ID = r.ID
 	rm.TemplateID = r.TemplateID
 	rm.OrganizationID = organizationID
+	rm.LedgerIDs = r.LedgerIDs
 	rm.Metadata = nil
 	rm.Status = r.Status
 	rm.CompletedAt = nil

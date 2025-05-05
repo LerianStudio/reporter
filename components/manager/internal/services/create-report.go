@@ -51,7 +51,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	reportModel := &report.Report{
 		ID:         commons.GenerateUUIDv7(),
 		TemplateID: templateId,
-		LedgerID:   ledgerIDsConverted,
+		LedgerIDs:  ledgerIDsConverted,
 		Filters:    reportInput.Filters,
 		Status:     "processing",
 	}

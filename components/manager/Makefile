@@ -81,7 +81,7 @@ ps:
 .PHONY: generate-docs
 generate-docs:
 	@swag init -g ./cmd/app/main.go -d ./ -o ./api --parseDependency --parseInternal
-	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/api/swagger.json -g openapi-yaml -o /local/api
+	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i ./manager/api/swagger.json -g openapi-yaml -o ./manager/api
 	@mv ./api/openapi/openapi.yaml ./api/openapi.yaml
 	@rm -rf ./api/README.md ./api/.openapi-generator* ./api/openapi
 

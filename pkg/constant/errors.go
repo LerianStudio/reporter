@@ -6,26 +6,8 @@ import (
 
 // List of errors that can be returned.
 // You can standardize errors
+// Standardized error
 var (
-	ErrParentExampleIDNotFound = errors.New("0014") // Standardized error
-
-	ErrUnexpectedFieldsInTheRequest = errors.New("0001")
-	ErrMissingFieldsInRequest       = errors.New("0002")
-	ErrBadRequest                   = errors.New("0003")
-	ErrInternalServer               = errors.New("0004")
-	ErrCalculationFieldType         = errors.New("0005")
-	ErrInvalidQueryParameter        = errors.New("0006")
-	ErrInvalidDateFormat            = errors.New("0007")
-	ErrInvalidFinalDate             = errors.New("0008")
-	ErrDateRangeExceedsLimit        = errors.New("0009")
-	ErrInvalidDateRange             = errors.New("0010")
-	ErrPaginationLimitExceeded      = errors.New("0011")
-	ErrInvalidSortOrder             = errors.New("0011")
-	ErrActionNotPermitted           = errors.New("0013")
-	ErrMetadataKeyLengthExceeded    = errors.New("0014")
-	ErrMetadataValueLengthExceeded  = errors.New("0015")
-	ErrInvalidMetadataNesting       = errors.New("0016")
-
 	ErrMissingRequiredFields           = errors.New("TPL-0001")
 	ErrInvalidFileFormat               = errors.New("TPL-0002")
 	ErrInvalidOutputFormat             = errors.New("TPL-0003")
@@ -42,4 +24,19 @@ var (
 	ErrInvalidTemplateID               = errors.New("TPL-0014")
 	ErrInvalidLedgerIDList             = errors.New("TPL-0015")
 	ErrMissingTableFields              = errors.New("TPL-0016")
+	ErrUnexpectedFieldsInTheRequest    = errors.New("TPL-0017")
+	ErrMissingFieldsInRequest          = errors.New("TPL-0018")
+	ErrBadRequest                      = errors.New("TPL-0019")
+	ErrInternalServer                  = errors.New("TPL-0020")
+	ErrInvalidQueryParameter           = errors.New("TPL-0021")
+	ErrInvalidDateFormat               = errors.New("TPL-0022")
+	ErrInvalidFinalDate                = errors.New("TPL-0023")
+	ErrDateRangeExceedsLimit           = errors.New("TPL-0024")
+	ErrInvalidDateRange                = errors.New("TPL-0025")
+	ErrPaginationLimitExceeded         = errors.New("TPL-0026")
+	ErrInvalidSortOrder                = errors.New("TPL-0027")
+	ErrMetadataKeyLengthExceeded       = errors.New("TPL-0028")
+	ErrMetadataValueLengthExceeded     = errors.New("TPL-0029")
+	ErrInvalidMetadataNesting          = errors.New("TPL-0030")
+	ErrReportStatusNotFinished         = errors.New("TPL-0031")
 )

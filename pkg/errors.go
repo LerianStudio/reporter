@@ -288,12 +288,6 @@ func ValidateBadRequestFieldsError(requiredFields, knownInvalidFields map[string
 // error: The appropriate business error with code, title, and message.
 func ValidateBusinessError(err error, entityType string, args ...any) error {
 	errorMap := map[error]error{
-		constant.ErrCalculationFieldType: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrCalculationFieldType.Error(),
-			Title:      "Calculation field type invalid",
-			Message:    "The Calculation field type is invalid. Values can only be percentage or fixed.",
-		},
 		constant.ErrInvalidQueryParameter: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrInvalidQueryParameter.Error(),
@@ -341,18 +335,6 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrEntityNotFound.Error(),
 			Title:      "Entity Not Found",
 			Message:    fmt.Sprintf("No %v entity was found for the given ID. Please make sure to use the correct ID for the entity you are trying to manage.", args...),
-		},
-		constant.ErrActionNotPermitted: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrActionNotPermitted.Error(),
-			Title:      "Action Not Permitted",
-			Message:    "The action you are attempting is not allowed in the current environment. Please refer to the documentation for guidance.",
-		},
-		constant.ErrParentExampleIDNotFound: EntityNotFoundError{
-			EntityType: entityType,
-			Code:       constant.ErrParentExampleIDNotFound.Error(),
-			Title:      "Parent Example ID Not Found",
-			Message:    "The provided parent example ID does not exist in our records. Please verify the parent example ID and try again.",
 		},
 		constant.ErrMetadataKeyLengthExceeded: ValidationError{
 			EntityType: entityType,
@@ -462,6 +444,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrMissingTableFields.Error(),
 			Title:      "Missing required fields",
 			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed %v.", args...),
+		},
+		constant.ErrReportStatusNotFinished: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrReportStatusNotFinished.Error(),
+			Title:      "Report status not Finished",
+			Message:    "The Report is not ready to download. Report is processing yet.",
 		},
 	}
 

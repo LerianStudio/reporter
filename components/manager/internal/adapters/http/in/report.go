@@ -8,7 +8,10 @@ import (
 	"github.com/google/uuid"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
+	"plugin-template-engine/pkg/constant"
 	"plugin-template-engine/pkg/model"
+	_ "plugin-template-engine/pkg/mongodb/report"
+
 	"plugin-template-engine/pkg/net/http"
 	templateUtils "plugin-template-engine/pkg/template_utils"
 	"time"
@@ -69,8 +72,9 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			Authorization		header	string	true	"The authorization token in the 'Bearer	access_token' format."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
+//	@Param			id					path	string	true	"Report ID"
 //	@Success		200					{file}	any
-//	@Router			/v1/reports/:id/download [get]
+//	@Router			/v1/reports/{id}/download [get]
 func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
@@ -87,11 +91,20 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
-		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
+		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
 		return http.WithError(c, err)
+	}
+
+	if reportModel.Status != "Finished" {
+		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
+		opentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
+
+		logger.Errorf("Report with ID %s is not Finished", id)
+
+		return http.WithError(c, errStatus)
 	}
 
 	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID, organizationID)
@@ -123,4 +136,42 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	c.Set("Content-Disposition", "attachment; filename=\""+objectName+"\"")
 
 	return c.SendStream(bytes.NewReader(fileBytes))
+}
+
+// GetReport is a method to get a report information.
+//
+//	@Summary		Get a Report
+//	@Description	Get information of a Report passing the ID
+//	@Tags			Reports
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			id					path		string	true	"Report ID"
+//	@Success		200					{object}	report.Report
+//	@Router			/v1/reports/{id}					 [get]
+func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "handler.get_template")
+	defer span.End()
+
+	id := c.Locals("id").(uuid.UUID)
+	logger.Infof("Initiating get a Template with ID: %s", id)
+
+	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
+
+	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+
+		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	return http.OK(c, reportModel)
 }
