@@ -25,8 +25,8 @@ type ReportHandler struct {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			X-Organization-Id	header		string						true	"Organization ID"
+//	@Param			Authorization		header		string					true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string					true	"Organization ID"
 //	@Param			reports				body		model.CreateReportInput	true	"Report Input"
 //	@Success		201					{object}	report.Report
 //	@Router			/v1/reports [post]
@@ -67,9 +67,9 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			X-Organization-Id	header		string						true	"Organization ID"
-//	@Success		201					{object}	report.Report
+//	@Param			Authorization		header	string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header	string	true	"Organization ID"
+//	@Success		200					{file}	any
 //	@Router			/v1/reports/:id/download [get]
 func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
