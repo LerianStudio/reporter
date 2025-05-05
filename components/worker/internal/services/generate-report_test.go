@@ -14,6 +14,7 @@ import (
 	postgres2 "plugin-template-engine/pkg/postgres"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test_getContentType(t *testing.T) {
@@ -174,6 +175,7 @@ func TestSaveReport_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
+	dateNow := time.Now()
 
 	useCase := &UseCase{
 		ReportFileRepo: mockReportRepo,
@@ -196,7 +198,7 @@ func TestSaveReport_Success(t *testing.T) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
-	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
+	err := useCase.saveReport(ctx, tracer, message, renderedOutput, dateNow.String(), logger)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -205,6 +207,7 @@ func TestSaveReport_Success(t *testing.T) {
 func TestSaveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+	dateNow := time.Now()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
 
@@ -229,7 +232,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
-	err := useCase.saveReport(ctx, tracer, message, output, logger)
+	err := useCase.saveReport(ctx, tracer, message, output, dateNow.String(), logger)
 	if err == nil || !strings.Contains(err.Error(), "failed to put file") {
 		t.Errorf("expected error on Put, got: %v", err)
 	}
