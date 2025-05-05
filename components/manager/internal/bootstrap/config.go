@@ -12,6 +12,7 @@ import (
 	"plugin-template-engine/components/manager/internal/adapters/rabbitmq"
 	"plugin-template-engine/components/manager/internal/services"
 	"plugin-template-engine/pkg"
+	reportMinio "plugin-template-engine/pkg/minio/report"
 	templateMinio "plugin-template-engine/pkg/minio/template"
 	"plugin-template-engine/pkg/mongodb/report"
 	"plugin-template-engine/pkg/mongodb/template"
@@ -123,6 +124,7 @@ func InitServers() *Service {
 		ReportRepo:   reportMongoDBRepository,
 		RabbitMQRepo: producerRabbitMQRepository,
 		TemplateRepo: templateMongoDBRepository,
+		ReportMinio:  reportMinio.NewMinioRepository(minioClient, "reports"),
 	}
 
 	reportHandler := &in2.ReportHandler{

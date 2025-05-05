@@ -3,6 +3,7 @@ package services
 import (
 	"plugin-template-engine/components/manager/internal/adapters/rabbitmq"
 	pkgConfig "plugin-template-engine/pkg"
+	reportMinio "plugin-template-engine/pkg/minio/report"
 	templateMinio "plugin-template-engine/pkg/minio/template"
 	"plugin-template-engine/pkg/mongodb/report"
 	"plugin-template-engine/pkg/mongodb/template"
@@ -18,6 +19,9 @@ type UseCase struct {
 
 	// ReportRepo provides an abstraction on top of the report data source.
 	ReportRepo report.Repository
+
+	// ReportMinio is a repository interface for storing report files in MinIO.
+	ReportMinio reportMinio.Repository
 
 	// RabbitMQRepo provides an abstraction on top of the producer rabbitmq.
 	RabbitMQRepo rabbitmq.ProducerRepository

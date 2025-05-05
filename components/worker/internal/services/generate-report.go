@@ -105,7 +105,9 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	spanRender.End()
 
-	err = uc.saveReport(ctx, tracer, message, out, logger)
+	dateNow := time.Now()
+	dateNowFormatted := dateNow.Format("20060102_150405")
+	err = uc.saveReport(ctx, tracer, message, out, dateNowFormatted, logger)
 	if err != nil {
 		libOtel.HandleSpanError(&span, "Error saving report.", err)
 
@@ -115,7 +117,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	}
 
 	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
-		"Finished", time.Now(), nil)
+		"Finished", dateNow, nil)
 	if errUpdate != nil {
 		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdate)
 
@@ -130,13 +132,13 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
 // It determines the object name, content type, and stores the file using the ReportFileRepo interface.
 // Returns an error if the file storage operation fails.
-func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
+func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out, dateNow string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
 	defer spanSaveReport.End()
 
 	outputFormat := strings.ToLower(message.OutputFormat)
 	contentType := getContentType(outputFormat)
-	objectName := message.ReportID.String() + "/" + time.Now().Format("20060102_150405") + "." + outputFormat
+	objectName := message.ReportID.String() + "/" + dateNow + "." + outputFormat
 
 	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
 	if err != nil {

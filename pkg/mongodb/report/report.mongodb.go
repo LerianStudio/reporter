@@ -7,6 +7,7 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"time"
 )
@@ -16,7 +17,8 @@ import (
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
 	UpdateReportStatusById(ctx context.Context, collection string, id uuid.UUID, status string, completedAt time.Time, metadata map[string]any) error
-	Create(ctx context.Context, collection string, record *Report) (*Report, error)
+	Create(ctx context.Context, collection string, record *Report, organizationID uuid.UUID) (*Report, error)
+	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error)
 }
 
 // ReportMongoDBRepository is a MongoDB-specific implementation of the ReportRepository.
@@ -75,7 +77,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 
 	// Only set completedAt if it's not a zero time
 	if !completedAt.IsZero() {
-		updateFields["completedAt"] = completedAt
+		updateFields["completed_at"] = completedAt
 	}
 
 	// Only set metadata if it's not nil
@@ -102,7 +104,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 }
 
 // Create inserts a new report entity into mongo.
-func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string, report *Report) (*Report, error) {
+func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string, report *Report, organizationID uuid.UUID) (*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_report")
@@ -118,7 +120,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
 	record := &ReportMongoDBModel{}
 
-	if err := record.FromEntity(report); err != nil {
+	if err := record.FromEntity(report, organizationID); err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to convert report to model", err)
 
 		return nil, err
@@ -136,4 +138,41 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 	spanInsert.End()
 
 	return record.ToEntity(report.LedgerID, report.Filters), nil
+}
+
+// FindByID retrieves a report from the mongodb using the provided entity_id.
+func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error) {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
+	defer span.End()
+
+	db, err := rm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+
+		return nil, err
+	}
+
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+
+	var record *ReportMongoDBModel
+
+	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+
+	if err = coll.
+		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
+		Decode(&record); err != nil {
+		opentelemetry.HandleSpanError(&spanFindOne, "Failed to find report by entity", err)
+		return nil, err
+	}
+
+	if nil == record {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		return nil, mongo.ErrNoDocuments
+	}
+
+	spanFindOne.End()
+
+	return record.ToEntityFindByID(), nil
 }

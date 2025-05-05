@@ -6,6 +6,22 @@ import (
 	"strings"
 )
 
+// GetMimeType return a MIME type correctly based with outputFormat
+func GetMimeType(outputFormat string) string {
+	switch strings.ToLower(outputFormat) {
+	case "xml":
+		return "application/xml"
+	case "html":
+		return "text/html"
+	case "csv":
+		return "text/csv"
+	case "txt":
+		return "text/plain"
+	default:
+		return "application/octet-stream"
+	}
+}
+
 // MappedFieldsOfTemplate Map all fields of template file creating a map[string]map[string][]string
 func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string {
 	variableMap := map[string][]string{}
@@ -195,28 +211,6 @@ func insertField(m map[string]any, path []string, field string) {
 	if len(path) == 0 {
 		return
 	}
-
-	/*
-		if len(path) >= 2 {
-			parent := path[len(path)-2]
-			last := path[len(path)-1]
-
-			// List of subfields that should be grouped
-			groupFields := map[string][]string{
-				"address": {"line1", "line2", "city", "state", "zip", "country"},
-			}
-
-			// If actual field is "line1", "city", etc e o pai é "address", vamos registrar só "address"
-			if subs, ok := groupFields[parent]; ok {
-				for _, sub := range subs {
-					if sub == last {
-						// Remove the last element and use the principal field
-						insertField(m, path[:len(path)-2], parent)
-						return
-					}
-				}
-			}
-		} */
 
 	// Pass throw struct normally
 	current := m

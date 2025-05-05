@@ -7,41 +7,64 @@ import (
 
 // Report represents the entity model for a report
 type Report struct {
-	ID         uuid.UUID      `json:"id" example:"00000000-0000-0000-0000-000000000000"`
-	TemplateID uuid.UUID      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
-	LedgerID   []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
-	Filters    map[string]any `json:"filters"`
-	Status     string         `json:"status" example:"processing"`
+	ID          uuid.UUID      `json:"id" example:"00000000-0000-0000-0000-000000000000"`
+	TemplateID  uuid.UUID      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
+	LedgerID    []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
+	Filters     map[string]any `json:"filters"`
+	Status      string         `json:"status" example:"processing"`
+	CompletedAt *time.Time     `json:"completedAt"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   *time.Time     `json:"deletedAt"`
 }
 
 // ReportMongoDBModel represents the MongoDB model for a report
 type ReportMongoDBModel struct {
-	ID          uuid.UUID      `bson:"_id"`
-	TemplateID  uuid.UUID      `bson:"template_id"`
-	Status      string         `bson:"status"`
-	Metadata    map[string]any `bson:"metadata"`
-	CompletedAt *time.Time     `bson:"completed_at"`
-	CreatedAt   time.Time      `bson:"created_at"`
-	UpdatedAt   time.Time      `bson:"updated_at"`
-	DeletedAt   *time.Time     `bson:"deleted_at"`
+	ID             uuid.UUID      `bson:"_id"`
+	TemplateID     uuid.UUID      `bson:"template_id"`
+	OrganizationID uuid.UUID      `bson:"organization_id"`
+	Status         string         `bson:"status"`
+	Metadata       map[string]any `bson:"metadata"`
+	CompletedAt    *time.Time     `bson:"completed_at"`
+	CreatedAt      time.Time      `bson:"created_at"`
+	UpdatedAt      time.Time      `bson:"updated_at"`
+	DeletedAt      *time.Time     `bson:"deleted_at"`
 }
 
 // ToEntity converts ReportMongoDBModel to Report
 func (rm *ReportMongoDBModel) ToEntity(ledgerIDs []uuid.UUID, filters map[string]any) *Report {
 	return &Report{
-		ID:         rm.ID,
-		TemplateID: rm.TemplateID,
-		Status:     rm.Status,
-		LedgerID:   ledgerIDs,
-		Filters:    filters,
+		ID:          rm.ID,
+		TemplateID:  rm.TemplateID,
+		Status:      rm.Status,
+		LedgerID:    ledgerIDs,
+		Filters:     filters,
+		CompletedAt: rm.CompletedAt,
+		CreatedAt:   rm.CreatedAt,
+		UpdatedAt:   rm.UpdatedAt,
+		DeletedAt:   rm.DeletedAt,
+	}
+}
+
+// ToEntityFindByID converts ReportMongoDBModel to Report
+func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
+	return &Report{
+		ID:          rm.ID,
+		TemplateID:  rm.TemplateID,
+		Status:      rm.Status,
+		CompletedAt: rm.CompletedAt,
+		CreatedAt:   rm.CreatedAt,
+		UpdatedAt:   rm.UpdatedAt,
+		DeletedAt:   rm.DeletedAt,
 	}
 }
 
 // FromEntity converts Report to ReportMongoDBModel
-func (rm *ReportMongoDBModel) FromEntity(r *Report) error {
+func (rm *ReportMongoDBModel) FromEntity(r *Report, organizationID uuid.UUID) error {
 	dateNow := time.Now()
 	rm.ID = r.ID
 	rm.TemplateID = r.TemplateID
+	rm.OrganizationID = organizationID
 	rm.Metadata = nil
 	rm.Status = r.Status
 	rm.CompletedAt = nil

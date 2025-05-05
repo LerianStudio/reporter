@@ -29,6 +29,7 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Delete("/v1/templates/:id", ParseHeaderParameters, ParsePathParameters, templateHandler.DeleteTemplateByID)
 
 	f.Post("/v1/reports", ParseHeaderParameters, http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
+	f.Get("/v1/reports/:id/download", ParseHeaderParameters, ParsePathParameters, reportHandler.GetDownloadReport)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)
