@@ -16,17 +16,171 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/v1/example": {
-            "get": {
-                "description": "Get all Example with the input metadata or without metadata",
+        "/v1/reports": {
+            "post": {
+                "description": "Create a Report of existent template with the input payload",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Example"
+                    "Reports"
                 ],
-                "summary": "Get all Example",
+                "summary": "Create a Report",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Report Input",
+                        "name": "reports",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateReportInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/reports/{id}": {
+            "get": {
+                "description": "Get information of a Report passing the ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get a Report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Report ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/reports/{id}/download": {
+            "get": {
+                "description": "Make a download of a Report passing the ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Download a Report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Report ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/templates": {
+            "get": {
+                "description": "List all the templates",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Templates"
+                ],
+                "summary": "Get all templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "default": 10,
@@ -39,28 +193,6 @@ const docTemplate = `{
                         "default": 1,
                         "description": "Page",
                         "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Start Date",
-                        "name": "start_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "End Date",
-                        "name": "end_date",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "asc",
-                            "desc"
-                        ],
-                        "type": "string",
-                        "description": "Sort Order",
-                        "name": "sort_order",
                         "in": "query"
                     }
                 ],
@@ -78,13 +210,16 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput"
+                                                "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
                                             "type": "integer"
                                         },
                                         "page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
                                             "type": "integer"
                                         }
                                     }
@@ -95,52 +230,102 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create an Example with the input payload",
+                "description": "Create a Template for reports with the input payload",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Example"
+                    "Templates"
                 ],
-                "summary": "Create an Example",
+                "summary": "Create a Template for reports",
                 "parameters": [
                     {
-                        "description": "Example Input",
-                        "name": "example",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/CreateExampleInput"
-                        }
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Template file (.tpl)",
+                        "name": "templateFile",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Output format (e.g., pdf, html)",
+                        "name": "outputFormat",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description of the template",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput"
+                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
                         }
                     }
                 }
             }
         },
-        "/v1/example/{id}": {
+        "/v1/templates/{id}": {
             "get": {
-                "description": "Get an Example with the input ID",
+                "description": "Get a template by id",
+                "consumes": [
+                    "multipart/form-data"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Example"
+                    "Templates"
                 ],
-                "summary": "Get an Example by ID",
+                "summary": "Get template",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Example ID",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Template file (.tpl)",
+                        "name": "templateFile",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Output format (e.g., pdf, html)",
+                        "name": "outputFormat",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description of the template",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -150,21 +335,35 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput"
+                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete an Example with the input ID",
+                "description": "SoftDelete a Template with the input ID",
                 "tags": [
-                    "Example"
+                    "Templates"
                 ],
-                "summary": "Delete an Example by ID",
+                "summary": "SoftDelete a Template by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Example ID",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -177,40 +376,59 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "Update an Example with the input payload",
+                "description": "Update a template with the input payload",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Example"
+                    "Templates"
                 ],
-                "summary": "Update an Example",
+                "summary": "Update a template",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Example ID",
-                        "name": "id",
-                        "in": "path",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "name": "Authorization",
+                        "in": "header",
                         "required": true
                     },
                     {
-                        "description": "Example Input",
-                        "name": "organization",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/UpdateExampleInput"
-                        }
+                        "type": "file",
+                        "description": "Template file (.tpl)",
+                        "name": "templateFile",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Output format (e.g., pdf, html)",
+                        "name": "outputFormat",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description of the template",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput"
+                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -218,20 +436,30 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "CreateExampleInput": {
-            "description": "CreateExampleInput is the input payload to create an example_model.",
+        "CreateReportInput": {
+            "description": "CreateReportInput is the input payload to create a report.",
             "type": "object",
             "required": [
-                "age",
-                "name"
+                "filters",
+                "templateId"
             ],
             "properties": {
-                "age": {
-                    "type": "integer"
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": {}
                 },
-                "name": {
+                "ledgerId": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "00000000-0000-0000-0000-000000000000"
+                    ]
+                },
+                "templateId": {
                     "type": "string",
-                    "maxLength": 256
+                    "example": "00000000-0000-0000-0000-000000000000"
                 }
             }
         },
@@ -244,54 +472,84 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 10
                 },
-                "next_cursor": {
-                    "type": "string",
-                    "x-omitempty": true,
-                    "example": "MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA=="
-                },
                 "page": {
                     "type": "integer",
                     "example": 1
                 },
-                "prev_cursor": {
-                    "type": "string",
-                    "x-omitempty": true,
-                    "example": "MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA=="
-                }
-            }
-        },
-        "UpdateExampleInput": {
-            "description": "UpdateExampleInput is the input payload to update an example.",
-            "type": "object",
-            "properties": {
-                "age": {
+                "total": {
                     "type": "integer",
-                    "example": 12
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 256,
-                    "example": "Example test"
+                    "example": 10
                 }
             }
         },
-        "k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput": {
-            "description": "ExampleOutput is the output payload.",
+        "plugin-template-engine_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
-                "age": {
-                    "type": "integer"
+                "createdAt": {
+                    "type": "string",
+                    "example": "2021-01-01T00:00:00Z"
                 },
-                "created_at": {
-                    "type": "string"
+                "description": {
+                    "type": "string",
+                    "example": "Template Financeiro"
+                },
+                "filename": {
+                    "type": "string",
+                    "example": "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl"
                 },
                 "id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "outputFormat": {
+                    "type": "string",
+                    "example": "HTML"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "2021-01-01T00:00:00Z"
+                }
+            }
+        },
+        "report.Report": {
+            "type": "object",
+            "properties": {
+                "completedAt": {
                     "type": "string"
                 },
-                "name": {
+                "createdAt": {
                     "type": "string"
                 },
-                "updated_at": {
+                "deletedAt": {
+                    "type": "string"
+                },
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "ledgerId": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "['00000000-0000-0000-0000-000000000000'",
+                        " '00000000-0000-0000-0000-000000000000']"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "example": "processing"
+                },
+                "templateId": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "updatedAt": {
                     "type": "string"
                 }
             }
@@ -302,11 +560,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0.0",
-	Host:             "localhost:4000",
+	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "K8s addons boilerplate",
-	Description:      "This is a swagger documentation for K8s addons boilerplate",
+	Title:            "Plugin Smart Template",
+	Description:      "This is a swagger documentation for plugin smart template",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

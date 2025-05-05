@@ -137,7 +137,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 
 	spanInsert.End()
 
-	return record.ToEntity(report.LedgerID, report.Filters), nil
+	return record.ToEntity(report.Filters), nil
 }
 
 // FindByID retrieves a report from the mongodb using the provided entity_id.

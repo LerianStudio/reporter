@@ -1,16 +1,23 @@
 basePath: /
 definitions:
-  CreateExampleInput:
-    description: CreateExampleInput is the input payload to create an example_model.
+  CreateReportInput:
+    description: CreateReportInput is the input payload to create a report.
     properties:
-      age:
-        type: integer
-      name:
-        maxLength: 256
+      filters:
+        additionalProperties: {}
+        type: object
+      ledgerId:
+        example:
+        - 00000000-0000-0000-0000-000000000000
+        items:
+          type: string
+        type: array
+      templateId:
+        example: 00000000-0000-0000-0000-000000000000
         type: string
     required:
-    - age
-    - name
+    - filters
+    - templateId
     type: object
   Pagination:
     description: Pagination is the struct designed to store the pagination data of
@@ -20,55 +27,180 @@ definitions:
       limit:
         example: 10
         type: integer
-      next_cursor:
-        example: MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA==
-        type: string
-        x-omitempty: true
       page:
         example: 1
         type: integer
-      prev_cursor:
-        example: MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwMA==
-        type: string
-        x-omitempty: true
-    type: object
-  UpdateExampleInput:
-    description: UpdateExampleInput is the input payload to update an example.
-    properties:
-      age:
-        example: 12
+      total:
+        example: 10
         type: integer
-      name:
-        example: Example test
-        maxLength: 256
-        type: string
     type: object
-  k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput:
-    description: ExampleOutput is the output payload.
+  plugin-template-engine_pkg_mongodb_template.Template:
     properties:
-      age:
-        type: integer
-      created_at:
+      createdAt:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      description:
+        example: Template Financeiro
+        type: string
+      filename:
+        example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
         type: string
       id:
+        example: 00000000-0000-0000-0000-000000000000
         type: string
-      name:
+      outputFormat:
+        example: HTML
         type: string
-      updated_at:
+      updatedAt:
+        example: "2021-01-01T00:00:00Z"
         type: string
     type: object
-host: localhost:4000
+  report.Report:
+    properties:
+      completedAt:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      filters:
+        additionalProperties: {}
+        type: object
+      id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      ledgerId:
+        example:
+        - '[''00000000-0000-0000-0000-000000000000'''
+        - ' ''00000000-0000-0000-0000-000000000000'']'
+        items:
+          type: string
+        type: array
+      status:
+        example: processing
+        type: string
+      templateId:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      updatedAt:
+        type: string
+    type: object
+host: localhost:4005
 info:
   contact: {}
-  description: This is a swagger documentation for K8s addons boilerplate
+  description: This is a swagger documentation for plugin smart template
   termsOfService: http://swagger.io/terms/
-  title: K8s addons boilerplate
+  title: Plugin Smart Template
   version: 1.0.0
 paths:
-  /v1/example:
-    get:
-      description: Get all Example with the input metadata or without metadata
+  /v1/reports:
+    post:
+      consumes:
+      - application/json
+      description: Create a Report of existent template with the input payload
       parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report Input
+        in: body
+        name: reports
+        required: true
+        schema:
+          $ref: '#/definitions/CreateReportInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/report.Report'
+      summary: Create a Report
+      tags:
+      - Reports
+  /v1/reports/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get information of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/report.Report'
+      summary: Get a Report
+      tags:
+      - Reports
+  /v1/reports/{id}/download:
+    get:
+      consumes:
+      - application/json
+      description: Make a download of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Download a Report
+      tags:
+      - Reports
+  /v1/templates:
+    get:
+      description: List all the templates
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
       - default: 10
         description: Limit
         in: query
@@ -79,21 +211,6 @@ paths:
         in: query
         name: page
         type: integer
-      - description: Start Date
-        in: query
-        name: start_date
-        type: string
-      - description: End Date
-        in: query
-        name: end_date
-        type: string
-      - description: Sort Order
-        enum:
-        - asc
-        - desc
-        in: query
-        name: sort_order
-        type: string
       produces:
       - application/json
       responses:
@@ -105,42 +222,68 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
+                    $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
                 page:
                   type: integer
+                total:
+                  type: integer
               type: object
-      summary: Get all Example
+      summary: Get all templates
       tags:
-      - Example
+      - Templates
     post:
       consumes:
-      - application/json
-      description: Create an Example with the input payload
+      - multipart/form-data
+      description: Create a Template for reports with the input payload
       parameters:
-      - description: Example Input
-        in: body
-        name: example
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
         required: true
-        schema:
-          $ref: '#/definitions/CreateExampleInput'
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
-            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
-      summary: Create an Example
+            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+      summary: Create a Template for reports
       tags:
-      - Example
-  /v1/example/{id}:
+      - Templates
+  /v1/templates/{id}:
     delete:
-      description: Delete an Example with the input ID
+      description: SoftDelete a Template with the input ID
       parameters:
-      - description: Example ID
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Template ID
         in: path
         name: id
         required: true
@@ -148,13 +291,35 @@ paths:
       responses:
         "204":
           description: No Content
-      summary: Delete an Example by ID
+      summary: SoftDelete a Template by ID
       tags:
-      - Example
+      - Templates
     get:
-      description: Get an Example with the input ID
+      consumes:
+      - multipart/form-data
+      description: Get a template by id
       parameters:
-      - description: Example ID
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Template ID
         in: path
         name: id
         required: true
@@ -165,34 +330,48 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
-      summary: Get an Example by ID
+            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+      summary: Get template
       tags:
-      - Example
+      - Templates
     patch:
       consumes:
-      - application/json
-      description: Update an Example with the input payload
+      - multipart/form-data
+      description: Update a template with the input payload
       parameters:
-      - description: Example ID
+      - description: "The authorization token in the 'Bearer\taccess_token' format."
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Template ID
         in: path
         name: id
         required: true
         type: string
-      - description: Example Input
-        in: body
-        name: organization
-        required: true
-        schema:
-          $ref: '#/definitions/UpdateExampleInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/k8s-golang-addons-boilerplate_pkg_example_model_mmodel.ExampleOutput'
-      summary: Update an Example
+            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+      summary: Update a template
       tags:
-      - Example
+      - Templates
 swagger: "2.0"
