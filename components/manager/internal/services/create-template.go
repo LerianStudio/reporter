@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// CreateTemplate create a new template
+// CreateTemplate creates a new template with specified parameters and stores it in the repository.
 func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, organizationID uuid.UUID) (*template.Template, error) {
 	logger := pkg.NewLoggerFromContext(ctx)
 	tracer := pkg.NewTracerFromContext(ctx)

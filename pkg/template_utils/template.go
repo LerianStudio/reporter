@@ -75,6 +75,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	return normalizeStructure(result)
 }
 
+// normalizeStructure convert input to a type pattern of mapped fields map[string]map[string][]string
 func normalizeStructure(input map[string]any) map[string]map[string][]string {
 	result := make(map[string]map[string][]string)
 
@@ -107,6 +108,7 @@ func normalizeStructure(input map[string]any) map[string]map[string][]string {
 	return result
 }
 
+// getMapKeys retrieves all keys from a given map and returns them as a slice of strings.
 func getMapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -145,7 +147,7 @@ func HydrateMappedFields(m map[string]any) map[string]any {
 	return result
 }
 
-// hydrateArray Adjust array of any if you have a metadata like this, (ex: "transaction": { "metadata": [ "mensagem" ] })
+// hydrateArray Adjust an array of any if you have a metadata like this, (ex: "transaction": { "metadata": [ "message" ] })
 func hydrateArray(arr []any) []any {
 	var result []any
 
@@ -206,7 +208,7 @@ func extractFieldsFromExpression(expr string) []string {
 	return fields
 }
 
-// insertField insere um campo em uma estrutura de mapa aninhada com base no caminho fornecido
+// insertField inserts a field into a nested map structure at a specified path, creating intermediate maps as needed.
 func insertField(m map[string]any, path []string, field string) {
 	if len(path) == 0 {
 		return

@@ -18,8 +18,6 @@ services:
 
 networks:
   plugin-smart-templates-infra-network:
-    name: plugin-smart-templates-infra-network
-    driver: bridge
     external: true
   plugin-smart-templates-manager-network:
     name: plugin-smart-templates-manager-network
