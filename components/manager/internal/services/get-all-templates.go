@@ -5,10 +5,10 @@ import (
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/mongodb/template"
-	"plugin-template-engine/pkg/net/http"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/pkg/net/http"
 	"reflect"
 )
 

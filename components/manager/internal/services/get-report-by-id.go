@@ -7,9 +7,9 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/mongodb/report"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb/report"
 	"reflect"
 )
 

@@ -6,8 +6,8 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"os"
 	"os/signal"
-	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
-	"plugin-template-engine/components/worker/internal/services"
+	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
+	"plugin-smart-templates/components/worker/internal/services"
 	"sync"
 	"syscall"
 )

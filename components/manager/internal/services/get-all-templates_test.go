@@ -5,9 +5,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/mongodb/template"
-	httpUtils "plugin-template-engine/pkg/net/http"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb/template"
+	httpUtils "plugin-smart-templates/pkg/net/http"
 	"testing"
 )
 

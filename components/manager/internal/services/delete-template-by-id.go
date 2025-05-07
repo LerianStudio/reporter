@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"html/template"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	"reflect"
 )
 

@@ -1,20 +1,20 @@
 services:
-  plugin-template-engine-worker:
+  plugin-smart-templates-worker:
     build:
       context: ../../
       dockerfile: ./components/worker/Dockerfile
-    container_name: plugin-template-engine-worker
+    container_name: plugin-smart-templates-worker
     restart: always
     env_file:
       - ./.env
     volumes:
       - .:/usr/src/worker
     networks:
-      - plugin-template-engine-infra-network
+      - plugin-smart-templates-infra-network
       - infra-network
 
 networks:
-  plugin-template-engine-infra-network:
+  plugin-smart-templates-infra-network:
     external: true
   infra-network:
     external: true

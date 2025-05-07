@@ -4,7 +4,7 @@
 # Define the root directory of the project
 PROJECT_ROOT := $(shell pwd)
 
-service_name := plugin-template-engine
+service_name := plugin-smart-templates
 bin_dir := ./.bin
 
 BLUE := \033[36m

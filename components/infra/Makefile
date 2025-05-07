@@ -1,4 +1,4 @@
-service_name := plugin-template-engine-infra
+service_name := plugin-smart-templates-infra
 bin_dir := ./.bin
 
 BLUE := \033[36m

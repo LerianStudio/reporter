@@ -6,12 +6,12 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-template-engine/components/manager/internal/services"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/model"
-	_ "plugin-template-engine/pkg/mongodb/template"
-	"plugin-template-engine/pkg/net/http"
+	"plugin-smart-templates/components/manager/internal/services"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/model"
+	_ "plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/pkg/net/http"
 )
 
 const errorFileAccepted = "there is no uploaded file associated with the given key"
@@ -80,7 +80,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	// Get file in bytes
+	// Get a file in bytes
 	fileBytes, err := http.ReadMultipartFile(fileHeader)
 	if err != nil {
 		logger.Errorf("Erro ao ler conteúdo do arquivo: %v", err)
@@ -101,7 +101,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	return http.OK(c, templateOut)
 }
 
-// UpdateTemplateByID is a method that update a Template by a given id.
+// UpdateTemplateByID is a method that updates a Template by a given id.
 //
 //	@Summary		Update a template
 //	@Description	Update a template with the input payload

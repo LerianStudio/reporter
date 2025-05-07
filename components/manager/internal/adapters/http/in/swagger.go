@@ -2,8 +2,8 @@ package in
 
 import (
 	"os"
-	"plugin-template-engine/components/manager/api"
-	"plugin-template-engine/pkg"
+	"plugin-smart-templates/components/manager/api"
+	"plugin-smart-templates/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

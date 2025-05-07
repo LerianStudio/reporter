@@ -8,7 +8,7 @@ import (
 	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"plugin-template-engine/pkg/model"
+	"plugin-smart-templates/pkg/model"
 )
 
 // ProducerRepository provides an interface for Producer related to rabbitmq.

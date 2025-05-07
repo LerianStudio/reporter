@@ -6,17 +6,17 @@ import (
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/google/uuid"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/mongodb"
-	"plugin-template-engine/pkg/mongodb/template"
-	"plugin-template-engine/pkg/postgres"
-	templateUtils "plugin-template-engine/pkg/template_utils"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb"
+	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/pkg/postgres"
+	templateUtils "plugin-smart-templates/pkg/template_utils"
 	"reflect"
 	"time"
 )
 
-// CreateTemplate create a new template
+// CreateTemplate creates a new template with specified parameters and stores it in the repository.
 func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, organizationID uuid.UUID) (*template.Template, error) {
 	logger := pkg.NewLoggerFromContext(ctx)
 	tracer := pkg.NewTracerFromContext(ctx)
