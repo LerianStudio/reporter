@@ -6,14 +6,12 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-template-engine/components/manager/internal/services"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/model"
-	_ "plugin-template-engine/pkg/mongodb/report"
-
-	"plugin-template-engine/pkg/net/http"
-	templateUtils "plugin-template-engine/pkg/template_utils"
+	"plugin-smart-templates/components/manager/internal/services"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/net/http"
+	templateUtils "plugin-smart-templates/pkg/template_utils"
 	"time"
 )
 
@@ -149,7 +147,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
-//	@Router			/v1/reports/{id}					 [get]
+//	@Router			/v1/reports/{id}							 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"os"
-	"plugin-template-engine/pkg/model"
+	"plugin-smart-templates/pkg/model"
 )
 
 // SendReportQueueReports sends report to queue of generation reports message to a RabbitMQ queue for further processing.

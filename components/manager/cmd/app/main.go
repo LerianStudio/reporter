@@ -1,8 +1,8 @@
 package main
 
 import (
-	"plugin-template-engine/components/manager/internal/bootstrap"
-	"plugin-template-engine/pkg"
+	"plugin-smart-templates/components/manager/internal/bootstrap"
+	"plugin-smart-templates/pkg"
 )
 
 // @title			Plugin Smart Template

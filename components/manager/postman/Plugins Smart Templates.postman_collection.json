@@ -1,0 +1,306 @@
+{
+	"info": {
+		"_postman_id": "937f18c1-2642-43e3-9cbd-afcc903a76e0",
+		"name": "Plugins Smart Templates",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "11186043"
+	},
+	"item": [
+		{
+			"name": "templates",
+			"item": [
+				{
+					"name": "Create template",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "template",
+									"type": "file",
+									"src": "/C:/Users/arthu/Downloads/019644a0-dd0e-7519-883a-b4b90e26257e.tpl"
+								},
+								{
+									"key": "outputFormat",
+									"value": "xml",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "teste",
+									"type": "text"
+								}
+							]
+						},
+						"url": "{{local_host}}/v1/templates"
+					},
+					"response": []
+				},
+				{
+					"name": "Update template",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "template",
+									"type": "file",
+									"src": "/C:/Users/arthu/Downloads/019644a0-dd0e-7519-883a-b4b90e26257e.tpl"
+								},
+								{
+									"key": "outputFormat",
+									"value": "xml",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "teste",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{local_host}}/v1/templates/:id",
+							"host": [
+								"{{local_host}}"
+							],
+							"path": [
+								"v1",
+								"templates",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get template",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "postman-cloud:///1f006514-a7d5-4210-b704-bc81ed710725"
+								},
+								{
+									"key": "type",
+									"value": "html",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": "{{local_host}}/v1/template"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete template by id",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "postman-cloud:///1f006514-a7d5-4210-b704-bc81ed710725"
+								},
+								{
+									"key": "type",
+									"value": "html",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{local_host}}/v1/templates/:id",
+							"host": [
+								"{{local_host}}"
+							],
+							"path": [
+								"v1",
+								"templates",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all templates",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "postman-cloud:///1f006514-a7d5-4210-b704-bc81ed710725"
+								},
+								{
+									"key": "type",
+									"value": "html",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": "{{local_host}}/v1/template"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "reports",
+			"item": [
+				{
+					"name": "Generate report",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "        {\r\n            \"templateId\": \"019672b1-9d50-7360-9df5-5099dd166709\",\r\n            \"ledgerId\": [\r\n                \"019672b1-9d50-7360-9df5-5099dd166800\"\r\n            ],\r\n            \"filters\": {\r\n                \"onboarding\": {\r\n                    \"accountId\": [\r\n                        \"01965f0d-2eae-7b1d-b2c4-460f2e802f7f\",\r\n                        \"01965f0d-a3ef-7644-8813-eef1729e1b6a\"\r\n                    ]\r\n                }\r\n            }\r\n        }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{local_host}}/v1/reports"
+					},
+					"response": []
+				},
+				{
+					"name": "Get report download",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{local_host}}/v1/reports/:id",
+							"host": [
+								"{{local_host}}"
+							],
+							"path": [
+								"v1",
+								"reports",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "teste"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get report by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{local_host}}/v1/reports/:id",
+							"host": [
+								"{{local_host}}"
+							],
+							"path": [
+								"v1",
+								"reports",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "teste"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

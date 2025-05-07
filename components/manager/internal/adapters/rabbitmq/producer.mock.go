@@ -6,7 +6,7 @@ package rabbitmq
 
 import (
 	context "context"
-	model "plugin-template-engine/pkg/model"
+	model "plugin-smart-templates/pkg/model"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/model"
-	"plugin-template-engine/pkg/mongodb/report"
-	"plugin-template-engine/pkg/mongodb/template"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/pkg/mongodb/template"
 	"reflect"
 )
 

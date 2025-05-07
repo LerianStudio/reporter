@@ -1,6 +1,6 @@
 services:
   manager:
-    container_name: plugin-template-engine-manager
+    container_name: plugin-smart-templates-manager
     restart: always
     build:
       context: ../../
@@ -12,14 +12,18 @@ services:
     volumes:
       - .:/usr/src/app
     networks:
-      - plugin-template-engine-infra-network
-      - plugin-template-engine-manager-network
+      - plugin-smart-templates-infra-network
+      - plugin-smart-templates-manager-network
+      - plugin-auth-network
 
 networks:
-  plugin-template-engine-infra-network:
-    name: plugin-template-engine-infra-network
+  plugin-smart-templates-infra-network:
+    name: plugin-smart-templates-infra-network
     driver: bridge
     external: true
-  plugin-template-engine-manager-network:
-    name: plugin-template-engine-manager-network
+  plugin-smart-templates-manager-network:
+    name: plugin-smart-templates-manager-network
+    driver: bridge
+  plugin-auth-network:
+    name: plugin-auth-network
     driver: bridge

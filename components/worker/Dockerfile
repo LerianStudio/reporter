@@ -1,6 +1,6 @@
 FROM golang:1.23-alpine AS builder
 
-WORKDIR /plugin-template-engine
+WORKDIR /plugin-smart-templates
 
 # Copy go mod and sum files to download dependencies
 COPY go.mod go.sum ./

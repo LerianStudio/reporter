@@ -4,9 +4,9 @@ import (
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/net/http"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/net/http"
 )
 
 var (

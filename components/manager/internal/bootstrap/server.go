@@ -5,7 +5,7 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"plugin-template-engine/pkg"
+	"plugin-smart-templates/pkg"
 )
 
 // Server represents the http server for Ledger services.

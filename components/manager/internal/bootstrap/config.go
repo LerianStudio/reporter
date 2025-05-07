@@ -2,20 +2,21 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/LerianStudio/lib-auth/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	"github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	in2 "plugin-template-engine/components/manager/internal/adapters/http/in"
-	"plugin-template-engine/components/manager/internal/adapters/rabbitmq"
-	"plugin-template-engine/components/manager/internal/services"
-	"plugin-template-engine/pkg"
-	reportMinio "plugin-template-engine/pkg/minio/report"
-	templateMinio "plugin-template-engine/pkg/minio/template"
-	"plugin-template-engine/pkg/mongodb/report"
-	"plugin-template-engine/pkg/mongodb/template"
+	in2 "plugin-smart-templates/components/manager/internal/adapters/http/in"
+	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/components/manager/internal/services"
+	"plugin-smart-templates/pkg"
+	reportMinio "plugin-smart-templates/pkg/minio/report"
+	templateMinio "plugin-smart-templates/pkg/minio/template"
+	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/pkg/mongodb/template"
 )
 
 // Config is the top level configuration struct for the entire application.
@@ -47,6 +48,8 @@ type Config struct {
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
+	AuthAddress                 string `env:"PLUGIN_AUTH_ADDRESS"`
+	AuthEnabled                 bool   `env:"PLUGIN_AUTH_ENABLED"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -115,6 +118,11 @@ func InitServers() *Service {
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
+	authClient := &middleware.AuthClient{
+		Address: cfg.AuthAddress,
+		Enabled: cfg.AuthEnabled,
+	}
+
 	templateHandler := &in2.TemplateHandler{
 		Service: templateService,
 	}
@@ -131,7 +139,7 @@ func InitServers() *Service {
 		Service: reportService,
 	}
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler)
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, authClient)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{

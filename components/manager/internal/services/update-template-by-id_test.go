@@ -11,8 +11,8 @@ import (
 	"io"
 	"mime/multipart"
 	"net/textproto"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/mongodb/template"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb/template"
 	"testing"
 )
 

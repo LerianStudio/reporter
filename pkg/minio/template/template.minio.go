@@ -5,7 +5,7 @@ import (
 	"context"
 	"github.com/minio/minio-go/v7"
 	"io"
-	"plugin-template-engine/pkg"
+	"plugin-smart-templates/pkg"
 )
 
 // Repository provides an interface for MinIO storage operations
