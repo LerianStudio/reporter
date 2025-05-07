@@ -34,7 +34,7 @@ definitions:
         example: 10
         type: integer
     type: object
-  plugin-template-engine_pkg_mongodb_template.Template:
+  plugin-smart-templates_pkg_mongodb_template.Template:
     properties:
       createdAt:
         example: "2021-01-01T00:00:00Z"
@@ -222,7 +222,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
@@ -265,7 +265,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Create a Template for reports
       tags:
       - Templates
@@ -330,7 +330,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Get template
       tags:
       - Templates
@@ -370,7 +370,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Update a template
       tags:
       - Templates

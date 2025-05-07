@@ -179,7 +179,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-template-engine_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
           description: Created
       summary: Create a Template for reports
       tags:
@@ -253,7 +253,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-template-engine_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
           description: OK
       summary: Get template
       tags:
@@ -298,7 +298,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-template-engine_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
           description: OK
       summary: Update a template
       tags:
@@ -352,7 +352,7 @@ components:
           example: 10
           type: integer
       type: object
-    plugin-template-engine_pkg_mongodb_template.Template:
+    plugin-smart-templates_pkg_mongodb_template.Template:
       example:
         createdAt: 2021-01-01T00:00:00Z
         filename: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
@@ -452,7 +452,7 @@ components:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
           type: array
         limit:
           type: integer

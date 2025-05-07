@@ -204,7 +204,7 @@
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -269,7 +269,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -329,7 +329,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -422,7 +422,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -476,7 +476,7 @@
                 }
             }
         },
-        "plugin-template-engine_pkg_mongodb_template.Template": {
+        "plugin-smart-templates_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {

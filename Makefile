@@ -4,7 +4,7 @@
 # Define the root directory of the project
 PROJECT_ROOT := $(shell pwd)
 
-service_name := plugin-template-engine
+service_name := plugin-smart-templates
 bin_dir := ./.bin
 
 BLUE := \033[36m
@@ -30,9 +30,9 @@ WORKER_DIR := ./components/worker
 COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR)
 
 # Include shared color definitions and utility functions
-include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
-include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
-include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
+#include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
+#include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
+#include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
 
 # Display available commands
 .PHONY: info

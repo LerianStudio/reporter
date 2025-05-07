@@ -210,7 +210,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -275,7 +275,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -335,7 +335,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -428,7 +428,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-template-engine_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -482,7 +482,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-template-engine_pkg_mongodb_template.Template": {
+        "plugin-smart-templates_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
