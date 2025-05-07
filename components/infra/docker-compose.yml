@@ -75,6 +75,8 @@ services:
       "
     volumes:
       - ./minio/policies:/policies
+    networks:
+      - plugin-smart-templates-infra-network
 
 volumes:
   plugin-smart-templates-mongodb-data:
