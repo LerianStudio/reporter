@@ -12,7 +12,6 @@ import (
 	"plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/net/http"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
-	"time"
 )
 
 type ReportHandler struct {
@@ -114,14 +113,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	location, errLocation := time.LoadLocation("America/Sao_Paulo")
-	if errLocation != nil {
-		logger.Errorf("Failed load location time: %s", errLocation.Error())
-		return http.WithError(c, errLocation)
-	}
-
-	completedAtInBR := reportModel.CompletedAt.In(location)
-	objectName := reportModel.ID.String() + "/" + completedAtInBR.Format("20060102_150405") + "." + templateModel.OutputFormat
+	objectName := templateModel.ID.String() + "/" + reportModel.ID.String() + "." + templateModel.OutputFormat
 
 	fileBytes, errFile := rh.Service.ReportMinio.Get(ctx, objectName)
 	if errFile != nil {

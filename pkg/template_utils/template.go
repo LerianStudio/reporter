@@ -22,32 +22,12 @@ func GetMimeType(outputFormat string) string {
 	}
 }
 
-// MappedFieldsOfTemplate Map all fields of template file creating a map[string]map[string][]string
+// MappedFieldsOfTemplate analyzes a template file and returns a nested map of variable paths and their associated fields.
 func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string {
-	variableMap := map[string][]string{}
+	variableMap := regexBlockForOnPlaceholder(templateFile)
+	resultRegex := regexBlockWithOnPlaceholder(variableMap, templateFile)
 
-	// Regex to capture blocks (ex: {% for t in midaz_transaction.transaction %})
-	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
-
-	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
-	for _, match := range forMatches {
-		variable := match[1]
-		path := CleanPath(match[2])
-
-		// If the placeholder be: midaz_transaction.transaction
-		if len(path) >= 2 {
-			parent := path[0]
-			child := path[1]
-			variableMap[variable] = []string{parent, child}
-		} else {
-			// Fallback
-			variableMap[variable] = path
-		}
-	}
-
-	result := map[string]any{}
-
-	// Regex for fields {{ t.id }}, {{ user.name }}, etc
+	// Regex for fields {{ ... }}
 	fieldRegex := regexp.MustCompile(`{{\s*(.*?)\s*}}`)
 
 	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
@@ -57,22 +37,127 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 		for _, fieldExpr := range fieldPaths {
 			parts := CleanPath(fieldExpr)
-
 			if len(parts) < 2 {
 				continue
 			}
 
-			// If start with (ex: t, op, etc)
 			if loopPath, ok := variableMap[parts[0]]; ok {
-				fullPath := append([]string{}, loopPath...) // clone
-				insertField(result, fullPath, parts[1])
+				fullPath := append([]string{}, loopPath...)
+				insertField(resultRegex, fullPath, parts[1])
 			} else {
-				insertField(result, parts[:len(parts)-1], parts[len(parts)-1])
+				insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
 			}
 		}
 	}
 
-	return normalizeStructure(result)
+	regexBlockIfOnPlaceholder(templateFile, resultRegex, variableMap)
+
+	return normalizeStructure(resultRegex)
+}
+
+// regexBlockIfOnPlaceholder parses a template file to process "if" blocks and updates a nested map with extracted field mappings.
+// It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
+func regexBlockIfOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	ifRegex := regexp.MustCompile(`{%-?\s*if\s+(.*?)\s*-?%}`)
+
+	ifMatches := ifRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range ifMatches {
+		expr := match[1]
+		fieldPaths := extractIfFromExpression(expr)
+
+		for _, fieldExpr := range fieldPaths {
+			parts := CleanPath(fieldExpr)
+			if len(parts) < 2 {
+				continue
+			}
+
+			if loopPath, ok := variableMap[parts[0]]; ok {
+				insertField(resultRegex, loopPath, parts[1])
+			} else {
+				insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
+			}
+		}
+	}
+}
+
+// regexBlockForOnPlaceholder parses a template file to extract variable mappings defined in for-loop blocks.
+// It returns a map where keys are variables from the for loop, and values are their corresponding path segments.
+func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
+	variableMap := map[string][]string{}
+
+	// Regex for block for
+	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+
+	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range forMatches {
+		variable := match[1]
+		path := CleanPath(match[2])
+
+		if len(path) >= 2 {
+			variableMap[variable] = []string{path[0], path[1]}
+		} else {
+			variableMap[variable] = path
+		}
+	}
+
+	return variableMap
+}
+
+// regexBlockWithOnPlaceholder parses a template file to process "with" statements and updates `variableMap` with mapped variables.
+// The function extracts filters, processes their arguments, and organizes nested data into a structured map for use.
+// It cleans paths, maps targets to their corresponding variables, and inserts additional parameters where applicable.
+func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile string) map[string]any {
+	result := map[string]any{}
+	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]*%}`)
+
+	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range withMatches {
+		assignedVar := match[1]
+		args := match[2]
+		argParts := strings.Split(args, ",")
+
+		if len(argParts) > 0 {
+			filterTarget := strings.TrimSpace(argParts[0]) // exemplo: midaz_transaction.balance
+			path := CleanPath(filterTarget)
+
+			if len(path) >= 2 {
+				// 💡 Aqui é o ponto importante: mapear balance -> midaz_transaction.balance
+				variableMap[assignedVar] = []string{path[0], path[1]}
+
+				// Parameters adicionais (ex: account.id)
+				for _, param := range argParts[1:] {
+					param = strings.TrimSpace(param)
+					cleanParam := strings.Trim(param, `"' `)
+
+					if cleanParam == "" {
+						continue
+					}
+
+					paramPath := CleanPath(cleanParam)
+
+					if len(paramPath) < 2 {
+						// talvez seja uma chave simples como "account_id"
+						insertField(result, path, cleanParam)
+						continue
+					}
+
+					if loopPath, ok := variableMap[paramPath[0]]; ok {
+						insertField(result, loopPath, paramPath[1])
+					} else {
+						insertField(result, paramPath[:len(paramPath)-1], paramPath[len(paramPath)-1])
+					}
+				}
+			}
+		}
+	}
+
+	return result
+}
+
+// extractIfFromExpression extracts object.field patterns from a string expression using a regular expression.
+func extractIfFromExpression(expr string) []string {
+	identifierRegex := regexp.MustCompile(`\b[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)+\b`)
+	return identifierRegex.FindAllString(expr, -1)
 }
 
 // normalizeStructure convert input to a type pattern of mapped fields map[string]map[string][]string
@@ -188,7 +273,7 @@ func isSingleKeyWithStringArray(m map[string]any) bool {
 	return true
 }
 
-// extractFieldsFromExpression Get all fields of expression tags
+// extractFieldsFromExpression Get all valid object.property fields from expression
 func extractFieldsFromExpression(expr string) []string {
 	fields := []string{}
 
