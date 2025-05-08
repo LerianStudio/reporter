@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.11] - 2025-05-08
+
+### ✨ Features
+- Add comments to the field mapping function for better understanding and maintainability.
+
+### 🐛 Bug Fixes
+- Adjust unit tests for improved reliability, ensuring tests run correctly.
+- Update field mapping to support block structures and adjust report naming to include report ID for enhanced functionality.
+
+### 🔧 Maintenance
+- Set GitHub token value for CI/CD configuration to streamline deployment processes.
+- Apply linting to improve code quality and maintain consistent coding standards.
+
 ## [v1.0.0-beta.9] - 2025-05-07
 
 ### 🐛 Bug Fixes
