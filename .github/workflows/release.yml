@@ -35,16 +35,22 @@ jobs:
       lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
       lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
           
-  #Generate changelog using the lerian-studio/github-actions-gptchangelog custom module
+  # Generate changelog with gptchangelog custom module
   generate-changelog:
     name: 📝 Generate AI-powered Changelog
     runs-on: ubuntu-22.04
     needs: publish-release
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
+          private-key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
+
       - uses: LerianStudio/github-actions-gptchangelog@develop
         with:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           LERIAN_CI_CD_USER_GPG_KEY: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
           LERIAN_CI_CD_USER_GPG_KEY_PASSWORD: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
           LERIAN_CI_CD_USER_NAME: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
