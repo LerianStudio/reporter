@@ -22,6 +22,7 @@ func GetMimeType(outputFormat string) string {
 	}
 }
 
+// MappedFieldsOfTemplate analyzes a template file and returns a nested map of variable paths and their associated fields.
 func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string {
 	variableMap := regexBlockForOnPlaceholder(templateFile)
 	resultRegex := regexBlockWithOnPlaceholder(variableMap, templateFile)
