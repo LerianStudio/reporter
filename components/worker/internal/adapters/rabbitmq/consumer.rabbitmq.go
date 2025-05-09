@@ -160,6 +160,7 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 
 	// Republish with retryCount + 1
 	retryCount++
+
 	headers := amqp091.Table{}
 	for k, v := range message.Headers {
 		headers[k] = v
