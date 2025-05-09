@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/mongo"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
@@ -44,6 +46,11 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
 	if err != nil {
 		logger.Errorf("Error to find template by id, Error: %v", err)
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+		}
+
 		return nil, err
 	}
 

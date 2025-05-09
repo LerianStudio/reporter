@@ -48,7 +48,7 @@ var mimeTypes = map[string]string{
 
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
-func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
+func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
@@ -63,7 +63,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
-		return err
+		return &message.ReportID, err
 	}
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
@@ -74,7 +74,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
-		return err
+		return &message.ReportID, err
 	}
 
 	logger.Infof("Template found: %s", string(fileBytes))
@@ -87,7 +87,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	if err != nil {
 		logger.Errorf("Error querying external data: %s", err.Error())
 
-		return err
+		return &message.ReportID, err
 	}
 
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
@@ -100,7 +100,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error rendering template: %s", err.Error())
 
-		return err
+		return &message.ReportID, err
 	}
 
 	spanRender.End()
@@ -111,20 +111,20 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error saving report: %s", err.Error())
 
-		return err
+		return &message.ReportID, err
 	}
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
-		"Finished", time.Now(), nil)
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Finished",
+		message.ReportID, time.Now(), nil)
 	if errUpdate != nil {
 		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdate)
 
 		logger.Errorf("Error saving report: %s", errUpdate.Error())
 
-		return errUpdate
+		return &message.ReportID, errUpdate
 	}
 
-	return nil
+	return nil, nil
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
