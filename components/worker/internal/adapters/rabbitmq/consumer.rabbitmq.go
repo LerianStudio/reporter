@@ -8,7 +8,6 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -150,25 +149,12 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 // retryMessage retries a message with the specified retryCount.
 // Returns true if the message was successfully requeued; otherwise, returns false.
 func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string) bool {
-	retryCount := 0
-
-	if val, ok := message.Headers["x-retry-count"]; ok {
-		switch v := val.(type) {
-		case int:
-			retryCount = v
-		case int32:
-			retryCount = int(v)
-		case int64:
-			retryCount = int(v)
-		case string:
-			if parsed, err := strconv.Atoi(v); err == nil {
-				retryCount = parsed
-			}
-		}
+	var retryCount int32
+	if val, ok := message.Headers["x-retry-count"].(int); ok {
+		retryCount = int32(val)
 	}
 
 	retryCount++
-
 	if retryCount >= 3 {
 		cr.Warnf("Worker %d: Discarding message from queue %s after %d attempts", workerID, queue, retryCount)
 
