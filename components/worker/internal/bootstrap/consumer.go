@@ -8,8 +8,11 @@ import (
 	"os/signal"
 	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/worker/internal/services"
+	"plugin-smart-templates/pkg/mongodb/report"
+	"reflect"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // MultiQueueConsumer represents a multi-queue consumer.
@@ -66,8 +69,17 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	logger.Info("Processing message from generate report queue")
 
-	err := mq.UseCase.GenerateReport(ctx, body)
+	err, reportID := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
+		metadata := map[string]any{}
+		metadata["error"] = err.Error()
+		if errUpdate := mq.UseCase.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Error",
+			*reportID, time.UnixMicro(0), metadata); errUpdate != nil {
+			opentelemetry.HandleSpanError(&span, "Error updating report status", errUpdate)
+
+			logger.Errorf("Error updating report status: %v", errUpdate)
+		}
+
 		opentelemetry.HandleSpanError(&span, "Error generating report", err)
 
 		logger.Errorf("Error generating report: %v", err)

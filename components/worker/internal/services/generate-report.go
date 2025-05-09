@@ -48,7 +48,7 @@ var mimeTypes = map[string]string{
 
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
-func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
+func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uuid.UUID) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
@@ -63,7 +63,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
-		return err
+		return err, &message.ReportID
 	}
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
@@ -74,7 +74,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
-		return err
+		return err, &message.ReportID
 	}
 
 	logger.Infof("Template found: %s", string(fileBytes))
@@ -87,7 +87,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	if err != nil {
 		logger.Errorf("Error querying external data: %s", err.Error())
 
-		return err
+		return err, &message.ReportID
 	}
 
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
@@ -100,46 +100,43 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 		logger.Errorf("Error rendering template: %s", err.Error())
 
-		return err
+		return err, &message.ReportID
 	}
 
 	spanRender.End()
 
-	dateNow := time.Now()
-	dateNowFormatted := dateNow.Format("20060102_150405")
-
-	err = uc.saveReport(ctx, tracer, message, out, dateNowFormatted, logger)
+	err = uc.saveReport(ctx, tracer, message, out, logger)
 	if err != nil {
 		libOtel.HandleSpanError(&span, "Error saving report.", err)
 
 		logger.Errorf("Error saving report: %s", err.Error())
 
-		return err
+		return err, &message.ReportID
 	}
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
-		"Finished", dateNow, nil)
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Finished",
+		message.ReportID, time.Now(), nil)
 	if errUpdate != nil {
 		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdate)
 
 		logger.Errorf("Error saving report: %s", errUpdate.Error())
 
-		return errUpdate
+		return errUpdate, &message.ReportID
 	}
 
-	return nil
+	return nil, nil
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
 // It determines the object name, content type, and stores the file using the ReportFileRepo interface.
 // Returns an error if the file storage operation fails.
-func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out, dateNow string, logger log.Logger) error {
+func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
 	defer spanSaveReport.End()
 
 	outputFormat := strings.ToLower(message.OutputFormat)
 	contentType := getContentType(outputFormat)
-	objectName := message.ReportID.String() + "/" + dateNow + "." + outputFormat
+	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
 	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
 	if err != nil {
@@ -190,7 +187,7 @@ func (uc *UseCase) queryDatabase(
 		libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
 		logger.Errorf("Unknown data source: %s", databaseName)
 
-		return nil // Continue with next database
+		return nil // Continue with the next database
 	}
 
 	if !dataSource.Initialized {
@@ -200,7 +197,7 @@ func (uc *UseCase) queryDatabase(
 		}
 	}
 
-	// Prepare results map for this database
+	// Prepare a result map for this database
 	if _, databaseExists := result[databaseName]; !databaseExists {
 		result[databaseName] = make(map[string][]map[string]any)
 	}
@@ -218,7 +215,7 @@ func (uc *UseCase) queryDatabase(
 	}
 }
 
-// queryPostgresDatabase handles querying PostgreSQL databases
+// queryPostgresDatabase handles querying PostgresSQL databases
 func (uc *UseCase) queryPostgresDatabase(
 	ctx context.Context,
 	dataSource *pkg.DataSource,
