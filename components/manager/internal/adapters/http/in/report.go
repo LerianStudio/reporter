@@ -48,16 +48,16 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	payload := p.(*model.CreateReportInput)
 	logger.Infof("Request to create a report with details: %#v", payload)
 
-	templateOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
+	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to create pack on command", err)
 
 		return http.WithError(c, err)
 	}
 
-	logger.Infof("Successfully created create report %v", templateOut)
+	logger.Infof("Successfully created create report %v", reportOut)
 
-	return http.OK(c, templateOut)
+	return http.OK(c, reportOut)
 }
 
 // GetDownloadReport is a method to make download of a report.

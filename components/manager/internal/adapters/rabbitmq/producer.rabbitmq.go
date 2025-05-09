@@ -55,6 +55,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 		return nil, err
 	}
 
+	retryCount := 0
 	err = prmq.conn.Channel.Publish(
 		exchange,
 		key,
@@ -65,6 +66,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 			DeliveryMode: amqp.Persistent,
 			Headers: amqp.Table{
 				libConstants.HeaderID: libCommons.NewHeaderIDFromContext(ctx),
+				"x-retry-count":       retryCount,
 			},
 			Body: message,
 		})
