@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.12] - 2025-05-09
+
+### 🐛 Bug Fixes
+- Correct retry value conversion logic to ensure accurate retry attempts.
+- Improve message reprocessing on queue to enhance reliability and performance.
+- Adjust code to pass lint checks, ensuring code quality and consistency.
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes and improvements.
+
 ## [v1.0.0-beta.11] - 2025-05-08
 
 ### ✨ Features
