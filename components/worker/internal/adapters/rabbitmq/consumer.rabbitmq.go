@@ -149,12 +149,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 // retryMessage retries a message with the specified retryCount.
 // Returns true if the message was successfully requeued; otherwise, returns false.
 func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string) bool {
-	var retryCount int32
-	if val, ok := message.Headers["x-retry-count"].(int); ok {
-		retryCount = int32(val)
-	}
-
-	retryCount++
+	retryCount := message.Headers["x-retry-count"].(int)
 	if retryCount >= 3 {
 		cr.Warnf("Worker %d: Discarding message from queue %s after %d attempts", workerID, queue, retryCount)
 
@@ -164,6 +159,7 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 	}
 
 	// Republish with retryCount + 1
+	retryCount++
 	headers := amqp091.Table{}
 	for k, v := range message.Headers {
 		headers[k] = v
