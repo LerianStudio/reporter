@@ -56,6 +56,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 	}
 
 	retryCount := 0
+
 	err = prmq.conn.Channel.Publish(
 		exchange,
 		key,

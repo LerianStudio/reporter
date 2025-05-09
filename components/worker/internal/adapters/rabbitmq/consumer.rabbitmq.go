@@ -138,10 +138,12 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 		// Exclude original
 		_ = message.Nack(false, false)
+
 		return true
 	}
 
 	_ = message.Ack(false)
+
 	return false
 }
 
@@ -149,6 +151,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 // Returns true if the message was successfully requeued; otherwise, returns false.
 func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string) bool {
 	retryCount := 0
+
 	if val, ok := message.Headers["x-retry-count"]; ok {
 		switch v := val.(type) {
 		case int:
@@ -163,11 +166,14 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 			}
 		}
 	}
+
 	retryCount++
 
 	if retryCount >= 3 {
 		cr.Warnf("Worker %d: Discarding message from queue %s after %d attempts", workerID, queue, retryCount)
+
 		_ = message.Nack(false, false)
+
 		return false
 	}
 
@@ -176,6 +182,7 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 	for k, v := range message.Headers {
 		headers[k] = v
 	}
+
 	headers["x-retry-count"] = retryCount
 
 	errPub := cr.conn.Channel.Publish(

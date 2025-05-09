@@ -130,7 +130,7 @@ func TestGenerateReport_Success(t *testing.T) {
 		},
 	}
 
-	err := useCase.GenerateReport(context.Background(), bodyBytes)
+	_, err := useCase.GenerateReport(context.Background(), bodyBytes)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
 
-	err := useCase.GenerateReport(context.Background(), bodyBytes)
+	_, err := useCase.GenerateReport(context.Background(), bodyBytes)
 	if err == nil || !strings.Contains(err.Error(), "failed to get file") {
 		t.Errorf("expected template get error, got: %v", err)
 	}

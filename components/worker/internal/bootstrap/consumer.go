@@ -69,10 +69,11 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	logger.Info("Processing message from generate report queue")
 
-	err, reportID := mq.UseCase.GenerateReport(ctx, body)
+	reportID, err := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
 		metadata := map[string]any{}
 		metadata["error"] = err.Error()
+
 		if errUpdate := mq.UseCase.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Error",
 			*reportID, time.UnixMicro(0), metadata); errUpdate != nil {
 			opentelemetry.HandleSpanError(&span, "Error updating report status", errUpdate)

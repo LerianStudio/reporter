@@ -48,7 +48,7 @@ var mimeTypes = map[string]string{
 
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
-func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uuid.UUID) {
+func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
@@ -63,7 +63,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
-		return err, &message.ReportID
+		return &message.ReportID, err
 	}
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
@@ -74,7 +74,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
-		return err, &message.ReportID
+		return &message.ReportID, err
 	}
 
 	logger.Infof("Template found: %s", string(fileBytes))
@@ -87,7 +87,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 	if err != nil {
 		logger.Errorf("Error querying external data: %s", err.Error())
 
-		return err, &message.ReportID
+		return &message.ReportID, err
 	}
 
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
@@ -100,7 +100,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 
 		logger.Errorf("Error rendering template: %s", err.Error())
 
-		return err, &message.ReportID
+		return &message.ReportID, err
 	}
 
 	spanRender.End()
@@ -111,7 +111,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 
 		logger.Errorf("Error saving report: %s", err.Error())
 
-		return err, &message.ReportID
+		return &message.ReportID, err
 	}
 
 	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Finished",
@@ -121,7 +121,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (error, *uui
 
 		logger.Errorf("Error saving report: %s", errUpdate.Error())
 
-		return errUpdate, &message.ReportID
+		return &message.ReportID, errUpdate
 	}
 
 	return nil, nil
