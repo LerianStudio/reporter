@@ -12,6 +12,7 @@ type Report struct {
 	LedgerID    []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
 	Filters     map[string]any `json:"filters"`
 	Status      string         `json:"status" example:"processing"`
+	Metadata    map[string]any `json:"metadata"`
 	CompletedAt *time.Time     `json:"completedAt"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`
@@ -54,6 +55,7 @@ func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
 		TemplateID:  rm.TemplateID,
 		LedgerID:    rm.LedgerID,
 		Status:      rm.Status,
+		Metadata:    rm.Metadata,
 		CompletedAt: rm.CompletedAt,
 		CreatedAt:   rm.CreatedAt,
 		UpdatedAt:   rm.UpdatedAt,

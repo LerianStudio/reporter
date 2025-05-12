@@ -58,14 +58,14 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	return resultTemplateModel, nil
 }
 
-// validateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on tables schema
+// validateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
 func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
 	for databaseName := range mappedFields {
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
-			logger.Errorf("Unknown data source: %s", "transaction")
+			logger.Errorf("Unknown data source: %s", databaseName)
 
-			return nil // Continue with the next database
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", databaseName)
 		}
 
 		if !dataSource.Initialized {
