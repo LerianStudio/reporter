@@ -19,28 +19,38 @@ import (
 	"plugin-smart-templates/pkg/mongodb/template"
 )
 
-// Config is the top level configuration struct for the entire application.
+const (
+	TemplateBucketName = "templates"
+	ReportBucketName   = "reports"
+)
+
+// Config is the top-level configuration struct for the entire application.
 type Config struct {
-	EnvName                     string `env:"ENV_NAME"`
-	ServerAddress               string `env:"SERVER_ADDRESS"`
-	LogLevel                    string `env:"LOG_LEVEL"`
-	OtelServiceName             string `env:"OTEL_RESOURCE_SERVICE_NAME"`
-	OtelLibraryName             string `env:"OTEL_LIBRARY_NAME"`
-	OtelServiceVersion          string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
-	OtelDeploymentEnv           string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
-	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
-	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
-	MongoURI                    string `env:"MONGO_URI"`
-	MongoDBHost                 string `env:"MONGO_HOST"`
-	MongoDBName                 string `env:"MONGO_NAME"`
-	MongoDBUser                 string `env:"MONGO_USER"`
-	MongoDBPassword             string `env:"MONGO_PASSWORD"`
-	MongoDBPort                 string `env:"MONGO_PORT"`
-	MinioAPIHost                string `env:"MINIO_API_HOST"`
-	MinioAPIPort                string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled             bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername            string `env:"MINIO_APP_USER"`
-	MinioAppPassword            string `env:"MINIO_APP_PASSWORD"`
+	// Service envs
+	EnvName       string `env:"ENV_NAME"`
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	LogLevel      string `env:"LOG_LEVEL"`
+	// Otel and telemetry configuration envs
+	OtelServiceName         string `env:"OTEL_RESOURCE_SERVICE_NAME"`
+	OtelLibraryName         string `env:"OTEL_LIBRARY_NAME"`
+	OtelServiceVersion      string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
+	OtelDeploymentEnv       string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
+	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	EnableTelemetry         bool   `env:"ENABLE_TELEMETRY"`
+	// Mongo configuration envs
+	MongoURI        string `env:"MONGO_URI"`
+	MongoDBHost     string `env:"MONGO_HOST"`
+	MongoDBName     string `env:"MONGO_NAME"`
+	MongoDBUser     string `env:"MONGO_USER"`
+	MongoDBPassword string `env:"MONGO_PASSWORD"`
+	MongoDBPort     string `env:"MONGO_PORT"`
+	// Minio configuration envs
+	MinioAPIHost     string `env:"MINIO_API_HOST"`
+	MinioAPIPort     string `env:"MINIO_API_PORT"`
+	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
+	MinioAppUsername string `env:"MINIO_APP_USER"`
+	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
 	RabbitMQPortHost            string `env:"RABBITMQ_PORT_HOST"`
@@ -48,8 +58,9 @@ type Config struct {
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
-	AuthAddress                 string `env:"PLUGIN_AUTH_ADDRESS"`
-	AuthEnabled                 bool   `env:"PLUGIN_AUTH_ENABLED"`
+	// Auth envs
+	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
+	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -114,7 +125,7 @@ func InitServers() *Service {
 
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
-		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, "templates"),
+		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, TemplateBucketName),
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
@@ -132,7 +143,7 @@ func InitServers() *Service {
 		ReportRepo:   reportMongoDBRepository,
 		RabbitMQRepo: producerRabbitMQRepository,
 		TemplateRepo: templateMongoDBRepository,
-		ReportMinio:  reportMinio.NewMinioRepository(minioClient, "reports"),
+		ReportMinio:  reportMinio.NewMinioRepository(minioClient, ReportBucketName),
 	}
 
 	reportHandler := &in2.ReportHandler{

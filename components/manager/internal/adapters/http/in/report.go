@@ -41,7 +41,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	c.SetUserContext(ctx)
 
-	ctx, span = tracer.Start(ctx, "handler.create_template")
+	ctx, span = tracer.Start(ctx, "handler.create_report")
 	defer span.End()
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
@@ -50,12 +50,12 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to create pack on command", err)
+		opentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
 		return http.WithError(c, err)
 	}
 
-	logger.Infof("Successfully created create report %v", reportOut)
+	logger.Infof("Successfully created a report %v", reportOut)
 
 	return http.OK(c, reportOut)
 }
@@ -78,11 +78,11 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.get_report_download")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Template with ID: %s", id)
+	logger.Infof("Initiating get a Report with ID: %s", id)
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
@@ -95,7 +95,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	if reportModel.Status != "Finished" {
+	if reportModel.Status != constant.FinishedStatus {
 		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
 		opentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
 
@@ -139,18 +139,18 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
-//	@Router			/v1/reports/{id}							 [get]
+//	@Router			/v1/reports/{id}									 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.get_report")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Template with ID: %s", id)
+	logger.Infof("Initiating get a Report with ID: %s", id)
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 

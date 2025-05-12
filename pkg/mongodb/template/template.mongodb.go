@@ -102,6 +102,19 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
 
 	queryFilter := bson.M{}
+
+	if !commons.IsNilOrEmpty(&filters.OutputFormat) {
+		queryFilter["output_format"] = filters.OutputFormat
+	}
+
+	if !commons.IsNilOrEmpty(&filters.Description) {
+		queryFilter["description"] = bson.M{
+			"$regex":   filters.Description,
+			"$options": "i", // "i" = case-insensitive
+		}
+	}
+
+	queryFilter["organization_id"] = filters.OrganizationID
 	queryFilter["deleted_at"] = bson.D{{Key: "$eq", Value: nil}}
 
 	limit := int64(filters.Limit)

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/pongo"
 	"reflect"
@@ -48,7 +49,7 @@ var mimeTypes = map[string]string{
 
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
-func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID, error) {
+func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
@@ -59,22 +60,36 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID,
 
 	err := json.Unmarshal(body, &message)
 	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
 		libOtel.HandleSpanError(&span, "Error unmarshalling message.", err)
 
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
-		return &message.ReportID, err
+		return err
 	}
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
 
 	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
 	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
 		libOtel.HandleSpanError(&spanTemplate, "Error getting file from template bucket.", err)
 
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
-		return &message.ReportID, err
+		return err
 	}
 
 	logger.Infof("Template found: %s", string(fileBytes))
@@ -85,9 +100,16 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID,
 
 	err = uc.queryExternalData(ctx, message, result)
 	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
 		logger.Errorf("Error querying external data: %s", err.Error())
 
-		return &message.ReportID, err
+		return err
 	}
 
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
@@ -96,35 +118,70 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) (*uuid.UUID,
 
 	out, err := renderer.RenderFromBytes(ctx, fileBytes, result)
 	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
 		libOtel.HandleSpanError(&spanRender, "Error rendering template.", err)
 
 		logger.Errorf("Error rendering template: %s", err.Error())
 
-		return &message.ReportID, err
+		return err
 	}
 
 	spanRender.End()
 
 	err = uc.saveReport(ctx, tracer, message, out, logger)
 	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
 		libOtel.HandleSpanError(&span, "Error saving report.", err)
 
 		logger.Errorf("Error saving report: %s", err.Error())
 
-		return &message.ReportID, err
+		return err
 	}
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), "Finished",
-		message.ReportID, time.Now(), nil)
+	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
+		constant.FinishedStatus, time.Now(), nil)
+	if errUpdateStatus != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, errUpdateStatus.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return errUpdate
+		}
+
+		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdateStatus)
+
+		logger.Errorf("Error saving report: %s", errUpdateStatus.Error())
+
+		return errUpdateStatus
+	}
+
+	return nil
+}
+
+// updateReportWithErrors updates the status of a report to "Error" with metadata containing the provided error message.
+func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUID, errorMessage string) error {
+	metadata := make(map[string]any)
+	metadata["error"] = errorMessage
+
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), reportId,
+		constant.ErrorStatus, time.Now(), metadata)
 	if errUpdate != nil {
-		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdate)
-
-		logger.Errorf("Error saving report: %s", errUpdate.Error())
-
-		return &message.ReportID, errUpdate
+		return errUpdate
 	}
 
-	return nil, nil
+	return nil
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.

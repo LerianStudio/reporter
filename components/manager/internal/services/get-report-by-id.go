@@ -25,9 +25,9 @@ func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UU
 
 	reportModel, err := uc.ReportRepo.FindByID(ctx, reflect.TypeOf(report.Report{}).Name(), id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get c on repo by id", err)
+		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
 
-		logger.Errorf("Error getting FindByID on repo by id: %v", err)
+		logger.Errorf("Error getting report on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(report.Report{}).Name())

@@ -451,6 +451,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Report status not Finished",
 			Message:    "The Report is not ready to download. Report is processing yet.",
 		},
+		constant.ErrMissingSchemaTable: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingSchemaTable.Error(),
+			Title:      "Missing Schema Table",
+			Message:    "There is a schema table missing. Please check your template file passed.",
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

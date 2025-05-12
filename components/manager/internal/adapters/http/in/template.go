@@ -27,11 +27,12 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description		formData	string	true	"Description of the template"
-//	@Success		201				{object}	template.Template
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description			formData	string	true	"Description of the template"
+//	@Success		201					{object}	template.Template
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -75,7 +76,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to create pack on command", err)
+		opentelemetry.HandleSpanError(&span, "Failed to create template", err)
 
 		return http.WithError(c, err)
 	}
@@ -83,7 +84,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	// Get a file in bytes
 	fileBytes, err := http.ReadMultipartFile(fileHeader)
 	if err != nil {
-		logger.Errorf("Erro ao ler conteúdo do arquivo: %v", err)
+		logger.Errorf("Error to get the file content: %v", err)
 		return http.WithError(c, err)
 	}
 
@@ -98,7 +99,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	logger.Infof("Successfully created create template %v", templateOut)
 
-	return http.OK(c, templateOut)
+	return http.Created(c, templateOut)
 }
 
 // UpdateTemplateByID is a method that updates a Template by a given id.
@@ -108,12 +109,13 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description		formData	string	true	"Description of the template"
-//	@Param			id				path		string	true	"Template ID"
-//	@Success		200				{object}	template.Template
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description			formData	string	true	"Description of the template"
+//	@Param			id					path		string	true	"Template ID"
+//	@Success		200					{object}	template.Template
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -125,7 +127,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating update of Package with ID: %s", id)
+	logger.Infof("Initiating update of Template with ID: %s", id)
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
@@ -138,9 +140,9 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	}
 
 	if errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, organizationID, id, fileHeader); errUpdate != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to update package", errUpdate)
+		opentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
 
-		logger.Errorf("Failed to update Package with ID: %s, Error: %s", id, errUpdate.Error())
+		logger.Errorf("Failed to update Template with ID: %s, Error: %s", id, errUpdate.Error())
 
 		return http.WithError(c, errUpdate)
 	}
@@ -155,10 +157,10 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	}
 
 	if fileHeader != nil {
-		// Get file in bytes
+		// Get a file in bytes
 		fileBytes, err := http.ReadMultipartFile(fileHeader)
 		if err != nil {
-			logger.Errorf("Erro ao ler conteúdo do arquivo: %v", err)
+			logger.Errorf("Error to get file content: %v", err)
 			return http.WithError(c, err)
 		}
 
@@ -184,12 +186,13 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	true	"The authorization token in the 'Bearer	access_token' format."
-//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description		formData	string	true	"Description of the template"
-//	@Param			id				path		string	true	"Template ID"
-//	@Success		200				{object}	template.Template
+//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description			formData	string	true	"Description of the template"
+//	@Param			id					path		string	true	"Template ID"
+//	@Success		200					{object}	template.Template
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -227,6 +230,8 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			outputFormat		query		string	false	"XML, HTML, TXT and CSV"
+//	@Param			description			query		string	false	"Description of template"
 //	@Param			limit				query		int		false	"Limit"	default(10)
 //	@Param			page				query		int		false	"Page"	default(1)
 //	@Success		200					{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}

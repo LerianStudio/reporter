@@ -14,7 +14,7 @@ var (
 	OrgIDHeaderParameter = "X-Organization-Id"
 )
 
-// ParsePathParameters convert and validate if the path parameters is UUID
+// ParsePathParameters convert and validate if the path parameter is UUID
 func ParsePathParameters(c *fiber.Ctx) error {
 	pathParam := c.Params(UUIDPathParameter)
 
