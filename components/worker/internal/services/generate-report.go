@@ -150,8 +150,8 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return err
 	}
 
-	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), message.ReportID,
-		constant.FinishedStatus, time.Now(), nil)
+	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(),
+		constant.FinishedStatus, message.ReportID, time.Now(), nil)
 	if errUpdateStatus != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, errUpdateStatus.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -175,8 +175,8 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 	metadata := make(map[string]any)
 	metadata["error"] = errorMessage
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), reportId,
-		constant.ErrorStatus, time.Now(), metadata)
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), constant.ErrorStatus,
+		reportId, time.Now(), metadata)
 	if errUpdate != nil {
 		return errUpdate
 	}
