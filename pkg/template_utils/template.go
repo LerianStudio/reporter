@@ -108,7 +108,7 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 // It cleans paths, maps targets to their corresponding variables, and inserts additional parameters where applicable.
 func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile string) map[string]any {
 	result := map[string]any{}
-	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]*%}`)
+	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
 
 	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range withMatches {
@@ -117,14 +117,12 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 		argParts := strings.Split(args, ",")
 
 		if len(argParts) > 0 {
-			filterTarget := strings.TrimSpace(argParts[0]) // exemplo: midaz_transaction.balance
+			filterTarget := strings.TrimSpace(argParts[0])
 			path := CleanPath(filterTarget)
 
 			if len(path) >= 2 {
-				// 💡 Aqui é o ponto importante: mapear balance -> midaz_transaction.balance
 				variableMap[assignedVar] = []string{path[0], path[1]}
 
-				// Parameters adicionais (ex: account.id)
 				for _, param := range argParts[1:] {
 					param = strings.TrimSpace(param)
 					cleanParam := strings.Trim(param, `"' `)
@@ -136,7 +134,6 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 					paramPath := CleanPath(cleanParam)
 
 					if len(paramPath) < 2 {
-						// talvez seja uma chave simples como "account_id"
 						insertField(result, path, cleanParam)
 						continue
 					}

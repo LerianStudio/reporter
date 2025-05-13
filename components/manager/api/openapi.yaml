@@ -12,10 +12,10 @@ paths:
     post:
       description: Create a Report of existent template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         schema:
           type: string
       - description: Organization ID
@@ -46,10 +46,10 @@ paths:
     get:
       description: Get information of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         schema:
           type: string
       - description: Organization ID
@@ -78,10 +78,10 @@ paths:
     get:
       description: Make a download of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         schema:
           type: string
       - description: Organization ID
@@ -111,16 +111,26 @@ paths:
     get:
       description: List all the templates
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         schema:
           type: string
       - description: Organization ID
         in: header
         name: X-Organization-Id
         required: true
+        schema:
+          type: string
+      - description: XML, HTML, TXT and CSV
+        in: query
+        name: outputFormat
+        schema:
+          type: string
+      - description: Description of template
+        in: query
+        name: description
         schema:
           type: string
       - description: Limit
@@ -148,9 +158,15 @@ paths:
     post:
       description: Create a Template for reports with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         schema:
           type: string
@@ -188,10 +204,10 @@ paths:
     delete:
       description: SoftDelete a Template with the input ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         schema:
           type: string
       - description: Organization ID
@@ -216,9 +232,15 @@ paths:
     get:
       description: Get a template by id
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         schema:
           type: string
@@ -261,9 +283,15 @@ paths:
     patch:
       description: Update a template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         schema:
           type: string
@@ -311,11 +339,21 @@ components:
         ledgerId:
         - 00000000-0000-0000-0000-000000000000
         filters:
-          key: '{}'
+          key:
+            key:
+              key:
+              - filters
+              - filters
         templateId: 00000000-0000-0000-0000-000000000000
       properties:
         filters:
           additionalProperties:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
             type: object
           type: object
         ledgerId:
@@ -355,7 +393,7 @@ components:
     plugin-smart-templates_pkg_mongodb_template.Template:
       example:
         createdAt: 2021-01-01T00:00:00Z
-        filename: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+        fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
         description: Template Financeiro
         id: 00000000-0000-0000-0000-000000000000
         outputFormat: HTML
@@ -367,7 +405,7 @@ components:
         description:
           example: Template Financeiro
           type: string
-        filename:
+        fileName:
           example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
           type: string
         id:
@@ -388,8 +426,14 @@ components:
         createdAt: createdAt
         completedAt: completedAt
         deletedAt: deletedAt
-        filters:
+        metadata:
           key: '{}'
+        filters:
+          key:
+            key:
+              key:
+              - filters
+              - filters
         id: 00000000-0000-0000-0000-000000000000
         templateId: 00000000-0000-0000-0000-000000000000
         status: processing
@@ -403,6 +447,12 @@ components:
           type: string
         filters:
           additionalProperties:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
             type: object
           type: object
         id:
@@ -415,6 +465,10 @@ components:
           items:
             type: string
           type: array
+        metadata:
+          additionalProperties:
+            type: object
+          type: object
         status:
           example: processing
           type: string
@@ -436,13 +490,13 @@ components:
         page: 6
         items:
         - createdAt: 2021-01-01T00:00:00Z
-          filename: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
           description: Template Financeiro
           id: 00000000-0000-0000-0000-000000000000
           outputFormat: HTML
           updatedAt: 2021-01-01T00:00:00Z
         - createdAt: 2021-01-01T00:00:00Z
-          filename: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
           description: Template Financeiro
           id: 00000000-0000-0000-0000-000000000000
           outputFormat: HTML
