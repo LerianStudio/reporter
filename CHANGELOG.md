@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.14] - 2025-05-13
+
+### 🐛 Bug Fixes
+- Adjust filter validation for report generation to ensure correct functionality
+
+### 📚 Documentation
+- Generate new Swagger documentation to improve API clarity and usability
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
