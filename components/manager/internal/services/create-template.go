@@ -58,14 +58,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	return resultTemplateModel, nil
 }
 
-// validateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on tables schema
+// validateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
 func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
 	for databaseName := range mappedFields {
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
-			logger.Errorf("Unknown data source: %s", "transaction")
-
-			return nil // Continue with the next database
+			logger.Errorf("Unknown data source: %s", databaseName)
+			return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "")
 		}
 
 		if !dataSource.Initialized {
@@ -98,16 +97,22 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 
 // validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
 func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	var countIfTableExist = int32(0)
+
 	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, s := range schema {
-		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s)
+		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s, &countIfTableExist)
 		if len(fieldsMissing) > 0 {
-			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+			return pkg.ValidateBusinessError(constant.ErrMissingRequiredFields, "", fieldsMissing)
 		}
+	}
+
+	if countIfTableExist == 0 {
+		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", "")
 	}
 
 	errClose := dataSource.PostgresRepository.CloseConnection()

@@ -130,7 +130,7 @@ func TestGenerateReport_Success(t *testing.T) {
 		},
 	}
 
-	_, err := useCase.GenerateReport(context.Background(), bodyBytes)
+	err := useCase.GenerateReport(context.Background(), bodyBytes)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -141,6 +141,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
 	reportID := uuid.New()
@@ -158,12 +159,17 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Get(gomock.Any(), templateID.String()).
 		Return(nil, errors.New("failed to get file"))
 
+	mockReportDataRepo.EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
 	useCase := &UseCase{
 		TemplateFileRepo:    mockTemplateRepo,
+		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
 
-	_, err := useCase.GenerateReport(context.Background(), bodyBytes)
+	err := useCase.GenerateReport(context.Background(), bodyBytes)
 	if err == nil || !strings.Contains(err.Error(), "failed to get file") {
 		t.Errorf("expected template get error, got: %v", err)
 	}
@@ -207,9 +213,11 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
 		ReportFileRepo: mockReportRepo,
+		ReportDataRepo: mockReportDataRepo,
 	}
 
 	reportID := uuid.New()

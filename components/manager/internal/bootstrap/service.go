@@ -5,14 +5,14 @@ import (
 	"plugin-smart-templates/pkg"
 )
 
-// Service is the application glue where we put all top level components to be used.
+// Service is the application glue where we put all top-level components to be used.
 type Service struct {
 	*Server
 	log.Logger
 }
 
 // Run starts the application.
-// This is the only necessary code to run an app in main.go
+// This is the only necessary code to run an app in the main.go
 func (app *Service) Run() {
 	pkg.NewLauncher(
 		pkg.WithLogger(app.Logger),

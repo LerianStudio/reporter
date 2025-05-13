@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/flosch/pongo2/v6"
 )
@@ -16,6 +18,12 @@ type aggregateTagNode struct {
 	fieldExpr      pongo2.IEvaluator // Field expression for selecting specific fields (e.g., "by field")
 	filterExpr     pongo2.IEvaluator // Condition to filter items in the dataset (e.g., "if condition" in the template tag)
 	scaleExpr      pongo2.IEvaluator // Expression for scaling results (e.g., formatting decimals like "scale 2")
+}
+
+// dateNowNode represents a data structure to hold information for the dateNow template tag.
+// It includes the expression representing the date format (e.g., "YYYY-MM-dd").
+type dateNowNode struct {
+	formatExpr pongo2.IEvaluator // Expression representing the date format (e.g., "YYYY-MM-dd")
 }
 
 // makeAggregateTag returns a pongo2.TagParser for creating custom aggregate template tags based on the specified operation.
@@ -63,6 +71,39 @@ func makeAggregateTag(op string) pongo2.TagParser {
 			scaleExpr:      scaleExpr,
 		}, nil
 	}
+}
+
+// makeDateNowTag creates a custom Pongo2 template tag that outputs the current date formatted according to the provided expression.
+func makeDateNowTag() pongo2.TagParser {
+	return func(doc *pongo2.Parser, start *pongo2.Token, args *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+		formatExpr, err := args.ParseExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		return &dateNowNode{
+			formatExpr: formatExpr,
+		}, nil
+	}
+}
+
+// Execute renders the current date in a specified format and writes it using the provided template writer.
+func (node *dateNowNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+	formatVal, err := node.formatExpr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+
+	format := formatVal.String()
+	goLayout := convertToGoDateLayout(format)
+	output := time.Now().Format(goLayout)
+
+	_, err2 := writer.WriteString(output)
+	if err2 != nil {
+		return ctx.Error("Failed to write date", nil)
+	}
+
+	return nil
 }
 
 // Execute processes a template tag by evaluating a collection and performing aggregation, then writes the result to the output.
@@ -242,4 +283,18 @@ func formatOutput(op string, total int64, count int, minVal, maxVal *int64, scal
 	default:
 		return "NaN"
 	}
+}
+
+// convertToGoDateLayout converts a date format string from a custom format (e.g., "YYYY-MM-dd") to Go's date layout format.
+func convertToGoDateLayout(layout string) string {
+	replacer := strings.NewReplacer(
+		"YYYY", "2006",
+		"MM", "01",
+		"dd", "02",
+		"HH", "15",
+		"mm", "04",
+		"ss", "05",
+	)
+
+	return replacer.Replace(layout)
 }

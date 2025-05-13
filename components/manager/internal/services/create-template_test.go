@@ -6,8 +6,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/mongodb"
 	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/pkg/postgres"
 	"testing"
 	"time"
 )
@@ -17,11 +20,77 @@ func Test_createTemplate(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTempRepo := template.NewMockRepository(ctrl)
+	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
 	tempId := uuid.New()
 	orgId := uuid.New()
 
+	mongoSchemas := []mongodb.CollectionSchema{
+		{
+			CollectionName: "organization",
+			Fields: []mongodb.FieldInformation{
+				{
+					Name:     "legal_document",
+					DataType: "string",
+				},
+				{
+					Name:     "legal_name",
+					DataType: "string",
+				},
+				{
+					Name:     "doing_business_as",
+					DataType: "string",
+				},
+				{
+					Name:     "address",
+					DataType: "array",
+				},
+			},
+		},
+	}
+
+	postgresSchemas := []postgres.TableSchema{
+		{
+			TableName: "ledger",
+			Columns: []postgres.ColumnInformation{
+				{
+					Name:     "name",
+					DataType: "string",
+				},
+				{
+					Name:     "status",
+					DataType: "string",
+				},
+			},
+		},
+	}
+
+	externalDataSources := map[string]pkg.DataSource{}
+	externalDataSources["midaz_organization"] = pkg.DataSource{
+		DatabaseType:       "mongodb",
+		PostgresRepository: mockDataSourcePostgres,
+		MongoDBRepository:  mockDataSourceMongo,
+		DatabaseConfig:     nil,
+		MongoURI:           "",
+		MongoDBName:        "organization",
+		Connection:         nil,
+		Initialized:        true,
+	}
+
+	externalDataSources["midaz_onboarding"] = pkg.DataSource{
+		DatabaseType:       "postgresql",
+		PostgresRepository: mockDataSourcePostgres,
+		MongoDBRepository:  mockDataSourceMongo,
+		DatabaseConfig:     nil,
+		MongoURI:           "",
+		MongoDBName:        "ledger",
+		Connection:         nil,
+		Initialized:        true,
+	}
+
 	tempSvc := &UseCase{
-		TemplateRepo: mockTempRepo,
+		TemplateRepo:        mockTempRepo,
+		ExternalDataSources: externalDataSources,
 	}
 
 	timestamp := time.Now().Unix()
@@ -35,50 +104,21 @@ func Test_createTemplate(t *testing.T) {
 
 	templateTest := `
 		<?xml version="1.0" encoding="UTF-8"?>
-		{%- if not transaction_id -%}
-		{% set transaction_id = "01965f04-7087-735f-a284-3d3e4edc6a48" %}
-		{%- endif -%}
-		{%- for t in .transaction -%}
-		{%- if transaction_id == "" or t.id == transaction_id -%}
-		<Transacao>
-			<Identificador>{{ t.id }}</Identificador>
-			<Descricao>{{ t.description }}</Descricao>
-			<Template>{{ t.template }}</Template>
-			<DataCriacao>{{ t.created_at }}</DataCriacao>
-			<Status>{{ t.status }}</Status>
-			<Valor scale="{{ t.amount_scale }}">
-				{{ t.amount }}
-			</Valor>
-			<Moeda>{{ t.asset_code }}</Moeda>
-			<PlanoContas>{{ t.chart_of_accounts_group_name }}</PlanoContas>
-		
-			{% for org in onboarding.organization %}
-			<Organizacao>
-				<CNPJ>{{ org.legal_document }}</CNPJ>
-				<NomeLegal>{{ org.legal_name }}</NomeLegal>
-				<NomeFantasia>{{ org.doing_business_as }}</NomeFantasia>
-				<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
-			</Organizacao>
-			{% endfor %}
-		
-			{% for l in onboarding.ledger %}
-			<Ledger>
-				<Nome>{{ l.name }}</Nome>
-				<Status>{{ l.status }}</Status>
-			</Ledger>
-			{% endfor %}
-		
-			{% for a in onboarding.asset %}
-			<Ativo>
-				<Nome>{{ a.name }}</Nome>
-				<Tipo>{{ a.type }}</Tipo>
-				<Codigo>{{ a.code }}</Codigo>
-			</Ativo>
-			{% endfor %}
-		
-		</Transacao>
-		{% endif %}
-		{%- endfor %}
+		{% for org in midaz_organization.organization %}
+		<Organizacao>
+			<CNPJ>{{ org.legal_document }}</CNPJ>
+			<NomeLegal>{{ org.legal_name }}</NomeLegal>
+			<NomeFantasia>{{ org.doing_business_as }}</NomeFantasia>
+			<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
+		</Organizacao>
+		{% endfor %}
+	
+		{% for l in midaz_onboarding.ledger %}
+		<Ledger>
+			<Nome>{{ l.name }}</Nome>
+			<Status>{{ l.status }}</Status>
+		</Ledger>
+		{% endfor %}
 	`
 
 	tests := []struct {
@@ -98,6 +138,23 @@ func Test_createTemplate(t *testing.T) {
 			description:  "Template Financeiro",
 			orgId:        orgId,
 			mockSetup: func() {
+
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
 				mockTempRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
@@ -118,6 +175,22 @@ func Test_createTemplate(t *testing.T) {
 			description:  "Template Financeiro",
 			orgId:        orgId,
 			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
 				mockTempRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)

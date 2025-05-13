@@ -39,4 +39,5 @@ var (
 	ErrMetadataValueLengthExceeded     = errors.New("TPL-0029")
 	ErrInvalidMetadataNesting          = errors.New("TPL-0030")
 	ErrReportStatusNotFinished         = errors.New("TPL-0031")
+	ErrMissingSchemaTable              = errors.New("TPL-0032")
 )

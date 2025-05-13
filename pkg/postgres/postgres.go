@@ -65,13 +65,15 @@ func (pc *Connection) GetDB() (*sql.DB, error) {
 }
 
 // ValidateFieldsInSchemaPostgres validate if all fields exist on postgres schema table
-func ValidateFieldsInSchemaPostgres(expectedFields []string, schema TableSchema) (missing []string) {
+func ValidateFieldsInSchemaPostgres(expectedFields []string, schema TableSchema, countIfTableExist *int32) (missing []string) {
 	columnSet := make(map[string]struct{}, len(schema.Columns))
 	for _, col := range schema.Columns {
 		columnSet[strings.ToLower(col.Name)] = struct{}{}
 	}
 
 	for _, field := range expectedFields {
+		*countIfTableExist++
+
 		if _, exists := columnSet[strings.ToLower(field)]; !exists {
 			missing = append(missing, field)
 		}

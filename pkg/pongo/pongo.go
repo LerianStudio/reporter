@@ -28,10 +28,19 @@ func init() {
 		{"avg_by", "avg"},
 		{"min_by", "min"},
 		{"max_by", "max"},
+		{"date_time", "date"},
 	}
 
 	for _, tag := range tags {
-		if err := pongo2.RegisterTag(tag.name, makeAggregateTag(tag.op)); err != nil {
+		var err error
+
+		if tag.op == "date" {
+			err = pongo2.RegisterTag(tag.name, makeDateNowTag())
+		} else {
+			err = pongo2.RegisterTag(tag.name, makeAggregateTag(tag.op))
+		}
+
+		if err != nil {
 			panic(fmt.Sprintf("Failed to register tag '%s': %s", tag.name, err.Error()))
 		}
 	}

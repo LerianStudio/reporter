@@ -24,7 +24,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	logger.Infof("Creating report")
 
-	// Validate ledgerID list if all values is uuid
+	// Validate the ledgerID list if all values are uuid
 	ledgerIDConverted := make([]uuid.UUID, 0, len(reportInput.LedgerID))
 
 	for _, ledgerId := range reportInput.LedgerID {
@@ -42,7 +42,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		return nil, pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
 	}
 
-	// Find template to generate report
+	// Find template to generate a report
 	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
 	if err != nil {
 		logger.Errorf("Error to find template by id, Error: %v", err)
@@ -60,7 +60,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		TemplateID: templateId,
 		LedgerID:   ledgerIDConverted,
 		Filters:    reportInput.Filters,
-		Status:     "processing",
+		Status:     constant.ProcessingStatus,
 	}
 
 	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel, organizationID)

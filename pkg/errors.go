@@ -443,13 +443,19 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingTableFields.Error(),
 			Title:      "Missing required fields",
-			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed %v.", args...),
+			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed '%v'.", args...),
 		},
 		constant.ErrReportStatusNotFinished: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrReportStatusNotFinished.Error(),
 			Title:      "Report status not Finished",
 			Message:    "The Report is not ready to download. Report is processing yet.",
+		},
+		constant.ErrMissingSchemaTable: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingSchemaTable.Error(),
+			Title:      "Missing Schema Table",
+			Message:    "There is a schema table missing. Please check your template file passed.",
 		},
 	}
 

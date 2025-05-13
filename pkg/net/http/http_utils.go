@@ -16,6 +16,8 @@ import (
 // QueryHeader entity from query parameter from get apis
 type QueryHeader struct {
 	Metadata       *bson.M
+	OutputFormat   string
+	Description    string
 	Limit          int
 	Page           int
 	Cursor         string
@@ -59,6 +61,8 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		endDate      time.Time
 		cursor       string
 		alias        string
+		outputFormat string
+		description  string
 		limit        = 10
 		page         = 1
 		sortOrder    = "desc"
@@ -70,6 +74,14 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		case strings.Contains(key, "metadata."):
 			metadata = &bson.M{key: value}
 			useMetadata = true
+		case strings.Contains(key, "outputFormat"):
+			if !pkg.IsOutputFormatValuesValid(&value) {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidOutputFormat, "")
+			}
+
+			outputFormat = value
+		case strings.Contains(key, "description"):
+			description = value
 		case strings.Contains(key, "limit"):
 			limit, _ = strconv.Atoi(value)
 		case strings.Contains(key, "page"):
@@ -101,6 +113,8 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 
 	query := &QueryHeader{
 		Metadata:     metadata,
+		OutputFormat: outputFormat,
+		Description:  description,
 		Limit:        limit,
 		Page:         page,
 		Cursor:       cursor,
