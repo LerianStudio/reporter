@@ -371,7 +371,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrInvalidOutputFormat.Error(),
 			Title:      "Invalid output format",
-			Message:    "The outputFormat field must be one of: html, csv, or xml. ",
+			Message:    "The outputFormat field must be one of: html, csv, or xml.",
 		},
 		constant.ErrInvalidHeaderParameter: ValidationError{
 			EntityType: entityType,
@@ -397,23 +397,11 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Error File Content Invalid",
 			Message:    fmt.Sprintf("The file content is invalid because is not %s. Please check the uploaded file.", args),
 		},
-		constant.ErrKeyNotAllowed: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrKeyNotAllowed.Error(),
-			Title:      "Error Key Not Allowed",
-			Message:    fmt.Sprintf("The key %s on mapped fields is not allowed. Please check the uploaded file.", args),
-		},
 		constant.ErrInvalidMapFields: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrInvalidMapFields.Error(),
 			Title:      "Invalid Map Fields",
 			Message:    fmt.Sprintf("The field on template file is invalid. Invalid field %s on %s.", args...),
-		},
-		constant.ErrMapFieldKeyUnexpected: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrMapFieldKeyUnexpected.Error(),
-			Title:      "Error Key Unexpected",
-			Message:    fmt.Sprintf("The key %s is unexpected. Please check the uploaded file.", args),
 		},
 		constant.ErrInvalidPathParameter: ValidationError{
 			EntityType: entityType,
@@ -456,6 +444,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrMissingSchemaTable.Error(),
 			Title:      "Missing Schema Table",
 			Message:    "There is a schema table missing. Please check your template file passed.",
+		},
+		constant.ErrMissingDataSource: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingDataSource.Error(),
+			Title:      "Missing Data Source Table",
+			Message:    fmt.Sprintf("The data source %v is missing. Please check the value passed.", args),
 		},
 	}
 

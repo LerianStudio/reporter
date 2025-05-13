@@ -64,7 +64,7 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
 			logger.Errorf("Unknown data source: %s", databaseName)
-			return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "")
+			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 
 		if !dataSource.Initialized {
@@ -107,7 +107,7 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 	for _, s := range schema {
 		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s, &countIfTableExist)
 		if len(fieldsMissing) > 0 {
-			return pkg.ValidateBusinessError(constant.ErrMissingRequiredFields, "", fieldsMissing)
+			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
 		}
 	}
 

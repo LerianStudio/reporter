@@ -27,7 +27,7 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
@@ -109,7 +109,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
@@ -186,7 +186,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
@@ -228,7 +228,7 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Description	List all the templates
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			outputFormat		query		string	false	"XML, HTML, TXT and CSV"
 //	@Param			description			query		string	false	"Description of template"
@@ -280,12 +280,12 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 	return commonsHttp.OK(c, pagination)
 }
 
-// DeleteTemplateByID is a method that removes a template information by a given id.
+// DeleteTemplateByID is a method that removes template information by a given id.
 //
 //	@Summary		SoftDelete a Template by ID
 //	@Description	SoftDelete a Template with the input ID
 //	@Tags			Templates
-//	@Param			Authorization		header	string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
 //	@Success		204

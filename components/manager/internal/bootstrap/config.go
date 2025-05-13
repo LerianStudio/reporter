@@ -140,10 +140,11 @@ func InitServers() *Service {
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
 	reportService := &services.UseCase{
-		ReportRepo:   reportMongoDBRepository,
-		RabbitMQRepo: producerRabbitMQRepository,
-		TemplateRepo: templateMongoDBRepository,
-		ReportMinio:  reportMinio.NewMinioRepository(minioClient, ReportBucketName),
+		ReportRepo:          reportMongoDBRepository,
+		RabbitMQRepo:        producerRabbitMQRepository,
+		TemplateRepo:        templateMongoDBRepository,
+		ReportMinio:         reportMinio.NewMinioRepository(minioClient, ReportBucketName),
+		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
 	reportHandler := &in2.ReportHandler{

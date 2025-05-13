@@ -32,10 +32,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -80,10 +79,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -126,10 +124,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -169,10 +166,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -180,6 +176,18 @@ const docTemplate = `{
                         "name": "X-Organization-Id",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "XML, HTML, TXT and CSV",
+                        "name": "outputFormat",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description of template",
+                        "name": "description",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -244,8 +252,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
                         "in": "header",
                         "required": true
                     },
@@ -297,8 +311,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
                         "in": "header",
                         "required": true
                     },
@@ -349,10 +369,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     },
                     {
                         "type": "string",
@@ -390,8 +409,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format.",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
                         "in": "header",
                         "required": true
                     },
@@ -446,7 +471,18 @@ const docTemplate = `{
             "properties": {
                 "filters": {
                     "type": "object",
-                    "additionalProperties": {}
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
                 },
                 "ledgerId": {
                     "type": "array",
@@ -493,7 +529,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Template Financeiro"
                 },
-                "filename": {
+                "fileName": {
                     "type": "string",
                     "example": "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl"
                 },
@@ -525,7 +561,18 @@ const docTemplate = `{
                 },
                 "filters": {
                     "type": "object",
-                    "additionalProperties": {}
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
                 },
                 "id": {
                     "type": "string",
@@ -540,6 +587,10 @@ const docTemplate = `{
                         "['00000000-0000-0000-0000-000000000000'",
                         " '00000000-0000-0000-0000-000000000000']"
                     ]
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
                 },
                 "status": {
                     "type": "string",

@@ -42,7 +42,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		return nil, pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
 	}
 
-	// Find template to generate a report
+	// Find a template to generate a report
 	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
 	if err != nil {
 		logger.Errorf("Error to find template by id, Error: %v", err)
@@ -52,6 +52,13 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		}
 
 		return nil, err
+	}
+
+	if reportInput.Filters != nil {
+		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
+		if errValidateFields := uc.validateIfFieldsExistOnTables(ctx, logger, filtersMapped); errValidateFields != nil {
+			return nil, errValidateFields
+		}
 	}
 
 	// Build the report model
@@ -82,4 +89,32 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	uc.SendReportQueueReports(ctx, reportMessage)
 
 	return result, nil
+}
+
+// convertFiltersToMappedFieldsType transforms a deeply nested filter map into a mapped fields structure with limited keys per level.
+func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string][]string) map[string]map[string][]string {
+	output := make(map[string]map[string][]string)
+
+	for topKey, nested := range filters {
+		output[topKey] = make(map[string][]string)
+
+		for midKey, inner := range nested {
+			var keys []string
+
+			count := 0
+
+			for innerKey := range inner {
+				keys = append(keys, innerKey)
+
+				count++
+				if count == 3 {
+					break
+				}
+			}
+
+			output[topKey][midKey] = keys
+		}
+	}
+
+	return output
 }

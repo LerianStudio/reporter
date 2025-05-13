@@ -7,16 +7,16 @@ import (
 
 // Report represents the entity model for a report
 type Report struct {
-	ID          uuid.UUID      `json:"id" example:"00000000-0000-0000-0000-000000000000"`
-	TemplateID  uuid.UUID      `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
-	LedgerID    []uuid.UUID    `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
-	Filters     map[string]any `json:"filters"`
-	Status      string         `json:"status" example:"processing"`
-	Metadata    map[string]any `json:"metadata"`
-	CompletedAt *time.Time     `json:"completedAt"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   *time.Time     `json:"deletedAt"`
+	ID          uuid.UUID                                 `json:"id" example:"00000000-0000-0000-0000-000000000000"`
+	TemplateID  uuid.UUID                                 `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
+	LedgerID    []uuid.UUID                               `json:"ledgerId" example:"['00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000']"`
+	Filters     map[string]map[string]map[string][]string `json:"filters"`
+	Status      string                                    `json:"status" example:"processing"`
+	Metadata    map[string]any                            `json:"metadata"`
+	CompletedAt *time.Time                                `json:"completedAt"`
+	CreatedAt   time.Time                                 `json:"createdAt"`
+	UpdatedAt   time.Time                                 `json:"updatedAt"`
+	DeletedAt   *time.Time                                `json:"deletedAt"`
 }
 
 // ReportMongoDBModel represents the MongoDB model for a report
@@ -34,7 +34,7 @@ type ReportMongoDBModel struct {
 }
 
 // ToEntity converts ReportMongoDBModel to Report
-func (rm *ReportMongoDBModel) ToEntity(filters map[string]any) *Report {
+func (rm *ReportMongoDBModel) ToEntity(filters map[string]map[string]map[string][]string) *Report {
 	return &Report{
 		ID:          rm.ID,
 		TemplateID:  rm.TemplateID,
