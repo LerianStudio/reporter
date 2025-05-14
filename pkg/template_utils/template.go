@@ -151,10 +151,32 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 	return result
 }
 
-// extractIfFromExpression extracts object.field patterns from a string expression using a regular expression.
+// extractIfFromExpression extracts object.field patterns from a string expression,
+// skipping numerical indices like `.0` in midaz_transaction.transaction.0.id.
 func extractIfFromExpression(expr string) []string {
-	identifierRegex := regexp.MustCompile(`\b[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)+\b`)
-	return identifierRegex.FindAllString(expr, -1)
+	// Regex: matches paths like `foo.bar.baz`, optionally with `.0` etc., but filters them after
+	identifierRegex := regexp.MustCompile(`\b(?:[a-zA-Z_]\w*)(?:\.(?:[a-zA-Z_]\w*|\d+))+\b`)
+	matches := identifierRegex.FindAllString(expr, -1)
+
+	var results []string
+	for _, match := range matches {
+		parts := strings.Split(match, ".")
+		var cleaned []string
+
+		for _, part := range parts {
+			// Skip purely numeric parts like "0"
+			if _, err := strconv.Atoi(part); err == nil {
+				continue
+			}
+			cleaned = append(cleaned, part)
+		}
+
+		if len(cleaned) > 1 {
+			results = append(results, strings.Join(cleaned, "."))
+		}
+	}
+
+	return results
 }
 
 // normalizeStructure convert input to a type pattern of mapped fields map[string]map[string][]string
