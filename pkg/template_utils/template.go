@@ -159,8 +159,10 @@ func extractIfFromExpression(expr string) []string {
 	matches := identifierRegex.FindAllString(expr, -1)
 
 	var results []string
+
 	for _, match := range matches {
 		parts := strings.Split(match, ".")
+
 		var cleaned []string
 
 		for _, part := range parts {
@@ -168,6 +170,7 @@ func extractIfFromExpression(expr string) []string {
 			if _, err := strconv.Atoi(part); err == nil {
 				continue
 			}
+
 			cleaned = append(cleaned, part)
 		}
 
