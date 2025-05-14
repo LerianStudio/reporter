@@ -112,7 +112,7 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 	}
 
 	if countIfTableExist == 0 {
-		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", "")
+		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", databaseName)
 	}
 
 	errClose := dataSource.PostgresRepository.CloseConnection()

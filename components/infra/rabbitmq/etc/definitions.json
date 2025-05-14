@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "name":"plugin-smart-templates",
-      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "name":"plugin",
+      "password_hash":"Pexngh1ls20Hs8hMsMFNJSwQuDPSybD+/ZrrnFM+SUM6Dcsx",
       "hashing_algorithm":"rabbit_password_hashing_sha256",
       "tags":"administrator"
     }
@@ -14,7 +14,7 @@
   ],
   "permissions": [
     {
-      "user": "plugin-smart-templates",
+      "user": "plugin",
       "vhost": "/",
       "configure": ".*",
       "write": ".*",

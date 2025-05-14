@@ -443,7 +443,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingSchemaTable.Error(),
 			Title:      "Missing Schema Table",
-			Message:    "There is a schema table missing. Please check your template file passed.",
+			Message:    fmt.Sprintf("There is a schema table missing for data source '%v'. Please check the information passed.", args),
 		},
 		constant.ErrMissingDataSource: ValidationError{
 			EntityType: entityType,
