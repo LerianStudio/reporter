@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.15] - 2025-05-14
+
+### 🐛 Bug Fixes
+- Organize code by running lint to improve code quality and maintainability.
+
+### 🔧 Maintenance
+- Standardize environment variable names for plugin consistency, enhancing code readability and maintainability.
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
