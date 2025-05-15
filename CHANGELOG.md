@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.16] - 2025-05-15
+
+### 🐛 Bug Fixes
+- Resolve linting issues in the codebase to maintain code quality
+
+### 🔧 Maintenance
+- Add 'createdAt' filter to the templates endpoint list, enhancing the functionality and allowing more precise template management
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
