@@ -2,7 +2,7 @@ package main
 
 import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
-	"plugin-template-engine/components/worker/internal/bootstrap"
+	"plugin-smart-templates/components/worker/internal/bootstrap"
 )
 
 func main() {

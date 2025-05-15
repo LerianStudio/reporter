@@ -1,4 +1,4 @@
-# Plugin Template Engine
+# Plugin Smart Templates
 
 ## Overview
 
@@ -23,7 +23,7 @@
     ```
    
 4. **Access the API:**
-   Visit `http://localhost:4000` to interact with the API.
+   Visit `http://localhost:4005` to interact with the API.
 
 ## Components
 
@@ -79,7 +79,7 @@ The CLI image is used to create a user with upload and read permissions, which w
 
 ## Swagger Documentation
 
-The boilerplate includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4000/swagger/index.html`.
+The Plugin includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4000/swagger/index.html`.
 
 ## References
 

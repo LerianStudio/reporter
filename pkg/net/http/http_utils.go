@@ -6,8 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"io"
 	"mime/multipart"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	"strconv"
 	"strings"
 	"time"
@@ -16,12 +16,13 @@ import (
 // QueryHeader entity from query parameter from get apis
 type QueryHeader struct {
 	Metadata       *bson.M
+	OutputFormat   string
+	Description    string
 	Limit          int
 	Page           int
 	Cursor         string
 	SortOrder      string
-	StartDate      time.Time
-	EndDate        time.Time
+	CreatedAt      time.Time
 	OrganizationID uuid.UUID
 	Alias          string
 	UseMetadata    bool
@@ -34,8 +35,6 @@ type Pagination struct {
 	Page      int
 	Cursor    string
 	SortOrder string
-	StartDate time.Time
-	EndDate   time.Time
 	Alias     string
 }
 
@@ -44,8 +43,6 @@ func (qh *QueryHeader) ToOffsetPagination() Pagination {
 		Limit:     qh.Limit,
 		Page:      qh.Page,
 		SortOrder: qh.SortOrder,
-		StartDate: qh.StartDate,
-		EndDate:   qh.EndDate,
 		Alias:     qh.Alias,
 	}
 }
@@ -54,11 +51,10 @@ func (qh *QueryHeader) ToOffsetPagination() Pagination {
 func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 	var (
 		metadata     *bson.M
-		toAssetCodes []string
-		startDate    time.Time
-		endDate      time.Time
+		createdAt    time.Time
 		cursor       string
-		alias        string
+		outputFormat string
+		description  string
 		limit        = 10
 		page         = 1
 		sortOrder    = "desc"
@@ -70,46 +66,42 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		case strings.Contains(key, "metadata."):
 			metadata = &bson.M{key: value}
 			useMetadata = true
+		case strings.Contains(key, "outputFormat"):
+			if !pkg.IsOutputFormatValuesValid(&value) {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidOutputFormat, "")
+			}
+
+			outputFormat = value
+		case strings.Contains(key, "description"):
+			description = value
 		case strings.Contains(key, "limit"):
 			limit, _ = strconv.Atoi(value)
 		case strings.Contains(key, "page"):
 			page, _ = strconv.Atoi(value)
 		case strings.Contains(key, "cursor"):
 			cursor = value
-		case strings.Contains(key, "sort_order"):
+		case strings.Contains(key, "sortOrder"):
 			sortOrder = strings.ToLower(value)
-		case strings.Contains(key, "start_date"):
-			startDate, _ = time.Parse("2006-01-02", value)
-		case strings.Contains(key, "end_date"):
-			endDate, _ = time.Parse("2006-01-02", value)
-		case strings.Contains(key, "to"):
-			toAssetCodes = strings.Split(value, ",")
-		case key == "alias":
-			alias = value
+		case strings.Contains(key, "createdAt"):
+			createdAt, _ = time.Parse("2006-01-02", value)
 		}
 	}
 
-	err := validateDates(&startDate, &endDate)
-	if err != nil {
-		return nil, err
-	}
-
-	err = validatePagination(cursor, sortOrder, limit)
+	err := validatePagination(cursor, sortOrder, limit)
 	if err != nil {
 		return nil, err
 	}
 
 	query := &QueryHeader{
 		Metadata:     metadata,
+		OutputFormat: outputFormat,
+		Description:  description,
 		Limit:        limit,
 		Page:         page,
 		Cursor:       cursor,
 		SortOrder:    sortOrder,
-		StartDate:    startDate,
-		EndDate:      endDate,
-		Alias:        alias,
+		CreatedAt:    createdAt,
 		UseMetadata:  useMetadata,
-		ToAssetCodes: toAssetCodes,
 	}
 
 	return query, nil
@@ -155,39 +147,6 @@ func ReadMultipartFile(fileHeader *multipart.FileHeader) ([]byte, error) {
 	defer file.Close()
 
 	return io.ReadAll(file)
-}
-
-func validateDates(startDate, endDate *time.Time) error {
-	maxDateRangeMonths := pkg.SafeInt64ToInt(pkg.GetenvIntOrDefault("MAX_PAGINATION_MONTH_DATE_RANGE", 1))
-
-	defaultStartDate := time.Now().AddDate(0, -maxDateRangeMonths, 0)
-	defaultEndDate := time.Now()
-
-	if !startDate.IsZero() && !endDate.IsZero() {
-		if !pkg.IsValidDate(pkg.NormalizeDate(*startDate, nil)) || !pkg.IsValidDate(pkg.NormalizeDate(*endDate, nil)) {
-			return pkg.ValidateBusinessError(constant.ErrInvalidDateFormat, "")
-		}
-
-		if !pkg.IsInitialDateBeforeFinalDate(*startDate, *endDate) {
-			return pkg.ValidateBusinessError(constant.ErrInvalidFinalDate, "")
-		}
-
-		if !pkg.IsDateRangeWithinMonthLimit(*startDate, *endDate, maxDateRangeMonths) {
-			return pkg.ValidateBusinessError(constant.ErrDateRangeExceedsLimit, "", maxDateRangeMonths)
-		}
-	}
-
-	if startDate.IsZero() && endDate.IsZero() {
-		*startDate = defaultStartDate
-		*endDate = defaultEndDate
-	}
-
-	if (!startDate.IsZero() && endDate.IsZero()) ||
-		(startDate.IsZero() && !endDate.IsZero()) {
-		return pkg.ValidateBusinessError(constant.ErrInvalidDateRange, "")
-	}
-
-	return nil
 }
 
 func validatePagination(cursor, sortOrder string, limit int) error {

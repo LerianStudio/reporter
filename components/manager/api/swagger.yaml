@@ -4,7 +4,14 @@ definitions:
     description: CreateReportInput is the input payload to create a report.
     properties:
       filters:
-        additionalProperties: {}
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+          type: object
         type: object
       ledgerId:
         example:
@@ -34,7 +41,7 @@ definitions:
         example: 10
         type: integer
     type: object
-  plugin-template-engine_pkg_mongodb_template.Template:
+  plugin-smart-templates_pkg_mongodb_template.Template:
     properties:
       createdAt:
         example: "2021-01-01T00:00:00Z"
@@ -42,7 +49,7 @@ definitions:
       description:
         example: Template Financeiro
         type: string
-      filename:
+      fileName:
         example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
         type: string
       id:
@@ -64,7 +71,14 @@ definitions:
       deletedAt:
         type: string
       filters:
-        additionalProperties: {}
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+          type: object
         type: object
       id:
         example: 00000000-0000-0000-0000-000000000000
@@ -76,6 +90,9 @@ definitions:
         items:
           type: string
         type: array
+      metadata:
+        additionalProperties: {}
+        type: object
       status:
         example: processing
         type: string
@@ -99,10 +116,10 @@ paths:
       - application/json
       description: Create a Report of existent template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         type: string
       - description: Organization ID
         in: header
@@ -131,10 +148,10 @@ paths:
       - application/json
       description: Get information of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         type: string
       - description: Organization ID
         in: header
@@ -162,10 +179,10 @@ paths:
       - application/json
       description: Make a download of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         type: string
       - description: Organization ID
         in: header
@@ -191,15 +208,23 @@ paths:
     get:
       description: List all the templates
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         type: string
       - description: Organization ID
         in: header
         name: X-Organization-Id
         required: true
+        type: string
+      - description: XML, HTML, TXT and CSV
+        in: query
+        name: outputFormat
+        type: string
+      - description: Description of template
+        in: query
+        name: description
         type: string
       - default: 10
         description: Limit
@@ -222,7 +247,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
@@ -239,9 +264,14 @@ paths:
       - multipart/form-data
       description: Create a Template for reports with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         type: string
       - description: Template file (.tpl)
@@ -265,7 +295,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Create a Template for reports
       tags:
       - Templates
@@ -273,10 +303,10 @@ paths:
     delete:
       description: SoftDelete a Template with the input ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        required: true
         type: string
       - description: Organization ID
         in: header
@@ -299,9 +329,14 @@ paths:
       - multipart/form-data
       description: Get a template by id
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         type: string
       - description: Template file (.tpl)
@@ -330,7 +365,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Get template
       tags:
       - Templates
@@ -339,9 +374,14 @@ paths:
       - multipart/form-data
       description: Update a template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format."
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
         required: true
         type: string
       - description: Template file (.tpl)
@@ -370,7 +410,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-template-engine_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
       summary: Update a template
       tags:
       - Templates

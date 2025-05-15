@@ -16,7 +16,7 @@ import (
 //
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
-	UpdateReportStatusById(ctx context.Context, collection string, id uuid.UUID, status string, completedAt time.Time, metadata map[string]any) error
+	UpdateReportStatusById(ctx context.Context, collection, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
 	Create(ctx context.Context, collection string, record *Report, organizationID uuid.UUID) (*Report, error)
 	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error)
 }
@@ -43,9 +43,8 @@ func NewReportMongoDBRepository(mc *libMongo.MongoConnection) *ReportMongoDBRepo
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.
 func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	ctx context.Context,
-	collection string,
+	collection, status string,
 	id uuid.UUID,
-	status string,
 	completedAt time.Time,
 	metadata map[string]any,
 ) error {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"os"
-	"plugin-template-engine/pkg/mongodb"
-	pg "plugin-template-engine/pkg/postgres"
+	"plugin-smart-templates/pkg/mongodb"
+	pg "plugin-smart-templates/pkg/postgres"
 	"strings"
 )
 

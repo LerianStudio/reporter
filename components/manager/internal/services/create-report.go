@@ -2,13 +2,15 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/model"
-	"plugin-template-engine/pkg/mongodb/report"
-	"plugin-template-engine/pkg/mongodb/template"
+	"go.mongodb.org/mongo-driver/mongo"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/pkg/mongodb/template"
 	"reflect"
 )
 
@@ -22,7 +24,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	logger.Infof("Creating report")
 
-	// Validate ledgerID list if all values is uuid
+	// Validate the ledgerID list if all values are uuid
 	ledgerIDConverted := make([]uuid.UUID, 0, len(reportInput.LedgerID))
 
 	for _, ledgerId := range reportInput.LedgerID {
@@ -40,11 +42,23 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		return nil, pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
 	}
 
-	// Find template to generate report
+	// Find a template to generate a report
 	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
 	if err != nil {
 		logger.Errorf("Error to find template by id, Error: %v", err)
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+		}
+
 		return nil, err
+	}
+
+	if reportInput.Filters != nil {
+		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
+		if errValidateFields := uc.validateIfFieldsExistOnTables(ctx, logger, filtersMapped); errValidateFields != nil {
+			return nil, errValidateFields
+		}
 	}
 
 	// Build the report model
@@ -53,7 +67,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		TemplateID: templateId,
 		LedgerID:   ledgerIDConverted,
 		Filters:    reportInput.Filters,
-		Status:     "processing",
+		Status:     constant.ProcessingStatus,
 	}
 
 	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel, organizationID)
@@ -75,4 +89,32 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	uc.SendReportQueueReports(ctx, reportMessage)
 
 	return result, nil
+}
+
+// convertFiltersToMappedFieldsType transforms a deeply nested filter map into a mapped fields structure with limited keys per level.
+func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string][]string) map[string]map[string][]string {
+	output := make(map[string]map[string][]string)
+
+	for topKey, nested := range filters {
+		output[topKey] = make(map[string][]string)
+
+		for midKey, inner := range nested {
+			var keys []string
+
+			count := 0
+
+			for innerKey := range inner {
+				keys = append(keys, innerKey)
+
+				count++
+				if count == 3 {
+					break
+				}
+			}
+
+			output[topKey][midKey] = keys
+		}
+	}
+
+	return output
 }

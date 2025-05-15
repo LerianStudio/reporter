@@ -10,9 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/net/http"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/net/http"
 	"strings"
 	"time"
 )
@@ -102,6 +102,27 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
 
 	queryFilter := bson.M{}
+
+	if !commons.IsNilOrEmpty(&filters.OutputFormat) {
+		queryFilter["output_format"] = filters.OutputFormat
+	}
+
+	if !filters.CreatedAt.IsZero() {
+		end := filters.CreatedAt.Add(24 * time.Hour)
+		queryFilter["created_at"] = bson.M{
+			"$gte": filters.CreatedAt,
+			"$lt":  end,
+		}
+	}
+
+	if !commons.IsNilOrEmpty(&filters.Description) {
+		queryFilter["description"] = bson.M{
+			"$regex":   filters.Description,
+			"$options": "i", // "i" = case-insensitive
+		}
+	}
+
+	queryFilter["organization_id"] = filters.OrganizationID
 	queryFilter["deleted_at"] = bson.D{{Key: "$eq", Value: nil}}
 
 	limit := int64(filters.Limit)

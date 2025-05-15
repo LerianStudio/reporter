@@ -7,14 +7,13 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/minio/report"
-	"plugin-template-engine/pkg/minio/template"
-	reportData "plugin-template-engine/pkg/mongodb/report"
-	postgres2 "plugin-template-engine/pkg/postgres"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/minio/report"
+	"plugin-smart-templates/pkg/minio/template"
+	reportData "plugin-smart-templates/pkg/mongodb/report"
+	postgres2 "plugin-smart-templates/pkg/postgres"
 	"strings"
 	"testing"
-	"time"
 )
 
 func Test_getContentType(t *testing.T) {
@@ -142,6 +141,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
 	reportID := uuid.New()
@@ -159,8 +159,13 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Get(gomock.Any(), templateID.String()).
 		Return(nil, errors.New("failed to get file"))
 
+	mockReportDataRepo.EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
 	useCase := &UseCase{
 		TemplateFileRepo:    mockTemplateRepo,
+		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
 
@@ -175,7 +180,6 @@ func TestSaveReport_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
-	dateNow := time.Now()
 
 	useCase := &UseCase{
 		ReportFileRepo: mockReportRepo,
@@ -198,7 +202,7 @@ func TestSaveReport_Success(t *testing.T) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
-	err := useCase.saveReport(ctx, tracer, message, renderedOutput, dateNow.String(), logger)
+	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -207,12 +211,13 @@ func TestSaveReport_Success(t *testing.T) {
 func TestSaveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	dateNow := time.Now()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
 		ReportFileRepo: mockReportRepo,
+		ReportDataRepo: mockReportDataRepo,
 	}
 
 	reportID := uuid.New()
@@ -232,7 +237,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
 
-	err := useCase.saveReport(ctx, tracer, message, output, dateNow.String(), logger)
+	err := useCase.saveReport(ctx, tracer, message, output, logger)
 	if err == nil || !strings.Contains(err.Error(), "failed to put file") {
 		t.Errorf("expected error on Put, got: %v", err)
 	}

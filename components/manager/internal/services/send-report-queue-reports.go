@@ -4,11 +4,11 @@ import (
 	"context"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"os"
-	"plugin-template-engine/pkg/model"
+	"plugin-smart-templates/pkg/model"
 )
 
-// SendReportQueueReports sends report to queue of generation reports message to a RabbitMQ queue for further processing.
-// It utilizes context for logger and tracer management and handles data serialization and queue message construction.
+// SendReportQueueReports sends a report to the queue of a generation reports message to a RabbitMQ queue for further processing.
+// It uses context for logger and tracer management and handles data serialization and queue message construction.
 func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)

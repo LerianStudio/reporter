@@ -1,12 +1,12 @@
 package services
 
 import (
-	"plugin-template-engine/components/manager/internal/adapters/rabbitmq"
-	pkgConfig "plugin-template-engine/pkg"
-	reportMinio "plugin-template-engine/pkg/minio/report"
-	templateMinio "plugin-template-engine/pkg/minio/template"
-	"plugin-template-engine/pkg/mongodb/report"
-	"plugin-template-engine/pkg/mongodb/template"
+	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
+	pkgConfig "plugin-smart-templates/pkg"
+	reportMinio "plugin-smart-templates/pkg/minio/report"
+	templateMinio "plugin-smart-templates/pkg/minio/template"
+	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/pkg/mongodb/template"
 )
 
 // UseCase is a struct to implement the services methods

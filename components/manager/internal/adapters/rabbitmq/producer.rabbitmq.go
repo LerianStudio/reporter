@@ -8,7 +8,7 @@ import (
 	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"plugin-template-engine/pkg/model"
+	"plugin-smart-templates/pkg/model"
 )
 
 // ProducerRepository provides an interface for Producer related to rabbitmq.
@@ -55,6 +55,8 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 		return nil, err
 	}
 
+	retryCount := 0
+
 	err = prmq.conn.Channel.Publish(
 		exchange,
 		key,
@@ -65,6 +67,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 			DeliveryMode: amqp.Persistent,
 			Headers: amqp.Table{
 				libConstants.HeaderID: libCommons.NewHeaderIDFromContext(ctx),
+				"x-retry-count":       retryCount,
 			},
 			Body: message,
 		})

@@ -9,12 +9,13 @@ import (
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"plugin-template-engine/components/worker/internal/adapters/rabbitmq"
-	"plugin-template-engine/components/worker/internal/services"
-	"plugin-template-engine/pkg"
-	reportFile "plugin-template-engine/pkg/minio/report"
-	templateFile "plugin-template-engine/pkg/minio/template"
-	reportData "plugin-template-engine/pkg/mongodb/report"
+	"net/url"
+	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
+	"plugin-smart-templates/components/worker/internal/services"
+	"plugin-smart-templates/pkg"
+	reportFile "plugin-smart-templates/pkg/minio/report"
+	templateFile "plugin-smart-templates/pkg/minio/template"
+	reportData "plugin-smart-templates/pkg/mongodb/report"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -98,8 +99,9 @@ func InitWorker() *Service {
 	}
 
 	// Init mongo DB connection
+	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
+		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
 
 	if cfg.MaxPoolSize <= 0 {
 		cfg.MaxPoolSize = 100

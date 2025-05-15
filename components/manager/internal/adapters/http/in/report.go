@@ -6,15 +6,12 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-template-engine/components/manager/internal/services"
-	"plugin-template-engine/pkg"
-	"plugin-template-engine/pkg/constant"
-	"plugin-template-engine/pkg/model"
-	_ "plugin-template-engine/pkg/mongodb/report"
-
-	"plugin-template-engine/pkg/net/http"
-	templateUtils "plugin-template-engine/pkg/template_utils"
-	"time"
+	"plugin-smart-templates/components/manager/internal/services"
+	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/net/http"
+	templateUtils "plugin-smart-templates/pkg/template_utils"
 )
 
 type ReportHandler struct {
@@ -28,7 +25,7 @@ type ReportHandler struct {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string					true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string					true	"Organization ID"
 //	@Param			reports				body		model.CreateReportInput	true	"Report Input"
 //	@Success		201					{object}	report.Report
@@ -44,23 +41,23 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	c.SetUserContext(ctx)
 
-	ctx, span = tracer.Start(ctx, "handler.create_template")
+	ctx, span = tracer.Start(ctx, "handler.create_report")
 	defer span.End()
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 	payload := p.(*model.CreateReportInput)
 	logger.Infof("Request to create a report with details: %#v", payload)
 
-	templateOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
+	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to create pack on command", err)
+		opentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
 		return http.WithError(c, err)
 	}
 
-	logger.Infof("Successfully created create report %v", templateOut)
+	logger.Infof("Successfully created a report %v", reportOut)
 
-	return http.OK(c, templateOut)
+	return http.OK(c, reportOut)
 }
 
 // GetDownloadReport is a method to make download of a report.
@@ -70,7 +67,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header	string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Report ID"
 //	@Success		200					{file}	any
@@ -81,11 +78,11 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.get_report_download")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Template with ID: %s", id)
+	logger.Infof("Initiating get a Report with ID: %s", id)
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
@@ -98,7 +95,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	if reportModel.Status != "Finished" {
+	if reportModel.Status != constant.FinishedStatus {
 		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
 		opentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
 
@@ -116,14 +113,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	location, errLocation := time.LoadLocation("America/Sao_Paulo")
-	if errLocation != nil {
-		logger.Errorf("Failed load location time: %s", errLocation.Error())
-		return http.WithError(c, errLocation)
-	}
-
-	completedAtInBR := reportModel.CompletedAt.In(location)
-	objectName := reportModel.ID.String() + "/" + completedAtInBR.Format("20060102_150405") + "." + templateModel.OutputFormat
+	objectName := templateModel.ID.String() + "/" + reportModel.ID.String() + "." + templateModel.OutputFormat
 
 	fileBytes, errFile := rh.Service.ReportMinio.Get(ctx, objectName)
 	if errFile != nil {
@@ -145,22 +135,22 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	true	"The authorization token in the 'Bearer	access_token' format."
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
-//	@Router			/v1/reports/{id}					 [get]
+//	@Router			/v1/reports/{id}											 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.get_report")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Template with ID: %s", id)
+	logger.Infof("Initiating get a Report with ID: %s", id)
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 

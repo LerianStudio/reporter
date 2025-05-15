@@ -3,7 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"plugin-template-engine/pkg/constant"
+	"plugin-smart-templates/pkg/constant"
 	"strings"
 )
 
@@ -371,7 +371,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrInvalidOutputFormat.Error(),
 			Title:      "Invalid output format",
-			Message:    "The outputFormat field must be one of: html, csv, or xml. ",
+			Message:    "The outputFormat field must be one of: html, csv, or xml.",
 		},
 		constant.ErrInvalidHeaderParameter: ValidationError{
 			EntityType: entityType,
@@ -397,23 +397,11 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Error File Content Invalid",
 			Message:    fmt.Sprintf("The file content is invalid because is not %s. Please check the uploaded file.", args),
 		},
-		constant.ErrKeyNotAllowed: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrKeyNotAllowed.Error(),
-			Title:      "Error Key Not Allowed",
-			Message:    fmt.Sprintf("The key %s on mapped fields is not allowed. Please check the uploaded file.", args),
-		},
 		constant.ErrInvalidMapFields: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrInvalidMapFields.Error(),
 			Title:      "Invalid Map Fields",
 			Message:    fmt.Sprintf("The field on template file is invalid. Invalid field %s on %s.", args...),
-		},
-		constant.ErrMapFieldKeyUnexpected: ValidationError{
-			EntityType: entityType,
-			Code:       constant.ErrMapFieldKeyUnexpected.Error(),
-			Title:      "Error Key Unexpected",
-			Message:    fmt.Sprintf("The key %s is unexpected. Please check the uploaded file.", args),
 		},
 		constant.ErrInvalidPathParameter: ValidationError{
 			EntityType: entityType,
@@ -443,13 +431,25 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingTableFields.Error(),
 			Title:      "Missing required fields",
-			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed %v.", args...),
+			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed '%v'.", args...),
 		},
 		constant.ErrReportStatusNotFinished: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrReportStatusNotFinished.Error(),
 			Title:      "Report status not Finished",
 			Message:    "The Report is not ready to download. Report is processing yet.",
+		},
+		constant.ErrMissingSchemaTable: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingSchemaTable.Error(),
+			Title:      "Missing Schema Table",
+			Message:    fmt.Sprintf("There is a schema table missing for data source '%v'. Please check the information passed.", args),
+		},
+		constant.ErrMissingDataSource: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrMissingDataSource.Error(),
+			Title:      "Missing Data Source Table",
+			Message:    fmt.Sprintf("The data source %v is missing. Please check the value passed.", args),
 		},
 	}
 

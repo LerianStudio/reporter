@@ -1,6 +1,6 @@
 services:
-  plugin-template-engine-mongodb:
-    container_name: plugin-template-engine-mongodb
+  plugin-smart-templates-mongodb:
+    container_name: plugin-smart-templates-mongodb
     image: mongo:latest
     env_file:
       - .env
@@ -18,13 +18,13 @@ services:
       - ${MONGO_PORT}:${MONGO_PORT}
     command: mongod --port ${MONGO_PORT}
     volumes:
-      - plugin-template-engine-mongodb-data:/data/db
+      - plugin-smart-templates-mongodb-data:/data/db
     networks:
-      - plugin-template-engine-infra-network
+      - plugin-smart-templates-infra-network
 
-  plugin-template-engine-rabbitmq:
+  plugin-smart-templates-rabbitmq:
     image: rabbitmq:4.0-management-alpine
-    container_name: plugin-template-engine-rabbitmq
+    container_name: plugin-smart-templates-rabbitmq
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
@@ -38,11 +38,11 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - plugin-template-engine-infra-network
+      - plugin-smart-templates-infra-network
 
-  plugin-template-engine-minio:
+  plugin-smart-templates-minio:
     image: minio/minio:latest
-    container_name: plugin-template-engine-minio
+    container_name: plugin-smart-templates-minio
     ports:
       - ${MINIO_API_PORT}:${MINIO_API_PORT}
       - ${MINIO_ADMIN_PORT}:${MINIO_ADMIN_PORT}
@@ -52,20 +52,20 @@ services:
       MINIO_APP_USER: ${MINIO_APP_USER}
       MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD}
     volumes:
-      - plugin-template-engine-minio-data:/data
+      - plugin-smart-templates-minio-data:/data
     command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
     networks:
-      - plugin-template-engine-infra-network
+      - plugin-smart-templates-infra-network
 
-  plugin-template-engine-minio-mc:
+  plugin-smart-templates-minio-mc:
     image: minio/mc
-    container_name: plugin-template-engine-minio-mc
+    container_name: plugin-smart-templates-minio-mc
     depends_on:
-      - plugin-template-engine-minio
+      - plugin-smart-templates-minio
     entrypoint: >
       sh -c "
         sleep 5 && \
-        mc alias set local http://plugin-template-engine-minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
+        mc alias set local http://plugin-smart-templates-minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
         mc mb local/templates || true && \
         mc mb local/reports || true && \
         mc admin user add local $MINIO_APP_USER $MINIO_APP_PASSWORD && \
@@ -75,6 +75,8 @@ services:
       "
     volumes:
       - ./minio/policies:/policies
+    networks:
+      - plugin-smart-templates-infra-network
 
   plugin-template-engine-keda:
     image: ghcr.io/kedacore/keda:2.16.0
@@ -94,10 +96,10 @@ services:
       - plugin-template-engine-infra-network
 
 volumes:
-  plugin-template-engine-mongodb-data:
-  plugin-template-engine-minio-data:
+  plugin-smart-templates-mongodb-data:
+  plugin-smart-templates-minio-data:
 
 networks:
-  plugin-template-engine-infra-network:
-    name: plugin-template-engine-infra-network
+  plugin-smart-templates-infra-network:
+    name: plugin-smart-templates-infra-network
     driver: bridge
