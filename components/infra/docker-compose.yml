@@ -76,6 +76,23 @@ services:
     volumes:
       - ./minio/policies:/policies
 
+  plugin-template-engine-keda:
+    image: ghcr.io/kedacore/keda:2.16.0
+    container_name: plugin-template-engine-keda
+    environment:
+      - KEDA_OPERATOR_LOG_LEVEL=info
+      - KEDA_OPERATOR_RABBITMQ_HOST=plugin-template-engine-rabbitmq
+      - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
+      - KEDA_OPERATOR_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
+      - KEDA_OPERATOR_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
+      - KEDA_OPERATOR_RABBITMQ_QUEUE=smart-templates-queue
+    ports:
+      - "8080:8080"
+    depends_on:
+      - plugin-template-engine-rabbitmq
+    networks:
+      - plugin-template-engine-infra-network
+
 volumes:
   plugin-template-engine-mongodb-data:
   plugin-template-engine-minio-data:
