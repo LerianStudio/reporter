@@ -78,12 +78,12 @@ services:
     networks:
       - plugin-smart-templates-infra-network
 
-  plugin-template-engine-keda:
+  plugin-smart-templates-keda:
     image: ghcr.io/kedacore/keda:2.16.0
-    container_name: plugin-template-engine-keda
+    container_name: plugin-smart-templates-keda
     environment:
       - KEDA_OPERATOR_LOG_LEVEL=info
-      - KEDA_OPERATOR_RABBITMQ_HOST=plugin-template-engine-rabbitmq
+      - KEDA_OPERATOR_RABBITMQ_HOST=plugin-smart-templates-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
       - KEDA_OPERATOR_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - KEDA_OPERATOR_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
@@ -91,9 +91,9 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - plugin-template-engine-rabbitmq
+      - plugin-smart-templates-rabbitmq
     networks:
-      - plugin-template-engine-infra-network
+      - plugin-smart-templates-infra-network
 
 volumes:
   plugin-smart-templates-mongodb-data:
