@@ -91,6 +91,7 @@ jobs:
       - name: Create External Network if not exists
         run: |
           docker network create infra-network || true
+          docker network create plugin-fees-network || true
 
       - name: Start Docker Compose Services
         run: make up
