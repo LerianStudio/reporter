@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.17] - 2025-05-15
+
+### 🐛 Bug Fixes
+- Establish network connection for plugin fees to ensure correct functionality and prevent connectivity issues.
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
