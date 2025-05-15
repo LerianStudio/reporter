@@ -70,6 +70,7 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 			if !pkg.IsOutputFormatValuesValid(&value) {
 				return nil, pkg.ValidateBusinessError(constant.ErrInvalidOutputFormat, "")
 			}
+
 			outputFormat = value
 		case strings.Contains(key, "description"):
 			description = value
