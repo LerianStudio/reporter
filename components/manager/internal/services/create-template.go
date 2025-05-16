@@ -67,15 +67,15 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 
-		if !dataSource.Initialized && !dataSource.DatabaseConfig.Connected {
-			if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
-				logger.Errorf("Error initializing database connection, Err: %s", err)
-				return err
-			}
-		}
-
 		switch dataSource.DatabaseType {
 		case pkg.PostgreSQLType:
+			if !dataSource.Initialized && !dataSource.DatabaseConfig.Connected {
+				if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
+					logger.Errorf("Error initializing database connection, Err: %s", err)
+					return err
+				}
+			}
+
 			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFields)
 			if errValidate != nil {
 				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
@@ -83,6 +83,13 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 				return errValidate
 			}
 		case pkg.MongoDBType:
+			if !dataSource.Initialized {
+				if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
+					logger.Errorf("Error initializing database connection, Err: %s", err)
+					return err
+				}
+			}
+
 			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFields)
 			if errValidate != nil {
 				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
@@ -146,7 +153,7 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 
 	for _, s := range schema {
 		countIfTableExist := int32(0)
-		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s)
+		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s, &countIfTableExist)
 		// Remove of mappedFields copies the table if exist on a schema list
 		if countIfTableExist > 0 {
 			if mt, ok := mappedFields[databaseName]; ok {
