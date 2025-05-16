@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1-feat.2] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow to the continuous integration pipeline
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
