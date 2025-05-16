@@ -67,8 +67,8 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 
-		if !dataSource.Initialized {
-			if err := pkg.ConnectToDataSource("transaction", &dataSource, logger, uc.ExternalDataSources); err != nil {
+		if !dataSource.Initialized && !dataSource.DatabaseConfig.Connected {
+			if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
 				logger.Errorf("Error initializing database connection, Err: %s", err)
 				return err
 			}
@@ -79,12 +79,14 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFields)
 			if errValidate != nil {
 				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
+
 				return errValidate
 			}
 		case pkg.MongoDBType:
 			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFields)
 			if errValidate != nil {
 				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
+
 				return errValidate
 			}
 		default:
@@ -97,22 +99,34 @@ func (uc *UseCase) validateIfFieldsExistOnTables(ctx context.Context, logger log
 
 // validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
 func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
-	var countIfTableExist = int32(0)
-
 	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, s := range schema {
+		countIfTableExist := int32(0)
 		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s, &countIfTableExist)
+		// Remove of mappedFields copies the table if exist on a schema list
+		if countIfTableExist > 0 {
+			if mt, ok := mappedFields[databaseName]; ok {
+				delete(mt, s.TableName)
+			}
+		}
+
 		if len(fieldsMissing) > 0 {
 			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
 		}
 	}
 
-	if countIfTableExist == 0 {
-		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", databaseName)
+	// Create an array of tables that does not exist for a database passed
+	errorTables := make([]string, 0, len(mappedFields[databaseName]))
+	for key := range mappedFields[databaseName] {
+		errorTables = append(errorTables, key)
+	}
+
+	if len(mappedFields[databaseName]) > 0 {
+		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", errorTables, databaseName)
 	}
 
 	errClose := dataSource.PostgresRepository.CloseConnection()
@@ -131,10 +145,28 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 	}
 
 	for _, s := range schema {
+		countIfTableExist := int32(0)
 		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s)
+		// Remove of mappedFields copies the table if exist on a schema list
+		if countIfTableExist > 0 {
+			if mt, ok := mappedFields[databaseName]; ok {
+				delete(mt, s.CollectionName)
+			}
+		}
+
 		if len(fieldsMissing) > 0 {
 			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
 		}
+	}
+
+	// Create an array of tables that does not exist for a database passed
+	errorTables := make([]string, 0, len(mappedFields[databaseName]))
+	for key := range mappedFields[databaseName] {
+		errorTables = append(errorTables, key)
+	}
+
+	if len(mappedFields[databaseName]) > 0 {
+		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", errorTables, databaseName)
 	}
 
 	errClose := dataSource.MongoDBRepository.CloseConnection(ctx)

@@ -93,8 +93,10 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 		variable := match[1]
 		path := CleanPath(match[2])
 
-		if len(path) >= 2 {
+		if len(path) == 2 {
 			variableMap[variable] = []string{path[0], path[1]}
+		} else if len(path) > 2 {
+			variableMap[variable] = []string{path[0], path[1], path[2]}
 		} else {
 			variableMap[variable] = path
 		}
