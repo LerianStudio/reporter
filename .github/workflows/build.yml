@@ -12,12 +12,33 @@ permissions:
   packages: write
 
 # Build and Publish Docker Image to GHCR  
+#jobs:
+#  build_and_publish_ghcr:
+#    runs-on: ubuntu-24.04
+#    steps:
+#      - name: Build And Publish Docker Image to GHCR
+#        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
+#        with:
+#          app_name: 'plugin-smart-templates'
+#          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
+
 jobs:
-  build_and_publish_ghcr:
-    runs-on: ubuntu-24.04
+  build-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app_name: plugin-smart-templates-manager
+            working_dir: components/manager
+          - app_name: plugin-smart-templates-worker
+            working_dir: components/worker
+
     steps:
-      - name: Build And Publish Docker Image to GHCR
-        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
+      - uses: actions/checkout@v2
+
+      - name: Build App ${{ matrix.app_name }}
+        uses: ./.github/actions/ghcr-pipeline
         with:
-          app_name: 'plugin-smart-templates'
+          app_name: ${{ matrix.app_name }}
+          working_dir: ${{ matrix.working_dir }}
           token: ${{ secrets.GHCR_SERVICE_TOKEN }}
