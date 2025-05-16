@@ -72,7 +72,7 @@ func ValidateFieldsInSchemaPostgres(expectedFields []string, schema TableSchema,
 	}
 
 	for _, field := range expectedFields {
-		*countIfTableExist++
+		*countIfTableExist++ // variable to count if a table exists on a schema list
 
 		if _, exists := columnSet[strings.ToLower(field)]; !exists {
 			missing = append(missing, field)
