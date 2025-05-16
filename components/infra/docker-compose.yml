@@ -82,7 +82,7 @@ services:
     image: ghcr.io/kedacore/keda:2.16.0
     container_name: plugin-smart-templates-keda
     environment:
-      - KEDA_OPERATOR_LOG_LEVEL=debug
+      - KEDA_OPERATOR_LOG_LEVEL=info
       - KEDA_OPERATOR_RABBITMQ_HOST=plugin-smart-templates-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
       - KEDA_OPERATOR_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
