@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1-feat.5] - 2025-05-16
+
+### 🔧 Maintenance
+- Implement test build workflow in CI process to automate and ensure reliability of the build process.
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
