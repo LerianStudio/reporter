@@ -34,10 +34,8 @@ jobs:
             working_dir: components/worker
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Build App ${{ matrix.app_name }}
-        uses: ./.github/actions/ghcr-pipeline
+      - name: Build And Publish Docker Image ${{ matrix.app_name }} to GHCR
+        uses: LerianStudio/github-actions-docker-private-pipeline@main
         with:
           app_name: ${{ matrix.app_name }}
           working_dir: ${{ matrix.working_dir }}
