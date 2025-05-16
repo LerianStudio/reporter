@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0] - 2025-05-16
+
+### 🔧 Maintenance
+- Add build workflow configuration to enhance CI/CD processes
+- Adjust naming conventions in configuration files for consistency
+- Update Helm configuration for improved deployment management
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
