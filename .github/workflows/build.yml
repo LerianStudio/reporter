@@ -21,15 +21,3 @@ jobs:
         with:
           app_name: 'plugin-smart-templates'
           token: ${{ secrets.GHCR_SERVICE_TOKEN }}
- 
-# Build and Publish Docker Image to Dockerhub
-  build_and_publish_dockerhub:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Build And Publish Docker Image to Dockerhub
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
-        with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          docker_access_token: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-          app_name: 'plugin-smart-templates'
