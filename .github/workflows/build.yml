@@ -11,35 +11,41 @@ permissions:
   pull-requests: write
   packages: write
 
-# Build and Publish Docker Image to GHCR  
-#jobs:
-#  build_and_publish_ghcr:
-#    runs-on: ubuntu-24.04
-#    steps:
-#      - name: Build And Publish Docker Image to GHCR
-#        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
-#        with:
-#          app_name: 'plugin-smart-templates'
-#          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
-
+ Build and Publish Docker Image to GHCR  
 jobs:
-  build-matrix:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - app_name: plugin-smart-templates-manager
-            working_dir: components/manager
-          - app_name: plugin-smart-templates-worker
-            working_dir: components/worker
-
+  build_and_publish_ghcr:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Build And Publish Docker Image ${{ matrix.app_name }} to GHCR
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
+      - name: Build And Publish Manager Docker Image to GHCR
+        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
-          app_name: ${{ matrix.app_name }}
-          working_dir: ${{ matrix.working_dir }}
+          app_name: 'plugin-smart-templates-manager'
           token: ${{ secrets.GHCR_SERVICE_TOKEN }}
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          docker_access_token: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      - name: Build And Publish Worker Docker Image to GHCR
+        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
+        with:
+          app_name: 'plugin-smart-templates-worker'
+          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
+
+#jobs:
+#  build-matrix:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        include:
+#          - app_name: plugin-smart-templates-manager
+#            working_dir: components/manager
+#          - app_name: plugin-smart-templates-worker
+#            working_dir: components/worker
+#
+#    steps:
+#      - name: Build And Publish Docker Image ${{ matrix.app_name }} to GHCR
+#        uses: LerianStudio/github-actions-docker-private-pipeline@main
+#        with:
+#          app_name: ${{ matrix.app_name }}
+#          working_dir: ${{ matrix.working_dir }}
+#          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
+#          docker_username: ${{ secrets.DOCKER_USERNAME }}
+#          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+#          docker_access_token: ${{ secrets.DOCKER_ACCESS_TOKEN }}
