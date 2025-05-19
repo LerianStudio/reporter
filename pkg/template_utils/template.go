@@ -113,6 +113,12 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
 
 	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
+
+	if withMatches == nil {
+		withRegex = regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*([^\s%]+)\s*-?%}`)
+		withMatches = withRegex.FindAllStringSubmatch(templateFile, -1)
+	}
+
 	for _, match := range withMatches {
 		assignedVar := match[1]
 		args := match[2]
