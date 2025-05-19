@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1-feat.7] - 2025-05-19
+
+### 🔧 Maintenance
+- Test Dockerfile build process to ensure continuous integration reliability
+- Consolidate CHANGELOG updates for improved clarity and organization
+
 ## [v1.0.0-beta.18] - 2025-05-15
 
 ### 🐛 Bug Fixes
