@@ -10,6 +10,24 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Standardize environment variable names for plugin consistency, enhancing code readability and maintainability.
 
+## [v1.0.0-beta.14] - 2025-05-13
+
+### 🐛 Bug Fixes
+- Adjust filter validation for report generation to ensure correct functionality
+
+### 📚 Documentation
+- Generate new Swagger documentation to improve API clarity and usability
+
+## [v1.0.0-beta.13] - 2025-05-13
+
+### 🐛 Bug Fixes
+- Correct the type casting of the `x-retry-count` variable to ensure proper retry logic functionality.
+- Limit message retry attempts to three in the consumer to prevent excessive retries and reduce resource usage.
+
+### 🔧 Maintenance
+- Improve code structure and comments for report generation to enhance readability and maintainability.
+- Update changelog documentation to reflect recent changes.
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
