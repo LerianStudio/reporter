@@ -107,6 +107,14 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 		queryFilter["output_format"] = filters.OutputFormat
 	}
 
+	if !filters.CreatedAt.IsZero() {
+		end := filters.CreatedAt.Add(24 * time.Hour)
+		queryFilter["created_at"] = bson.M{
+			"$gte": filters.CreatedAt,
+			"$lt":  end,
+		}
+	}
+
 	if !commons.IsNilOrEmpty(&filters.Description) {
 		queryFilter["description"] = bson.M{
 			"$regex":   filters.Description,

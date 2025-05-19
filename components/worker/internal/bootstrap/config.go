@@ -9,6 +9,7 @@ import (
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"net/url"
 	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/worker/internal/services"
 	"plugin-smart-templates/pkg"
@@ -98,8 +99,9 @@ func InitWorker() *Service {
 	}
 
 	// Init mongo DB connection
+	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
+		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
 
 	if cfg.MaxPoolSize <= 0 {
 		cfg.MaxPoolSize = 100

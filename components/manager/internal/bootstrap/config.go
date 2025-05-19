@@ -9,6 +9,7 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/zap"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"net/url"
 	in2 "plugin-smart-templates/components/manager/internal/adapters/http/in"
 	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/manager/internal/services"
@@ -95,8 +96,9 @@ func InitServers() *Service {
 	}
 
 	// Init mongo DB connection
+	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.MongoURI, cfg.MongoDBUser, cfg.MongoDBPassword, cfg.MongoDBHost, cfg.MongoDBPort)
+		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
 
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
