@@ -2,8 +2,15 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /plugin-smart-templates
 
-COPY ../.. .
+# Copy go mod and sum files to download dependencies
+COPY go.mod go.sum ./
 
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o /app components/manager/cmd/app/main.go
 
 FROM alpine:latest
