@@ -12,6 +12,8 @@ import (
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
 func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
+	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields)
+
 	for databaseName := range mappedFields {
 		dataSource, exists := uc.ExternalDataSources[databaseName]
 		if !exists {
@@ -21,14 +23,14 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, logger log
 
 		switch dataSource.DatabaseType {
 		case pkg.PostgreSQLType:
-			if !dataSource.Initialized && !dataSource.DatabaseConfig.Connected {
+			if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
 				if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
 					logger.Errorf("Error initializing database connection, Err: %s", err)
 					return err
 				}
 			}
 
-			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
 			if errValidate != nil {
 				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
 
@@ -42,7 +44,7 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, logger log
 				}
 			}
 
-			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFields)
+			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
 			if errValidate != nil {
 				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
 
@@ -134,4 +136,19 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 	}
 
 	return nil
+}
+
+// generateCopyOfMappedFields generate a copy of mapped fields to make a deep copy of the original
+func generateCopyOfMappedFields(orig map[string]map[string][]string) map[string]map[string][]string {
+	copyMappedFields := make(map[string]map[string][]string)
+	for k, v := range orig {
+		sub := make(map[string][]string)
+		for subK, subV := range v {
+			newSlice := make([]string, len(subV))
+			copy(newSlice, subV)
+			sub[subK] = newSlice
+		}
+		copyMappedFields[k] = sub
+	}
+	return copyMappedFields
 }

@@ -51,6 +51,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	}
 
 	regexBlockIfOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
 
 	return normalizeStructure(resultRegex)
 }
@@ -59,6 +60,31 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 // It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
 func regexBlockIfOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
 	ifRegex := regexp.MustCompile(`{%-?\s*if\s+(.*?)\s*-?%}`)
+
+	ifMatches := ifRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range ifMatches {
+		expr := match[1]
+		fieldPaths := extractIfFromExpression(expr)
+
+		for _, fieldExpr := range fieldPaths {
+			parts := CleanPath(fieldExpr)
+			if len(parts) < 2 {
+				continue
+			}
+
+			if loopPath, ok := variableMap[parts[0]]; ok {
+				insertField(resultRegex, loopPath, parts[1])
+			} else {
+				insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
+			}
+		}
+	}
+}
+
+// regexBlockIfOnPlaceholder parses a template file to process "if" blocks and updates a nested map with extracted field mappings.
+// It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
+func regexBlockSetOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	ifRegex := regexp.MustCompile(`{%-?\s*set\s+(.*?)\s*-?%}`)
 
 	ifMatches := ifRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range ifMatches {
