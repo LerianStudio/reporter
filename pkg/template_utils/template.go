@@ -26,6 +26,7 @@ func GetMimeType(outputFormat string) string {
 func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string {
 	variableMap := regexBlockForOnPlaceholder(templateFile)
 	resultRegex := regexBlockWithOnPlaceholder(variableMap, templateFile)
+	regexBlockForWithFilterOnPlaceholder(resultRegex, variableMap, templateFile)
 
 	// Regex for fields {{ ... }}
 	fieldRegex := regexp.MustCompile(`{{\s*(.*?)\s*}}`)
@@ -129,6 +130,51 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 	}
 
 	return variableMap
+}
+
+// regexBlockForWithFilterOnPlaceholder processes "for" loops with the filter function in a template file, updating nested data structures.
+// It extracts variable mappings, assigns paths, and inserts filtered parameter data into the result map.
+func regexBlockForWithFilterOnPlaceholder(result map[string]any, variableMap map[string][]string, templateFile string) {
+	withRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s*in\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
+
+	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
+
+	for _, match := range withMatches {
+		assignedVar := match[1]
+		args := match[2]
+		argParts := strings.Split(args, ",")
+
+		if len(argParts) > 0 {
+			filterTarget := strings.TrimSpace(argParts[0])
+			path := CleanPath(filterTarget)
+
+			if len(path) >= 2 {
+				variableMap[assignedVar] = []string{path[0], path[1]}
+
+				for _, param := range argParts[1:] {
+					param = strings.TrimSpace(param)
+					cleanParam := strings.Trim(param, `"' `)
+
+					if cleanParam == "" {
+						continue
+					}
+
+					paramPath := CleanPath(cleanParam)
+
+					if len(paramPath) < 2 {
+						insertField(result, path, cleanParam)
+						continue
+					}
+
+					if loopPath, ok := variableMap[paramPath[0]]; ok {
+						insertField(result, loopPath, paramPath[1])
+					} else {
+						insertField(result, paramPath[:len(paramPath)-1], paramPath[len(paramPath)-1])
+					}
+				}
+			}
+		}
+	}
 }
 
 // regexBlockWithOnPlaceholder parses a template file to process "with" statements and updates `variableMap` with mapped variables.
