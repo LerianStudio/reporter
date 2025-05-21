@@ -141,14 +141,18 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 // generateCopyOfMappedFields generate a copy of mapped fields to make a deep copy of the original
 func generateCopyOfMappedFields(orig map[string]map[string][]string) map[string]map[string][]string {
 	copyMappedFields := make(map[string]map[string][]string)
+
 	for k, v := range orig {
 		sub := make(map[string][]string)
+
 		for subK, subV := range v {
 			newSlice := make([]string, len(subV))
 			copy(newSlice, subV)
 			sub[subK] = newSlice
 		}
+
 		copyMappedFields[k] = sub
 	}
+
 	return copyMappedFields
 }
