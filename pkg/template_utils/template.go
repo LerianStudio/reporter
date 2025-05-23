@@ -53,6 +53,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 	regexBlockIfOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockAggregationBlocksOnPlaceholder(templateFile, resultRegex, variableMap)
 
 	return normalizeStructure(resultRegex)
 }
@@ -85,10 +86,10 @@ func regexBlockIfOnPlaceholder(templateFile string, resultRegex map[string]any, 
 // regexBlockIfOnPlaceholder parses a template file to process "if" blocks and updates a nested map with extracted field mappings.
 // It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
 func regexBlockSetOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
-	ifRegex := regexp.MustCompile(`{%-?\s*set\s+(.*?)\s*-?%}`)
+	setRegex := regexp.MustCompile(`{%-?\s*set\s+(.*?)\s*-?%}`)
 
-	ifMatches := ifRegex.FindAllStringSubmatch(templateFile, -1)
-	for _, match := range ifMatches {
+	setMatches := setRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range setMatches {
 		expr := match[1]
 		fieldPaths := extractIfFromExpression(expr)
 
@@ -102,6 +103,51 @@ func regexBlockSetOnPlaceholder(templateFile string, resultRegex map[string]any,
 				insertField(resultRegex, loopPath, parts[1])
 			} else {
 				insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
+			}
+		}
+	}
+}
+
+// regexBlockIfOnPlaceholder parses a template file to process "if" blocks and updates a nested map with extracted field mappings.
+// It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
+func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	aggrRegexes := []*regexp.Regexp{
+		regexp.MustCompile(`{%-?\s*count_by\s+(.*?)\s*-?%}`),
+		regexp.MustCompile(`{%-?\s*sum_by\s+(.*?)\s*-?%}`),
+		regexp.MustCompile(`{%-?\s*avg_by\s+(.*?)\s*-?%}`),
+		regexp.MustCompile(`{%-?\s*min_by\s+(.*?)\s*-?%}`),
+		regexp.MustCompile(`{%-?\s*max_by\s+(.*?)\s*-?%}`),
+	}
+
+	var matches [][]string
+	for _, re := range aggrRegexes {
+		matches = append(matches, re.FindAllStringSubmatch(templateFile, -1)...)
+	}
+
+	for _, match := range matches {
+		expr := match[1]
+
+		args := extractFieldsFromExpressionOfAggregation(expr)
+		if len(args) == 0 {
+			continue
+		}
+
+		mainPath := CleanPath(strings.TrimSpace(args[0]))
+		if len(mainPath) < 2 {
+			continue
+		}
+
+		variableMap[mainPath[1]] = mainPath
+		for _, arg := range args[1:] {
+			argPath := CleanPath(arg)
+
+			switch {
+			case len(argPath) < 2:
+				insertField(resultRegex, mainPath, arg)
+			case variableMap[argPath[0]] != nil:
+				insertField(resultRegex, variableMap[argPath[0]], argPath[1])
+			default:
+				insertField(resultRegex, argPath[:len(argPath)-1], argPath[len(argPath)-1])
 			}
 		}
 	}
@@ -225,6 +271,26 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 					}
 				}
 			}
+		}
+	}
+
+	return result
+}
+
+// extractFieldsFromExpressionOfAggregation parses an aggregation expression and extracts key fields as a slice of strings.
+func extractFieldsFromExpressionOfAggregation(expr string) []string {
+	result := make([]string, 0)
+	re := regexp.MustCompile(`^\s*(\S+)\s+if\s+(\S+)\s*==\s*(\S+)\s*$`)
+	matches := re.FindStringSubmatch(expr)
+
+	if len(matches) == 4 {
+		result = []string{matches[1], matches[2], matches[3]}
+	} else {
+		re = regexp.MustCompile(`^\s*(\S+)\s+by\s+"([^"]+)"\s+if\s+(\S+)\s*==\s*(\S+)`)
+		matches = re.FindStringSubmatch(expr)
+
+		if len(matches) == 5 {
+			result = []string{matches[1], matches[2], matches[3], matches[4]}
 		}
 	}
 
