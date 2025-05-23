@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0-beta.19] - 2025-05-23
+
+### 🐛 Bug Fixes
+- Update `.releaserc` file to use the correct semantic release plugin, ensuring proper release process configuration
+
+### 🔧 Maintenance
+- Consolidate CHANGELOG updates for improved clarity and consistency
+
 ## [v1.0.0-beta.18] - 2025-05-15
 
 ### 🐛 Bug Fixes
