@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-feat.4] - 2025-05-23
+
+### ✨ Features
+- Update `gofiber` to address security vulnerability CVE-2025-48075, enhancing security and stability.
+
+### 🔧 Maintenance
+- Upgrade `gofiber` dependency to mitigate identified vulnerabilities and ensure compliance with security standards.
+
 ## [v1.0.0-beta.18] - 2025-05-15
 
 ### 🐛 Bug Fixes
