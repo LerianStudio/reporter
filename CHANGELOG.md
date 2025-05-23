@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-feat.1] - 2025-05-23
+
+### ✨ Features
+- Add logging for MinIO test connection to enhance monitoring and debugging capabilities.
+
 ## [v1.0.0-beta.18] - 2025-05-15
 
 ### 🐛 Bug Fixes
