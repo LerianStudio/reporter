@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
@@ -90,12 +92,47 @@ func InitWorker() *Service {
 
 	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
 
+	// Log detalhado das configurações do MinIO antes de tentar conectar
+	logger.Infof("Tentando conectar ao MinIO no endpoint: %s", minioEndpoint)
+	logger.Infof("MinIO SSL habilitado: %v", cfg.MinioSSLEnabled)
+	logger.Infof("MinIO usuário: %s", cfg.MinioAppUsername)
+	logger.Infof("MinIO senha: ****** (comprimento: %d caracteres)", len(cfg.MinioAppPassword))
+
+	// Tentativa de conexão com o MinIO
+	logger.Info("Iniciando conexão com MinIO...")
 	minioClient, err := minio.New(minioEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
 		Secure: cfg.MinioSSLEnabled,
 	})
 	if err != nil {
-		logger.Fatalf("Error creating minio client: %v", err)
+		// Log detalhado do erro
+		logger.Errorf("Falha na conexão com MinIO: %v", err)
+		logger.Errorf("Tipo do erro: %T", err)
+		
+		// Verificar tipos de erro específicos
+		if strings.Contains(err.Error(), "authentication") || strings.Contains(err.Error(), "credential") {
+			logger.Error("Possível problema de autenticação ou credenciais inválidas")
+		} else if strings.Contains(err.Error(), "connection") || strings.Contains(err.Error(), "dial") {
+			logger.Error("Possível problema de conectividade ou endpoint inválido")
+		}
+		
+		logger.Fatalf("Erro fatal ao criar cliente MinIO: %v", err)
+	}
+	
+	// Testar conexão com MinIO
+	logger.Info("Cliente MinIO criado, testando conexão...")
+	// Listar buckets para verificar se a conexão está funcionando
+	buckets, listErr := minioClient.ListBuckets(context.Background())
+	if listErr != nil {
+		logger.Errorf("Erro ao listar buckets do MinIO: %v", listErr)
+		logger.Fatalf("Falha ao verificar conexão com MinIO: %v", listErr)
+	}
+	
+	// Log de sucesso com detalhes dos buckets
+	logger.Infof("Conexão com MinIO estabelecida com sucesso ✅")
+	logger.Infof("Buckets disponíveis: %d", len(buckets))
+	for i, bucket := range buckets {
+		logger.Infof("Bucket %d: %s (criado em: %s)", i+1, bucket.Name, bucket.CreationDate)
 	}
 
 	// Init mongo DB connection
