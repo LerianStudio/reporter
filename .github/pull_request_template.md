@@ -3,6 +3,10 @@
 ## Pull Request Type
 [//]: # (Check the appropriate box for the type of pull request.)
 
+- [ ] Manager
+- [ ] Worker
+- [ ] Infrastructure
+- [ ] Packages
 - [ ] Pipeline
 - [ ] Tests
 - [ ] Documentation

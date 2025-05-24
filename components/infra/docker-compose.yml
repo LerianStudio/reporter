@@ -1,0 +1,88 @@
+services:
+  plugin-smart-templates-mongodb:
+    container_name: plugin-smart-templates-mongodb
+    image: mongo:latest
+    env_file:
+      - .env
+    restart: always
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    user: root
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    command: mongod --port ${MONGO_PORT}
+    volumes:
+      - plugin-smart-templates-mongodb-data:/data/db
+    networks:
+      - plugin-smart-templates-infra-network
+
+  plugin-smart-templates-rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    container_name: plugin-smart-templates-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - ${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_HOST}
+      - ${RABBITMQ_PORT_AMQP}:${RABBITMQ_PORT_AMQP}
+    volumes:
+      - ./rabbitmq/etc/definitions.json:/etc/rabbitmq/definitions.json
+      - ./rabbitmq/etc/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - plugin-smart-templates-infra-network
+
+  plugin-smart-templates-minio:
+    image: minio/minio:latest
+    container_name: plugin-smart-templates-minio
+    ports:
+      - ${MINIO_API_PORT}:${MINIO_API_PORT}
+      - ${MINIO_ADMIN_PORT}:${MINIO_ADMIN_PORT}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_APP_USER: ${MINIO_APP_USER}
+      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD}
+    volumes:
+      - plugin-smart-templates-minio-data:/data
+    command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+    networks:
+      - plugin-smart-templates-infra-network
+
+  plugin-smart-templates-minio-mc:
+    image: minio/mc
+    container_name: plugin-smart-templates-minio-mc
+    depends_on:
+      - plugin-smart-templates-minio
+    entrypoint: >
+      sh -c "
+        sleep 5 && \
+        mc alias set local http://plugin-smart-templates-minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
+        mc mb local/templates || true && \
+        mc mb local/reports || true && \
+        mc admin user add local $MINIO_APP_USER $MINIO_APP_PASSWORD && \
+        mc admin policy create local app-policy /policies/app-policy.json && \
+        mc admin policy attach local app-policy --user $MINIO_APP_USER && \
+        echo 'User and buckets created.'
+      "
+    volumes:
+      - ./minio/policies:/policies
+    networks:
+      - plugin-smart-templates-infra-network
+
+volumes:
+  plugin-smart-templates-mongodb-data:
+  plugin-smart-templates-minio-data:
+
+networks:
+  plugin-smart-templates-infra-network:
+    name: plugin-smart-templates-infra-network
+    driver: bridge
