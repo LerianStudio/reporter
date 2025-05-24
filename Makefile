@@ -1,10 +1,15 @@
-service_name := k8s-golang-addons-boilerplate
-bin_dir := ./.bin
+# Plugin Smart Templates Makefile
 
-BLUE := \033[36m
-NC := \033[0m
+# Component-specific variables
+SERVICE_NAME := plugin-smart-templates
+BIN_DIR := ./.bin
+ARTIFACTS_DIR := ./artifacts
 
-DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
+# Ensure artifacts directory exists
+$(shell mkdir -p $(ARTIFACTS_DIR))
+
+# Docker version detection for compatibility
+DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}' 2>/dev/null || echo "0.0.0")
 DOCKER_MIN_VERSION := 20.10.13
 
 DOCKER_CMD := $(shell \
@@ -15,129 +20,331 @@ DOCKER_CMD := $(shell \
 	fi \
 )
 
-# Display available commands
-.PHONY: info
-info:
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
-	@echo "To run a specific command inside the audit container using make, you can execute:                                                     "
-	@echo "                                                                                                                                       "
-	@echo "make audit COMMAND=\"any\"                                                                                                            "
-	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the audit container. Replace \"any\" with the desired command you want to execute. "
-	@echo "                                                                                                                         "
-	@echo "## Docker commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"build\"                                Builds all Docker images defined in docker-compose.yml."
-	@echo "  COMMAND=\"up\"                                   Starts and runs all services defined in docker-compose.yml."
-	@echo "  COMMAND=\"start\"                                Starts existing containers defined in docker-compose.yml without creating them."
-	@echo "  COMMAND=\"stop\"                                 Stops running containers defined in docker-compose.yml without removing them."
-	@echo "  COMMAND=\"down\"                                 Stops and removes containers, networks, and volumes defined in docker-compose.yml."
-	@echo "  COMMAND=\"destroy\"                              Stops and removes containers, networks, and volumes (including named volumes) defined in docker-compose.yml."
-	@echo "  COMMAND=\"restart\"                              Stops and removes containers, networks, and volumes, then starts all services in detached mode."
-	@echo "  COMMAND=\"logs\"                                 Shows the last 100 lines of logs and follows live log output for services defined in docker-compose.yml."
-	@echo "  COMMAND=\"logs-api\"                             Shows the last 100 lines of logs and follows live log output for the audit service defined in docker-compose.yml."
-	@echo "  COMMAND=\"ps\"                                   Lists the status of containers defined in docker-compose.yml."
-	@echo "                                                                                                                         "
-	@echo "## App commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"generate-docs\" 						  Generates Swagger API documentation and an OpenAPI Specification."
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
+#-------------------------------------------------------
+# Help and Information
+#-------------------------------------------------------
 
-# Docker Compose Commands
+.PHONY: help
+help:
+	@echo ""
+	@echo "Smart Templates Service Commands"
+	@echo ""
+	@echo "Core Commands:"
+	@echo "  make help                        - Display this help message"
+	@echo "  make build                       - Build the component"
+	@echo "  make test                        - Run tests"
+	@echo "  make clean                       - Clean build artifacts"
+	@echo "  make run                         - Run the application"
+	@echo ""
+	@echo "Code Quality Commands:"
+	@echo "  make lint                        - Run linting tools"
+	@echo "  make format                      - Format code"
+	@echo "  make tidy                        - Clean dependencies"
+	@echo "  make sec                         - Run security checks"
+	@echo ""
+	@echo "Docker Commands:"
+	@echo "  make up                          - Start services with Docker Compose"
+	@echo "  make down                        - Stop services with Docker Compose"
+	@echo "  make start                       - Start existing containers"
+	@echo "  make stop                        - Stop running containers"
+	@echo "  make restart                     - Restart all containers"
+	@echo "  make logs                        - Show logs for all services"
+	@echo "  make logs-api                    - Show logs for smart-templates service"
+	@echo "  make ps                          - List container status"
+	@echo "  make destroy                     - Remove containers, networks, and volumes"
+	@echo ""
+	@echo "Smart Templates-Specific Commands:"
+	@echo "  make generate-docs               - Generate Swagger API documentation"
+	@echo "  make grpc-example-gen            - Generate gRPC example code"
+	@echo ""
+	@echo "Git and Setup Commands:"
+	@echo "  make setup-git-hooks             - Install git hooks"
+	@echo "  make check-hooks                 - Check git hooks status"
+	@echo "  make set-env                     - Set up environment files"
+	@echo ""
+
+.DEFAULT_GOAL := help
+
+#-------------------------------------------------------
+# Build Commands
+#-------------------------------------------------------
+
+.PHONY: build
+build:
+	@echo "Building Smart Templates component..."
+	@if [ -d "cmd" ]; then \
+		for dir in cmd/*/; do \
+			if [ -f "$$dir/main.go" ]; then \
+				echo "Building $$dir..."; \
+				go build -o $(BIN_DIR)/$$(basename $$dir) ./$$dir; \
+			fi; \
+		done; \
+	else \
+		echo "No cmd directory found, building current directory..."; \
+		go build -o $(BIN_DIR)/$(SERVICE_NAME) .; \
+	fi
+	@echo "[ok] Build completed successfully"
+
+.PHONY: run
+run:
+	@echo "Running the application..."
+	@if [ -f "$(BIN_DIR)/app" ]; then \
+		$(BIN_DIR)/app; \
+	elif [ -f "cmd/app/main.go" ]; then \
+		go run cmd/app/main.go; \
+	else \
+		echo "No main application found"; \
+		exit 1; \
+	fi
+
+#-------------------------------------------------------
+# Test Commands
+#-------------------------------------------------------
+
+.PHONY: test
+test:
+	@echo "Running tests..."
+	@if ! command -v go >/dev/null 2>&1; then \
+		echo "Error: go is not installed"; \
+		exit 1; \
+	fi
+	@go test -v ./...
+	@echo "[ok] Tests completed successfully"
+
+.PHONY: cover
+cover:
+	@echo "Generating test coverage report..."
+	@go test -coverprofile=$(ARTIFACTS_DIR)/coverage.out ./...
+	@go tool cover -func=$(ARTIFACTS_DIR)/coverage.out
+	@echo "[ok] Coverage report generated"
+
+.PHONY: cover-html
+cover-html:
+	@echo "Generating HTML test coverage report..."
+	@go test -coverprofile=$(ARTIFACTS_DIR)/coverage.out ./...
+	@go tool cover -html=$(ARTIFACTS_DIR)/coverage.out -o $(ARTIFACTS_DIR)/coverage.html
+	@echo "Coverage report generated at $(ARTIFACTS_DIR)/coverage.html"
+	@echo ""
+	@echo "Coverage Summary:"
+	@echo "----------------------------------------"
+	@go tool cover -func=$(ARTIFACTS_DIR)/coverage.out | grep total | awk '{print "Total coverage: " $$3}'
+	@echo "----------------------------------------"
+	@echo "Open $(ARTIFACTS_DIR)/coverage.html in your browser to view detailed coverage report"
+
+#-------------------------------------------------------
+# Code Quality Commands
+#-------------------------------------------------------
+
+.PHONY: lint
+lint:
+	@echo "Running linter and performance checks..."
+	@if [ -x "./make.sh" ]; then \
+		./make.sh "lint"; \
+	else \
+		if find . -name "*.go" -type f | grep -q .; then \
+			if ! command -v golangci-lint >/dev/null 2>&1; then \
+				echo "Installing golangci-lint..."; \
+				go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+			fi; \
+			golangci-lint run ./...; \
+		else \
+			echo "No Go files found, skipping linting"; \
+		fi; \
+	fi
+	@echo "[ok] Linting completed successfully"
+
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@go fmt ./...
+	@echo "[ok] Formatting completed successfully"
+
+.PHONY: tidy
+tidy:
+	@echo "Running go mod tidy..."
+	@go mod tidy
+	@echo "[ok] Dependencies cleaned successfully"
+
+.PHONY: sec
+sec:
+	@echo "Running security checks..."
+	@if ! command -v gosec >/dev/null 2>&1; then \
+		echo "Installing gosec..."; \
+		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
+	fi
+	@if find . -name "*.go" -type f | grep -q .; then \
+		gosec -quiet ./...; \
+		echo "[ok] Security checks completed"; \
+	else \
+		echo "No Go files found, skipping security checks"; \
+	fi
+
+#-------------------------------------------------------
+# Clean Commands
+#-------------------------------------------------------
+
+.PHONY: clean
+clean:
+	@echo "Cleaning build artifacts..."
+	@rm -rf $(BIN_DIR)/* $(ARTIFACTS_DIR)/*
+	@echo "[ok] Artifacts cleaned successfully"
+
+#-------------------------------------------------------
+# Docker Commands
+#-------------------------------------------------------
+
 .PHONY: up
-up:
-	make set-env
-	@echo "$(BLUE)Starting all services...$(NC)"
+up: set-env
+	@echo "Starting all services..."
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	@echo "[ok] All services started successfully"
 
 .PHONY: start
 start:
-	@docker compose -f docker-compose.yml start $(c)
+	@echo "Starting existing containers..."
+	@$(DOCKER_CMD) -f docker-compose.yml start $(c)
+	@echo "[ok] Containers started successfully"
 
 .PHONY: down
 down:
+	@echo "Stopping and removing containers..."
 	@$(DOCKER_CMD) -f docker-compose.yml down $(c)
-
-.PHONY: destroy
-destroy:
-	@$(DOCKER_CMD) -f docker-compose.yml down -v $(c)
+	@echo "[ok] Services stopped successfully"
 
 .PHONY: stop
 stop:
+	@echo "Stopping running containers..."
 	@$(DOCKER_CMD) -f docker-compose.yml stop $(c)
+	@echo "[ok] Containers stopped successfully"
 
 .PHONY: restart
 restart:
-	make stop && \
-    make up
+	@echo "Restarting all services..."
+	@make stop && make up
+	@echo "[ok] Services restarted successfully"
+
+.PHONY: destroy
+destroy:
+	@echo "Removing containers, networks, and volumes..."
+	@$(DOCKER_CMD) -f docker-compose.yml down -v $(c)
+	@echo "[ok] Resources cleaned successfully"
 
 .PHONY: logs
 logs:
+	@echo "Showing logs for all services..."
 	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f $(c)
 
 .PHONY: logs-api
 logs-api:
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f midaz-audit
+	@echo "Showing logs for smart-templates service..."
+	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f smart-templates
 
 .PHONY: ps
 ps:
+	@echo "Listing container status..."
 	@$(DOCKER_CMD) -f docker-compose.yml ps
 
-.PHONY: grpc-example-gen
-grpc-example-gen:
-	@protoc --go_out=pkg/mproto/example --go-grpc_out=pkg/mproto/example pkg/mproto/example/*.proto
+#-------------------------------------------------------
+# Documentation Commands
+#-------------------------------------------------------
 
 .PHONY: generate-docs
 generate-docs:
+	@echo "Generating Swagger API documentation..."
+	@if ! command -v swag >/dev/null 2>&1; then \
+		echo "Installing swag..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+	fi
 	@swag init -g ./cmd/app/main.go -d ./ -o ./api --parseDependency --parseInternal
-	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/api/swagger.json -g openapi-yaml -o /local/api
+	@docker run --rm -v ./:/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/api/swagger.json -g openapi-yaml -o /local/api
 	@mv ./api/openapi/openapi.yaml ./api/openapi.yaml
 	@rm -rf ./api/README.md ./api/.openapi-generator* ./api/openapi
+	@echo "[ok] Swagger API documentation generated successfully"
+
+#-------------------------------------------------------
+# Smart Templates-Specific Commands  
+#-------------------------------------------------------
+
+.PHONY: grpc-example-gen
+grpc-example-gen:
+	@echo "Generating gRPC example code..."
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "Error: protoc is not installed"; \
+		exit 1; \
+	fi
+	@if [ -d "pkg/proto" ]; then \
+		protoc --go_out=. --go-grpc_out=. pkg/proto/*.proto; \
+	else \
+		echo "No proto directory found, skipping gRPC generation"; \
+	fi
+	@echo "[ok] gRPC example code generated successfully"
+
+#-------------------------------------------------------
+# Git Hook Commands
+#-------------------------------------------------------
 
 .PHONY: setup-git-hooks
 setup-git-hooks:
-	@echo "$(BLUE)Setting up git hooks...$(NC)"
-	./make.sh "setupGitHooks"
+	@echo "Setting up git hooks..."
+	@if [ -x "./make.sh" ]; then \
+		./make.sh "setupGitHooks"; \
+	else \
+		echo "make.sh script not found or not executable"; \
+	fi
+	@echo "[ok] Git hooks setup completed"
 
 .PHONY: check-hooks
 check-hooks:
-	@echo "$(BLUE)Checking git hooks status...$(NC)"
-	./make.sh "checkHooks"
-
-.PHONY: lint
-lint:
-	@echo "$(BLUE)Running linter and performance checks...$(NC)"
-	./make.sh "lint"
-
-.PHONY: tidy
-tidy:
-	@echo "$(BLUE)Running go mod tidy...$(NC)"
-	go mod tidy
-
-.PHONY: sec
-sec:
-	@echo "$(BLUE)Running security checks...$(NC)"
-	@if ! command -v gosec >/dev/null 2>&1; then \
-		echo "$(RED)Error: gosec is not installed$(NC)"; \
-		echo "$(MAGENTA)To install: go install github.com/securego/gosec/v2/cmd/gosec@latest$(NC)"; \
-		exit 1; \
+	@echo "Checking git hooks status..."
+	@if [ -x "./make.sh" ]; then \
+		./make.sh "checkHooks"; \
+	else \
+		echo "make.sh script not found or not executable"; \
 	fi
-	gosec ./...
+	@echo "[ok] Git hooks check completed"
 
-.PHONY: test
-test:
-	@echo "$(BLUE)Running tests...$(NC)"
-		@if ! command -v go >/dev/null 2>&1; then \
-		echo "$(RED)Error: go is not installed$(NC)"; \
-		exit 1; \
-	fi
-	go test -v ./... ./...
+#-------------------------------------------------------
+# Environment Setup Commands
+#-------------------------------------------------------
 
 .PHONY: set-env
 set-env:
-	@echo "$(BLUE)Setting up environment files...$(NC)"
-	cp -r ./.env.example ./.env
-	@echo "$(BLUE)Environment files created successfully$(NC)"
+	@echo "Setting up environment files..."
+	@if [ -f ".env.example" ] && [ ! -f ".env" ]; then \
+		cp ".env.example" ".env"; \
+		echo "Created .env file from .env.example"; \
+	elif [ ! -f ".env.example" ]; then \
+		echo "Warning: No .env.example found"; \
+	else \
+		echo ".env file already exists"; \
+	fi
+	@echo "[ok] Environment files setup completed"
+
+#-------------------------------------------------------
+# Development Setup Commands
+#-------------------------------------------------------
+
+.PHONY: dev-setup
+dev-setup:
+	@echo "Setting up development environment..."
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+	fi
+	@if ! command -v swag >/dev/null 2>&1; then \
+		echo "Installing swag..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+	fi
+	@if ! command -v gosec >/dev/null 2>&1; then \
+		echo "Installing gosec..."; \
+		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
+	fi
+	@make set-env
+	@make tidy
+	@make test
+	@echo "[ok] Development environment setup completed"
+	@echo "You're ready to start developing! Here are some useful commands:"
+	@echo "  make build         - Build the component"
+	@echo "  make test          - Run tests"  
+	@echo "  make up            - Start services"
+	@echo "  make generate-docs - Generate API documentation"
