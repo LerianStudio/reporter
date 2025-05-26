@@ -48,7 +48,6 @@ info:
 # Docker Compose Commands
 .PHONY: up
 up:
-	make set-env
 	@echo "$(BLUE)Starting all services...$(NC)"
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
 	@echo "$(BLUE)All services started successfully$(NC)"
