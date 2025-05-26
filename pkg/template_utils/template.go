@@ -138,6 +138,7 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		}
 
 		variableMap[mainPath[1]] = mainPath
+
 		for _, arg := range args[1:] {
 			argPath := CleanPath(arg)
 
