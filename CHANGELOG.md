@@ -7,6 +7,72 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Implement test build workflow in CI process to automate and ensure reliability of the build process.
 
+## [v1.0.1-feat.3] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow for continuous integration to enhance CI/CD pipeline efficiency.
+
+## [v1.0.1-feat.2] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow to the continuous integration pipeline
+
+## [v1.0.1-feat.1] - 2025-05-16
+
+### 🔧 Maintenance
+- Test build workflow for continuous integration to ensure robust deployment processes
+
+## [v1.0.0] - 2025-05-16
+
+### 🔧 Maintenance
+- Add build workflow configuration to enhance CI/CD processes
+- Adjust naming conventions in configuration files for consistency
+- Update Helm configuration for improved deployment management
+
+## [v1.0.0-beta.18] - 2025-05-15
+
+### 🐛 Bug Fixes
+- Establish network for plugin fees on worker to ensure proper functionality and connectivity
+
+## [v1.0.0-beta.17] - 2025-05-15
+
+### 🐛 Bug Fixes
+- Establish network connection for plugin fees to ensure correct functionality and prevent connectivity issues.
+
+## [v1.0.0-beta.16] - 2025-05-15
+
+### 🐛 Bug Fixes
+- Resolve linting issues in the codebase to maintain code quality
+
+### 🔧 Maintenance
+- Add 'createdAt' filter to the templates endpoint list, enhancing the functionality and allowing more precise template management
+
+## [v1.0.0-beta.15] - 2025-05-14
+
+### 🐛 Bug Fixes
+- Organize code by running lint to improve code quality and maintainability.
+
+### 🔧 Maintenance
+- Standardize environment variable names for plugin consistency, enhancing code readability and maintainability.
+
+## [v1.0.0-beta.14] - 2025-05-13
+
+### 🐛 Bug Fixes
+- Adjust filter validation for report generation to ensure correct functionality
+
+### 📚 Documentation
+- Generate new Swagger documentation to improve API clarity and usability
+
+## [v1.0.0-beta.13] - 2025-05-13
+
+### 🐛 Bug Fixes
+- Correct the type casting of the `x-retry-count` variable to ensure proper retry logic functionality.
+- Limit message retry attempts to three in the consumer to prevent excessive retries and reduce resource usage.
+
+### 🔧 Maintenance
+- Improve code structure and comments for report generation to enhance readability and maintainability.
+- Update changelog documentation to reflect recent changes.
+
 ## [v1.0.0-beta.12] - 2025-05-09
 
 ### 🐛 Bug Fixes
