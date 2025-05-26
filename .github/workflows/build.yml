@@ -1,0 +1,23 @@
+name: "Build Pipeline"
+
+on:
+  push:
+    tags:
+      - '**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  packages: write
+
+# Build and Publish Docker Image to GHCR  
+jobs:
+  build_and_publish_ghcr:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Build And Publish Docker Image to GHCR
+        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
+        with:
+          app_name: 'plugin-smart-templates'
+          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
