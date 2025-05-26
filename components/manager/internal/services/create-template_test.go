@@ -70,7 +70,6 @@ func Test_createTemplate(t *testing.T) {
 		DatabaseType:       "mongodb",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
-		DatabaseConfig:     nil,
 		MongoURI:           "",
 		MongoDBName:        "organization",
 		Connection:         nil,
@@ -81,11 +80,19 @@ func Test_createTemplate(t *testing.T) {
 		DatabaseType:       "postgresql",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
-		DatabaseConfig:     nil,
-		MongoURI:           "",
-		MongoDBName:        "ledger",
-		Connection:         nil,
-		Initialized:        true,
+		DatabaseConfig: &postgres.Connection{
+			ConnectionString:   "",
+			DBName:             "",
+			ConnectionDB:       nil,
+			Connected:          true,
+			Logger:             nil,
+			MaxOpenConnections: 0,
+			MaxIdleConnections: 0,
+		},
+		MongoURI:    "",
+		MongoDBName: "ledger",
+		Connection:  nil,
+		Initialized: true,
 	}
 
 	tempSvc := &UseCase{
