@@ -81,6 +81,11 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 		mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 		logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+			logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
+			return errValidateFields
+		}
+
 		setFields["mapped_fields"] = mappedFields
 	}
 
