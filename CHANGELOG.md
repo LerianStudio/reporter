@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.4] - 2025-05-26
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes
+
+### 🔧 Continuous Integration
+- Test build workflow for continuous integration improvements
+
 ## [v1.0.1-feat.3] - 2025-05-16
 
 ### 🔧 Maintenance
