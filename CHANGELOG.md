@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.6] - 2025-05-26
+
+### 🐛 Bug Fixes
+- Correct Makefile commands to ensure proper build process
+
 ## [v1.0.1-feat.5] - 2025-05-16
 
 ### 🔧 Maintenance
