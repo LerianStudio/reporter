@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1-feat.1] - 2025-05-16
+
+### 🔧 Maintenance
+- Test build workflow for continuous integration to ensure robust deployment processes
+
 ## [v1.0.0] - 2025-05-16
 
 ### 🔧 Maintenance
