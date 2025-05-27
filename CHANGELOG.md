@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.5] - 2025-05-26
+
+### 🔧 Maintenance
+- Update CHANGELOG for recent changes
+- Test build workflow configuration to ensure CI setup is validated
+=======
 ## [v1.1.0-beta.4] - 2025-05-26
 
 ### 🔧 Maintenance
