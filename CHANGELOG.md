@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.7] - 2025-05-27
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes, ensuring documentation is current and accurate.
+
+### 🔧 Continuous Integration
+- Test build workflow to ensure continuous integration setup is functioning correctly, maintaining pipeline reliability.
+
 ## [v1.0.1-feat.6] - 2025-05-16
 
 ### 🔧 Maintenance
