@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.3] - 2025-05-26
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes
+- Test build workflow to ensure continuous integration functionality
+=======
 ## [v1.1.0-beta.2] - 2025-05-26
 
 ### 🔧 Maintenance
@@ -55,6 +61,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🔧 Maintenance
 - Add test build workflow for continuous integration to enhance CI/CD pipeline efficiency.
+
 
 ## [v1.0.1-feat.2] - 2025-05-16
 
