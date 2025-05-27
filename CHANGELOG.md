@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [v1.0.0-beta.19] - 2025-05-23
 
 ### 🐛 Bug Fixes
@@ -9,6 +10,38 @@ All notable changes to this project will be documented in this file.
 
 ### 🔧 Maintenance
 - Consolidate CHANGELOG updates for improved clarity and consistency
+=======
+## [v1.0.1-feat.6] - 2025-05-16
+
+### 🔧 Maintenance
+- Implement test build workflow for continuous integration
+
+## [v1.0.1-feat.5] - 2025-05-16
+
+### 🔧 Maintenance
+- Implement test build workflow in CI process to automate and ensure reliability of the build process.
+
+## [v1.0.1-feat.3] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow for continuous integration to enhance CI/CD pipeline efficiency.
+
+## [v1.0.1-feat.2] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow to the continuous integration pipeline
+
+## [v1.0.1-feat.1] - 2025-05-16
+
+### 🔧 Maintenance
+- Test build workflow for continuous integration to ensure robust deployment processes
+
+## [v1.0.0] - 2025-05-16
+
+### 🔧 Maintenance
+- Add build workflow configuration to enhance CI/CD processes
+- Adjust naming conventions in configuration files for consistency
+- Update Helm configuration for improved deployment management
 
 ## [v1.0.0-beta.18] - 2025-05-15
 

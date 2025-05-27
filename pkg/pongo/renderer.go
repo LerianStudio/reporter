@@ -3,6 +3,7 @@ package pongo
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"github.com/flosch/pongo2/v6"
@@ -42,6 +43,11 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 			}
 
 			return result
+		},
+		"contains": func(str1 any, str2 any) bool {
+			s1 := strings.ToUpper(fmt.Sprintf("%v", str1))
+			s2 := strings.ToUpper(fmt.Sprintf("%v", str2))
+			return strings.Contains(s1, s2)
 		},
 	}
 	for k, v := range data {
