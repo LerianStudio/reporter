@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.1] - 2025-05-26
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes
+- Adjust configuration names for improved clarity
+- Update Helm configuration to align with new standards
+
+### 🔧 Continuous Integration
+- Test build workflow to ensure pipeline reliability
+- Add build pipeline configuration to automate deployment processes
+=======
 ## [v1.0.0-beta.20] - 2025-05-26
 
 ### ✨ Features
