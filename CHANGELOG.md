@@ -7,6 +7,59 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Update CHANGELOG for recent changes to reflect the latest updates and improvements.
 - Test build workflow for continuous integration improvements, enhancing the reliability and efficiency of the CI/CD pipeline.
+=======
+## [v1.1.0-beta.1] - 2025-05-26
+
+### 🔧 Maintenance
+- Update CHANGELOG to reflect recent changes
+- Adjust configuration names for improved clarity
+- Update Helm configuration to align with new standards
+
+### 🔧 Continuous Integration
+- Test build workflow to ensure pipeline reliability
+- Add build pipeline configuration to automate deployment processes
+=======
+## [v1.0.0-beta.20] - 2025-05-26
+
+### ✨ Features
+- Add 'contains' tag to validate substring presence, enhancing template validation capabilities.
+
+### 🐛 Bug Fixes
+- Correct code formatting issues by running lint, ensuring consistent code style.
+- Implement regex for aggregation block validation, improving accuracy in data processing.
+- Adjust regex for 'with' filter block to fix incorrect filtering behavior.
+- Validate mapped fields in data structures to prevent runtime errors.
+- Ensure existence of collections in MongoDB schemas, avoiding potential data retrieval issues.
+- Adjust placeholders in loops with regex to fix template rendering errors.
+=======
+
+## [v1.0.0-beta.19] - 2025-05-23
+
+### 🐛 Bug Fixes
+- Update `.releaserc` file to use the correct semantic release plugin, ensuring proper release process configuration
+
+### 🔧 Maintenance
+- Consolidate CHANGELOG updates for improved clarity and consistency
+=======
+## [v1.0.1-feat.6] - 2025-05-16
+
+### 🔧 Maintenance
+- Implement test build workflow for continuous integration
+
+## [v1.0.1-feat.5] - 2025-05-16
+
+### 🔧 Maintenance
+- Implement test build workflow in CI process to automate and ensure reliability of the build process.
+
+## [v1.0.1-feat.3] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow for continuous integration to enhance CI/CD pipeline efficiency.
+
+## [v1.0.1-feat.2] - 2025-05-16
+
+### 🔧 Maintenance
+- Add test build workflow to the continuous integration pipeline
 
 ## [v1.0.1-feat.1] - 2025-05-16
 
@@ -16,9 +69,8 @@ All notable changes to this project will be documented in this file.
 ## [v1.0.0] - 2025-05-16
 
 ### 🔧 Maintenance
-- Add build workflow configuration to enhance CI/CD processes
-- Adjust naming conventions in configuration files for consistency
-- Update Helm configuration for improved deployment management
+- Update Go module dependencies to the latest versions for improved security and performance.
+- Refactor JSON annotations for error structs, enhancing code readability and maintainability.
 
 ## [v1.0.0-beta.18] - 2025-05-15
 
