@@ -10,11 +10,11 @@ import (
 // EntityNotFoundError records an error indicating an entity was not found in any case that caused it.
 // You can use it to representing a Database not found, cache not found or any other repository.
 type EntityNotFoundError struct {
-	EntityType string
-	Title      string
-	Message    string
-	Code       string
-	Err        error
+	EntityType string `json:"entityType,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
+	Err        error  `json:"err,omitempty"`
 }
 
 // Error implements the error interface.
@@ -43,10 +43,10 @@ func (e EntityNotFoundError) Unwrap() error {
 // You can use it to representing a Database not found, cache not found or any other repository.
 type ValidationError struct {
 	EntityType string `json:"entityType,omitempty"`
-	Title      string
-	Message    string
-	Code       string
-	Err        error `json:"err,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Message    string `json:"code,omitempty"`
+	Code       string `json:"message,omitempty"`
+	Err        error  `json:"err,omitempty"`
 }
 
 // Error implements the error interface.
@@ -66,11 +66,11 @@ func (e ValidationError) Unwrap() error {
 // EntityConflictError records an error indicating an entity already exists in some repository
 // You can use it to representing a Database conflict, cache or any other repository.
 type EntityConflictError struct {
-	EntityType string
-	Title      string
-	Message    string
-	Code       string
-	Err        error
+	EntityType string `json:"entityType,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
+	Err        error  `json:"err,omitempty"`
 }
 
 // ValidationKnownFieldsError records an error that occurred during a validation of known fields.
@@ -124,11 +124,11 @@ func (e ForbiddenError) Error() string {
 
 // UnprocessableOperationError indicates an operation that couldn't be performant because it's invalid.
 type UnprocessableOperationError struct {
-	EntityType string
-	Title      string
-	Message    string
-	Code       string
-	Err        error
+	EntityType string `json:"entityType,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
+	Err        error  `json:"err,omitempty"`
 }
 
 func (e UnprocessableOperationError) Error() string {
@@ -137,11 +137,11 @@ func (e UnprocessableOperationError) Error() string {
 
 // HTTPError indicates a http error raised in a http client.
 type HTTPError struct {
-	EntityType string
-	Title      string
-	Message    string
-	Code       string
-	Err        error
+	EntityType string `json:"entityType,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
+	Err        error  `json:"err,omitempty"`
 }
 
 func (e HTTPError) Error() string {
@@ -443,7 +443,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingSchemaTable.Error(),
 			Title:      "Missing Schema Table",
-			Message:    fmt.Sprintf("There is a schema table missing for data source '%v'. Please check the information passed.", args),
+			Message:    fmt.Sprintf("The schema table %v is missing for data source '%v'. Please check the information passed.", args...),
 		},
 		constant.ErrMissingDataSource: ValidationError{
 			EntityType: entityType,

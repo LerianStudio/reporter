@@ -89,7 +89,7 @@ services:
       - KEDA_OPERATOR_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - KEDA_OPERATOR_RABBITMQ_QUEUE=smart-templates-queue
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       - plugin-smart-templates-rabbitmq
     networks:
