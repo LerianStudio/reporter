@@ -2,18 +2,18 @@
 
 ## Overview
 
-
+The Smart Templates Plugin is a service designed to manage and generate customizable reports using predefined templates.
 
 ## Quick Start
 
 1. **Clone the Repository:**
     ```bash
-    git clone https://github.com/LerianStudio/k8s-golang-addons-boilerplate.git
+    git clone https://github.com/LerianStudio/plugin-smart-templates.git
     ```
 
 2. **Install Dependencies:**
     ```bash
-    cd k8s-addons-boilerplate
+    cd plugin-smart-templates.git
     go mod tidy
     ```
 
@@ -27,9 +27,12 @@
 
 ## Components
 
-### Service
+### Manager
 
+Responsible for managing templates and reports, the Service provides a complete CRUD for creating, listing, updating, and deleting templates as well as generating and retrieving reports. 
+It exposes a RESTful API with full documentation available via Swagger at:
 
+📄 http://localhost:4005/swagger/index.html
 
 ### Worker
 
@@ -79,7 +82,7 @@ The CLI image is used to create a user with upload and read permissions, which w
 
 ## Swagger Documentation
 
-The Plugin includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4000/swagger/index.html`.
+The Plugin includes Swagger documentation that helps in visualizing and interacting with the API endpoints. You can access the documentation by running the project and navigating to `http://localhost:4005/swagger/index.html`.
 
 ## References
 

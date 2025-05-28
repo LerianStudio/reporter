@@ -41,28 +41,7 @@ definitions:
         example: 10
         type: integer
     type: object
-  plugin-smart-templates_pkg_mongodb_template.Template:
-    properties:
-      createdAt:
-        example: "2021-01-01T00:00:00Z"
-        type: string
-      description:
-        example: Template Financeiro
-        type: string
-      fileName:
-        example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
-        type: string
-      id:
-        example: 00000000-0000-0000-0000-000000000000
-        type: string
-      outputFormat:
-        example: HTML
-        type: string
-      updatedAt:
-        example: "2021-01-01T00:00:00Z"
-        type: string
-    type: object
-  report.Report:
+  plugin-smart-templates_pkg_mongodb_report.Report:
     properties:
       completedAt:
         type: string
@@ -102,6 +81,27 @@ definitions:
       updatedAt:
         type: string
     type: object
+  plugin-smart-templates_pkg_mongodb_template.Template:
+    properties:
+      createdAt:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      description:
+        example: Template Financeiro
+        type: string
+      fileName:
+        example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+        type: string
+      id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      outputFormat:
+        example: HTML
+        type: string
+      updatedAt:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+    type: object
 host: localhost:4005
 info:
   contact: {}
@@ -138,7 +138,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/report.Report'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
       summary: Create a Report
       tags:
       - Reports
@@ -169,7 +169,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/report.Report'
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
       summary: Get a Report
       tags:
       - Reports
