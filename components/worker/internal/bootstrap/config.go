@@ -42,8 +42,8 @@ type Config struct {
 	MinioAPIHost     string `env:"MINIO_API_HOST"`
 	MinioAPIPort     string `env:"MINIO_API_PORT"`
 	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername string `env:"MINIO_APP_USER"`
-	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	MinioAppUsername string `env:"MINIO_APP_USER_WORKER"`
+	MinioAppPassword string `env:"MINIO_APP_PASSWORD_WORKER"`
 	// MongoDB
 	MongoURI        string `env:"MONGO_URI"`
 	MongoDBHost     string `env:"MONGO_HOST"`
@@ -92,48 +92,29 @@ func InitWorker() *Service {
 
 	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
 
-	// Log detalhado das configurações do MinIO antes de tentar conectar
-	logger.Infof("Tentando conectar ao MinIO no endpoint: %s", minioEndpoint)
-	logger.Infof("MinIO SSL habilitado: %v", cfg.MinioSSLEnabled)
-	logger.Infof("MinIO usuário: %s", cfg.MinioAppUsername)
-	logger.Infof("MinIO senha: ****** (comprimento: %d caracteres)", len(cfg.MinioAppPassword))
-
-	// Tentativa de conexão com o MinIO
-	logger.Info("Iniciando conexão com MinIO...")
+	// Try connection with MinIO
+	logger.Info("Try connection with MinIO...")
 	minioClient, err := minio.New(minioEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
 		Secure: cfg.MinioSSLEnabled,
 	})
 	if err != nil {
-		// Log detalhado do erro
-		logger.Errorf("Falha na conexão com MinIO: %v", err)
-		logger.Errorf("Tipo do erro: %T", err)
+		// Log detailed error
+		logger.Errorf("Failed to connect to MinIO: %v", err)
+		logger.Errorf("Error type: %T", err)
 		
-		// Verificar tipos de erro específicos
+		// Verify specific error types
 		if strings.Contains(err.Error(), "authentication") || strings.Contains(err.Error(), "credential") {
-			logger.Error("Possível problema de autenticação ou credenciais inválidas")
+			logger.Error("Authentication problem or invalid credentials")
 		} else if strings.Contains(err.Error(), "connection") || strings.Contains(err.Error(), "dial") {
-			logger.Error("Possível problema de conectividade ou endpoint inválido")
+			logger.Error("Connection problem or invalid endpoint")
 		}
 		
-		logger.Fatalf("Erro fatal ao criar cliente MinIO: %v", err)
+		logger.Error("Error creating MinIO client: %v", err)
 	}
 	
-	// Testar conexão com MinIO
-	logger.Info("Cliente MinIO criado, testando conexão...")
-	// Listar buckets para verificar se a conexão está funcionando
-	buckets, listErr := minioClient.ListBuckets(context.Background())
-	if listErr != nil {
-		logger.Errorf("Erro ao listar buckets do MinIO: %v", listErr)
-		logger.Fatalf("Falha ao verificar conexão com MinIO: %v", listErr)
-	}
-	
-	// Log de sucesso com detalhes dos buckets
-	logger.Infof("Conexão com MinIO estabelecida com sucesso ✅")
-	logger.Infof("Buckets disponíveis: %d", len(buckets))
-	for i, bucket := range buckets {
-		logger.Infof("Bucket %d: %s (criado em: %s)", i+1, bucket.Name, bucket.CreationDate)
-	}
+	// Test connection with MinIO
+	logger.Info("MinIO client created, testing connection...")
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)

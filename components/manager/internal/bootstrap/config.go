@@ -49,8 +49,8 @@ type Config struct {
 	MinioAPIHost     string `env:"MINIO_API_HOST"`
 	MinioAPIPort     string `env:"MINIO_API_PORT"`
 	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername string `env:"MINIO_APP_USER"`
-	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	MinioAppUsername string `env:"MINIO_APP_USER_MANAGER"`
+	MinioAppPassword string `env:"MINIO_APP_PASSWORD_MANAGER"`
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`

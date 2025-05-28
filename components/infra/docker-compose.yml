@@ -79,7 +79,7 @@ services:
       - plugin-smart-templates-infra-network
 
   plugin-smart-templates-keda:
-    image: ghcr.io/kedacore/keda:2.16.0
+    image: ghcr.io/kedacore/keda:2.17.1
     container_name: plugin-smart-templates-keda
     environment:
       - KEDA_OPERATOR_LOG_LEVEL=info
