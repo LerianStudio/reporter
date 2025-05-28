@@ -13,7 +13,7 @@ The Smart Templates Plugin is a service designed to manage and generate customiz
 
 2. **Install Dependencies:**
     ```bash
-    cd plugin-smart-templates.git
+    cd plugin-smart-templates
     go mod tidy
     ```
 
