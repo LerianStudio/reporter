@@ -10,6 +10,7 @@ import (
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
+	_ "plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/net/http"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
 )

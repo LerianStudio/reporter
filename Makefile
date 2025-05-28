@@ -395,10 +395,10 @@ generate-docs:
 		echo "$(YELLOW)Installing swag...$(NC)"; \
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 	fi
-	@cd $(ROOT_DIR) && swag init -g cmd/app/main.go -o api --parseDependency --parseInternal
-	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i ./components/manager/api/swagger.json -g openapi-yaml -o ./components/manager/api
-	@mv ./api/openapi/openapi.yaml ./api/openapi.yaml
-	@rm -rf ./api/README.md ./api/.openapi-generator* ./api/openapi
+	@swag init -g ./components/manager/cmd/app/main.go -d ./ -o ./components/manager/api --parseDependency --parseInternal
+	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
+	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/openapi.yaml
+	@rm -rf ./components/manager/api/README.md ./components/manager/api/.openapi-generator* ./components/manager/api/openapi
 	@if [ -f "$(ROOT_DIR)/scripts/package.json" ]; then \
 		echo "$(YELLOW)Installing npm dependencies for validation...$(NC)"; \
 		cd $(ROOT_DIR)/scripts && npm install > /dev/null; \

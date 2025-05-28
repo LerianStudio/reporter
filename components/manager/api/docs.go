@@ -57,7 +57,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
                         }
                     }
                 }
@@ -102,7 +102,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
                         }
                     }
                 }
@@ -518,36 +518,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_pkg_mongodb_template.Template": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string",
-                    "example": "2021-01-01T00:00:00Z"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "Template Financeiro"
-                },
-                "fileName": {
-                    "type": "string",
-                    "example": "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "00000000-0000-0000-0000-000000000000"
-                },
-                "outputFormat": {
-                    "type": "string",
-                    "example": "HTML"
-                },
-                "updatedAt": {
-                    "type": "string",
-                    "example": "2021-01-01T00:00:00Z"
-                }
-            }
-        },
-        "report.Report": {
+        "plugin-smart-templates_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -602,6 +573,35 @@ const docTemplate = `{
                 },
                 "updatedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "plugin-smart-templates_pkg_mongodb_template.Template": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string",
+                    "example": "2021-01-01T00:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Template Financeiro"
+                },
+                "fileName": {
+                    "type": "string",
+                    "example": "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "outputFormat": {
+                    "type": "string",
+                    "example": "HTML"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "2021-01-01T00:00:00Z"
                 }
             }
         }

@@ -36,7 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
           description: Created
       summary: Create a Report
       tags:
@@ -69,7 +69,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
           description: OK
       summary: Get a Report
       tags:
@@ -390,35 +390,7 @@ components:
           example: 10
           type: integer
       type: object
-    plugin-smart-templates_pkg_mongodb_template.Template:
-      example:
-        createdAt: 2021-01-01T00:00:00Z
-        fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
-        description: Template Financeiro
-        id: 00000000-0000-0000-0000-000000000000
-        outputFormat: HTML
-        updatedAt: 2021-01-01T00:00:00Z
-      properties:
-        createdAt:
-          example: 2021-01-01T00:00:00Z
-          type: string
-        description:
-          example: Template Financeiro
-          type: string
-        fileName:
-          example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
-          type: string
-        id:
-          example: 00000000-0000-0000-0000-000000000000
-          type: string
-        outputFormat:
-          example: HTML
-          type: string
-        updatedAt:
-          example: 2021-01-01T00:00:00Z
-          type: string
-      type: object
-    report.Report:
+    plugin-smart-templates_pkg_mongodb_report.Report:
       example:
         ledgerId:
         - '[''00000000-0000-0000-0000-000000000000'''
@@ -476,6 +448,34 @@ components:
           example: 00000000-0000-0000-0000-000000000000
           type: string
         updatedAt:
+          type: string
+      type: object
+    plugin-smart-templates_pkg_mongodb_template.Template:
+      example:
+        createdAt: 2021-01-01T00:00:00Z
+        fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+        description: Template Financeiro
+        id: 00000000-0000-0000-0000-000000000000
+        outputFormat: HTML
+        updatedAt: 2021-01-01T00:00:00Z
+      properties:
+        createdAt:
+          example: 2021-01-01T00:00:00Z
+          type: string
+        description:
+          example: Template Financeiro
+          type: string
+        fileName:
+          example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          type: string
+        id:
+          example: 00000000-0000-0000-0000-000000000000
+          type: string
+        outputFormat:
+          example: HTML
+          type: string
+        updatedAt:
+          example: 2021-01-01T00:00:00Z
           type: string
       type: object
     inline_response_200:
