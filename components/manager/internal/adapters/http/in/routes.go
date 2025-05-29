@@ -1,6 +1,9 @@
 package in
 
 import (
+	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/net/http"
+
 	middlewareAuth "github.com/LerianStudio/lib-auth/auth/middleware"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	commonsHttp "github.com/LerianStudio/lib-commons/commons/net/http"
@@ -8,8 +11,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/net/http"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 	reportResource   = "reports"
 )
 
+// NewRoutes creates a new fiber router with the specified handlers and middleware.
 func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, auth *middlewareAuth.AuthClient) *fiber.App {
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
