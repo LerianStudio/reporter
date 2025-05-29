@@ -1,0 +1,37 @@
+
+name: release
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - hotfix/v*
+      - feat/*
+    paths-ignore:
+      - '.gitignore'
+      - '**/*.env'    # Ignora todos os arquivos .env
+      - '*.env'       # Ignora .env na raiz
+      - '**/*.md'     # Ignora arquivos .md
+      - '*.md'        # Ignora .md na raiz
+      - '**/*.txt'    # Ignora arquivos .txt
+      - '*.txt'       # Ignora .txt na raiz
+    tags-ignore:
+      - '**'
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Publish release using the lerian-studio/github-actions-go-pipeline-template
+  publish-release:
+    uses: LerianStudio/github-actions-go-pipeline-template/.github/workflows/release.yml@main
+    secrets:
+      lerian_studio_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
+      lerian_studio_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
+      lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
+      lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
+      lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
+      lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}

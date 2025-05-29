@@ -1,0 +1,417 @@
+basePath: /
+definitions:
+  CreateReportInput:
+    description: CreateReportInput is the input payload to create a report.
+    properties:
+      filters:
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+          type: object
+        type: object
+      ledgerId:
+        example:
+        - 00000000-0000-0000-0000-000000000000
+        items:
+          type: string
+        type: array
+      templateId:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+    required:
+    - filters
+    - templateId
+    type: object
+  Pagination:
+    description: Pagination is the struct designed to store the pagination data of
+      an entity list.
+    properties:
+      items: {}
+      limit:
+        example: 10
+        type: integer
+      page:
+        example: 1
+        type: integer
+      total:
+        example: 10
+        type: integer
+    type: object
+  plugin-smart-templates_pkg_mongodb_report.Report:
+    properties:
+      completedAt:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      filters:
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              items:
+                type: string
+              type: array
+            type: object
+          type: object
+        type: object
+      id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      ledgerId:
+        example:
+        - '[''00000000-0000-0000-0000-000000000000'''
+        - ' ''00000000-0000-0000-0000-000000000000'']'
+        items:
+          type: string
+        type: array
+      metadata:
+        additionalProperties: {}
+        type: object
+      status:
+        example: processing
+        type: string
+      templateId:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  plugin-smart-templates_pkg_mongodb_template.Template:
+    properties:
+      createdAt:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      description:
+        example: Template Financeiro
+        type: string
+      fileName:
+        example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+        type: string
+      id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      outputFormat:
+        example: HTML
+        type: string
+      updatedAt:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+    type: object
+host: localhost:4005
+info:
+  contact: {}
+  description: This is a swagger documentation for plugin smart template
+  termsOfService: http://swagger.io/terms/
+  title: Plugin Smart Template
+  version: 1.0.0
+paths:
+  /v1/reports:
+    post:
+      consumes:
+      - application/json
+      description: Create a Report of existent template with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report Input
+        in: body
+        name: reports
+        required: true
+        schema:
+          $ref: '#/definitions/CreateReportInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+      summary: Create a Report
+      tags:
+      - Reports
+  /v1/reports/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get information of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+      summary: Get a Report
+      tags:
+      - Reports
+  /v1/reports/{id}/download:
+    get:
+      consumes:
+      - application/json
+      description: Make a download of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Download a Report
+      tags:
+      - Reports
+  /v1/templates:
+    get:
+      description: List all the templates
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: XML, HTML, TXT and CSV
+        in: query
+        name: outputFormat
+        type: string
+      - description: Description of template
+        in: query
+        name: description
+        type: string
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/Pagination'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+                  type: array
+                limit:
+                  type: integer
+                page:
+                  type: integer
+                total:
+                  type: integer
+              type: object
+      summary: Get all templates
+      tags:
+      - Templates
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a Template for reports with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+      summary: Create a Template for reports
+      tags:
+      - Templates
+  /v1/templates/{id}:
+    delete:
+      description: SoftDelete a Template with the input ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: SoftDelete a Template by ID
+      tags:
+      - Templates
+    get:
+      consumes:
+      - multipart/form-data
+      description: Get a template by id
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+      summary: Get template
+      tags:
+      - Templates
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Update a template with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Template file (.tpl)
+        in: formData
+        name: templateFile
+        required: true
+        type: file
+      - description: Output format (e.g., pdf, html)
+        in: formData
+        name: outputFormat
+        required: true
+        type: string
+      - description: Description of the template
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+      summary: Update a template
+      tags:
+      - Templates
+swagger: "2.0"

@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"k8s-golang-addons-boilerplate/pkg/log"
+	"github.com/LerianStudio/lib-commons/commons/log"
 	"sync"
 )
 

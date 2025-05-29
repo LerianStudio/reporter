@@ -1,0 +1,10 @@
+{
+  "templateId": "01967e52-391d-747f-8657-52e52b7f1d2e",
+  "reportId": "01967e59-9330-75b4-b321-5d55cd6c957e",
+  "outputFormat": "txt",
+  "mappedFields": {
+    "plugin_fees": {
+      "package": ["description", "chart_of_account", "ledger_id"]
+    }
+  }
+}

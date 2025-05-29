@@ -1,0 +1,23 @@
+services:
+  plugin-smart-templates-worker:
+    build:
+      context: ../../
+      dockerfile: ./components/worker/Dockerfile
+    container_name: plugin-smart-templates-worker
+    restart: always
+    env_file:
+      - ./.env
+    volumes:
+      - .:/usr/src/worker
+    networks:
+      - plugin-smart-templates-infra-network
+      - infra-network
+      - plugin-fees-network
+
+networks:
+  plugin-smart-templates-infra-network:
+    external: true
+  infra-network:
+    external: true
+  plugin-fees-network:
+    external: true

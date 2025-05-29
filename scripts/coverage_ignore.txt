@@ -1,0 +1,4 @@
+golang-plugin-boilerplate/api
+golang-plugin-boilerplate/cmd/app
+golang-plugin-boilerplate/pkg/constant
+golang-plugin-boilerplate/internal/bootstrap

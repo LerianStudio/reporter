@@ -1,0 +1,33 @@
+services:
+  manager:
+    container_name: plugin-smart-templates-manager
+    restart: always
+    build:
+      context: ../../
+      dockerfile: ./components/manager/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    volumes:
+      - .:/usr/src/app
+    networks:
+      - plugin-smart-templates-infra-network
+      - plugin-smart-templates-manager-network
+      - plugin-auth-network
+      - infra-network
+      - plugin-fees-network
+
+networks:
+  plugin-smart-templates-infra-network:
+    external: true
+  plugin-smart-templates-manager-network:
+    name: plugin-smart-templates-manager-network
+    driver: bridge
+  plugin-auth-network:
+    name: plugin-auth-network
+    driver: bridge
+  infra-network:
+    external: true
+  plugin-fees-network:
+    external: true
