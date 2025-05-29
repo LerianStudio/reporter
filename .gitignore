@@ -26,3 +26,4 @@ components/template-reports/.env
 components/worker/.env
 .idea
 .env
+.windsurf
