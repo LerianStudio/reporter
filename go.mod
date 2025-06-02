@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/LerianStudio/lib-auth v1.14.1
-	github.com/LerianStudio/lib-commons v1.12.0
+	github.com/LerianStudio/lib-commons v1.12.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-playground/locales v0.14.1
