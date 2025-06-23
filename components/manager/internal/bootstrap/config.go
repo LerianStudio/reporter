@@ -7,6 +7,7 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	"github.com/LerianStudio/lib-commons/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"net/url"
@@ -62,6 +63,10 @@ type Config struct {
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
+	// License configuration envs
+	ApplicationName string `env:"APPLICATION_NAME"`
+	LicenseKey      string `env:"LICENSE_KEY"`
+	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -153,8 +158,15 @@ func InitServers() *Service {
 		Service: reportService,
 	}
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, authClient)
-	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
+	licenseClient := libLicense.NewLicenseClient(
+		cfg.ApplicationName,
+		cfg.LicenseKey,
+		cfg.OrganizationIDs,
+		&logger,
+	)
+
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, authClient, licenseClient)
+	serverAPI := NewServer(cfg, httpApp, logger, telemetry, licenseClient)
 
 	return &Service{
 		Server: serverAPI,

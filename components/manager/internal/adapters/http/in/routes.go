@@ -1,6 +1,7 @@
 package in
 
 import (
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/net/http"
 
@@ -20,7 +21,7 @@ const (
 )
 
 // NewRoutes creates a new fiber router with the specified handlers and middleware.
-func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, auth *middlewareAuth.AuthClient) *fiber.App {
+func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, auth *middlewareAuth.AuthClient, licenseClient *libLicense.LicenseClient) *fiber.App {
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
@@ -29,6 +30,7 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Use(tlMid.WithTelemetry(tl))
 	f.Use(cors.New())
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
+	f.Use(licenseClient.Middleware())
 
 	// Plugin templates routes
 	// Template routes
