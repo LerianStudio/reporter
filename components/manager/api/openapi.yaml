@@ -9,6 +9,58 @@ servers:
 - url: //localhost:4005/
 paths:
   /v1/reports:
+    get:
+      description: List all the reports
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Report status (processing, finished, error)
+        in: query
+        name: status
+        schema:
+          type: string
+      - description: Template ID
+        in: query
+        name: templateId
+        schema:
+          type: string
+      - description: Created at date (YYYY-MM-DD)
+        in: query
+        name: createdAt
+        schema:
+          type: string
+      - description: Limit
+        in: query
+        name: limit
+        schema:
+          default: 10
+          type: integer
+      - description: Page
+        in: query
+        name: page
+        schema:
+          default: 1
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: OK
+      summary: Get all reports
+      tags:
+      - Reports
     post:
       description: Create a Report of existent template with the input payload
       parameters:
@@ -507,6 +559,49 @@ components:
         items:
           items:
             $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+          type: array
+        limit:
+          type: integer
+        page:
+          type: integer
+        total:
+          type: integer
+      type: object
+    inline_response_200_1:
+      example:
+        Pagination:
+          total: 10
+          limit: 10
+          page: 1
+          items: '{}'
+        total: 1
+        limit: 0
+        page: 6
+        items:
+        - ledgerId:
+          - '[''00000000-0000-0000-0000-000000000000'''
+          - ' ''00000000-0000-0000-0000-000000000000'']'
+          createdAt: createdAt
+          completedAt: completedAt
+          deletedAt: deletedAt
+          metadata:
+            key: '{}'
+          filters:
+            key:
+              key:
+                key:
+                - filters
+                - filters
+          id: 00000000-0000-0000-0000-000000000000
+          templateId: 00000000-0000-0000-0000-000000000000
+          status: processing
+          updatedAt: updatedAt
+      properties:
+        Pagination:
+          $ref: '#/components/schemas/Pagination'
+        items:
+          items:
+            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
           type: array
         limit:
           type: integer

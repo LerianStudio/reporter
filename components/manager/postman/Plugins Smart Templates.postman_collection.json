@@ -299,6 +299,58 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get all reports",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Organization-Id",
+								"value": "01962525-a636-7a03-a2f2-5ef630c1f07e",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{local_host}}/v1/reports?status=finished&templateId=019672b1-9d50-7360-9df5-5099dd166709&page=1&limit=10",
+							"host": [
+								"{{local_host}}"
+							],
+							"path": [
+								"v1",
+								"reports"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "finished",
+									"description": "Filter by report status (processing, finished, error)"
+								},
+								{
+									"key": "templateId",
+									"value": "019672b1-9d50-7360-9df5-5099dd166709",
+									"description": "Filter by template ID"
+								},
+								{
+									"key": "createdAt",
+									"value": "2024-01-15",
+									"description": "Filter by creation date (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}
