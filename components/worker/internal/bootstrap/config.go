@@ -7,6 +7,7 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"net/url"
@@ -50,6 +51,10 @@ type Config struct {
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
+	// License configuration envs
+	ApplicationName string `env:"APPLICATION_NAME"`
+	LicenseKey      string `env:"LICENSE_KEY"`
+	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -121,10 +126,17 @@ func InitWorker() *Service {
 		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
 	}
 
+	licenseClient := libLicense.NewLicenseClient(
+		cfg.ApplicationName,
+		cfg.LicenseKey,
+		cfg.OrganizationIDs,
+		&logger,
+	)
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
+		licenseShutdown:    licenseClient.GetLicenseManagerShutdown(),
 	}
 }
