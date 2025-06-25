@@ -37,6 +37,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 	logger.Infof("Initiating retrieval data source information")
 
 	dataSourceInfo := ds.Service.GetDataSourceInformation(ctx)
+
 	logger.Infof("Successfully get all data source information")
 
 	return commonsHttp.OK(c, dataSourceInfo)

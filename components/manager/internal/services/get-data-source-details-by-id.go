@@ -69,9 +69,9 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 		return nil, err
 	}
 
-	var tableDetails []model.TableDetails
-	for _, collection := range schema {
+	tableDetails := make([]model.TableDetails, 0)
 
+	for _, collection := range schema {
 		fields := make([]string, 0)
 		for _, collectionField := range collection.Fields {
 			fields = append(fields, collectionField.Name)
@@ -104,9 +104,9 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 		return nil, err
 	}
 
-	var tableDetails []model.TableDetails
-	for _, tableSchema := range schemas {
+	tableDetails := make([]model.TableDetails, 0)
 
+	for _, tableSchema := range schemas {
 		fields := make([]string, 0)
 		for _, field := range tableSchema.Columns {
 			fields = append(fields, field.Name)
