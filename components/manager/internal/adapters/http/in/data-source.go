@@ -6,6 +6,8 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"plugin-smart-templates/components/manager/internal/services"
+	_ "plugin-smart-templates/pkg"
+	_ "plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/net/http"
 )
 
@@ -47,6 +49,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 //	@Tags			Data source
 //	@Produce		json
 //	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			dataSourceId	path		string	true	"Data source ID"
 //	@Success		200				{object}	model.DataSourceDetails
 //	@Failure		400				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
