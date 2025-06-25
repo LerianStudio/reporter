@@ -158,6 +158,14 @@ func InitServers() *Service {
 		Service: reportService,
 	}
 
+	dataSourceService := &services.UseCase{
+		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+	}
+
+	dataSourceHandler := &in2.DataSourceHandler{
+		Service: dataSourceService,
+	}
+
 	licenseClient := libLicense.NewLicenseClient(
 		cfg.ApplicationName,
 		cfg.LicenseKey,
@@ -165,7 +173,7 @@ func InitServers() *Service {
 		&logger,
 	)
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, authClient, licenseClient)
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, licenseClient)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry, licenseClient)
 
 	return &Service{
