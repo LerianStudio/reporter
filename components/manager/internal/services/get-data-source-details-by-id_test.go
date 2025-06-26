@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	libCommonsRedis "github.com/LerianStudio/lib-commons/commons/redis"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"plugin-smart-templates/components/manager/internal/adapters/redis"
+
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	_ "plugin-smart-templates/pkg/constant"
@@ -119,7 +121,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
 				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
 				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(libCommonsRedis.RedisTTL)).Return(nil)
 			},
 			expectErr:    false,
 			expectResult: mongoResult,
@@ -144,7 +146,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", errors.New("redis error"))
 				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
 				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(libCommonsRedis.RedisTTL)).Return(nil)
 			},
 			expectErr:    false,
 			expectResult: mongoResult,
@@ -193,7 +195,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
 				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(libCommonsRedis.RedisTTL)).Return(nil)
 			},
 			expectErr:    false,
 			expectResult: pgResult,
