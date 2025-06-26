@@ -21,7 +21,7 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 
 	logger.Infof("Retrieving data source details for id %v", dataSourceID)
 
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":--" + dataSourceID
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":" + dataSourceID
 	if cached, ok := uc.getDataSourceDetailsFromCache(ctx, cacheKey); ok {
 		logger.Infof("Cache hit for data source details id %v", dataSourceID)
 		return cached, nil
