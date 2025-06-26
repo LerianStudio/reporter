@@ -95,9 +95,27 @@ services:
     networks:
       - plugin-smart-templates-infra-network
 
+  plugin-smart-templates-valkey:
+    container_name: plugin-smart-templates-valkey
+    image: valkey/valkey:latest
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}",  "--port", "${REDIS_PORT}" ]
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - plugin-smart-templates-redis-data:/data
+    networks:
+      - plugin-smart-templates-infra-network
+
 volumes:
   plugin-smart-templates-mongodb-data:
   plugin-smart-templates-minio-data:
+  plugin-smart-templates-redis-data:
 
 networks:
   plugin-smart-templates-infra-network:

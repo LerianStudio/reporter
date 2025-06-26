@@ -2,11 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
+	libCommonsRedis "github.com/LerianStudio/lib-commons/commons/redis"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
+	"time"
 )
 
 // GetDataSourceDetailsByID retrieves the data source information by data source id
@@ -19,45 +22,111 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 
 	logger.Infof("Retrieving data source details for id %v", dataSourceID)
 
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":" + dataSourceID
+	if cached, ok := uc.getDataSourceDetailsFromCache(ctx, cacheKey); ok {
+		logger.Infof("Cache hit for data source details id %v", dataSourceID)
+		return cached, nil
+	}
+
 	dataSource, ok := uc.ExternalDataSources[dataSourceID]
 	if !ok {
 		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
 	}
 
+	if err := uc.ensureDataSourceConnected(logger, &dataSource); err != nil {
+		logger.Errorf("Error initializing database connection, Err: %s", err)
+		return nil, err
+	}
+
+	var (
+		result           *model.DataSourceDetails
+		errGetDataSource error
+	)
+
 	switch dataSource.DatabaseType {
 	case pkg.PostgreSQLType:
-		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
-			if err := pkg.ConnectToDataSource(dataSource.MongoDBName, &dataSource, logger, uc.ExternalDataSources); err != nil {
-				logger.Errorf("Error initializing database connection, Err: %s", err)
-				return nil, err
-			}
-		}
+		result, errGetDataSource = uc.getDataSourceDetailsOfPostgresDatabase(ctx, logger, dataSourceID, dataSource)
 
-		result, errGetDataSource := uc.getDataSourceDetailsOfPostgresDatabase(ctx, logger, dataSourceID, dataSource)
-		if errGetDataSource != nil {
-			logger.Errorf("Error to get data source details of postgres database, Err: %s", errGetDataSource)
-			return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
+		errClose := dataSource.PostgresRepository.CloseConnection()
+		if errClose != nil {
+			logger.Errorf("Error to close postgres connection, Err: %s", errClose)
+			return nil, errClose
 		}
-
-		return result, nil
 	case pkg.MongoDBType:
-		if !dataSource.Initialized {
-			if err := pkg.ConnectToDataSource(dataSource.MongoDBName, &dataSource, logger, uc.ExternalDataSources); err != nil {
-				logger.Errorf("Error initializing database connection, Err: %s", err)
-				return nil, err
-			}
-		}
+		result, errGetDataSource = uc.getDataSourceDetailsOfMongoDBDatabase(ctx, logger, dataSourceID, dataSource)
 
-		result, errGetDataSource := uc.getDataSourceDetailsOfMongoDBDatabase(ctx, logger, dataSourceID, dataSource)
-		if errGetDataSource != nil {
-			logger.Errorf("Error to get data source details of mongoDB database, Err: %s", errGetDataSource)
-			return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
+		errClose := dataSource.MongoDBRepository.CloseConnection(ctx)
+		if errClose != nil {
+			return nil, errClose
 		}
-
-		return result, nil
 	default:
 		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
 	}
+
+	if errGetDataSource != nil {
+		logger.Errorf("Error to get data source details, Err: %s", errGetDataSource)
+		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
+	}
+
+	logger.Info("Close the connection to the database.")
+
+	errSet := uc.setDataSourceDetailsToCache(ctx, cacheKey, result)
+	if errSet != nil {
+		logger.Errorf("Error to set data source details to cache, Err: %s", errSet)
+		return nil, errSet
+	}
+
+	return result, nil
+}
+
+// getDataSourceDetailsFromCache tries to get and unmarshal DataSourceDetails from Redis
+func (uc *UseCase) getDataSourceDetailsFromCache(ctx context.Context, cacheKey string) (*model.DataSourceDetails, bool) {
+	if uc.RedisRepo == nil {
+		return nil, false
+	}
+
+	cached, err := uc.RedisRepo.Get(ctx, cacheKey)
+	if err != nil || cached == "" {
+		return nil, false
+	}
+
+	var details model.DataSourceDetails
+	if err := json.Unmarshal([]byte(cached), &details); err != nil {
+		return nil, false
+	}
+
+	return &details, true
+}
+
+// setDataSourceDetailsToCache marshals and sets DataSourceDetails in Redis
+func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey string, details *model.DataSourceDetails) error {
+	if uc.RedisRepo == nil || details == nil {
+		return nil
+	}
+
+	if marshaled, err := json.Marshal(details); err == nil {
+		if errCache := uc.RedisRepo.Set(ctx, cacheKey, string(marshaled), time.Second*libCommonsRedis.RedisTTL); errCache != nil {
+			return errCache
+		}
+	}
+
+	return nil
+}
+
+// ensureDataSourceConnected ensures the data source is initialized/connected
+func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSource *pkg.DataSource) error {
+	switch dataSource.DatabaseType {
+	case pkg.PostgreSQLType:
+		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
+			return pkg.ConnectToDataSource(dataSource.MongoDBName, dataSource, logger, uc.ExternalDataSources)
+		}
+	case pkg.MongoDBType:
+		if !dataSource.Initialized {
+			return pkg.ConnectToDataSource(dataSource.MongoDBName, dataSource, logger, uc.ExternalDataSources)
+		}
+	}
+
+	return nil
 }
 
 // getDataSourceDetailsOfMongoDBDatabase retrieves the data source information of a MongoDB database

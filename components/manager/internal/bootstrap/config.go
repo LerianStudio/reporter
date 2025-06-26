@@ -6,6 +6,7 @@ import (
 	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
+	libRedis "github.com/LerianStudio/lib-commons/commons/redis"
 	"github.com/LerianStudio/lib-commons/commons/zap"
 	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/minio/minio-go/v7"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	in2 "plugin-smart-templates/components/manager/internal/adapters/http/in"
 	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/components/manager/internal/adapters/redis"
 	"plugin-smart-templates/components/manager/internal/services"
 	"plugin-smart-templates/pkg"
 	reportMinio "plugin-smart-templates/pkg/minio/report"
@@ -60,6 +62,11 @@ type Config struct {
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
+	// Redis/Valkey configuration envs
+	RedisHost     string `env:"REDIS_HOST"`
+	RedisPort     string `env:"REDIS_PORT"`
+	RedisUser     string `env:"REDIS_USER"`
+	RedisPassword string `env:"REDIS_PASSWORD"`
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
@@ -130,6 +137,20 @@ func InitServers() *Service {
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
+	// Init Redis/Valkey connection
+	redisSource := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
+
+	redisConnection := &libRedis.RedisConnection{
+		Addr:     redisSource,
+		User:     cfg.RedisUser,
+		Password: cfg.RedisPassword,
+		DB:       0,
+		Protocol: 3,
+		Logger:   logger,
+	}
+
+	redisConsumerRepository := redis.NewConsumerRedis(redisConnection)
+
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
 		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, TemplateBucketName),
@@ -160,6 +181,7 @@ func InitServers() *Service {
 
 	dataSourceService := &services.UseCase{
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		RedisRepo:           redisConsumerRepository,
 	}
 
 	dataSourceHandler := &in2.DataSourceHandler{
