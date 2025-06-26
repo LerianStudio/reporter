@@ -18,7 +18,7 @@ const (
 	applicationName    = "plugin-smart-templates"
 	templateResource   = "templates"
 	reportResource     = "reports"
-	dataSourceResource = "data-source-smart-templates"
+	dataSourceResource = "data-source"
 )
 
 // NewRoutes creates a new fiber router with the specified handlers and middleware.
