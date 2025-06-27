@@ -140,7 +140,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
-//	@Router			/v1/reports/{id}											 [get]
+//	@Router			/v1/reports/{id}													 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 

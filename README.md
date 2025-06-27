@@ -41,9 +41,9 @@ Based on the fields requested in the report, it connects to the respective datab
 
 ## Generate report RabbitMQ message
 
-- Exchange: `template-engine.generate-report.exchange`
-- Queue: `template-engine.generate-report.queue`
-- Key: `template-engine.generate-report.key`
+- Exchange: `smart-templates.generate-report.exchange`
+- Queue: `smart-templates.generate-report.queue`
+- Key: `smart-templates.generate-report.key`
 
 ```json
 {

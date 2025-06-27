@@ -8,6 +8,79 @@ info:
 servers:
 - url: //localhost:4005/
 paths:
+  /v1/data-sources:
+    get:
+      description: Retrieves all data sources connected on plugin with all information
+        from the database
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DataSourceInformation'
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
+      summary: Get all data sources connected on plugin smart templates
+      tags:
+      - Data source
+  /v1/data-sources/{dataSourceId}:
+    get:
+      description: Retrieves a data sources information with data source id passed
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Data source ID
+        in: path
+        name: dataSourceId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSourceInformation'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
+      summary: Get a data sources information
+      tags:
+      - Data source
   /v1/reports:
     get:
       description: List all the reports
@@ -421,6 +494,38 @@ components:
       - filters
       - templateId
       type: object
+    DataSourceInformation:
+      description: DataSourceDetails is the data source details of database
+      example:
+        tables:
+        - name: account
+          fields:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+        - name: account
+          fields:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+        externalName: onboarding
+        id: midaz_onboarding
+        type: postgresql
+      properties:
+        externalName:
+          example: onboarding
+          type: string
+        id:
+          example: midaz_onboarding
+          type: string
+        tables:
+          items:
+            $ref: '#/components/schemas/TableDetails'
+          type: array
+        type:
+          example: postgresql
+          type: string
+      type: object
     Pagination:
       description: Pagination is the struct designed to store the pagination data
         of an entity list.
@@ -441,6 +546,40 @@ components:
         total:
           example: 10
           type: integer
+      type: object
+    TableDetails:
+      description: TableDetails is the struct of table information
+      example:
+        name: account
+        fields:
+        - '[''id'''
+        - ' ''name'''
+        - ' ''parent_account_id'']'
+      properties:
+        fields:
+          example:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+          items:
+            type: string
+          type: array
+        name:
+          example: account
+          type: string
+      type: object
+    pkg.HTTPError:
+      properties:
+        code:
+          type: string
+        entityType:
+          type: string
+        err:
+          type: object
+        message:
+          type: string
+        title:
+          type: string
       type: object
     plugin-smart-templates_pkg_mongodb_report.Report:
       example:
