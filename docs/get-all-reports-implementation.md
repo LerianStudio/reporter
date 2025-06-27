@@ -1,109 +1,109 @@
-# GET /v1/reports - Lista Todos os Relatórios
+# GET /v1/reports - List All Reports
 
-## 📋 Resumo da Implementação
+## 📋 Implementation Summary
 
-Este documento descreve a implementação do endpoint `GET /v1/reports` seguindo todos os padrões Lerian e boas práticas do TRD.
+This document describes the implementation of the `GET /v1/reports` endpoint following all Lerian standards and TRD best practices.
 
-## 🚀 Endpoint Implementado
+## 🚀 Implemented Endpoint
 
 ```
 GET /v1/reports
 ```
 
-### Funcionalidades
+### Features
 
-- ✅ Listagem paginada de todos os relatórios
-- ✅ Filtros por status (processing, finished, error)
-- ✅ Filtros por templateId
-- ✅ Filtros por data de criação (YYYY-MM-DD)
-- ✅ Paginação com limit e page
-- ✅ Ordenação por data de criação (mais recentes primeiro)
-- ✅ Autenticação e autorização
-- ✅ Isolamento por organização
+- ✅ Paginated listing of all reports
+- ✅ Filters by status (processing, finished, error)
+- ✅ Filters by templateId
+- ✅ Filters by creation date (YYYY-MM-DD)
+- ✅ Pagination with limit and page
+- ✅ Sorting by creation date (most recent first)
+- ✅ Authentication and authorization
+- ✅ Organization isolation
 
-### Parâmetros Query Suportados
+### Supported Query Parameters
 
-| Parâmetro | Tipo | Descrição | Exemplo |
-|-----------|------|-----------|---------|
-| `status` | string | Status do relatório | `finished`, `processing`, `error` |
-| `templateId` | UUID | ID do template | `019672b1-9d50-7360-9df5-5099dd166709` |
-| `createdAt` | date | Data de criação | `2024-01-15` |
-| `page` | int | Número da página | `1` (default) |
-| `limit` | int | Itens por página | `10` (default, max 100) |
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `status` | string | Report status | `finished`, `processing`, `error` |
+| `templateId` | UUID | Template ID | `019672b1-9d50-7360-9df5-5099dd166709` |
+| `createdAt` | date | Creation date | `2024-01-15` |
+| `page` | int | Page number | `1` (default) |
+| `limit` | int | Items per page | `10` (default, max 100) |
 
-## 🏗️ Arquivos Implementados/Modificados
+## 🏗️ Implemented/Modified Files
 
 ### 1. **Repository Layer**
 - `pkg/mongodb/report/report.mongodb.go`
-  - Adicionado método `FindList()` na interface `Repository`
-  - Implementado `FindList()` com filtros e paginação
-  - Suporte a filtros por status, templateId e data
+  - Added `FindList()` method to `Repository` interface
+  - Implemented `FindList()` with filters and pagination
+  - Support for status, templateId and date filters
 
 ### 2. **Service Layer**
 - `components/manager/internal/services/get-all-reports.go`
-  - Implementado `GetAllReports()` seguindo padrão dos templates
-  - Tratamento de erros e logs
-  - Telemetria/tracing
+  - Implemented `GetAllReports()` following template pattern
+  - Error handling and logging
+  - Telemetry/tracing
 
 ### 3. **HTTP Handler Layer**
 - `components/manager/internal/adapters/http/in/report.go`
-  - Adicionado `GetAllReports()` handler
-  - Documentação Swagger completa
-  - Validação de parâmetros
-  - Paginação response
+  - Added `GetAllReports()` handler
+  - Complete Swagger documentation
+  - Parameter validation
+  - Pagination response
 
 ### 4. **Routes Configuration**
 - `components/manager/internal/adapters/http/in/routes.go`
-  - Adicionada rota `GET /v1/reports`
-  - Middleware de autenticação/autorização
+  - Added `GET /v1/reports` route
+  - Authentication/authorization middleware
 
 ### 5. **Query Parameters**
 - `pkg/net/http/http_utils.go`
-  - Adicionados campos `Status` e `TemplateID` no `QueryHeader`
-  - Validação de parâmetros templateId
+  - Added `Status` and `TemplateID` fields to `QueryHeader`
+  - templateId parameter validation
 
 ### 6. **Tests**
 - `components/manager/internal/services/get-all-reports_test.go`
-  - Testes unitários completos
-  - Coverage de cenários: sucesso, erro, filtros, paginação
-  - Mocks gerados automaticamente
+  - Complete unit tests
+  - Coverage of scenarios: success, error, filters, pagination
+  - Auto-generated mocks
 
 ### 7. **Postman Collection**
 - `components/manager/postman/Plugins Smart Templates.postman_collection.json`
-  - Adicionada requisição "Get all reports" com exemplos
+  - Added "Get all reports" request with examples
 
 ### 8. **Test Scripts**
 - `scripts/test-get-all-reports.sh`
-  - Script de teste manual do endpoint
-  - Exemplos de todos os filtros disponíveis
+  - Manual endpoint testing script
+  - Examples of all available filters
 
-## 🔧 Padrões Lerian Implementados
+## 🔧 Implemented Lerian Standards
 
-### ✅ **Observabilidade**
-- **Telemetry/Tracing**: OpenTelemetry spans em todas as camadas
-- **Logging**: Logs estruturados com contexto
-- **Error Handling**: Tratamento consistente de erros
+### ✅ **Observability**
+- **Telemetry/Tracing**: OpenTelemetry spans across all layers
+- **Logging**: Structured logging with context
+- **Error Handling**: Consistent error treatment
 
 ### ✅ **Security**
-- **Authorization**: Middleware `auth.Authorize()` 
-- **Organization Isolation**: Filtro automático por `organization_id`
-- **Input Validation**: Validação de todos os parâmetros
+- **Authorization**: `auth.Authorize()` middleware
+- **Organization Isolation**: Automatic filtering by `organization_id`
+- **Input Validation**: Validation of all parameters
 
 ### ✅ **Performance**
-- **Pagination**: Limite máximo configurável
-- **Database Optimization**: Indexes adequados para queries
-- **Sorting**: Ordenação eficiente por data
+- **Pagination**: Configurable maximum limit
+- **Database Optimization**: Adequate indexes for queries
+- **Sorting**: Efficient sorting by date
 
 ### ✅ **Clean Architecture**
 - **Separation of Concerns**: Repository → Service → Handler
-- **Dependency Injection**: Interfaces bem definidas
-- **Testing**: Mocks e testes unitários
+- **Dependency Injection**: Well-defined interfaces
+- **Testing**: Mocks and unit tests
 
 ### ✅ **API Standards**
-- **REST Compliance**: GET para listagem com query params
-- **HTTP Status Codes**: 200 para sucesso, 4xx/5xx para erros
-- **Response Format**: Paginação padronizada
-- **Documentation**: Swagger/OpenAPI completo
+- **REST Compliance**: GET for listing with query params
+- **HTTP Status Codes**: 200 for success, 4xx/5xx for errors
+- **Response Format**: Standardized pagination
+- **Documentation**: Complete Swagger/OpenAPI
 
 ## 📊 Response Format
 
@@ -130,13 +130,13 @@ GET /v1/reports
 
 ## 🚦 Status Codes
 
-- **200 OK**: Lista retornada com sucesso (pode ser vazia)
-- **400 Bad Request**: Parâmetros inválidos
-- **401 Unauthorized**: Token ausente/inválido
-- **403 Forbidden**: Sem permissão para o recurso
-- **500 Internal Server Error**: Erro interno do servidor
+- **200 OK**: List returned successfully (may be empty)
+- **400 Bad Request**: Invalid parameters
+- **401 Unauthorized**: Missing/invalid token
+- **403 Forbidden**: No permission for resource
+- **500 Internal Server Error**: Internal server error
 
-## 🧪 Testes
+## 🧪 Tests
 
 ### Unit Tests
 ```bash
@@ -149,46 +149,46 @@ go test ./components/manager/internal/services/ -v -run Test_getAllReports
 ```
 
 ### Swagger Documentation
-Acesse: `http://localhost:4005/swagger/index.html`
+Access: `http://localhost:4005/swagger/index.html`
 
-## 🔄 Exemplos de Uso
+## 🔄 Usage Examples
 
-### 1. Listar todos os relatórios
+### 1. List all reports
 ```bash
 curl -X GET "http://localhost:4005/v1/reports" \
   -H "X-Organization-Id: 01962525-a636-7a03-a2f2-5ef630c1f07e"
 ```
 
-### 2. Filtrar por status
+### 2. Filter by status
 ```bash
 curl -X GET "http://localhost:4005/v1/reports?status=finished" \
   -H "X-Organization-Id: 01962525-a636-7a03-a2f2-5ef630c1f07e"
 ```
 
-### 3. Paginação
+### 3. Pagination
 ```bash
 curl -X GET "http://localhost:4005/v1/reports?page=2&limit=5" \
   -H "X-Organization-Id: 01962525-a636-7a03-a2f2-5ef630c1f07e"
 ```
 
-### 4. Filtros combinados
+### 4. Combined filters
 ```bash
 curl -X GET "http://localhost:4005/v1/reports?status=finished&templateId=019672b1-9d50-7360-9df5-5099dd166709&page=1&limit=10" \
   -H "X-Organization-Id: 01962525-a636-7a03-a2f2-5ef630c1f07e"
 ```
 
-## ✅ Compliance TRD
+## ✅ TRD Compliance
 
-Esta implementação atende todos os requisitos do TRD 2-create-trd.mdc:
+This implementation meets all requirements of TRD 2-create-trd.mdc:
 
-- ✅ **Dependências**: Usa lib-commons para logging/telemetry
-- ✅ **Boas Práticas**: Clean Architecture, error handling, testing
-- ✅ **Performance**: Paginação, indexes, ordenação eficiente
-- ✅ **Security**: Autenticação, autorização, isolamento organizacional
-- ✅ **Observabilidade**: Tracing, logging, metrics
-- ✅ **Testabilidade**: Unit tests, mocks, integration tests
-- ✅ **Documentação**: Swagger, exemplos, scripts de teste
+- ✅ **Dependencies**: Uses lib-commons for logging/telemetry
+- ✅ **Best Practices**: Clean Architecture, error handling, testing
+- ✅ **Performance**: Pagination, indexes, efficient sorting
+- ✅ **Security**: Authentication, authorization, organizational isolation
+- ✅ **Observability**: Tracing, logging, metrics
+- ✅ **Testability**: Unit tests, mocks, integration tests
+- ✅ **Documentation**: Swagger, examples, test scripts
 
 ---
 
-**✨ Implementação completa e pronta para produção seguindo todos os padrões Lerian!** 
+**✨ Complete implementation ready for production following all Lerian standards!** 
