@@ -166,3 +166,62 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	return http.OK(c, reportModel)
 }
+
+// GetAllReports is a method that recovery all Reports information.
+//
+//	@Summary		Get all reports
+//	@Description	List all the reports
+//	@Tags			Reports
+//	@Produce		json
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			status				query		string	false	"Report status (processing, finished, error)"
+//	@Param			templateId			query		string	false	"Template ID"
+//	@Param			createdAt			query		string	false	"Created at date (YYYY-MM-DD)"
+//	@Param			limit				query		int		false	"Limit"	default(10)
+//	@Param			page				query		int		false	"Page"	default(1)
+//	@Success		200					{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
+//	@Router			/v1/reports [get]
+func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "handler.get_all_reports")
+	defer span.End()
+
+	headerParams, err := http.ValidateParameters(c.Queries())
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+
+		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	pagination := model.Pagination{
+		Limit: headerParams.Limit,
+		Page:  headerParams.Page,
+	}
+
+	logger.Infof("Initiating retrieval all reports")
+
+	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
+
+	reports, err := rh.Service.GetAllReports(ctx, *headerParams, organizationID)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+
+		logger.Errorf("Failed to retrieve all Reports, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	logger.Infof("Successfully retrieved all Reports")
+
+	pagination.SetItems(reports)
+	pagination.SetTotal(len(reports))
+
+	return http.OK(c, pagination)
+}

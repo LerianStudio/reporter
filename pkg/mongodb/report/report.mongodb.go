@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"plugin-smart-templates/pkg/net/http"
 	"strings"
 	"time"
 )
@@ -19,6 +21,7 @@ type Repository interface {
 	UpdateReportStatusById(ctx context.Context, collection, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
 	Create(ctx context.Context, collection string, record *Report, organizationID uuid.UUID) (*Report, error)
 	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error)
+	FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Report, error)
 }
 
 // ReportMongoDBRepository is a MongoDB-specific implementation of the ReportRepository.
@@ -174,4 +177,93 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection stri
 	spanFindOne.End()
 
 	return record.ToEntityFindByID(), nil
+}
+
+// FindList retrieves all reports from the mongodb with filtering and pagination support.
+func (rm *ReportMongoDBRepository) FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Report, error) {
+	tracer := commons.NewTracerFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
+	defer span.End()
+
+	db, err := rm.connection.GetDB(ctx)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		return nil, err
+	}
+
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+
+	queryFilter := bson.M{}
+
+	// Filter by status
+	if !commons.IsNilOrEmpty(&filters.Status) {
+		queryFilter["status"] = filters.Status
+	}
+
+	// Filter by template_id
+	if filters.TemplateID != uuid.Nil {
+		queryFilter["template_id"] = filters.TemplateID
+	}
+
+	// Filter by created_at date range
+	if !filters.CreatedAt.IsZero() {
+		end := filters.CreatedAt.Add(24 * time.Hour)
+		queryFilter["created_at"] = bson.M{
+			"$gte": filters.CreatedAt,
+			"$lt":  end,
+		}
+	}
+
+	// Always filter by organization and non-deleted records
+	queryFilter["organization_id"] = filters.OrganizationID
+	queryFilter["deleted_at"] = bson.D{{Key: "$eq", Value: nil}}
+
+	// Pagination
+	limit := int64(filters.Limit)
+	skip := int64(filters.Page*filters.Limit - filters.Limit)
+	opts := options.FindOptions{
+		Limit: &limit, 
+		Skip:  &skip,
+		Sort:  bson.D{{Key: "created_at", Value: -1}}, // Sort by created_at desc
+	}
+
+	ctx, spanFind := tracer.Start(ctx, "mongodb.find_reports.find")
+
+	cur, err := coll.Find(ctx, queryFilter, &opts)
+	if err != nil {
+		opentelemetry.HandleSpanError(&spanFind, "Failed to find reports", err)
+		return nil, err
+	}
+
+	spanFind.End()
+
+	var results []*ReportMongoDBModel
+
+	for cur.Next(ctx) {
+		var record ReportMongoDBModel
+		if err := cur.Decode(&record); err != nil {
+			opentelemetry.HandleSpanError(&span, "Failed to decode report", err)
+			return nil, err
+		}
+
+		results = append(results, &record)
+	}
+
+	if err := cur.Err(); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to iterate reports", err)
+		return nil, err
+	}
+
+	if err := cur.Close(ctx); err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to close cursor", err)
+		return nil, err
+	}
+
+	reports := make([]*Report, 0, len(results))
+	for i := range results {
+		reports = append(reports, results[i].ToEntityFindByID())
+	}
+
+	return reports, nil
 }

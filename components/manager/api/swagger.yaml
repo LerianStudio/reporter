@@ -217,6 +217,64 @@ paths:
       tags:
       - Data source
   /v1/reports:
+    get:
+      description: List all the reports
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report status (processing, finished, error)
+        in: query
+        name: status
+        type: string
+      - description: Template ID
+        in: query
+        name: templateId
+        type: string
+      - description: Created at date (YYYY-MM-DD)
+        in: query
+        name: createdAt
+        type: string
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/Pagination'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+                  type: array
+                limit:
+                  type: integer
+                page:
+                  type: integer
+                total:
+                  type: integer
+              type: object
+      summary: Get all reports
+      tags:
+      - Reports
     post:
       consumes:
       - application/json

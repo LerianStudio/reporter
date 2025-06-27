@@ -45,6 +45,7 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Post("/v1/reports", auth.Authorize(applicationName, reportResource, "post"), ParseHeaderParameters, http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
 	f.Get("/v1/reports/:id/download", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, ParsePathParametersUUID, reportHandler.GetDownloadReport)
 	f.Get("/v1/reports/:id", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, ParsePathParametersUUID, reportHandler.GetReport)
+	f.Get("/v1/reports", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, reportHandler.GetAllReports)
 
 	// Data source routes
 	f.Get("/v1/data-sources", auth.Authorize(applicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformation)

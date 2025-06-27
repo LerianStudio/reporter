@@ -79,3 +79,5 @@ func (rm *ReportMongoDBModel) FromEntity(r *Report, organizationID uuid.UUID) er
 
 	return nil
 }
+
+
