@@ -3,13 +3,15 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/google/uuid"
 	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/mongodb/template"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
 	"reflect"
 	"time"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/google/uuid"
 )
 
 // CreateTemplate creates a new template with specified parameters and stores it in the repository.
@@ -21,6 +23,11 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	defer span.End()
 
 	logger.Infof("Creating template")
+
+	// Block <script> tags
+	if err := templateUtils.ValidateNoScriptTag(templateFile); err != nil {
+		return nil, pkg.ValidateBusinessError(constant.ErrScriptTagDetected, "")
+	}
 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)

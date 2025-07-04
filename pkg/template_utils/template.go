@@ -1,6 +1,7 @@
 package template_utils
 
 import (
+	"plugin-smart-templates/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"
@@ -557,4 +558,14 @@ func CleanPath(path string) []string {
 	}
 
 	return clean
+}
+
+// ValidateNoScriptTag checks if the template contains <script> tags (case-insensitive) and returns an error if found.
+func ValidateNoScriptTag(templateFile string) error {
+	lower := strings.ToLower(templateFile)
+	if strings.Contains(lower, "<script>") || strings.Contains(lower, "</script>") {
+		return constant.ErrScriptTagDetected
+	}
+
+	return nil
 }

@@ -39,4 +39,5 @@ var (
 	ErrReportStatusNotFinished         = errors.New("TPL-0029")
 	ErrMissingSchemaTable              = errors.New("TPL-0030")
 	ErrMissingDataSource               = errors.New("TPL-0031")
+	ErrScriptTagDetected               = errors.New("TPL-0032")
 )
