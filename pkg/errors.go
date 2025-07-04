@@ -451,6 +451,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Missing Data Source Table",
 			Message:    fmt.Sprintf("The data source %v is missing. Please check the value passed.", args),
 		},
+		constant.ErrScriptTagDetected: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrScriptTagDetected.Error(),
+			Title:      "Script Tag Detected",
+			Message:    "The template file contains a script tag and is not allowed. Please check the template file and try again.",
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {
