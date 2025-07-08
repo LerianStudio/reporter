@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/log"
-	libCommonsRedis "github.com/LerianStudio/lib-commons/commons/redis"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
@@ -105,7 +104,7 @@ func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey str
 	}
 
 	if marshaled, err := json.Marshal(details); err == nil {
-		if errCache := uc.RedisRepo.Set(ctx, cacheKey, string(marshaled), time.Second*libCommonsRedis.RedisTTL); errCache != nil {
+		if errCache := uc.RedisRepo.Set(ctx, cacheKey, string(marshaled), time.Second*constant.RedisTTL); errCache != nil {
 			return errCache
 		}
 	}

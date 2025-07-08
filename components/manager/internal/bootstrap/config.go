@@ -17,10 +17,13 @@ import (
 	"plugin-smart-templates/components/manager/internal/adapters/redis"
 	"plugin-smart-templates/components/manager/internal/services"
 	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	reportMinio "plugin-smart-templates/pkg/minio/report"
 	templateMinio "plugin-smart-templates/pkg/minio/template"
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/mongodb/template"
+	"strings"
+	"time"
 )
 
 const (
@@ -57,21 +60,29 @@ type Config struct {
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
+	RabbitMQHealthCheckURL      string `env:"RABBITMQ_HEALTH_CHECK_URL"`
 	RabbitMQPortHost            string `env:"RABBITMQ_PORT_HOST"`
 	RabbitMQPortAMQP            string `env:"RABBITMQ_PORT_AMQP"`
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
 	// Redis/Valkey configuration envs
-	RedisHost     string `env:"REDIS_HOST"`
-	RedisPort     string `env:"REDIS_PORT"`
-	RedisUser     string `env:"REDIS_USER"`
-	RedisPassword string `env:"REDIS_PASSWORD"`
+	RedisHost                    string `env:"REDIS_HOST"`
+	RedisMasterName              string `env:"REDIS_MASTER_NAME" default:""`
+	RedisPassword                string `env:"REDIS_PASSWORD"`
+	RedisDB                      int    `env:"REDIS_DB" default:"0"`
+	RedisProtocol                int    `env:"REDIS_PROTOCOL" default:"3"`
+	RedisTLS                     bool   `env:"REDIS_TLS" default:"false"`
+	RedisCACert                  string `env:"REDIS_CA_CERT"`
+	RedisUseGCPIAM               bool   `env:"REDIS_USE_GCP_IAM" default:"false"`
+	RedisServiceAccount          string `env:"REDIS_SERVICE_ACCOUNT" default:""`
+	GoogleApplicationCredentials string `env:"GOOGLE_APPLICATION_CREDENTIALS" default:""`
+	RedisTokenLifeTime           int    `env:"REDIS_TOKEN_LIFETIME" default:"60"`
+	RedisTokenRefreshDuration    int    `env:"REDIS_TOKEN_REFRESH_DURATION" default:"45"`
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
 	// License configuration envs
-	ApplicationName string `env:"APPLICATION_NAME"`
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
@@ -126,6 +137,7 @@ func InitServers() *Service {
 
 	rabbitMQConnection := &libRabbitmq.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
+		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
 		Host:                   cfg.RabbitMQHost,
 		Port:                   cfg.RabbitMQPortHost,
 		User:                   cfg.RabbitMQUser,
@@ -138,15 +150,20 @@ func InitServers() *Service {
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
 	// Init Redis/Valkey connection
-	redisSource := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
-
 	redisConnection := &libRedis.RedisConnection{
-		Addr:     redisSource,
-		User:     cfg.RedisUser,
-		Password: cfg.RedisPassword,
-		DB:       0,
-		Protocol: 3,
-		Logger:   logger,
+		Address:                      strings.Split(cfg.RedisHost, ","),
+		Password:                     cfg.RedisPassword,
+		DB:                           cfg.RedisDB,
+		Protocol:                     cfg.RedisProtocol,
+		MasterName:                   cfg.RedisMasterName,
+		UseTLS:                       cfg.RedisTLS,
+		CACert:                       cfg.RedisCACert,
+		UseGCPIAMAuth:                cfg.RedisUseGCPIAM,
+		ServiceAccount:               cfg.RedisServiceAccount,
+		GoogleApplicationCredentials: cfg.GoogleApplicationCredentials,
+		TokenLifeTime:                time.Duration(cfg.RedisTokenLifeTime) * time.Minute,
+		RefreshDuration:              time.Duration(cfg.RedisTokenRefreshDuration) * time.Minute,
+		Logger:                       logger,
 	}
 
 	redisConsumerRepository := redis.NewConsumerRedis(redisConnection)
@@ -189,7 +206,7 @@ func InitServers() *Service {
 	}
 
 	licenseClient := libLicense.NewLicenseClient(
-		cfg.ApplicationName,
+		constant.ApplicationName,
 		cfg.LicenseKey,
 		cfg.OrganizationIDs,
 		&logger,
