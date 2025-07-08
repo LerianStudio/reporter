@@ -2,15 +2,15 @@ package bootstrap
 
 import (
 	"github.com/LerianStudio/lib-commons/commons"
+	libCommonsLicense "github.com/LerianStudio/lib-commons/commons/license"
 	"github.com/LerianStudio/lib-commons/commons/log"
-	"github.com/LerianStudio/lib-commons/commons/shutdown"
 )
 
 // Service is the application glue where we put all top level components to be used.
 type Service struct {
 	*MultiQueueConsumer
 	log.Logger
-	licenseShutdown *shutdown.LicenseManagerShutdown
+	licenseShutdown *libCommonsLicense.ManagerShutdown
 }
 
 // Run starts the application.

@@ -1,21 +1,22 @@
 package bootstrap
 
 import (
-	"github.com/LerianStudio/lib-commons/commons/log"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/LerianStudio/lib-commons/commons/shutdown"
+	libCommons "github.com/LerianStudio/lib-commons/commons"
+	libCommonsLicense "github.com/LerianStudio/lib-commons/commons/license"
+	libCommonsLog "github.com/LerianStudio/lib-commons/commons/log"
+	libCommonsOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libCommonsServer "github.com/LerianStudio/lib-commons/commons/server"
 	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/gofiber/fiber/v2"
-	"plugin-smart-templates/pkg"
 )
 
 // Server represents the http server for Ledger services.
 type Server struct {
 	app           *fiber.App
 	serverAddress string
-	license       *shutdown.LicenseManagerShutdown
-	logger        log.Logger
-	telemetry     opentelemetry.Telemetry
+	license       *libCommonsLicense.ManagerShutdown
+	logger        libCommonsLog.Logger
+	telemetry     libCommonsOtel.Telemetry
 }
 
 // ServerAddress returns is a convenience method to return the server address.
@@ -24,7 +25,7 @@ func (s *Server) ServerAddress() string {
 }
 
 // NewServer creates an instance of Server.
-func NewServer(cfg *Config, app *fiber.App, logger log.Logger, telemetry *opentelemetry.Telemetry, licenseClient *libLicense.LicenseClient) *Server {
+func NewServer(cfg *Config, app *fiber.App, logger libCommonsLog.Logger, telemetry *libCommonsOtel.Telemetry, licenseClient *libLicense.LicenseClient) *Server {
 	return &Server{
 		app:           app,
 		serverAddress: cfg.ServerAddress,
@@ -35,14 +36,10 @@ func NewServer(cfg *Config, app *fiber.App, logger log.Logger, telemetry *opente
 }
 
 // Run runs the server.
-func (s *Server) Run(l *pkg.Launcher) error {
-	shutdown.StartServerWithGracefulShutdown(
-		s.app,
-		s.license,
-		&s.telemetry,
-		s.ServerAddress(),
-		s.logger,
-	)
+func (s *Server) Run(l *libCommons.Launcher) error {
+	libCommonsServer.NewServerManager(s.license, &s.telemetry, s.logger).
+		WithHTTPServer(s.app, s.serverAddress).
+		StartWithGracefulShutdown()
 
 	return nil
 }
