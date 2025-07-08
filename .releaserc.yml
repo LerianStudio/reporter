@@ -55,5 +55,3 @@ branches:
     prerelease: "beta"
   - name: hotfix/*
     prerelease: hf
-  - name: feat/*
-    prerelease: feat
