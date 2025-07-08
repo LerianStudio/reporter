@@ -14,6 +14,7 @@ import (
 	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/worker/internal/services"
 	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	reportFile "plugin-smart-templates/pkg/minio/report"
 	templateFile "plugin-smart-templates/pkg/minio/template"
 	reportData "plugin-smart-templates/pkg/mongodb/report"
@@ -31,6 +32,7 @@ type Config struct {
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
 	RabbitMQNumWorkers          int    `env:"RABBITMQ_NUMBERS_OF_WORKERS"`
+	RabbitMQHealthCheckURL      string `env:"RABBITMQ_HEALTH_CHECK_URL"`
 	OtelServiceName             string `env:"OTEL_RESOURCE_SERVICE_NAME"`
 	OtelLibraryName             string `env:"OTEL_LIBRARY_NAME"`
 	OtelServiceVersion          string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
@@ -52,7 +54,6 @@ type Config struct {
 	MongoDBPort     string `env:"MONGO_PORT"`
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
 	// License configuration envs
-	ApplicationName string `env:"APPLICATION_NAME"`
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
@@ -83,6 +84,7 @@ func InitWorker() *Service {
 
 	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
+		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
 		Host:                   cfg.RabbitMQHost,
 		Port:                   cfg.RabbitMQPortHost,
 		User:                   cfg.RabbitMQUser,
@@ -127,7 +129,7 @@ func InitWorker() *Service {
 	}
 
 	licenseClient := libLicense.NewLicenseClient(
-		cfg.ApplicationName,
+		constant.ApplicationName,
 		cfg.LicenseKey,
 		cfg.OrganizationIDs,
 		&logger,
