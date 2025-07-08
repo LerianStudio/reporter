@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.6] - 2025-07-08
+
+This release enhances the user experience by automating changelog generation and improving system compatibility and reliability, all while maintaining backward compatibility.
+
+### ✨ Features  
+- **Automated Changelog Generation**: We've introduced a new feature that automatically generates changelogs using GPT for each release. This ensures you receive detailed and accurate updates, keeping you informed about the latest changes effortlessly.
+
+### 🐛 Bug Fixes
+- **Improved File Handling**: Fixed an issue in the backend where files containing script tags could cause unexpected behavior. This enhancement ensures smoother file processing, leading to a more robust and reliable system.
+- **Codebase Cleanup**: Removed outdated feature branches, reducing clutter and potential confusion. This makes it easier for developers to focus on active projects and streamline development workflows.
+
+### 🔄 Changes
+- **Updated RabbitMQ and Redis**: Aligned our implementations with the latest updates, enhancing compatibility and performance. This change boosts the reliability of our message queuing and caching systems, ensuring smoother operations.
+- **Revised License Implementation**: Updated to comply with the latest standards, providing clarity on usage rights and ensuring adherence to current licensing requirements.
+
+### 📚 Documentation
+- **Documentation Updates**: We've updated our documentation to reflect changes in RabbitMQ, Redis, and licensing implementations. This ensures that you have access to the most current and accurate information, supporting effective use and integration of our software.
+
+### 🔧 Maintenance
+- **Testing Enhancements**: Updated tests to verify the functionality of the latest changes, maintaining high standards of code quality and reliability.
+
+This release is designed to enhance your experience by simplifying the update process, improving system performance, and ensuring compliance with the latest standards.
+
 ## [v0.0.0-beta.25] - 2025-05-27
 
 ### 🔧 Maintenance
