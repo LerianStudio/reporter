@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"context"
-	"github.com/LerianStudio/lib-commons/commons/log"
 	"time"
+
+	"github.com/LerianStudio/lib-commons/commons/log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
