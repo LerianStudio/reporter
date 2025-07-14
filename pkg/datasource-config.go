@@ -100,9 +100,11 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 			if dataSource.SSL == "true" {
 				params = append(params, "ssl=true")
 			}
+
 			if dataSource.SSLCA != "" {
 				params = append(params, "tlsCAFile="+url.QueryEscape(dataSource.SSLCA))
 			}
+
 			if len(params) > 0 {
 				if strings.Contains(mongoURI, "?") {
 					mongoURI += "&" + strings.Join(params, "&")
@@ -114,6 +116,7 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 			// MongoDB connection validation (using mongo.Connect, not NewClient)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
+
 			client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 			if err != nil {
 				logger.Errorf("Failed to connect to MongoDB [%s]: %v", dataSource.ConfigName, err)
@@ -122,6 +125,7 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 			} else {
 				logger.Infof("Successfully connected to MongoDB [%s]", dataSource.ConfigName)
 			}
+
 			_ = client.Disconnect(ctx)
 
 			externalDataSources[dataSource.ConfigName] = DataSource{
