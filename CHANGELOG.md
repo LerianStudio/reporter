@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.7] - 2025-07-14
+
+This release enhances the security and configurability of the plugin-smart-templates, introducing SSL support and improved environment variable management, along with crucial bug fixes and documentation updates.
+
+### ✨ Features  
+- **SSL Connection Support**: Enhance your data security with the new SSL connection capabilities. This feature ensures encrypted communication, protecting your data during transmission. Check the updated documentation for setup guidance.
+
+### 🐛 Bug Fixes
+- **Smart Templates Compatibility**: Resolved compatibility issues by updating the smart-templates version. This fix ensures you have access to the latest features and stability improvements.
+- **Code Quality Improvements**: Adjustments to meet linting standards enhance code readability and maintainability, reducing potential errors.
+
+### 🔄 Changes
+- **Environment Variable Management**: The `.env.example` file now supports more flexible configuration options, simplifying the setup of environment-specific variables to better suit your needs.
+
+### 📚 Documentation
+- **Updated Setup Guides**: Documentation has been refreshed to reflect the latest changes, including SSL setup instructions and updated smart-templates version information.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been meticulously updated to provide a clear record of recent changes, ensuring you are informed of all enhancements and fixes.
+
+These updates collectively improve the security, configurability, and reliability of the plugin-smart-templates, offering you a more robust and user-friendly experience.
+
+This changelog highlights the most significant changes in version 1.2.0, focusing on user benefits and the impact of each update. It is structured to provide clear, concise information that helps users understand and leverage the new features and improvements effectively.
+
 ## [v1.1.0-beta.6] - 2025-07-08
 
 This release enhances the user experience by automating changelog generation and improving system compatibility and reliability, all while maintaining backward compatibility.
