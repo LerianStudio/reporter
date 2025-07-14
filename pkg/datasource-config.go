@@ -33,6 +33,7 @@ type DataSourceConfig struct {
 	SSLRootCert string
 	SSL         string
 	SSLCA       string
+	Options     string
 }
 
 // DataSource represents a configuration for an external data source, specifying the database type and repository used.
@@ -94,18 +95,20 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	for _, dataSource := range dataSourceConfigs {
 		switch strings.ToLower(dataSource.Type) {
 		case MongoDBType:
-			mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?authSource=admin&directConnection=true",
+			mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
 				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
+
+			if dataSource.Options != "" {
+				mongoURI += "?" + dataSource.Options
+			}
 
 			var params []string
 			if dataSource.SSL == "true" {
 				params = append(params, "ssl=true")
 			}
-
 			if dataSource.SSLCA != "" {
 				params = append(params, "tlsCAFile="+url.QueryEscape(dataSource.SSLCA))
 			}
-
 			if len(params) > 0 {
 				if strings.Contains(mongoURI, "?") {
 					mongoURI += "&" + strings.Join(params, "&")
@@ -114,10 +117,8 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 				}
 			}
 
-			// MongoDB connection validation (using mongo.Connect, not NewClient)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-
 			client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 			if err != nil {
 				logger.Errorf("Failed to connect to MongoDB [%s]: %v", dataSource.ConfigName, err)
@@ -126,7 +127,6 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 			} else {
 				logger.Infof("Successfully connected to MongoDB [%s]", dataSource.ConfigName)
 			}
-
 			_ = client.Disconnect(ctx)
 
 			externalDataSources[dataSource.ConfigName] = DataSource{
@@ -237,8 +237,9 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
 		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
 		"SSLROOTCERT": os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
-		"SSL":         os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),   // For MongoDB SSL
-		"SSLCA":       os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)), // For MongoDB CA file
+		"SSL":         os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),     // For MongoDB SSL
+		"SSLCA":       os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),   // For MongoDB CA file
+		"OPTIONS":     os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)), // For MongoDB URI options
 	}
 
 	dataSource := DataSourceConfig{
@@ -254,6 +255,7 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 		SSLRootCert: configFields["SSLROOTCERT"],
 		SSL:         configFields["SSL"],
 		SSLCA:       configFields["SSLCA"],
+		Options:     configFields["OPTIONS"],
 	}
 
 	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",
