@@ -2,25 +2,38 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/LerianStudio/lib-commons/commons/log"
+	"net/url"
 	"os"
 	"plugin-smart-templates/pkg/mongodb"
 	pg "plugin-smart-templates/pkg/postgres"
 	"strings"
+
+	"context"
+	"time"
+
+	"github.com/LerianStudio/lib-commons/commons/log"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // DataSourceConfig represents the configuration required to establish a connection to a data source.
 // Fields include name, connection details, authentication, database, type, and SSL mode.
 type DataSourceConfig struct {
-	ConfigName string
-	Name       string
-	Host       string
-	Port       string
-	User       string
-	Password   string
-	Database   string
-	Type       string
-	SSLMode    string
+	ConfigName  string
+	Name        string
+	Host        string
+	Port        string
+	User        string
+	Password    string
+	Database    string
+	Type        string
+	SSLMode     string
+	SSLCert     string
+	SSLRootCert string
+	SSL         string
+	SSLCA       string
+	Options     string
 }
 
 // DataSource represents a configuration for an external data source, specifying the database type and repository used.
@@ -78,38 +91,14 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
-
 	for _, dataSource := range dataSourceConfigs {
 		switch strings.ToLower(dataSource.Type) {
 		case MongoDBType:
-			mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?authSource=admin&directConnection=true", // TODO
-				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
-
-			externalDataSources[dataSource.ConfigName] = DataSource{
-				DatabaseType: MongoDBType,
-				MongoURI:     mongoURI,
-				MongoDBName:  dataSource.Database,
-				Initialized:  false,
-			}
-
+			ds := initMongoDataSource(dataSource, logger)
+			externalDataSources[dataSource.ConfigName] = ds
 		case PostgreSQLType:
-			connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
-				dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
-
-			connection := &pg.Connection{
-				ConnectionString:   connectionString,
-				DBName:             dataSource.Database,
-				Logger:             logger,
-				MaxOpenConnections: 10,
-				MaxIdleConnections: 5,
-			}
-
-			externalDataSources[dataSource.ConfigName] = DataSource{
-				DatabaseType:   dataSource.Type,
-				DatabaseConfig: connection,
-				Initialized:    false,
-			}
-
+			ds := initPostgresDataSource(dataSource, logger)
+			externalDataSources[dataSource.ConfigName] = ds
 		default:
 			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
 			continue
@@ -119,6 +108,78 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	}
 
 	return externalDataSources
+}
+
+func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSource {
+	mongoURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
+		dataSource.Type, dataSource.User, dataSource.Password, dataSource.Host, dataSource.Port, dataSource.Database)
+	if dataSource.Options != "" {
+		mongoURI += "?" + dataSource.Options
+	}
+
+	var params []string
+	if dataSource.SSL == "true" {
+		params = append(params, "ssl=true")
+	}
+
+	if dataSource.SSLCA != "" {
+		params = append(params, "tlsCAFile="+url.QueryEscape(dataSource.SSLCA))
+	}
+
+	if len(params) > 0 {
+		if strings.Contains(mongoURI, "?") {
+			mongoURI += "&" + strings.Join(params, "&")
+		} else {
+			mongoURI += "?" + strings.Join(params, "&")
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		logger.Errorf("Failed to connect to MongoDB [%s]: %v", dataSource.ConfigName, err)
+	} else if err := client.Ping(ctx, nil); err != nil {
+		logger.Errorf("Failed to ping MongoDB [%s]: %v", dataSource.ConfigName, err)
+	} else {
+		logger.Infof("Successfully connected to MongoDB [%s]", dataSource.ConfigName)
+	}
+
+	_ = client.Disconnect(ctx)
+
+	return DataSource{
+		DatabaseType: MongoDBType,
+		MongoURI:     mongoURI,
+		MongoDBName:  dataSource.Database,
+		Initialized:  false,
+	}
+}
+
+func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) DataSource {
+	connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+		dataSource.Type, dataSource.User, url.QueryEscape(dataSource.Password), dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
+	if dataSource.SSLMode != "" {
+		connectionString += fmt.Sprintf("&sslrootcert=%s", url.QueryEscape(dataSource.SSLRootCert))
+		logger.Infof("Connection string: '%s' ", connectionString)
+	}
+
+	connection := &pg.Connection{
+		ConnectionString:   connectionString,
+		DBName:             dataSource.Database,
+		Logger:             logger,
+		MaxOpenConnections: 10,
+		MaxIdleConnections: 5,
+	}
+	if err := connection.Connect(); err != nil {
+		logger.Errorf("Failed to connect to Postgres [%s]: %v", dataSource.ConfigName, err)
+	}
+
+	return DataSource{
+		DatabaseType:   dataSource.Type,
+		DatabaseConfig: connection,
+		Initialized:    false,
+	}
 }
 
 // getDataSourceConfigs retrieves data source configurations from environment variables in the DATASOURCE_[NAME]_* format.
@@ -185,22 +246,30 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 		"DATABASE":    os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
 		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
 		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
+		"SSLROOTCERT": os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
+		"SSL":         os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),     // For MongoDB SSL
+		"SSLCA":       os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),   // For MongoDB CA file
+		"OPTIONS":     os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)), // For MongoDB URI options
 	}
 
 	dataSource := DataSourceConfig{
-		Name:       name,
-		ConfigName: configFields["CONFIG_NAME"],
-		Host:       configFields["HOST"],
-		Port:       configFields["PORT"],
-		User:       configFields["USER"],
-		Password:   configFields["PASSWORD"],
-		Database:   configFields["DATABASE"],
-		Type:       configFields["TYPE"],
-		SSLMode:    configFields["SSLMODE"],
+		Name:        name,
+		ConfigName:  configFields["CONFIG_NAME"],
+		Host:        configFields["HOST"],
+		Port:        configFields["PORT"],
+		User:        configFields["USER"],
+		Password:    configFields["PASSWORD"],
+		Database:    configFields["DATABASE"],
+		Type:        configFields["TYPE"],
+		SSLMode:     configFields["SSLMODE"],
+		SSLRootCert: configFields["SSLROOTCERT"],
+		SSL:         configFields["SSL"],
+		SSLCA:       configFields["SSLCA"],
+		Options:     configFields["OPTIONS"],
 	}
 
-	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s)",
-		name, dataSource.ConfigName, dataSource.Database, dataSource.Type, dataSource.SSLMode)
+	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",
+		name, dataSource.ConfigName, dataSource.Database, dataSource.Type, dataSource.SSLMode, dataSource.SSL, dataSource.SSLCA)
 
 	return dataSource, true
 }
