@@ -7,12 +7,14 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"net/url"
 	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/worker/internal/services"
 	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/pkg/constant"
 	reportFile "plugin-smart-templates/pkg/minio/report"
 	templateFile "plugin-smart-templates/pkg/minio/template"
 	reportData "plugin-smart-templates/pkg/mongodb/report"
@@ -30,6 +32,7 @@ type Config struct {
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
 	RabbitMQNumWorkers          int    `env:"RABBITMQ_NUMBERS_OF_WORKERS"`
+	RabbitMQHealthCheckURL      string `env:"RABBITMQ_HEALTH_CHECK_URL"`
 	OtelServiceName             string `env:"OTEL_RESOURCE_SERVICE_NAME"`
 	OtelLibraryName             string `env:"OTEL_LIBRARY_NAME"`
 	OtelServiceVersion          string `env:"OTEL_RESOURCE_SERVICE_VERSION"`
@@ -50,6 +53,9 @@ type Config struct {
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
 	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
+	// License configuration envs
+	LicenseKey      string `env:"LICENSE_KEY"`
+	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -78,6 +84,7 @@ func InitWorker() *Service {
 
 	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
+		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
 		Host:                   cfg.RabbitMQHost,
 		Port:                   cfg.RabbitMQPortHost,
 		User:                   cfg.RabbitMQUser,
@@ -121,10 +128,17 @@ func InitWorker() *Service {
 		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
 	}
 
+	licenseClient := libLicense.NewLicenseClient(
+		constant.ApplicationName,
+		cfg.LicenseKey,
+		cfg.OrganizationIDs,
+		&logger,
+	)
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
+		licenseShutdown:    licenseClient.GetLicenseManagerShutdown(),
 	}
 }

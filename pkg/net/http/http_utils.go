@@ -18,6 +18,8 @@ type QueryHeader struct {
 	Metadata       *bson.M
 	OutputFormat   string
 	Description    string
+	Status         string
+	TemplateID     uuid.UUID
 	Limit          int
 	Page           int
 	Cursor         string
@@ -55,6 +57,8 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		cursor       string
 		outputFormat string
 		description  string
+		status       string
+		templateID   uuid.UUID
 		limit        = 10
 		page         = 1
 		sortOrder    = "desc"
@@ -74,6 +78,12 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 			outputFormat = value
 		case strings.Contains(key, "description"):
 			description = value
+		case strings.Contains(key, "status"):
+			status = value
+		case strings.Contains(key, "templateId"):
+			if parsedID, err := uuid.Parse(value); err == nil {
+				templateID = parsedID
+			}
 		case strings.Contains(key, "limit"):
 			limit, _ = strconv.Atoi(value)
 		case strings.Contains(key, "page"):
@@ -96,6 +106,8 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		Metadata:     metadata,
 		OutputFormat: outputFormat,
 		Description:  description,
+		Status:       status,
+		TemplateID:   templateID,
 		Limit:        limit,
 		Page:         page,
 		Cursor:       cursor,

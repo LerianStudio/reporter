@@ -3,9 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/mongodb"
@@ -13,6 +10,10 @@ import (
 	"plugin-smart-templates/pkg/postgres"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_createTemplate(t *testing.T) {
@@ -202,6 +203,16 @@ func Test_createTemplate(t *testing.T) {
 					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:           "Error - Create a template with <script> tag",
+			templateFile:   `<html><script>alert('x')</script></html>`,
+			outFormat:      "html",
+			description:    "Malicious Template",
+			orgId:          orgId,
+			mockSetup:      func() {},
 			expectErr:      true,
 			expectedResult: nil,
 		},

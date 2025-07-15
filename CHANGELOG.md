@@ -2,7 +2,54 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v1.1.0-beta.7] - 2025-05-27
+## [v1.1.0-beta.7] - 2025-07-14
+
+This release enhances the security and configurability of the plugin-smart-templates, introducing SSL support and improved environment variable management, along with crucial bug fixes and documentation updates.
+
+### ✨ Features  
+- **SSL Connection Support**: Enhance your data security with the new SSL connection capabilities. This feature ensures encrypted communication, protecting your data during transmission. Check the updated documentation for setup guidance.
+
+### 🐛 Bug Fixes
+- **Smart Templates Compatibility**: Resolved compatibility issues by updating the smart-templates version. This fix ensures you have access to the latest features and stability improvements.
+- **Code Quality Improvements**: Adjustments to meet linting standards enhance code readability and maintainability, reducing potential errors.
+
+### 🔄 Changes
+- **Environment Variable Management**: The `.env.example` file now supports more flexible configuration options, simplifying the setup of environment-specific variables to better suit your needs.
+
+### 📚 Documentation
+- **Updated Setup Guides**: Documentation has been refreshed to reflect the latest changes, including SSL setup instructions and updated smart-templates version information.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been meticulously updated to provide a clear record of recent changes, ensuring you are informed of all enhancements and fixes.
+
+These updates collectively improve the security, configurability, and reliability of the plugin-smart-templates, offering you a more robust and user-friendly experience.
+
+This changelog highlights the most significant changes in version 1.2.0, focusing on user benefits and the impact of each update. It is structured to provide clear, concise information that helps users understand and leverage the new features and improvements effectively.
+
+## [v1.1.0-beta.6] - 2025-07-08
+
+This release enhances the user experience by automating changelog generation and improving system compatibility and reliability, all while maintaining backward compatibility.
+
+### ✨ Features  
+- **Automated Changelog Generation**: We've introduced a new feature that automatically generates changelogs using GPT for each release. This ensures you receive detailed and accurate updates, keeping you informed about the latest changes effortlessly.
+
+### 🐛 Bug Fixes
+- **Improved File Handling**: Fixed an issue in the backend where files containing script tags could cause unexpected behavior. This enhancement ensures smoother file processing, leading to a more robust and reliable system.
+- **Codebase Cleanup**: Removed outdated feature branches, reducing clutter and potential confusion. This makes it easier for developers to focus on active projects and streamline development workflows.
+
+### 🔄 Changes
+- **Updated RabbitMQ and Redis**: Aligned our implementations with the latest updates, enhancing compatibility and performance. This change boosts the reliability of our message queuing and caching systems, ensuring smoother operations.
+- **Revised License Implementation**: Updated to comply with the latest standards, providing clarity on usage rights and ensuring adherence to current licensing requirements.
+
+### 📚 Documentation
+- **Documentation Updates**: We've updated our documentation to reflect changes in RabbitMQ, Redis, and licensing implementations. This ensures that you have access to the most current and accurate information, supporting effective use and integration of our software.
+
+### 🔧 Maintenance
+- **Testing Enhancements**: Updated tests to verify the functionality of the latest changes, maintaining high standards of code quality and reliability.
+
+This release is designed to enhance your experience by simplifying the update process, improving system performance, and ensuring compliance with the latest standards.
+
+## [v0.0.0-beta.25] - 2025-05-27
 
 ### 🔧 Maintenance
 - Update CHANGELOG to reflect recent changes, ensuring documentation is current and accurate.
@@ -11,18 +58,19 @@ All notable changes to this project will be documented in this file.
 - Test build workflow to ensure continuous integration setup is functioning correctly, maintaining pipeline reliability.
 
 =======
-## [v1.1.0-beta.6] - 2025-05-26
+## [v0.0.0-beta.24] - 2025-05-26
 
 ### 🐛 Bug Fixes
 - Correct Makefile commands to ensure proper build process
 =======
-## [v1.1.0-beta.5] - 2025-05-26
+## [v0.0.0-beta.23] - 2025-05-26
 
 ### 🔧 Maintenance
 - Update CHANGELOG for recent changes
 - Test build workflow configuration to ensure CI setup is validated
 =======
-## [v1.1.0-beta.4] - 2025-05-26
+
+## [v0.0.0-beta.22] - 2025-05-26
 
 ### 🔧 Maintenance
 - Update CHANGELOG to reflect recent changes
@@ -30,19 +78,22 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Continuous Integration
 - Test build workflow for continuous integration improvements
 =======
-## [v1.1.0-beta.3] - 2025-05-26
+
+## [v0.0.0-beta.21] - 2025-05-26
 
 ### 🔧 Maintenance
 - Update CHANGELOG to reflect recent changes
 - Test build workflow to ensure continuous integration functionality
 =======
-## [v1.1.0-beta.2] - 2025-05-26
+
+## [v0.0.0-beta.20] - 2025-05-26
 
 ### 🔧 Maintenance
 - Update CHANGELOG for recent changes to reflect the latest updates and improvements.
 - Test build workflow for continuous integration improvements, enhancing the reliability and efficiency of the CI/CD pipeline.
 =======
-## [v1.1.0-beta.1] - 2025-05-26
+
+## [v0.0.0-beta.19] - 2025-05-26
 
 ### 🔧 Maintenance
 - Update CHANGELOG to reflect recent changes
@@ -53,7 +104,8 @@ All notable changes to this project will be documented in this file.
 - Test build workflow to ensure pipeline reliability
 - Add build pipeline configuration to automate deployment processes
 =======
-## [v1.0.0-beta.20] - 2025-05-26
+
+## [v0.0.0-beta.18] - 2025-05-26
 
 ### ✨ Features
 - Add 'contains' tag to validate substring presence, enhancing template validation capabilities.
@@ -67,7 +119,7 @@ All notable changes to this project will be documented in this file.
 - Adjust placeholders in loops with regex to fix template rendering errors.
 =======
 
-## [v1.0.0-beta.19] - 2025-05-23
+## [v0.0.0-beta.17] - 2025-05-23
 
 ### 🐛 Bug Fixes
 - Update `.releaserc` file to use the correct semantic release plugin, ensuring proper release process configuration
@@ -75,49 +127,49 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Consolidate CHANGELOG updates for improved clarity and consistency
 =======
-## [v1.0.1-feat.6] - 2025-05-16
+## [v0.0.0-beta.16] - 2025-05-16
 
 ### 🔧 Maintenance
 - Implement test build workflow for continuous integration
 
-## [v1.0.1-feat.5] - 2025-05-16
+## [v0.0.0-beta.15] - 2025-05-16
 
 ### 🔧 Maintenance
 - Implement test build workflow in CI process to automate and ensure reliability of the build process.
 
-## [v1.0.1-feat.3] - 2025-05-16
+## [v0.0.0-beta.14] - 2025-05-16
 
 ### 🔧 Maintenance
 - Add test build workflow for continuous integration to enhance CI/CD pipeline efficiency.
 
 
-## [v1.0.1-feat.2] - 2025-05-16
+## [v0.0.0-beta.13] - 2025-05-16
 
 ### 🔧 Maintenance
 - Add test build workflow to the continuous integration pipeline
 
-## [v1.0.1-feat.1] - 2025-05-16
+## [v0.0.0-beta.12] - 2025-05-16
 
 ### 🔧 Maintenance
 - Test build workflow for continuous integration to ensure robust deployment processes
 
-## [v1.0.0] - 2025-05-16
+## [v0.0.0-beta.11] - 2025-05-16
 
 ### 🔧 Maintenance
 - Update Go module dependencies to the latest versions for improved security and performance.
 - Refactor JSON annotations for error structs, enhancing code readability and maintainability.
 
-## [v1.0.0-beta.18] - 2025-05-15
+## [v0.0.0-beta.10] - 2025-05-15
 
 ### 🐛 Bug Fixes
 - Establish network for plugin fees on worker to ensure proper functionality and connectivity
 
-## [v1.0.0-beta.17] - 2025-05-15
+## [v0.0.0-beta.9] - 2025-05-15
 
 ### 🐛 Bug Fixes
 - Establish network connection for plugin fees to ensure correct functionality and prevent connectivity issues.
 
-## [v1.0.0-beta.16] - 2025-05-15
+## [v0.0.0-beta.8] - 2025-05-15
 
 ### 🐛 Bug Fixes
 - Resolve linting issues in the codebase to maintain code quality
@@ -125,7 +177,7 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Add 'createdAt' filter to the templates endpoint list, enhancing the functionality and allowing more precise template management
 
-## [v1.0.0-beta.15] - 2025-05-14
+## [v0.0.0-beta.7] - 2025-05-14
 
 ### 🐛 Bug Fixes
 - Organize code by running lint to improve code quality and maintainability.
@@ -133,7 +185,7 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Standardize environment variable names for plugin consistency, enhancing code readability and maintainability.
 
-## [v1.0.0-beta.14] - 2025-05-13
+## [v0.0.0-beta.6] - 2025-05-13
 
 ### 🐛 Bug Fixes
 - Adjust filter validation for report generation to ensure correct functionality
@@ -141,7 +193,7 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 - Generate new Swagger documentation to improve API clarity and usability
 
-## [v1.0.0-beta.13] - 2025-05-13
+## [v0.0.0-beta.5] - 2025-05-13
 
 ### 🐛 Bug Fixes
 - Correct the type casting of the `x-retry-count` variable to ensure proper retry logic functionality.
@@ -151,7 +203,7 @@ All notable changes to this project will be documented in this file.
 - Improve code structure and comments for report generation to enhance readability and maintainability.
 - Update changelog documentation to reflect recent changes.
 
-## [v1.0.0-beta.12] - 2025-05-09
+## [v0.0.0-beta.4] - 2025-05-09
 
 ### 🐛 Bug Fixes
 - Correct retry value conversion logic to ensure accurate retry attempts.
@@ -161,7 +213,7 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Maintenance
 - Update CHANGELOG to reflect recent changes and improvements.
 
-## [v1.0.0-beta.11] - 2025-05-08
+## [v0.0.0-beta.3] - 2025-05-08
 
 ### ✨ Features
 - Add comments to the field mapping function for better understanding and maintainability.
@@ -174,7 +226,7 @@ All notable changes to this project will be documented in this file.
 - Set GitHub token value for CI/CD configuration to streamline deployment processes.
 - Apply linting to improve code quality and maintain consistent coding standards.
 
-## [v1.0.0-beta.9] - 2025-05-07
+## [v0.0.0-beta.2] - 2025-05-07
 
 ### 🐛 Bug Fixes
 - Adjust Makefile for improved build process, enhancing build reliability.
@@ -190,7 +242,7 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Chore
 - Update CHANGELOG with recent changes to maintain accurate project history.
 
-## [v1.0.0-beta.8] - 2025-05-05
+## [v0.0.0-beta.1] - 2025-05-05
 
 ### 🔧 Maintenance
 - Normalize GitHub Actions release workflow to ensure consistency across CI/CD processes.

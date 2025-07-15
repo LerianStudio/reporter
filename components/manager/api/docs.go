@@ -16,7 +16,186 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/data-sources": {
+            "get": {
+                "description": "Retrieves all data sources connected on plugin with all information from the database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Data source"
+                ],
+                "summary": "Get all data sources connected on plugin smart templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
+                        "name": "Authorization",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/DataSourceInformation"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/data-sources/{dataSourceId}": {
+            "get": {
+                "description": "Retrieves a data sources information with data source id passed",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Data source"
+                ],
+                "summary": "Get a data sources information",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Data source ID",
+                        "name": "dataSourceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataSourceInformation"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/reports": {
+            "get": {
+                "description": "List all the reports",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get all reports",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Report status (processing, finished, error)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "templateId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Created at date (YYYY-MM-DD)",
+                        "name": "createdAt",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Pagination"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
+                                            }
+                                        },
+                                        "limit": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a Report of existent template with the input payload",
                 "consumes": [
@@ -499,6 +678,30 @@ const docTemplate = `{
                 }
             }
         },
+        "DataSourceInformation": {
+            "description": "DataSourceDetails is the data source details of database",
+            "type": "object",
+            "properties": {
+                "externalName": {
+                    "type": "string",
+                    "example": "onboarding"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "midaz_onboarding"
+                },
+                "tables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/TableDetails"
+                    }
+                },
+                "type": {
+                    "type": "string",
+                    "example": "postgresql"
+                }
+            }
+        },
         "Pagination": {
             "description": "Pagination is the struct designed to store the pagination data of an entity list.",
             "type": "object",
@@ -515,6 +718,45 @@ const docTemplate = `{
                 "total": {
                     "type": "integer",
                     "example": 10
+                }
+            }
+        },
+        "TableDetails": {
+            "description": "TableDetails is the struct of table information",
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "['id'",
+                        " 'name'",
+                        " 'parent_account_id']"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "example": "account"
+                }
+            }
+        },
+        "pkg.HTTPError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
+                },
+                "err": {},
+                "message": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },

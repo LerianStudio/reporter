@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/LerianStudio/lib-commons/commons"
+	libCommonsLicense "github.com/LerianStudio/lib-commons/commons/license"
 	"github.com/LerianStudio/lib-commons/commons/log"
 )
 
@@ -9,6 +10,7 @@ import (
 type Service struct {
 	*MultiQueueConsumer
 	log.Logger
+	licenseShutdown *libCommonsLicense.ManagerShutdown
 }
 
 // Run starts the application.
@@ -18,4 +20,9 @@ func (app *Service) Run() {
 		commons.WithLogger(app.Logger),
 		commons.RunApp("RabbitMQ Consumer", app.MultiQueueConsumer),
 	).Run()
+
+	// After all consumers are done, shutdown license
+	if app.licenseShutdown != nil {
+		app.licenseShutdown.Terminate("Consumers are done.")
+	}
 }

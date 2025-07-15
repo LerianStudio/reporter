@@ -2,6 +2,7 @@ package services
 
 import (
 	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/components/manager/internal/adapters/redis"
 	pkgConfig "plugin-smart-templates/pkg"
 	reportMinio "plugin-smart-templates/pkg/minio/report"
 	templateMinio "plugin-smart-templates/pkg/minio/template"
@@ -28,4 +29,7 @@ type UseCase struct {
 
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
 	ExternalDataSources map[string]pkgConfig.DataSource
+
+	// RedisRepo provides an abstraction on top of the redis consumer.
+	RedisRepo redis.RedisRepository
 }
