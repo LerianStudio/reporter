@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.8] - 2025-07-15
+
+This release introduces a major overhaul of the release process, enhancing consistency and efficiency. Users will benefit from a more predictable and streamlined deployment experience.
+
+### ⚠️ Breaking Changes
+- **Standardized Release Flow**: The release process has been restructured to include a new flow with a built-in hotfix mechanism. This change requires users to update their deployment scripts or workflows to align with the new structure. Please review the updated documentation for detailed migration guidance.
+
+### ✨ Features  
+- **Enhanced Release Process**: The introduction of a standardized release flow ensures a more reliable and efficient deployment process. This new structure supports quick hotfixes, enabling faster resolution of issues and minimizing downtime. Users can now enjoy a smoother update experience with improved release management.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been thoroughly updated to reflect the latest changes and improvements, providing users with clear and comprehensive information about the plugin's evolution.
+
+### 🔧 Maintenance
+- **Improved Documentation**: We've enhanced the documentation to better support users in understanding and adapting to the new release flow. This includes detailed instructions and examples to assist in the transition.
+
+In this release, the focus has been on refining the release process to ensure smoother and more predictable deployments. Users are encouraged to familiarize themselves with the new release flow and update their processes accordingly.
+
 ## [v1.1.0-beta.7] - 2025-07-14
 
 This release enhances the security and configurability of the plugin-smart-templates, introducing SSL support and improved environment variable management, along with crucial bug fixes and documentation updates.
