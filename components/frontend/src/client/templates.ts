@@ -18,6 +18,8 @@ import {
 } from '@tanstack/react-query'
 import { PaginationRequest } from '@/types/pagination-request'
 
+const basePath = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+
 type UseListTemplatesProps = {
   organizationId?: string
   filters?: TemplateFiltersDto & PaginationRequest
@@ -60,7 +62,7 @@ export const useListTemplates = ({
   return useQuery<PaginationDto<TemplateDto>>({
     queryKey: ['templates', organizationId, Object.values(filters || {})],
     queryFn: getPaginatedFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/templates`,
+      `${basePath}/api/organizations/${organizationId}/templates`,
       queryParams
     ),
     ...options
@@ -76,7 +78,7 @@ export const useGetTemplate = ({
   return useQuery<TemplateDto>({
     queryKey: ['templates', templateId],
     queryFn: getFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/templates/${templateId}`
+      `${basePath}/api/organizations/${organizationId}/templates/${templateId}`
     ),
     enabled: enabled && !!templateId,
     ...options
@@ -93,7 +95,7 @@ export const useCreateTemplate = ({
   return useMutation<any, any, any>({
     mutationKey: ['templates'],
     mutationFn: postFormDataFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/templates`
+      `${basePath}/api/organizations/${organizationId}/templates`
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
@@ -116,7 +118,7 @@ export const useUpdateTemplate = ({
   return useMutation<any, any, any>({
     mutationKey: ['templates', templateId],
     mutationFn: patchFormDataFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/templates/${templateId}`
+      `${basePath}/api/organizations/${organizationId}/templates/${templateId}`
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
@@ -141,7 +143,7 @@ export const useDeleteTemplate = ({
   return useMutation<any, any, any>({
     mutationKey: ['templates', organizationId],
     mutationFn: deleteFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/templates`
+      `${basePath}/api/organizations/${organizationId}/templates`
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({

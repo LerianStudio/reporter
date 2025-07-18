@@ -1,9 +1,11 @@
+name: plugin-smart-templates-ui
+
 services:
   plugin-smart-templates-ui:
     container_name: plugin-smart-templates-ui
     build:
       context: ../..
-      dockerfile: components/console/Dockerfile
+      dockerfile: components/frontend/Dockerfile
     restart: always
     expose:
       - 8083:8083

@@ -1,7 +1,7 @@
 # Console Component Makefile
 
 # Component-specific variables
-SERVICE_NAME := console
+SERVICE_NAME := frontend
 BUILD_DIR := ./dist
 ARTIFACTS_DIR := ./artifacts
 

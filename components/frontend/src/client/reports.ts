@@ -14,6 +14,8 @@ import {
   useQueryClient
 } from '@tanstack/react-query'
 
+const basePath = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+
 type PaginationRequest = {
   limit?: number
   page?: number
@@ -68,7 +70,7 @@ export const useListReports = ({
   return useQuery<PaginationDto<ReportDto>>({
     queryKey: ['reports', { organizationId, limit, page, status, templateId }],
     queryFn: getPaginatedFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports`,
+      `${basePath}/api/organizations/${organizationId}/reports`,
       queryParams
     ),
     enabled,
@@ -85,7 +87,7 @@ export const useGetReport = ({
   return useQuery<ReportDto>({
     queryKey: ['reports', reportId],
     queryFn: getFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports/${reportId}`
+      `${basePath}/api/organizations/${organizationId}/reports/${reportId}`
     ),
     enabled: enabled && !!reportId,
     ...options
@@ -102,7 +104,7 @@ export const useCreateReport = ({
   return useMutation<any, any, CreateReportDto>({
     mutationKey: ['reports'],
     mutationFn: postFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports`
+      `${basePath}/api/organizations/${organizationId}/reports`
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
@@ -125,7 +127,7 @@ export const useDeleteReport = ({
   return useMutation<any, any, any>({
     mutationKey: ['reports', reportId],
     mutationFn: deleteFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports/${reportId}`
+      `${basePath}/api/organizations/${organizationId}/reports/${reportId}`
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
@@ -146,7 +148,7 @@ export const useDownloadReport = ({
   return useMutation<any, any, any>({
     mutationKey: ['reports', reportId, 'download'],
     mutationFn: downloadFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports/${reportId}/download`
+      `${basePath}/api/organizations/${organizationId}/reports/${reportId}/download`
     ),
     onSuccess: (...args) => {
       onSuccess?.(...args)
@@ -164,7 +166,7 @@ export const useGetReportDownloadInfo = ({
   return useQuery<{ downloadUrl: string; fileName: string; fileSize: number }>({
     queryKey: ['reports', reportId, 'download-info'],
     queryFn: getFetcher(
-      `/smart-templates-ui/api/organizations/${organizationId}/reports/${reportId}/download-info`
+      `${basePath}/api/organizations/${organizationId}/reports/${reportId}/download-info`
     ),
     enabled: enabled && !!reportId,
     ...options

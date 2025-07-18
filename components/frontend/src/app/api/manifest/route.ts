@@ -19,7 +19,9 @@ export async function GET() {
       description:
         'Smart Templates plugin for managing smart templates in the Midaz ecosystem.',
       version: '0.1.0',
-      route: '/smart-templates-ui',
+      route:
+        process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH ||
+        '/plugin-smart-templates-ui',
       entry: '/',
       healthcheck: '/api/admin/health',
       host:

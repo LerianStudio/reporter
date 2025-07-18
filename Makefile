@@ -24,11 +24,11 @@ include $(ROOT_DIR)/pkg/shell/makefile_utils.mk
 INFRA_DIR := ./components/infra
 MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
-CONSOLE_DIR := ./components/console
+FRONT_END_DIR := ./components/frontend
 
 # Define a list of all component directories for easier iteration
 WORKER_MANAGER_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
-COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR) $(CONSOLE_DIR)
+COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR) $(FRONT_END_DIR)
 
 # Include shared color definitions and utility functions
 #include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
