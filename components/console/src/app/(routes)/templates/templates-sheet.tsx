@@ -1,0 +1,262 @@
+'use client'
+
+import React from 'react'
+import { useIntl } from 'react-intl'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet'
+import { LoadingButton } from '@/components/ui/loading-button'
+import { Form } from '@/components/ui/form'
+import { InputField } from '@/components/form/input-field'
+import { SelectField } from '@/components/form/select-field'
+import { FileInputField } from '@/components/form/file-input-field'
+import { SelectItem } from '@/components/ui/select'
+import {
+  templateFormSchema,
+  templateUpdateFormSchema,
+  TemplateFormData,
+  TemplateUpdateFormData,
+  OUTPUT_FORMAT_OPTIONS
+} from '@/schema/template'
+import { useCreateTemplate, useUpdateTemplate } from '@/client/templates'
+import {
+  TemplateDto,
+  CreateTemplateDto
+} from '@/core/application/dto/template-dto'
+import { useOrganization } from '@lerianstudio/console-layout'
+import { getInitialValues } from '@/lib/form'
+import { useToast } from '@/hooks/use-toast'
+
+type TemplatesSheetProps = {
+  mode: 'create' | 'edit'
+  data: TemplateDto | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
+}
+
+const initialValues = {
+  name: '',
+  outputFormat: undefined,
+  templateFile: undefined
+}
+
+export function TemplatesSheet({
+  mode,
+  data,
+  open,
+  onOpenChange,
+  onSuccess
+}: TemplatesSheetProps) {
+  const intl = useIntl()
+  const { toast } = useToast()
+  const { currentOrganization } = useOrganization()
+
+  // Determine which schema and default values to use
+  const isCreateMode = mode === 'create'
+  const schema = isCreateMode ? templateFormSchema : templateUpdateFormSchema
+
+  // Initialize form with proper typing
+  const form = useForm<TemplateFormData | TemplateUpdateFormData>({
+    resolver: zodResolver(schema),
+    values: getInitialValues(initialValues, data ?? {}),
+    defaultValues: initialValues
+  })
+
+  // API mutations
+  const createTemplateMutation = useCreateTemplate({
+    organizationId: currentOrganization?.id!,
+    onSuccess: (data: TemplateDto) => {
+      const template = data as TemplateDto
+      form.reset()
+      onOpenChange(false)
+      onSuccess?.()
+      toast({
+        title: intl.formatMessage(
+          {
+            id: 'templates.create.success',
+            defaultMessage: 'New Template {name} successfully created'
+          },
+          {
+            name: template.name
+          }
+        ),
+        variant: 'success'
+      })
+    }
+  })
+
+  const updateTemplateMutation = useUpdateTemplate({
+    organizationId: currentOrganization?.id!,
+    templateId: data?.id || '',
+    onSuccess: (data: unknown) => {
+      const template = data as TemplateDto
+      form.reset()
+      onOpenChange(false)
+      onSuccess?.()
+      toast({
+        title: intl.formatMessage(
+          {
+            id: 'templates.update.success',
+            defaultMessage: 'Template {name} successfully updated'
+          },
+          {
+            name: template.name
+          }
+        ),
+        variant: 'success'
+      })
+    }
+  })
+
+  // Handle form submission
+  const handleSubmit = async (
+    values: TemplateFormData | TemplateUpdateFormData
+  ) => {
+    if (isCreateMode) {
+      const createData = values as TemplateFormData
+      const payload: CreateTemplateDto = {
+        organizationId: currentOrganization.id,
+        name: createData.name,
+        outputFormat: createData.outputFormat,
+        templateFile: createData.templateFile
+      }
+
+      await createTemplateMutation.mutateAsync(payload)
+    } else {
+      const updateData = values as TemplateUpdateFormData
+      await updateTemplateMutation.mutateAsync(updateData)
+    }
+  }
+
+  const isLoading =
+    createTemplateMutation.isPending || updateTemplateMutation.isPending
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-[594px] flex-col">
+        {/* Header */}
+        <SheetHeader className="mb-8">
+          <SheetTitle>
+            {intl.formatMessage({
+              id: 'templates.sheet.title',
+              defaultMessage: 'Template Details'
+            })}
+          </SheetTitle>
+          <SheetDescription>
+            {intl.formatMessage({
+              id: 'templates.sheet.description',
+              defaultMessage:
+                'Upload a template file and configure its settings for report generation.'
+            })}
+          </SheetDescription>
+        </SheetHeader>
+
+        {/* Form */}
+        <Form {...form}>
+          <div className="flex-1 space-y-4 pb-8">
+            {/* Template Name */}
+            <InputField
+              name="name"
+              label={intl.formatMessage({
+                id: 'templates.form.templateName',
+                defaultMessage: 'Template Name'
+              })}
+              tooltip={intl.formatMessage({
+                id: 'templates.form.templateName.tooltip',
+                defaultMessage: 'Enter a descriptive name for your template'
+              })}
+              control={form.control}
+              required
+              disabled={isLoading}
+            />
+
+            {/* Output Format */}
+            <SelectField
+              name="outputFormat"
+              label={intl.formatMessage({
+                id: 'templates.form.outputFormat',
+                defaultMessage: 'Output Formats'
+              })}
+              tooltip={intl.formatMessage({
+                id: 'templates.form.outputFormat.tooltip',
+                defaultMessage:
+                  'Defines the output format for the generated report, like HTML, TXT, etc.'
+              })}
+              description={intl.formatMessage({
+                id: 'templates.form.outputFormat.description',
+                defaultMessage: 'Select the output format.'
+              })}
+              control={form.control}
+              required
+              disabled={isLoading}
+            >
+              {OUTPUT_FORMAT_OPTIONS.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  value={option.value.toLowerCase()}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectField>
+
+            {/* Template File Upload */}
+            <FileInputField
+              name="templateFile"
+              label={intl.formatMessage({
+                id: 'templates.form.templateFile',
+                defaultMessage: 'Template File (.tpl)'
+              })}
+              tooltip={intl.formatMessage({
+                id: 'templates.form.templateFile.tooltip',
+                defaultMessage:
+                  'Upload a template file with your business logic and formatting'
+              })}
+              description={intl.formatMessage({
+                id: 'templates.form.templateFile.description',
+                defaultMessage:
+                  'Upload a template file with your business logic and formatting.'
+              })}
+              control={form.control}
+              accept=".tpl"
+              maxSize={5 * 1024 * 1024} // 5MB
+              required
+              disabled={isLoading}
+            />
+
+            {/* Mandatory fields note */}
+            <p className="text-muted-foreground text-sm">
+              {intl.formatMessage({
+                id: 'templates.form.mandatoryFields',
+                defaultMessage: '(*) mandatory fields'
+              })}
+            </p>
+          </div>
+
+          {/* Footer */}
+          <SheetFooter className="mt-auto">
+            <LoadingButton
+              type="submit"
+              loading={isLoading}
+              className="flex w-full items-center gap-2"
+              onClick={form.handleSubmit(handleSubmit)}
+            >
+              {intl.formatMessage({
+                id: 'templates.form.saveButton',
+                defaultMessage: 'Save'
+              })}
+            </LoadingButton>
+          </SheetFooter>
+        </Form>
+      </SheetContent>
+    </Sheet>
+  )
+}
