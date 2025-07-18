@@ -27,7 +27,7 @@ COPY components/console/   .
 RUN npm run build
 
 # Expose the port the app runs on
-EXPOSE 8081
+EXPOSE 8083
 
 # Command to run the applications
 ENTRYPOINT ["npm", "start"]

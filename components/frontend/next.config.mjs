@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/smart-templates-ui',
-  assetPrefix: '/smart-templates-ui',
+  basePath: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
+  assetPrefix: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
   trailingSlash: true,
   reactStrictMode: false,
   logging: {
