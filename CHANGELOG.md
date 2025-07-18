@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0-beta.9] - 2025-07-18
+
+This release brings significant structural improvements and integration efforts, enhancing developer productivity and ensuring a smoother user experience.
+
+### ✨ Features  
+- **Frontend & Backend Integration**: Experience a more cohesive and seamless user interface with the integration of front-end components into the backend architecture. This change simplifies interactions and ensures a harmonious operation across the application.
+
+### 🔄 Changes
+- **Environment Configuration**: Setting up and deploying the application is now easier and less error-prone, thanks to streamlined environment variable adjustments. This improvement reduces setup time and minimizes configuration errors.
+- **Folder Structure Optimization**: Enjoy a more organized and navigable codebase with our comprehensive folder structure reorganization. This change enhances code maintainability, making it easier for developers to locate and manage files efficiently.
+
+### 📚 Documentation
+- **Documentation Enhancements**: Updated documentation provides clearer guidance on new workflows and environment configurations, helping developers understand and utilize the latest changes effectively.
+
+### 🔧 Maintenance
+- **Dependency Updates**: We've updated libraries and dependencies, particularly in the frontend components, ensuring compatibility with the latest security patches and performance improvements for a more stable and secure application.
+
+This release focuses on setting a solid foundation for future feature development and enhancements, with changes designed to improve both developer productivity and user experience.
+
 ## [v1.1.0-beta.8] - 2025-07-15
 
 This release introduces a major overhaul of the release process, enhancing consistency and efficiency. Users will benefit from a more predictable and streamlined deployment experience.
