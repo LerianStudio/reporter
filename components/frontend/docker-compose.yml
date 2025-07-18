@@ -1,0 +1,50 @@
+name: plugin-smart-templates-ui
+
+services:
+  plugin-smart-templates-ui:
+    container_name: plugin-smart-templates-ui
+    build:
+      context: ../..
+      dockerfile: components/frontend/Dockerfile
+    restart: always
+    expose:
+      - 8083:8083
+
+    env_file:
+      - .env
+    healthcheck:
+      test:
+        ['CMD', 'curl', '-f', 'http://localhost:8083/api/admin/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - console-network
+      - transaction-network
+      - plugin-auth-network
+      - infra-network
+      - ledger-network
+      - proxy-network
+
+networks:
+  console-network:
+    name: console-network
+    driver: bridge
+  transaction-network:
+    name: transaction-network
+    driver: bridge
+  ledger-network:
+    name: ledger-network
+    driver: bridge
+  plugin-auth-network:
+    name: plugin-auth-network
+    driver: bridge
+  infra-network:
+    name: infra-network
+    driver: bridge
+  plugin-smart-templates-manager-network:
+    name: plugin-smart-templates-manager-network
+    driver: bridge
+  proxy-network:
+    name: proxy-network
+    driver: bridge
