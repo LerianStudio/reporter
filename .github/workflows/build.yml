@@ -16,6 +16,9 @@ jobs:
   build_and_publish_ghcr:
     runs-on: firmino-gh-actions-runners
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       # - name: Build And Publish Manager Docker Image to GHCR
       #   uses: LerianStudio/github-actions-ghcr-private-pipeline@main
       #   with:
