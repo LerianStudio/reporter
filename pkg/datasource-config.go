@@ -161,7 +161,6 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		dataSource.Type, dataSource.User, url.QueryEscape(dataSource.Password), dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
 	if dataSource.SSLMode != "" {
 		connectionString += fmt.Sprintf("&sslrootcert=%s", url.QueryEscape(dataSource.SSLRootCert))
-		logger.Infof("Connection string: '%s' ", connectionString)
 	}
 
 	connection := &pg.Connection{
