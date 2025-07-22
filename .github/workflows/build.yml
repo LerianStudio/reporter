@@ -14,11 +14,10 @@ permissions:
 #Build and Publish Docker Image to GHCR
 jobs:
   build_and_publish_ghcr:
-    runs-on: firmino-gh-actions-runners
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       # - name: Build And Publish Manager Docker Image to GHCR
       #   uses: LerianStudio/github-actions-ghcr-private-pipeline@main
       #   with:
@@ -36,7 +35,6 @@ jobs:
       - name: Build And Publish Frontend Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
-          context: .
           app_name: 'plugin-smart-templates-frontend'
           working_dir: components/frontend
           token: ${{ secrets.GHCR_SERVICE_TOKEN }}
