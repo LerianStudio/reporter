@@ -14,10 +14,8 @@ permissions:
 #Build and Publish Docker Image to GHCR
 jobs:
   build_and_publish_ghcr:
-    runs-on: ubuntu-24.04
+    runs-on: firmino-gh-actions-runners
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
       # - name: Build And Publish Manager Docker Image to GHCR
       #   uses: LerianStudio/github-actions-ghcr-private-pipeline@main
       #   with:
@@ -32,12 +30,78 @@ jobs:
       #     working_dir: components/worker
       #     token: ${{ secrets.GHCR_SERVICE_TOKEN }}
 
-      - name: Build And Publish Frontend Docker Image to GHCR
-        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
-        with:
-          app_name: 'plugin-smart-templates-frontend'
-          working_dir: components/frontend
-          token: ${{ secrets.GHCR_SERVICE_TOKEN }}
+      # - name: Build And Publish Frontend Docker Image to GHCR
+      #   uses: LerianStudio/github-actions-ghcr-private-pipeline@main
+      #   with:
+      #     app_name: 'plugin-smart-templates-frontend'
+      #     working_dir: components/frontend
+      #     token: ${{ secrets.GHCR_SERVICE_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_SERVICE_TOKEN }}
+
+    # 🔽 Ensure repository owner is lowercase (required by GHCR)
+    - name: Normalize repository owner to lowercase
+      id: normalize
+      shell: bash
+      run: |
+        echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+    # 🔽 Export APP_NAME and IMAGE_NAME as environment variables
+    - name: Define APP_NAME and IMAGE_NAME
+      shell: bash
+      run: |
+        echo "APP_NAME=plugin-smart-templates-frontend" >> $GITHUB_ENV
+        echo "IMAGE_NAME=ghcr.io/${{ steps.normalize.outputs.owner_lower }}/plugin-smart-templates-frontend" >> $GITHUB_ENV
+
+    # 🔽 Generate Docker image metadata (including version/tag)
+    - name: Docker metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/${{ steps.normalize.outputs.owner_lower }}/plugin-smart-templates-frontend
+        tags: |
+          type=semver,pattern={{version}}
+          type=ref,event=branch,suffix=-${{ github.sha }}
+
+    # 🔽 Build and push the Docker image to GHCR
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        file: components/frontend/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        platforms: linux/amd64,linux/arm64
+
+    # 🔽 Extract the version tag (e.g., from refs/tags/v1.2.3 → 1.2.3)
+    - name: Extract tag name
+      id: extract_tag
+      shell: bash
+      run: echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    # ✅ Run Trivy vulnerability scanner on the published image
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      env:
+        TRIVY_USERNAME: ${{ github.actor }}
+        TRIVY_PASSWORD: ${{ secrets.GHCR_SERVICE_TOKEN }}
+      with:
+        image-ref: ghcr.io/${{ steps.normalize.outputs.owner_lower }}/plugin-smart-templates-frontend:${{ steps.extract_tag.outputs.tag }}
+        format: 'table'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+        exit-code: '1'
 
 #jobs:
 #  build-matrix:
