@@ -20,6 +20,8 @@ github.com/LerianStudio/lib-commons v1.17.0 h1:MCBSAVXmcbj5XSKbhtwpKIkkyXZiKiM1w
 github.com/LerianStudio/lib-commons v1.17.0/go.mod h1:ZxgOHLaJvK8BQo/27nKxp8qVGFrCJsemTctWqawuwPE=
 github.com/LerianStudio/lib-license-go v1.21.0 h1:tbnZOVaSL57aOLJUnOhUMeylrIv7AUQXtpN6Ktb3ZSA=
 github.com/LerianStudio/lib-license-go v1.21.0/go.mod h1:MiG4DoNX+bRVMnXc2EuX6G/ukDiX+ZwO8NF/LZiM0/k=
+github.com/LerianStudio/lib-license-go v1.23.0 h1:mZqjGZSn9zac81dsCMJErH/3YttRXfNQsYDQTOUAgsw=
+github.com/LerianStudio/lib-license-go v1.23.0/go.mod h1:VDhlEoBEFuN+RAZs4lvHOWRwDQY+o52GuLkiP7q3JaY=
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
@@ -101,6 +103,8 @@ github.com/goccy/go-json v0.10.5/go.mod h1:oq7eo15ShAhp70Anwd5lgX2pLfOS3QCiwU/PU
 github.com/gofiber/fiber/v2 v2.32.0/go.mod h1:CMy5ZLiXkn6qwthrl03YMyW1NLfj0rhxz2LKl4t7ZTY=
 github.com/gofiber/fiber/v2 v2.52.8 h1:xl4jJQ0BV5EJTA2aWiKw/VddRpHrKeZLF0QPUxqn0x4=
 github.com/gofiber/fiber/v2 v2.52.8/go.mod h1:YEcBbO/FB+5M1IZNBP9FO3J9281zgPAreiI1oqg8nDw=
+github.com/gofiber/fiber/v2 v2.52.9 h1:YjKl5DOiyP3j0mO61u3NTmK7or8GzzWzCFzkboyP5cw=
+github.com/gofiber/fiber/v2 v2.52.9/go.mod h1:YEcBbO/FB+5M1IZNBP9FO3J9281zgPAreiI1oqg8nDw=
 github.com/golang-jwt/jwt/v5 v5.2.2 h1:Rl4B7itRWVtYIHFrSNd7vhTiz9UpLdi6gZhZ3wEeDy8=
 github.com/golang-jwt/jwt/v5 v5.2.2/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/golang-migrate/migrate/v4 v4.18.3/go.mod h1:99BKpIi6ruaaXRM1A77eqZ+FWPQ3cfRa+ZVy5bmWMaY=
