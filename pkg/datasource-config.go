@@ -205,7 +205,8 @@ func getDataSourceConfigs(logger log.Logger) []DataSourceConfig {
 // collectDataSourceNames identifies all available data source names from environment variables.
 func collectDataSourceNames() map[string]bool {
 	dataSourceNamesMap := make(map[string]bool)
-	prefixPattern := "DATASOURCE_"
+	prefix := "DATASOURCE_"
+	suffix := "_CONFIG_NAME"
 
 	envVars := os.Environ()
 
@@ -217,14 +218,9 @@ func collectDataSourceNames() map[string]bool {
 
 		key := parts[0]
 
-		if strings.HasPrefix(key, prefixPattern) {
-			remaining := key[len(prefixPattern):]
-			lastUnderscore := strings.LastIndex(remaining, "_")
-
-			if lastUnderscore > 0 {
-				name := strings.ToLower(remaining[:lastUnderscore])
-				dataSourceNamesMap[name] = true
-			}
+		if strings.HasPrefix(key, prefix) && strings.HasSuffix(key, suffix) {
+			remaining := key[len(prefix) : len(key)-len(suffix)]
+			dataSourceNamesMap[strings.ToLower(remaining)] = true
 		}
 	}
 
