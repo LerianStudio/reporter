@@ -22,8 +22,14 @@ go.work
 go.work.sum
 
 # env file
-components/template-reports/.env
+components/manager/.env
+components/manager/.env.local
 components/worker/.env
+components/worker/.env.local
+
 .idea
 .env
 .windsurf
+.vscode
+scripts/node_modules
+.DS_Store
