@@ -14,7 +14,7 @@ permissions:
 #Build and Publish Docker Image to GHCR
 jobs:
   build_and_publish_ghcr:
-    runs-on: ubuntu-24.04
+    runs-on: firmino-gh-actions-runners
     steps:
       # - name: Build And Publish Manager Docker Image to GHCR
       #   uses: LerianStudio/github-actions-ghcr-private-pipeline@main
