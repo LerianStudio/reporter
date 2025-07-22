@@ -3,8 +3,9 @@ package in
 import (
 	"github.com/LerianStudio/lib-commons/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/commons/net/http"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
+	"go.opentelemetry.io/otel/attribute"
 	"plugin-smart-templates/components/manager/internal/services"
 	_ "plugin-smart-templates/pkg"
 	_ "plugin-smart-templates/pkg/model"
@@ -68,9 +69,11 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	dataSourceID := c.Params("dataSourceId")
 	logger.Infof("Initiating retrieval data source information with ID: %s", dataSourceID)
 
+	span.SetAttributes(attribute.String("data_source_id", dataSourceID))
+
 	dataSourceInfo, err := ds.Service.GetDataSourceDetailsByID(ctx, dataSourceID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
 
 		logger.Errorf("Failed to retrieve data source information, Error: %s", err.Error())
 

@@ -3,9 +3,10 @@ package in
 import (
 	"bytes"
 	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
 	"plugin-smart-templates/components/manager/internal/services"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
@@ -49,9 +50,16 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	payload := p.(*model.CreateReportInput)
 	logger.Infof("Request to create a report with details: %#v", payload)
 
+	span.SetAttributes(attribute.String("organization_id", organizationID.String()))
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "payload", payload)
+
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
+	}
+
 	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
 		return http.WithError(c, err)
 	}
@@ -87,9 +95,14 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
+	span.SetAttributes(
+		attribute.String("report_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -98,7 +111,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	if reportModel.Status != constant.FinishedStatus {
 		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
-		opentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
+		libOpentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
 
 		logger.Errorf("Report with ID %s is not Finished", id)
 
@@ -107,7 +120,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
 		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
 
@@ -155,9 +168,14 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
+	span.SetAttributes(
+		attribute.String("report_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -193,7 +211,7 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	headerParams, err := http.ValidateParameters(c.Queries())
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
 
 		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
 
@@ -209,9 +227,16 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
+	span.SetAttributes(attribute.String("organization_id", organizationID.String()))
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "query_params", headerParams)
+
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
+	}
+
 	reports, err := rh.Service.GetAllReports(ctx, *headerParams, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
 
 		logger.Errorf("Failed to retrieve all Reports, Error: %s", err.Error())
 
