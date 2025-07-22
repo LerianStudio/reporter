@@ -9,6 +9,7 @@ import (
 	"plugin-smart-templates/pkg/net/http"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/commons"
@@ -116,7 +117,7 @@ func (uc *UseCase) buildSetFields(description, outputFormat string, mappedFields
 	}
 
 	if !commons.IsNilOrEmpty(&outputFormat) {
-		setFields["output_format"] = outputFormat
+		setFields["output_format"] = strings.ToLower(outputFormat)
 	}
 
 	if mappedFields != nil {
