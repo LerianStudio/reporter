@@ -56,7 +56,7 @@ jobs:
         uses: securego/gosec@master
         with:
           args: ./...
-          
+
   #Execute Unit tests
   unit-tests:
     name: Run Unit Tests to Plugin Smart Templates
