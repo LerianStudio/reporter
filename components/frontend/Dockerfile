@@ -8,11 +8,9 @@ WORKDIR /usr/src/app
 COPY components/frontend/package*.json ./
 
 # Configure npm to use GitHub token temporarily, without exposing it in the Dockerfile
-RUN echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" > ~/.npmrc && \
-    apk update && apk add bash && \
+RUN apk update && apk add bash && \
     npm install && \
-    npm cache clean --force && \
-    rm -f ~/.npmrc
+    npm cache clean --force
 
 # Copiar o arquivo .env.example para o diretório de trabalho
 COPY components/frontend/.env.example .env.example
