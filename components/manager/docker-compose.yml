@@ -5,6 +5,8 @@ services:
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
+      secrets:
+        - github_token
     env_file:
       - .env
     ports:
@@ -29,3 +31,7 @@ networks:
     external: true
   plugin-fees-network:
     external: true
+
+secrets:
+  github_token:
+    file: ../../.github_token

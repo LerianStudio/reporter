@@ -8,6 +8,7 @@ import (
 	"plugin-smart-templates/pkg/mongodb/template"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/commons"
@@ -42,7 +43,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	templateModel := &template.TemplateMongoDBModel{
 		ID:             templateId,
-		OutputFormat:   outFormat,
+		OutputFormat:   strings.ToLower(outFormat),
 		OrganizationID: organizationID,
 		FileName:       fileName,
 		Description:    description,
