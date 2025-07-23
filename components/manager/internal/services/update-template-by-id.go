@@ -16,6 +16,7 @@ import (
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // UpdateTemplateByID update a existent template
@@ -30,6 +31,11 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 
 	_, span := tracer.Start(ctx, "services.update_template")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	logger.Infof("Updating template")
 

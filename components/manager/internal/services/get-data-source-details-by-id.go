@@ -3,12 +3,14 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
 	"time"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/log"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetDataSourceDetailsByID retrieves the data source information by data source id
@@ -18,6 +20,10 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 
 	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("data_source_id", dataSourceID),
+	)
 
 	logger.Infof("Retrieving data source details for id %v", dataSourceID)
 

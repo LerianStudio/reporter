@@ -58,12 +58,6 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-		attribute.String("collection", collection),
-	)
-
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -76,6 +70,11 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 	var record *TemplateMongoDBModel
 
 	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+
+	spanFindOne.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	if err = coll.
 		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
@@ -100,13 +99,6 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_templates")
 	defer span.End()
-
-	span.SetAttributes(attribute.String("collection", collection))
-
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
-	}
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -145,6 +137,11 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 	opts := options.FindOptions{Limit: &limit, Skip: &skip}
 
 	ctx, spanFind := tracer.Start(ctx, "mongodb.find_templates.find")
+
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanFind, "filters", filters)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanFind, "Failed to convert filters to JSON string", err)
+	}
 
 	cur, err := coll.Find(ctx, queryFilter, &opts)
 	if err != nil {
@@ -191,6 +188,11 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, c
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -232,17 +234,6 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 	ctx, span := tracer.Start(ctx, "mongo.create_template")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("template_id", record.ID.String()),
-		attribute.String("organization_id", record.OrganizationID.String()),
-		attribute.String("collection", collection),
-	)
-
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "template_record", record)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to convert template record to JSON string", err)
-	}
-
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -253,6 +244,11 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
+
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanInsert, "template_record", record)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to convert template record to JSON string", err)
+	}
 
 	_, err = coll.InsertOne(ctx, record)
 	if err != nil {
@@ -273,12 +269,6 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 	ctx, span := tracer.Start(ctx, "mongodb.update_template")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-		attribute.String("collection", collection),
-	)
-
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -289,6 +279,11 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 	opts := options.Update().SetUpsert(false)
 
 	ctx, spanUpdate := tracer.Start(ctx, "mongodb.update_template.update_one")
+
+	spanUpdate.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanUpdate, "update_template_input", updateFields)
 	if err != nil {
@@ -320,12 +315,6 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-		attribute.String("collection", collection),
-	)
-
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -338,6 +327,11 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
 
 	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
+
+	spanDelete.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	filter := bson.D{{Key: "_id", Value: id}, {Key: "organization_id", Value: organizationID}}
 	deletedAt := bson.D{{Key: "$set", Value: bson.D{{Key: "deleted_at", Value: time.Now()}}}}
@@ -365,7 +359,6 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 	span.SetAttributes(
 		attribute.String("template_id", id.String()),
 		attribute.String("organization_id", organizationID.String()),
-		attribute.String("collection", collection),
 	)
 
 	db, err := tm.connection.GetDB(ctx)

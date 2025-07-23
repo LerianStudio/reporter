@@ -13,6 +13,7 @@ import (
 
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // CreateTemplate creates a new template with specified parameters and stores it in the repository.
@@ -22,6 +23,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	_, span := tracer.Start(ctx, "services.create_template")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("template_file", templateFile),
+		attribute.String("output_format", outFormat),
+		attribute.String("description", description),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	logger.Infof("Creating template")
 

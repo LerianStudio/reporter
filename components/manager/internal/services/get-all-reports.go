@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/google/uuid"
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/net/http"
 	"reflect"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetAllReports fetch all Reports from the repository
@@ -17,6 +20,15 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 
 	ctx, span := tracer.Start(ctx, "get_all_reports")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("organization_id", organizationID.String()),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
+	if err != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
+	}
 
 	logger.Infof("Retrieving reports")
 
@@ -35,4 +47,4 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 	}
 
 	return reports, nil
-} 
+}

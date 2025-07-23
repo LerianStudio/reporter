@@ -2,6 +2,10 @@ package report
 
 import (
 	"context"
+	"plugin-smart-templates/pkg/net/http"
+	"strings"
+	"time"
+
 	"github.com/LerianStudio/lib-commons/commons"
 	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
@@ -10,9 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/pkg/net/http"
-	"strings"
-	"time"
 )
 
 // Repository provides an interface for operations related to reports collection in MongoDB.
@@ -59,8 +60,8 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 
 	span.SetAttributes(
 		attribute.String("report_id", id.String()),
-		attribute.String("collection", collection),
 		attribute.String("status", status),
+		attribute.String("completed_at", completedAt.String()),
 	)
 
 	db, err := rm.connection.GetDB(ctx)
@@ -119,17 +120,6 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 	ctx, span := tracer.Start(ctx, "mongo.create_report")
 	defer span.End()
 
-	attributes := []attribute.KeyValue{
-		attribute.String("collection", collection),
-		attribute.String("organization_id", organizationID.String()),
-	}
-
-	if report.ID != uuid.Nil {
-		attributes = append(attributes, attribute.String("report_id", report.ID.String()))
-	}
-
-	span.SetAttributes(attributes...)
-
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -147,6 +137,15 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 	}
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_report.insert")
+
+	spanInsert.SetAttributes(
+		attribute.String("organization_id", organizationID.String()),
+	)
+
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanInsert, "report_record", record)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to convert report record to JSON string", err)
+	}
 
 	_, err = coll.InsertOne(ctx, record)
 	if err != nil {
@@ -167,12 +166,6 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection stri
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("report_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-		attribute.String("collection", collection),
-	)
-
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
@@ -185,6 +178,11 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection stri
 	var record *ReportMongoDBModel
 
 	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+
+	spanFindOne.SetAttributes(
+		attribute.String("report_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
 
 	if err = coll.
 		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
@@ -209,13 +207,6 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, collection stri
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
 	defer span.End()
-
-	span.SetAttributes(attribute.String("collection", collection))
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
-
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
-	}
 
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
@@ -254,12 +245,17 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, collection stri
 	limit := int64(filters.Limit)
 	skip := int64(filters.Page*filters.Limit - filters.Limit)
 	opts := options.FindOptions{
-		Limit: &limit, 
+		Limit: &limit,
 		Skip:  &skip,
 		Sort:  bson.D{{Key: "created_at", Value: -1}}, // Sort by created_at desc
 	}
 
 	ctx, spanFind := tracer.Start(ctx, "mongodb.find_reports.find")
+
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanFind, "filters", filters)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanFind, "Failed to convert filters to JSON string", err)
+	}
 
 	cur, err := coll.Find(ctx, queryFilter, &opts)
 	if err != nil {
