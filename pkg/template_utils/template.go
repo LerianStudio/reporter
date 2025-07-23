@@ -480,6 +480,8 @@ func insertField(m map[string]any, path []string, field string) {
 				current[p] = []any{field}
 			case []any:
 				current[p] = appendIfMissingAny(cast, field)
+			case map[string]any:
+				return
 			default:
 				current[p] = []any{field}
 			}
