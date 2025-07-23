@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.3] - 2025-07-23
+
+This release focuses on enhancing the development workflow and updating documentation to provide a more streamlined and efficient experience for developers.
+
+### 🔧 Maintenance
+- **Build and Configuration Enhancements**: We've optimized the build pipeline for the frontend, which improves the development workflow. These changes streamline the build process, making it more efficient and easier for developers to manage dependencies and configurations. While these updates do not directly impact end-users, they lay the groundwork for smoother future enhancements.
+
+### 📚 Documentation
+- **Changelog Updates**: The changelog has been meticulously updated to reflect all recent changes and improvements. This ensures transparency and aids both developers and users in understanding the project's evolution, providing a reliable reference for future developments.
+
+This release is part of our ongoing commitment to maintain a robust and up-to-date project infrastructure, ensuring a solid foundation for future enhancements and features.
+
 ## [v2.0.0-beta.2] - 2025-07-23
 
 This release focuses on enhancing the security and reliability of the plugin-smart-templates, ensuring a safer and more efficient user experience.
