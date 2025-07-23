@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.1] - 2025-07-23
+
+This major release of plugin-smart-templates introduces enhanced security features, improved documentation organization, and critical bug fixes, ensuring a more robust and user-friendly experience.
+
+### ⚠️ Breaking Changes
+- **Dependency Updates**: This release includes updates to several dependencies that may not be backward compatible. Users must review and update their configurations accordingly. Please ensure your build scripts and dependency management settings are adjusted to accommodate the new APIs and behaviors. [Migration Guide](#)
+
+### ✨ Features
+- **Secure Pipeline Configurations**: We've introduced the ability to use private libraries in pipeline configurations, significantly enhancing security and customization options for deployment processes. This feature allows seamless integration of proprietary components, ensuring a secure build pipeline.
+- **GitHub Token Support**: Docker configurations now support GitHub tokens, simplifying authentication and access management for GitHub-hosted resources. This enhancement improves security and integration ease.
+
+### 🐛 Bug Fixes
+- **Consistent Data Presentation**: Resolved issues with inconsistent data formatting across modules, ensuring reliable and uniform data handling, which enhances user experience.
+- **Configuration Parsing**: Fixed errors in datasource name extraction and property names, preventing runtime issues and ensuring accurate configuration parsing.
+
+### 📚 Documentation
+- **Template Examples**: Template examples have been moved to the documentation directory, making them easier to find and use. This reorganization aids developers in quickly accessing resources for efficient development.
+- **OpenAPI Documentation**: Updated OpenAPI documentation to reflect the latest changes, providing clear and comprehensive guidance for users.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Regular updates to project dependencies ensure compatibility and leverage improvements in underlying libraries, maintaining security and performance standards.
+- **Repository Management**: Updated `.gitignore` to exclude unnecessary files, streamlining repository management and reducing clutter.
+
+This release is designed to enhance the overall functionality, security, and usability of the plugin-smart-templates project, focusing on delivering a reliable and seamless user experience.
+
+This changelog provides a clear, user-focused overview of the changes in version 2.0.0, highlighting the benefits and necessary actions for users while maintaining a professional and accessible tone.
+
 ## [v1.1.0-beta.9] - 2025-07-18
 
 This release brings significant structural improvements and integration efforts, enhancing developer productivity and ensuring a smoother user experience.
