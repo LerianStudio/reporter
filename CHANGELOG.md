@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.6] - 2025-07-23
+
+This release introduces enhanced observability features and updates key dependencies to improve system monitoring and security.
+
+### ✨ Features  
+- **Improved Observability**: We've integrated OpenTelemetry span attributes across our backend and database services. This enhancement allows for better monitoring and traceability, providing users with deeper insights into system performance and operation flows.
+
+### 🔧 Maintenance
+- **Dependency Updates**: We've updated `lib-license-go` to version 1.23.0 and `fiber` to version 2.52.9. These updates ensure that our system is secure and compatible with the latest features, enhancing the overall stability and security of your experience.
+- **Codebase Simplification**: Removed redundant OpenTelemetry import alias in template services, streamlining the code and reducing potential errors.
+
+This release focuses on improving the reliability and observability of the system, ensuring you have the tools needed for effective monitoring and diagnostics.
+
+
 ## [v2.0.0-beta.5] - 2025-07-23
 
 This release focuses on enhancing system stability and improving the user experience with key bug fixes and updated documentation.
