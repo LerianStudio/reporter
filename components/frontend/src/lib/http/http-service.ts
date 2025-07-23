@@ -96,19 +96,21 @@ export abstract class HttpService {
     url: URL | string,
     options: FetchModuleOptions
   ): Promise<Request> {
-    const { baseUrl, search, ...init } = {
-      ...(await this.createDefaults()),
-      ...options
-    }
+    const defaults = (await this.createDefaults()) as FetchModuleOptions
 
-    return new Request(new URL(url + createQueryString(search), baseUrl), {
-      ...init,
+    const { baseUrl, search, ...requestOptions } = {
+      ...defaults,
       ...options,
       headers: {
-        ...init?.headers,
-        ...options?.headers
+        ...defaults.headers,
+        ...options.headers
       }
-    })
+    }
+
+    return new Request(
+      new URL(url + createQueryString(search), baseUrl),
+      requestOptions
+    )
   }
 
   protected async createDefaults() {
