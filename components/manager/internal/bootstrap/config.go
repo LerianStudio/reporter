@@ -2,15 +2,6 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/LerianStudio/lib-auth/auth/middleware"
-	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
-	libRedis "github.com/LerianStudio/lib-commons/commons/redis"
-	"github.com/LerianStudio/lib-commons/commons/zap"
-	libLicense "github.com/LerianStudio/lib-license-go/middleware"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"net/url"
 	in2 "plugin-smart-templates/components/manager/internal/adapters/http/in"
 	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
@@ -24,6 +15,16 @@ import (
 	"plugin-smart-templates/pkg/mongodb/template"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/lib-auth/auth/middleware"
+	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
+	libRedis "github.com/LerianStudio/lib-commons/commons/redis"
+	"github.com/LerianStudio/lib-commons/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 const (
@@ -132,8 +133,6 @@ func InitServers() *Service {
 	// Init rabbit MQ for producer
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
-
-	logger.Infof(rabbitSource)
 
 	rabbitMQConnection := &libRabbitmq.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,

@@ -14,88 +14,19 @@ on:
 permissions:
   id-token: write
   contents: read
-  pull-requests: write #reviewdog needs to write comments on PRs
+  pull-requests: write
   actions: read
   security-events: write
 
+#EXECUTE PRE-STEPS OF GOLANG VERIFICATION WITH PRIVATE MODULES
 jobs:
-  GoLangCI-Lint:
-    name: Run GoLangCI-Lint to Plugin Smart Templates
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      # Using GolangCI-Lint Module
-      - name: Run GoLangCI Lint to Plugin Smart Templates
-        uses: LerianStudio/github-actions-golangci-lint@main
-        with:
-          lerian_studio_midaz_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-          lerian_studio_midaz_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-          lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-          lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-          lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-          lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
-          go_version: '1.23'  # Versão do Go
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          golangci_lint_version: 'latest'
-
-  #Execute Security checks
-  GoSec:
-    name: Run GoSec to Plugin Smart Templates
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: false
-
-      - name: Gosec Scanner
-        uses: securego/gosec@master
-        with:
-          args: ./...
-
-  #Execute Unit tests
-  unit-tests:
-    name: Run Unit Tests to Plugin Smart Templates
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: false
-
-      - name: Unit Tests
-        shell: bash
-        run: make test
-
-  integration-tests:
-    name: Run Integrations Tests to Plugin Smart Templates
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
-      - name: Setup .env files
-        run: make set-env
-
-      - name: Create External Network if not exists
-        run: |
-          docker network create infra-network || true
-          docker network create plugin-fees-network || true
-
-      - name: Start Docker Compose Services
-        run: make up
-
-      - name: Wait for services to be ready
-        run: sleep 10
-        timeout-minutes: 2
+  go-analysis:
+    uses: LerianStudio/github-actions-go-pipeline-template/.github/workflows/analysis.yml@main
+    secrets:
+      lerian_studio_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
+      lerian_studio_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
+      lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
+      lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
+      lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
+      lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
+      manage_token: ${{ secrets.MANAGE_TOKEN }}
