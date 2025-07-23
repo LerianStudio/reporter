@@ -8,7 +8,6 @@ import (
 
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -25,7 +24,7 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 		attribute.String("organization_id", organizationID.String()),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
+	err := opentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
