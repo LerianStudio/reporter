@@ -3,6 +3,8 @@ services:
     build:
       context: ../../
       dockerfile: ./components/worker/Dockerfile
+      secrets:
+        - github_token
     container_name: plugin-smart-templates-worker
     restart: always
     env_file:
@@ -21,3 +23,7 @@ networks:
     external: true
   plugin-fees-network:
     external: true
+
+secrets:
+  github_token:
+    file: ../../.github_token
