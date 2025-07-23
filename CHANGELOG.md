@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.2] - 2025-07-23
+
+This release focuses on enhancing the security and reliability of the plugin-smart-templates, ensuring a safer and more efficient user experience.
+
+### 🔄 Changes
+- **Security Prioritization**: We've adjusted the severity level of npm audit analysis to prioritize critical security issues. This means that the most impactful vulnerabilities are addressed first, enhancing the overall security of your application.
+
+### 🔧 Maintenance
+- **Security Update**: A vulnerability related to brace-expansion has been resolved through an automatic fix. This update fortifies the application's defenses against potential exploits, contributing to a more secure environment.
+- **Documentation Update**: The CHANGELOG has been updated to reflect recent improvements and changes, keeping users informed and documentation current.
+
+This update ensures that your application remains secure and well-documented, with a focus on addressing critical vulnerabilities efficiently.
+
 ## [v2.0.0-beta.1] - 2025-07-23
 
 This major release of plugin-smart-templates introduces enhanced security features, improved documentation organization, and critical bug fixes, ensuring a more robust and user-friendly experience.
