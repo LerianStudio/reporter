@@ -3,18 +3,20 @@ package template
 import (
 	"context"
 	"errors"
-	"github.com/LerianStudio/lib-commons/commons"
-	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/net/http"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Repository provides an interface for operations related on mongo a metadata entities.
@@ -58,7 +60,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
@@ -69,15 +71,20 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 
 	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
 
+	spanFindOne.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	if err = coll.
 		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
 		Decode(&record); err != nil {
-		opentelemetry.HandleSpanError(&spanFindOne, "Failed to find template by entity", err)
+		libOpentelemetry.HandleSpanError(&spanFindOne, "Failed to find template by entity", err)
 		return nil, err
 	}
 
 	if nil == record {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return nil, mongo.ErrNoDocuments
 	}
 
@@ -95,7 +102,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return nil, err
 	}
 
@@ -131,9 +138,14 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 
 	ctx, spanFind := tracer.Start(ctx, "mongodb.find_templates.find")
 
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanFind, "filters", filters)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanFind, "Failed to convert filters to JSON string", err)
+	}
+
 	cur, err := coll.Find(ctx, queryFilter, &opts)
 	if err != nil {
-		opentelemetry.HandleSpanError(&spanFind, "Failed to find templates", err)
+		libOpentelemetry.HandleSpanError(&spanFind, "Failed to find templates", err)
 		return nil, err
 	}
 
@@ -144,7 +156,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 	for cur.Next(ctx) {
 		var record TemplateMongoDBModel
 		if err := cur.Decode(&record); err != nil {
-			opentelemetry.HandleSpanError(&span, "Failed to decode template", err)
+			libOpentelemetry.HandleSpanError(&span, "Failed to decode template", err)
 			return nil, err
 		}
 
@@ -152,12 +164,12 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 	}
 
 	if err := cur.Err(); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to iterate templates", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to iterate templates", err)
 		return nil, err
 	}
 
 	if err := cur.Close(ctx); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to close cursor", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to close cursor", err)
 		return nil, err
 	}
 
@@ -176,9 +188,14 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, c
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
@@ -201,7 +218,7 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, c
 			"deleted_at":      bson.D{{Key: "$eq", Value: nil}},
 		}, opts).
 		Decode(&record); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to find template output_format by entity", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to find template output_format by entity", err)
 		return nil, err
 	}
 
@@ -219,7 +236,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
@@ -228,9 +245,14 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
 
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanInsert, "template_record", record)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to convert template record to JSON string", err)
+	}
+
 	_, err = coll.InsertOne(ctx, record)
 	if err != nil {
-		opentelemetry.HandleSpanError(&spanInsert, "Failed to insert template", err)
+		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to insert template", err)
 
 		return nil, err
 	}
@@ -249,7 +271,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return err
 	}
 
@@ -258,16 +280,21 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 
 	ctx, spanUpdate := tracer.Start(ctx, "mongodb.update_template.update_one")
 
-	err = opentelemetry.SetSpanAttributesFromStruct(&spanUpdate, "update_template_input", updateFields)
+	spanUpdate.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanUpdate, "update_template_input", updateFields)
 	if err != nil {
-		opentelemetry.HandleSpanError(&spanUpdate, "Failed to convert template record from entity to JSON string", err)
+		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to convert template record from entity to JSON string", err)
 
 		return err
 	}
 
 	_, err = coll.UpdateOne(ctx, bson.M{"_id": id, "organization_id": organizationID}, updateFields, opts)
 	if err != nil {
-		opentelemetry.HandleSpanError(&spanUpdate, "Failed to update template", err)
+		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to update template", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", collection)
@@ -290,7 +317,7 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return err
 	}
@@ -301,12 +328,17 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 
 	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
 
+	spanDelete.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	filter := bson.D{{Key: "_id", Value: id}, {Key: "organization_id", Value: organizationID}}
 	deletedAt := bson.D{{Key: "$set", Value: bson.D{{Key: "deleted_at", Value: time.Now()}}}}
 
 	deleted, err := coll.UpdateOne(ctx, filter, deletedAt)
 	if err != nil {
-		opentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
+		libOpentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
 
 		return err
 	}
@@ -324,9 +356,14 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
 	defer span.End()
 
+	span.SetAttributes(
+		attribute.String("template_id", id.String()),
+		attribute.String("organization_id", organizationID.String()),
+	)
+
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, nil, err
 	}
@@ -351,7 +388,7 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 			"deleted_at":      bson.D{{Key: "$eq", Value: nil}},
 		}, opts).
 		Decode(&record); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to find template output_format and mapped_fields by entity ID", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to find template output_format and mapped_fields by entity ID", err)
 		return nil, nil, err
 	}
 

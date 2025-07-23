@@ -3,15 +3,18 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/mongo"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/mongodb/template"
 	"reflect"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // CreateReport create a new report
@@ -21,6 +24,16 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	_, span := tracer.Start(ctx, "services.create_report")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("organization_id", organizationID.String()),
+		attribute.String("template_id", reportInput.TemplateID),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "report_input", reportInput)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert report input to JSON string", err)
+	}
 
 	logger.Infof("Creating report")
 

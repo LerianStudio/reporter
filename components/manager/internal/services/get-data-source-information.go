@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
-	"github.com/LerianStudio/lib-commons/commons"
 	"plugin-smart-templates/pkg/model"
+
+	"github.com/LerianStudio/lib-commons/commons"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetDataSourceInformation getting all data sources information connected on plugin smart templates
@@ -23,12 +25,20 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 		switch dataSource.DatabaseType {
 		case "postgresql":
+			span.SetAttributes(
+				attribute.String("data_source_type", dataSource.DatabaseType),
+			)
+
 			dataSourceInformation = &model.DataSourceInformation{
 				Id:           key,
 				ExternalName: dataSource.DatabaseConfig.DBName,
 				Type:         dataSource.DatabaseType,
 			}
 		case "mongodb":
+			span.SetAttributes(
+				attribute.String("data_source_type", dataSource.DatabaseType),
+			)
+
 			dataSourceInformation = &model.DataSourceInformation{
 				Id:           key,
 				ExternalName: dataSource.MongoDBName,

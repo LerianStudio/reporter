@@ -1,9 +1,10 @@
 package in
 
 import (
-	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/net/http"
+
+	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 
 	middlewareAuth "github.com/LerianStudio/lib-auth/auth/middleware"
 	"github.com/LerianStudio/lib-commons/commons/log"
@@ -25,6 +26,9 @@ const (
 func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, licenseClient *libLicense.LicenseClient) *fiber.App {
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			return commonsHttp.HandleFiberError(ctx, err)
+		},
 	})
 	tlMid := commonsHttp.NewTelemetryMiddleware(tl)
 
