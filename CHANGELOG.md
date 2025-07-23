@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.5] - 2025-07-23
+
+This release focuses on enhancing system stability and improving the user experience with key bug fixes and updated documentation.
+
+### 🐛 Bug Fixes
+- **Authentication Reliability**: Resolved issues with token management in the authentication system. Users will now experience more reliable and consistent login processes, reducing potential disruptions during access.
+- **Configuration Clarity**: Updated configuration settings and documentation to align with backend improvements. This change helps developers set up their environments correctly, minimizing setup errors and improving overall efficiency.
+
+### ⚡ Performance
+- **Dependency Updates**: Enhanced system stability and performance by updating dependencies. This update incorporates the latest security patches and performance improvements, ensuring a smoother and safer user experience.
+
+### 📚 Documentation
+- **Configuration Guides**: Revised documentation to reflect the latest configuration settings, aiding developers in understanding and applying changes effectively. This ensures that all users have access to accurate and up-to-date information.
+
+### 🔧 Maintenance
+- **Changelog Updates**: The changelog has been meticulously updated to document all recent changes and improvements, ensuring transparency and providing a reliable reference for users and developers alike.
+
+These updates collectively enhance the reliability, performance, and usability of the plugin-smart-templates project, ensuring a more seamless experience for both end-users and developers.
+
 ## [v2.0.0-beta.4] - 2025-07-23
 
 This release focuses on enhancing the reliability and accuracy of template processing, ensuring a smoother and more consistent user experience.
