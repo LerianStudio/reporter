@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.4] - 2025-07-23
+
+This release focuses on enhancing the reliability and accuracy of template processing, ensuring a smoother and more consistent user experience.
+
+### 🐛 Bug Fixes
+- **Improved Template Mapping**: Resolved issues with template mapping fields to enhance data accuracy and prevent errors during execution. Users will experience more reliable template functionality, reducing the likelihood of incorrect data representation.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to provide users and developers with the latest information on project changes and improvements, supporting better project tracking and understanding.
+
+This changelog highlights the critical bug fixes that improve the reliability of the plugin-smart-templates, ensuring users have a clear understanding of how these changes enhance their experience. The maintenance update ensures that users are well-informed about the project's progress.
+
 ## [v2.0.0-beta.3] - 2025-07-23
 
 This release focuses on enhancing the development workflow and updating documentation to provide a more streamlined and efficient experience for developers.
