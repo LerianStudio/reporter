@@ -230,13 +230,15 @@ func regexBlockForWithFilterOnPlaceholder(result map[string]any, variableMap map
 // It cleans paths, maps targets to their corresponding variables, and inserts additional parameters where applicable.
 func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile string) map[string]any {
 	result := map[string]any{}
-	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
+	withRegex1 := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
+	withRegex2 := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*([^\s%]+)\s*-?%}`)
 
-	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
+	withMatches := withRegex1.FindAllStringSubmatch(templateFile, -1)
+	withMatches2 := withRegex2.FindAllStringSubmatch(templateFile, -1)
 
-	if withMatches == nil {
-		withRegex = regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*([^\s%]+)\s*-?%}`)
-		withMatches = withRegex.FindAllStringSubmatch(templateFile, -1)
+	// Aggregate both sets of matches
+	if withMatches2 != nil {
+		withMatches = append(withMatches, withMatches2...)
 	}
 
 	for _, match := range withMatches {
@@ -480,8 +482,6 @@ func insertField(m map[string]any, path []string, field string) {
 				current[p] = []any{field}
 			case []any:
 				current[p] = appendIfMissingAny(cast, field)
-			case map[string]any:
-				return
 			default:
 				current[p] = []any{field}
 			}
