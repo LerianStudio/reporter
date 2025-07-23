@@ -5,6 +5,7 @@
 
 - [ ] Manager
 - [ ] Worker
+- [ ] Frontend
 - [ ] Infrastructure
 - [ ] Packages
 - [ ] Pipeline
