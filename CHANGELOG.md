@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.7] - 2025-07-24
+
+This release introduces streamlined deployment through Docker, enhancing the consistency and ease of setting up environments for developers. Additionally, documentation updates ensure users have the latest information for seamless interaction with the project.
+
+### ✨ Features  
+- **Streamlined Deployment with Docker**: The introduction of a Dockerfile configuration allows for simplified and consistent deployment across different environments. This feature enables developers to easily set up and deploy the application, reducing setup time and potential configuration errors. Comprehensive documentation is provided to guide users through the Docker setup process.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been updated to reflect recent changes and enhancements, ensuring that all users and developers have access to the most current information. This update is part of our ongoing commitment to transparency and user support.
+
+### 🔧 Maintenance
+- **Routine Documentation Maintenance**: Regular updates have been made to the documentation to keep it accurate and useful for all users. This ensures that all project-related information remains current and accessible, facilitating better user interaction and understanding.
+
+This changelog focuses on the key enhancements in deployment capabilities through Docker, highlighting the benefits for developers and ensuring users are informed of the latest documentation updates.
+
 ## [v2.0.0-beta.6] - 2025-07-23
 
 This release introduces enhanced observability features and updates key dependencies to improve system monitoring and security.
