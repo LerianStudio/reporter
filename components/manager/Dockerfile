@@ -1,36 +1,27 @@
 # syntax=docker/dockerfile:1.4
-
 FROM golang:1.23-alpine AS builder
 
-# Instala ferramentas necessárias
 RUN apk add --no-cache git && \
     go install mvdan.cc/garble@latest
 
-# Define o diretório de trabalho principal
 WORKDIR /plugin-smart-templates
 
-# Copia apenas os arquivos de dependência primeiro
-COPY ../../go.mod ../../go.sum ./
-
-# Baixa as dependências (com acesso a repositórios privados)
+# Copia só o necessário para o contexto limitado
+COPY go.mod .
+COPY go.sum .
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-  go mod download && \
-  rm ~/.netrc
+  go mod download && rm ~/.netrc
 
-# Copia o restante do projeto
-COPY ../.. .
+COPY . .
 
-# Adiciona garble ao PATH
 ENV PATH="/root/go/bin:${PATH}"
 
-# Compila com garble
 RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
   -ldflags='-w -extldflags "-static"' \
-  -o /manager components/manager/cmd/app/main.go
+  -o /manager ./cmd/app/main.go
 
-# Stage final com Alpine mínimo
 FROM alpine:latest
 COPY --from=builder /manager /manager
 EXPOSE 4004
