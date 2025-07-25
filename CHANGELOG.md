@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.9] - 2025-07-25
+
+This release enhances the flexibility of your Docker deployments and improves the transparency of our software updates through a comprehensive changelog.
+
+### ✨ Features  
+- **Expanded Docker Configuration Options**: We've added new configuration options to our Docker setup, allowing for more tailored and efficient deployment scenarios. This enhancement enables users to better integrate the application with diverse infrastructure environments, providing greater control and customization.
+
+### 📚 Documentation
+- **Enhanced Docker Setup Guide**: Our documentation now includes detailed instructions on the new Docker configuration options. This update ensures users can easily implement the latest features and optimize their deployment strategies.
+
+### 🔧 Maintenance
+- **Updated Changelog for Improved Transparency**: We've revised our changelog to offer a clearer and more comprehensive history of changes. This helps users stay informed about the software's evolution and better understand the improvements and features introduced in each release.
+
+This changelog communicates the key updates in version 2.1.0, focusing on the benefits of enhanced Docker configuration options and improved documentation. The maintenance update ensures users have access to a transparent and detailed history of changes.
+
 ## [v2.0.0-beta.8] - 2025-07-25
 
 This release focuses on enhancing the reliability of our deployment process and ensuring users have up-to-date information. A critical bug fix improves Docker deployment for the frontend, and documentation updates keep everyone informed.
