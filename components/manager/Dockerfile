@@ -3,35 +3,40 @@
 # --- Build stage ---
   FROM golang:1.23-alpine AS builder
 
-  # Install git and garble
+  # Install git and Garble (for module fetching and binary obfuscation)
   RUN apk add --no-cache git && \
       go install mvdan.cc/garble@latest
   
+  # Set working directory
   WORKDIR /plugin-smart-templates
   
-  # Copy dependency files separately to leverage Docker layer caching
+  # Copy dependency files first to optimize layer caching
   COPY go.mod go.sum ./
   
-  # Use BuildKit secret for GitHub authentication (for private modules)
+  # Use BuildKit secret to authenticate with GitHub and download private modules
   RUN --mount=type=secret,id=github_token \
     GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
     go mod download && \
     rm ~/.netrc
   
-  # Copy the full source code
+  # Copy the entire project source code
   COPY ../.. .
   
-  # Obfuscate and build the binary using Garble
+  # Ensure Garble is in PATH and build the binary with obfuscation
   ENV PATH="/root/go/bin:${PATH}"
-  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo -ldflags '-w -extldflags "-static"' -o /app components/manager/cmd/app/main.go
+  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo -ldflags='-w -extldflags "-static"' \
+    -o /manager components/manager/cmd/app/main.go
   
   # --- Final minimal image ---
   FROM alpine:latest
   
-  COPY --from=builder /app /app
+  # Copy the compiled and obfuscated binary
+  COPY --from=builder /manager /manager
   
+  # Expose the default application port
   EXPOSE 4004
   
-  ENTRYPOINT ["/app"]
+  # Set the container entrypoint
+  ENTRYPOINT ["/manager"]
   

@@ -1,5 +1,5 @@
 services:
-  manager:
+  plugin-smart-templates-manager:
     container_name: plugin-smart-templates-manager
     restart: always
     build:
@@ -12,21 +12,15 @@ services:
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
-      - .:/usr/src/app
+      - .:/usr/src/manager
     networks:
       - plugin-smart-templates-infra-network
-      - plugin-smart-templates-manager-network
-      - plugin-auth-network
       - infra-network
       - plugin-fees-network
 
 networks:
   plugin-smart-templates-infra-network:
     external: true
-  plugin-smart-templates-manager-network:
-    driver: bridge
-  plugin-auth-network:
-    driver: bridge
   infra-network:
     external: true
   plugin-fees-network:
@@ -34,4 +28,4 @@ networks:
 
 secrets:
   github_token:
-    file: ../../.github_token
+    file: .secrets/github_token.txt
