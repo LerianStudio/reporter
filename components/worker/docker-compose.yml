@@ -1,14 +1,14 @@
 services:
   plugin-smart-templates-worker:
+    container_name: plugin-smart-templates-worker
+    restart: always
     build:
       context: ../../
       dockerfile: ./components/worker/Dockerfile
       secrets:
         - github_token
-    container_name: plugin-smart-templates-worker
-    restart: always
     env_file:
-      - ./.env
+      - .env
     volumes:
       - .:/usr/src/worker
     networks:
@@ -26,4 +26,4 @@ networks:
 
 secrets:
   github_token:
-    file: ../../.github_token
+    file: .secrets/github_token.txt
