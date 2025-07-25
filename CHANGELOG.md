@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.10] - 2025-07-25
+
+This release enhances the documentation of Go files, making it easier for developers to navigate and understand the codebase. We've also updated the changelog to ensure transparency and keep all stakeholders informed.
+
+### ✨ Features  
+- **Improved Documentation Structure**: We've introduced context path settings for Go files, which significantly enhances the organization and accessibility of documentation. This update helps developers quickly locate and understand the context of Go files within the project, streamlining the development and maintenance process.
+
+### 📚 Documentation
+- **Context Path Settings for Go Files**: This improvement provides a clear structure for documentation, making it easier for developers to navigate the codebase and find relevant information efficiently.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to reflect the latest changes and improvements. This ensures that users and developers have access to the most current information about the project's progress, maintaining transparency and facilitating easier tracking of changes over time.
+
+This changelog highlights the key improvements in version 2.0.0, focusing on the benefits to developers and stakeholders. The documentation enhancements improve the user experience by making it easier to navigate and understand the project, while the updated changelog maintains transparency and keeps everyone informed.
+
 ## [v2.0.0-beta.9] - 2025-07-25
 
 This release enhances the flexibility of your Docker deployments and improves the transparency of our software updates through a comprehensive changelog.
