@@ -3,34 +3,31 @@
 # --- Build stage ---
   FROM golang:1.23-alpine AS builder
 
-  # Install git and garble
+  # Instala dependências
   RUN apk add --no-cache git && \
       go install mvdan.cc/garble@latest
   
   WORKDIR /plugin-smart-templates
   
-  # Copy go.mod and go.sum files to download dependencies
-  COPY go.mod go.sum ./
+  # Copia go.mod e go.sum da raiz do repositório
+  COPY ../../go.mod ../../go.sum ./
   
-  # Use BuildKit secret for GitHub auth (for private repos)
+  # Baixa dependências privadas usando BuildKit secret
   RUN --mount=type=secret,id=github_token \
-    GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
-    printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-    go mod download && \
-    rm ~/.netrc
+      GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+      printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
+      go mod download && \
+      rm ~/.netrc
   
-  # Copy the full source code
-  COPY . .
+  # Copia o restante do repositório
+  COPY ../../ .
   
-  # Build the application with Garble for obfuscation
+  # Compila com garble
   ENV PATH="/root/go/bin:${PATH}"
-  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo -ldflags '-w -extldflags "-static"' -o /worker components/worker/cmd/app/main.go
+  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
+      -ldflags='-w -extldflags "-static"' -o /worker components/worker/cmd/app/main.go
   
-  # --- Final minimal image ---
+  # --- Final image ---
   FROM alpine:latest
-  
   COPY --from=builder /worker /worker
-  
-  # Command to run the executable
-  CMD ["/worker"]
-  
+  ENTRYPOINT ["/worker"]  
