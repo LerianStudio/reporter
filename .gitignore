@@ -29,6 +29,8 @@ components/worker/.env
 components/worker/.env.local
 components/infra/.env
 
+scripts/node_modules
+
 # ----------------------------------------
 # IDE and System Files
 # ----------------------------------------
