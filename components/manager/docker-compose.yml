@@ -24,8 +24,8 @@ networks:
   infra-network:
     external: true
   plugin-fees-network:
-    external: true
+    driver: bridge
 
 secrets:
   github_token:
-    file: .secrets/github_token.txt
+    file: ../../.secrets/github_token.txt
