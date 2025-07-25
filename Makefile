@@ -388,7 +388,7 @@ generate-docs:
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 	fi
 	@swag init -g ./components/manager/cmd/app/main.go -d ./ -o ./components/manager/api --parseDependency --parseInternal
-	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
+	@docker run --rm -v $(ROOT_DIR):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
 	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/openapi.yaml
 	@rm -rf ./components/manager/api/README.md ./components/manager/api/.openapi-generator* ./components/manager/api/openapi
 	@if [ -f "$(ROOT_DIR)/scripts/package.json" ]; then \
