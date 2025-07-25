@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.13] - 2025-07-25
+
+This release introduces a streamlined deployment process for the plugin-smart-templates, enhancing setup efficiency and reliability for users.
+
+### ✨ Features  
+- **Streamlined Deployment with Dockerfile**: We've introduced a Dockerfile configuration to simplify the deployment process of the plugin-smart-templates. This ensures a consistent setup environment, reducing the risk of configuration errors and enhancing portability across different systems. Users will find it easier to get started and maintain their setups with this new feature.
+
+### 📚 Documentation
+- **Updated Changelog**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring users have access to the latest information about updates and enhancements. This update facilitates better understanding and tracking of the project's evolution.
+
+### 🔧 Maintenance
+- **Documentation Enhancements**: Continued improvements to documentation ensure that users are well-informed about the latest features and changes, supporting a smoother user experience.
+
+This changelog focuses on the key benefits and user impacts of the release, using clear and accessible language to communicate the value of the new Dockerfile configuration and documentation updates.
+
 ## [v2.0.0-beta.12] - 2025-07-25
 
 This release introduces a new Dockerfile configuration, streamlining the deployment process and enhancing consistency across environments. Documentation updates accompany this change, ensuring a smooth transition for developers.
