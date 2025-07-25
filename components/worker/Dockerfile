@@ -4,16 +4,15 @@ FROM golang:1.23-alpine AS builder
 RUN apk add --no-cache git && \
     go install mvdan.cc/garble@latest
 
-WORKDIR /tmp
+WORKDIR /plugin-smart-templates
 
 COPY ../.. .
 
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-  cd /tmp && go mod download && rm ~/.netrc
-
-WORKDIR /plugin-smart-templates
+  go mod download && \
+  rm ~/.netrc
 
 ENV PATH="/root/go/bin:${PATH}"
 
@@ -23,4 +22,5 @@ RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
 
 FROM alpine:latest
 COPY --from=builder /worker /worker
+EXPOSE 4005
 ENTRYPOINT ["/worker"]
