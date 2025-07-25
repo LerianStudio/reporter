@@ -5,7 +5,7 @@ FROM node:22-alpine
 WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
+COPY components/frontend/package*.json ./
 
 # Install dependencies
 RUN apk update && apk add bash && \
@@ -13,13 +13,13 @@ RUN apk update && apk add bash && \
     npm cache clean --force
 
 # Copy .env.example to the working directory
-COPY .env.example .env.example
+COPY components/frontend/.env.example .env.example
 
 # Run the command to set environment variables (if needed)
 RUN npm run set-env
 
 # Copy the rest of the application source code
-COPY . .
+COPY components/frontend/. .
 
 # Build the app
 RUN npm run build
