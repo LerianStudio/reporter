@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.9] - 2025-07-25
+
+This release enhances the flexibility of your Docker deployments and improves the transparency of our software updates through a comprehensive changelog.
+
+### ✨ Features  
+- **Expanded Docker Configuration Options**: We've added new configuration options to our Docker setup, allowing for more tailored and efficient deployment scenarios. This enhancement enables users to better integrate the application with diverse infrastructure environments, providing greater control and customization.
+
+### 📚 Documentation
+- **Enhanced Docker Setup Guide**: Our documentation now includes detailed instructions on the new Docker configuration options. This update ensures users can easily implement the latest features and optimize their deployment strategies.
+
+### 🔧 Maintenance
+- **Updated Changelog for Improved Transparency**: We've revised our changelog to offer a clearer and more comprehensive history of changes. This helps users stay informed about the software's evolution and better understand the improvements and features introduced in each release.
+
+This changelog communicates the key updates in version 2.1.0, focusing on the benefits of enhanced Docker configuration options and improved documentation. The maintenance update ensures users have access to a transparent and detailed history of changes.
+
+## [v2.0.0-beta.8] - 2025-07-25
+
+This release focuses on enhancing the reliability of our deployment process and ensuring users have up-to-date information. A critical bug fix improves Docker deployment for the frontend, and documentation updates keep everyone informed.
+
+### 🐛 Bug Fixes
+- **Docker Deployment Reliability**: Resolved a configuration issue in the Dockerfile affecting the frontend component. This fix ensures smoother operation and fewer setup errors when deploying the application in Docker environments, enhancing overall deployment reliability for developers and users.
+
+### 📚 Documentation
+- **Changelog Updates**: The CHANGELOG has been updated to reflect recent changes, ensuring that users and developers have access to the latest information about software updates. This helps in better understanding and tracking the project's evolution.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates to documentation ensure clarity and accuracy, providing users with reliable resources for understanding software changes and enhancements.
+
+This changelog provides a concise yet informative overview of the changes in version 2.0.0, emphasizing the benefits to users and maintaining a professional tone throughout.
+
 ## [v2.0.0-beta.7] - 2025-07-24
 
 This release introduces streamlined deployment through Docker, enhancing the consistency and ease of setting up environments for developers. Additionally, documentation updates ensure users have the latest information for seamless interaction with the project.
