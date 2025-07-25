@@ -3,29 +3,40 @@
 # --- Build stage ---
   FROM golang:1.23-alpine AS builder
 
+  # Instala git e garble
   RUN apk add --no-cache git && \
       go install mvdan.cc/garble@latest
   
-  WORKDIR /app
+  # Define diretório de trabalho
+  WORKDIR /plugin-smart-templates
   
-  # Copia os arquivos go.mod/go.sum da raiz do repo
-  COPY ../../go.mod ../../go.sum ./
+  # Copia arquivos de dependência
+  COPY go.mod go.sum ./
   
-  # Usa o token para baixar dependências privadas
+  # Usa o token do GitHub para baixar dependências privadas
   RUN --mount=type=secret,id=github_token \
     GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-    go mod download && rm ~/.netrc
+    go mod download && \
+    rm ~/.netrc
   
-  # Copia o repositório inteiro
-  COPY ../../ .
+  # Copia todo o código-fonte do projeto
+  COPY . .
   
+  # Adiciona o garble no PATH e faz o build com ofuscação
   ENV PATH="/root/go/bin:${PATH}"
-  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo -ldflags='-w -extldflags "-static"' \
-    -o /manager ./components/manager/cmd/app/main.go
+  RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
+      -ldflags='-w -extldflags "-static"' \
+      -o /manager components/manager/cmd/app/main.go
   
-  # --- Final stage ---
+  # --- Final minimal image ---
   FROM alpine:latest
+  
+  # Copia o binário compilado
   COPY --from=builder /manager /manager
+  
+  # Expondo a porta padrão
   EXPOSE 4004
+  
+  # Executa o binário
   ENTRYPOINT ["/manager"]  
