@@ -2,37 +2,36 @@
 
 FROM golang:1.23-alpine AS builder
 
-# Instala git e garble para obfuscação
+# Instala ferramentas necessárias
 RUN apk add --no-cache git && \
     go install mvdan.cc/garble@latest
 
-# Etapa intermediária para garantir que go mod download funcione
-WORKDIR /tmp
+# Define o diretório de trabalho principal
+WORKDIR /plugin-smart-templates
 
-# Copia a raiz do repositório (ajustado para contexto externo ao Dockerfile)
-COPY ../.. .
+# Copia apenas os arquivos de dependência primeiro
+COPY ../../go.mod ../../go.sum ./
 
-# Baixa as dependências com autenticação para módulos privados
+# Baixa as dependências (com acesso a repositórios privados)
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-  cd /tmp && go mod download && rm ~/.netrc
+  go mod download && \
+  rm ~/.netrc
 
-# Vai para o diretório correto do projeto
-WORKDIR /tmp/plugin-smart-templates
+# Copia o restante do projeto
+COPY ../.. .
 
-# Garante que garble esteja no PATH
+# Adiciona garble ao PATH
 ENV PATH="/root/go/bin:${PATH}"
 
-# Compila o binário ofuscado com garble
+# Compila com garble
 RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
   -ldflags='-w -extldflags "-static"' \
   -o /manager components/manager/cmd/app/main.go
 
-# Imagem final minimalista
+# Stage final com Alpine mínimo
 FROM alpine:latest
-
 COPY --from=builder /manager /manager
-
 EXPOSE 4004
 ENTRYPOINT ["/manager"]
