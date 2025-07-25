@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.14] - 2025-07-25
+
+This release focuses on simplifying the deployment process with Docker support, enhancing both ease of use and reliability for developers. No breaking changes ensure a smooth upgrade experience.
+
+### ✨ Features  
+- **Dockerfile Configuration**: Streamline your deployment with the new Dockerfile setup, allowing for consistent environments across development and production. This feature is particularly beneficial for maintaining uniformity and reducing environment-specific issues, making it easier to manage application dependencies and configurations.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to include the latest changes, ensuring you have access to the most current information about the software's evolution. This transparency helps you stay informed about new features and improvements.
+
+### 🔧 Maintenance
+- **Documentation Enhancements**: Improved documentation to support the new Dockerfile configuration, providing clear guidance for setting up and running the application in a containerized environment. This helps users quickly adapt to the new deployment process and leverage the benefits of containerization.
+
+This changelog provides a concise overview of the new features and improvements, focusing on the benefits to users and ensuring they understand the impact and value of the changes.
+
 ## [v2.0.0-beta.13] - 2025-07-25
 
 This release introduces a streamlined deployment process for the plugin-smart-templates, enhancing setup efficiency and reliability for users.
