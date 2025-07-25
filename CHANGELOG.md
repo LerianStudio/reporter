@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.11] - 2025-07-25
+
+This release of plugin-smart-templates introduces a streamlined deployment process and enhanced documentation, making it easier for users to set up and manage their environments consistently.
+
+### ✨ Features  
+- **Dockerfile Configuration**: We have introduced a Dockerfile to simplify the deployment process. This feature provides a consistent environment for running the application, reducing setup time and potential configuration errors. The Dockerfile is accompanied by comprehensive documentation to guide users through the setup process, ensuring a smooth experience.
+
+### 📚 Documentation
+- **Comprehensive Setup Guide**: The new Dockerfile comes with detailed documentation that walks users through the setup process. This addition helps users understand the prerequisites and steps necessary to deploy the plugin-smart-templates efficiently.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to reflect the latest changes and improvements. This ensures that users and developers have access to the most current information about the project's evolution and can track updates over time.
+
+Each of these changes contributes to a more efficient and user-friendly experience, particularly by enhancing the deployment process and maintaining clear documentation of project updates.
+
 ## [v2.0.0-beta.10] - 2025-07-25
 
 This release enhances the documentation of Go files, making it easier for developers to navigate and understand the codebase. We've also updated the changelog to ensure transparency and keep all stakeholders informed.
