@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-sync-scripts */
+
 import 'reflect-metadata'
 import React from 'react'
 import { Inter } from 'next/font/google'
@@ -14,6 +16,9 @@ export default async function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning>
+      <head>
+        <script src="/runtime-env.js" />
+      </head>
       <body suppressHydrationWarning className={inter.className}>
         <App>{children}</App>
       </body>

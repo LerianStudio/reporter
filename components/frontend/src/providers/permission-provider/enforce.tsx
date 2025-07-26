@@ -1,5 +1,6 @@
 'use client'
 
+import { getRuntimeEnv } from '@lerianstudio/console-layout'
 import { usePermissions } from './permission-provider-client'
 
 type EnforceProps = React.PropsWithChildren & {
@@ -8,7 +9,8 @@ type EnforceProps = React.PropsWithChildren & {
 }
 
 export const Enforce = ({ resource, action, children }: EnforceProps) => {
-  const isAuthEnabled = process.env.NEXT_PUBLIC_MIDAZ_AUTH_ENABLED === 'true'
+  const isAuthEnabled =
+    getRuntimeEnv('NEXT_PUBLIC_MIDAZ_AUTH_ENABLED') === 'true'
 
   if (!isAuthEnabled) {
     if (action === 'get') {
