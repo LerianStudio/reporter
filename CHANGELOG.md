@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.23] - 2025-07-27
+
+This release introduces a significant enhancement to the build process, allowing for greater flexibility and ease of integration across different development environments.
+
+### ✨ Features  
+- **Flexible Context Path for Builds**: You can now set the context path for Go files during the build process. This enhancement offers developers more control over their development workflow, making it easier to integrate with various environments and streamline project setup.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been refreshed to include the latest updates, ensuring you have access to current information about the software's progress and improvements. This transparency helps you stay informed and make better decisions regarding your use of the plugin.
+
+### 🔧 Maintenance
+- **Release Management Improvements**: We've made behind-the-scenes updates to our release management process, ensuring that all documentation is up-to-date and accurately reflects the latest software changes. This commitment to maintenance supports a smoother user experience and enhances overall project reliability.
+
+
 ## [v2.0.0-beta.22] - 2025-07-27
 
 This release focuses on enhancing the development environment by standardizing Docker structures, improving documentation, and streamlining the onboarding process for developers.
