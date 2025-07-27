@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.22] - 2025-07-27
+
+This release focuses on enhancing the development environment by standardizing Docker structures, improving documentation, and streamlining the onboarding process for developers.
+
+### ✨ Features  
+- **Standardized Docker Structure**: We've unified the Docker setup across build, documentation, and frontend components. This change simplifies the development and deployment process, ensuring a consistent environment that reduces setup time and configuration errors. Developers will find it easier to onboard and maintain their development environments.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been refreshed to include the latest updates and improvements. This ensures that developers and users have access to current information about the project's progress, aiding in better tracking and understanding of changes.
+
+### 🔧 Maintenance
+- **Infrastructure Enhancement**: Behind-the-scenes improvements have been made to the development infrastructure, providing a more reliable and efficient environment for ongoing development efforts.
+
+---
+
+No breaking changes, bug fixes, or additional performance improvements were identified in this release. The focus remains on enhancing the development infrastructure and ensuring up-to-date documentation.
+
+
 ## [v2.0.0-beta.21] - 2025-07-25
 
 This release introduces a streamlined deployment process with Docker, enhancing consistency and ease of setup for developers. Updated documentation ensures smooth adoption of these improvements.
