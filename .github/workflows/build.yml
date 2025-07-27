@@ -26,6 +26,7 @@ jobs:
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-worker'
+          working_dir: components/worker
           token: ${{ secrets.MANAGE_TOKEN }}
 
       - name: Build And Publish Frontend Docker Image to GHCR
