@@ -48,7 +48,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
 			},
 			expectErr: false,
@@ -66,7 +66,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -78,7 +78,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,

@@ -164,7 +164,7 @@ func Test_createTemplate(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
 			},
 			expectErr: false,
@@ -200,7 +200,7 @@ func Test_createTemplate(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,

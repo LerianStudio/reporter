@@ -72,7 +72,7 @@ func Test_getAllReports(t *testing.T) {
 			filters: filters,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindList(gomock.Any(), gomock.Any()).
 					Return(mockReports, nil)
 			},
 			expectErr:      false,
@@ -85,7 +85,7 @@ func Test_getAllReports(t *testing.T) {
 			mockSetup: func() {
 				filteredReports := []*report.Report{mockReports[0]} // Only finished reports
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindList(gomock.Any(), gomock.Any()).
 					Return(filteredReports, nil)
 			},
 			expectErr:      false,
@@ -97,7 +97,7 @@ func Test_getAllReports(t *testing.T) {
 			filters: filters,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindList(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -109,7 +109,7 @@ func Test_getAllReports(t *testing.T) {
 			filters: filters,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindList(gomock.Any(), gomock.Any()).
 					Return([]*report.Report{}, nil)
 			},
 			expectErr:      false, // Empty result set is valid, returns empty slice
@@ -139,4 +139,4 @@ func Test_getAllReports(t *testing.T) {
 			}
 		})
 	}
-} 
+}

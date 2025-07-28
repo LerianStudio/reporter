@@ -36,7 +36,7 @@ func Test_deleteTemplateByID(t *testing.T) {
 			orgId:  orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr:      false,
@@ -48,7 +48,7 @@ func Test_deleteTemplateByID(t *testing.T) {
 			orgId:  orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrBadRequest)
 			},
 			expectErr:      true,
@@ -60,7 +60,7 @@ func Test_deleteTemplateByID(t *testing.T) {
 			orgId:  orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
