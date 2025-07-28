@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.25] - 2025-07-28
+
+This release introduces a major enhancement to the build process, improving flexibility and organization for developers working with Go files.
+
+### ✨ Features  
+- **Enhanced Build Configurability**: You can now set the context path for Go files, allowing for more organized and efficient project structures. This feature empowers developers to customize their build processes, resulting in streamlined workflows and easier code management.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to include the latest features and improvements. This ensures all users have access to up-to-date information, promoting transparency and informed decision-making.
+
+### 🔧 Maintenance
+- **Documentation Refresh**: We've enhanced our documentation to reflect recent changes, supporting better user understanding and engagement with the latest project developments.
+
+This changelog focuses on the key feature introduced in version 2.0.0, emphasizing its benefits for developers. The documentation updates are highlighted to ensure users are aware of the latest information available. The structure and language are designed to be accessible and informative, catering to both technical and non-technical users.
+
 ## [v2.0.0-beta.24] - 2025-07-27
 
 This release enhances the organization and accessibility of documentation for Go files, providing a smoother experience for developers. Additionally, the changelog has been updated to ensure users are well-informed about the latest improvements.
