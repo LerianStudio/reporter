@@ -345,16 +345,7 @@ generate-docs-all:
 	@echo "$(CYAN)Generating documentation for plugin component...$(NC)"
 	$(MAKE) generate-docs 2>&1 | grep -v "warning: "
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Swagger documentation generated successfully$(GREEN) ✔️$(NC)"
-	@echo "$(CYAN)Syncing Postman collection with the generated OpenAPI documentation...$(NC)"
-	@sh ./scripts/sync-postman.sh
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Postman collection synced successfully with OpenAPI documentation$(GREEN) ✔️$(NC)"
 
-.PHONY: sync-postman
-sync-postman:
-	$(call title1,"Syncing Postman collection with OpenAPI documentation")
-	$(call check_command,jq,"brew install jq")
-	@sh ./scripts/sync-postman.sh
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Postman collection synced successfully with OpenAPI documentation$(GREEN) ✔️$(NC)"
 
 .PHONY: verify-api-docs
 verify-api-docs:
@@ -397,7 +388,7 @@ generate-docs:
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 	fi
 	@swag init -g ./components/manager/cmd/app/main.go -d ./ -o ./components/manager/api --parseDependency --parseInternal
-	@docker run --rm -v $(pwd):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
+	@docker run --rm -v $(ROOT_DIR):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
 	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/openapi.yaml
 	@rm -rf ./components/manager/api/README.md ./components/manager/api/.openapi-generator* ./components/manager/api/openapi
 	@if [ -f "$(ROOT_DIR)/scripts/package.json" ]; then \

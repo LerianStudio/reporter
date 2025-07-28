@@ -3,10 +3,9 @@
 <Transacao>
     <Identificador>{{ t.id }}</Identificador>
     <Descricao>{{ t.description }}</Descricao>
-    <Template>{{ t.template }}</Template>
     <DataCriacao>{{ t.created_at }}</DataCriacao>
     <Status>{{ t.status }}</Status>
-    <Valor scale="{{ t.amount_scale }}">
+    <Valor>
         {{ t.amount }}
     </Valor>
     <Moeda>{{ t.asset_code }}</Moeda>
@@ -39,7 +38,7 @@
 
     <Operacoes>
         {% for operation in midaz_transaction.operation -%}
-        {% if operation.account_alias != "@external/BRL" %}
+        {% if operation.account_alias != "@external/BRL" && operation.transaction_id == t.id -%}
             <Operacao>
                 <ID>{{ operation.id }}</ID>
                 <Descricao>{{ operation.description }}</Descricao>
@@ -47,9 +46,9 @@
                 <Conta>
                     <Alias>{{ operation.account_alias }}</Alias>
                 </Conta>
-                <Valor scale="{{ operation.amount_scale }}">{{ operation.amount }}</Valor>
-                <SaldoDisponivelApos scale="{{ operation.balance_scale_after }}">
-                    {{ operation.available_balance_after|scale:operation.balance_scale_after }}
+                <Valor>{{ operation.amount }}</Valor>
+                <SaldoDisponivelApos>
+                    {{ operation.available_balance_after }}
                 </SaldoDisponivelApos>
                 <Porcentagem>
                     {{ operation.amount|percent_of:t.amount }}
@@ -59,27 +58,27 @@
         {%- endfor %}
     </Operacoes>
 
-    <TotalMovimentado>
-        {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
-    </TotalMovimentado>
-
-    <Totais>
-        <Soma>
-            {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
-        </Soma>
-        <Contagem>
-            {% count_by midaz_transaction.operation if account_alias != "@external/BRL" %}
-        </Contagem>
-        <Media>
-            {% avg_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
-        </Media>
-        <Minimo>
-            {% min_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
-        </Minimo>
-        <Maximo>
-            {% max_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" scale 2 %}
-        </Maximo>
-    </Totais>
-
 </Transacao>
 {% endfor %}
+
+<TotalMovimentado>
+    {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" %}
+</TotalMovimentado>
+
+<Totais>
+    <Soma>
+        {% sum_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" %}
+    </Soma>
+    <Contagem>
+        {% count_by midaz_transaction.operation if account_alias != "@external/BRL" %}
+    </Contagem>
+    <Media>
+        {% avg_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" %}
+    </Media>
+    <Minimo>
+        {% min_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" %}
+    </Minimo>
+    <Maximo>
+        {% max_by midaz_transaction.operation by "amount" if account_alias != "@external/BRL" %}
+    </Maximo>
+</Totais>
