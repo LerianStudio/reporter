@@ -20,7 +20,6 @@ const CreateReportSchema = z.object({
   organizationId: z.string().min(1, 'Organization ID is required'),
   filters: z
     .object({
-      ledger_ids: z.array(z.string().uuid()).optional(),
       date_range: z
         .object({
           start: z.string().datetime('Invalid start date format'),

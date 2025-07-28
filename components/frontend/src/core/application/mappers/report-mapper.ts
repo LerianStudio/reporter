@@ -73,7 +73,6 @@ export class ReportMapper {
    */
   static filtersToDto(filters: ReportFilters): ReportFiltersDto {
     return {
-      ledger_ids: filters.ledger_ids,
       date_range: filters.date_range,
       account_types: filters.account_types,
       minimum_balance: filters.minimum_balance,
@@ -89,7 +88,6 @@ export class ReportMapper {
    */
   static filtersFromDto(dto: ReportFiltersDto): ReportFilters {
     return {
-      ledger_ids: dto.ledger_ids,
       date_range: dto.date_range,
       account_types: dto.account_types,
       minimum_balance: dto.minimum_balance,

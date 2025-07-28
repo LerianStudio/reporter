@@ -11,11 +11,13 @@ type NextAuthSessionProviderProps = {
 const NextAuthSessionProvider = ({
   children
 }: NextAuthSessionProviderProps) => {
+  const basePath =
+    getRuntimeEnv('NEXT_PUBLIC_MIDAZ_CONSOLE_BASE_URL') ??
+    process.env.NEXT_PUBLIC_MIDAZ_CONSOLE_BASE_URL
+
   return (
     <SessionProvider
-      basePath={
-        getRuntimeEnv('NEXT_PUBLIC_MIDAZ_CONSOLE_BASE_URL') + '/api/auth'
-      }
+      basePath={basePath + '/api/auth'}
       refetchInterval={5 * 60}
       refetchOnWindowFocus={true}
     >

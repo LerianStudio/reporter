@@ -15,7 +15,9 @@ import {
 } from '@tanstack/react-query'
 import { getRuntimeEnv } from '@lerianstudio/console-layout'
 
-const basePath = getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH')
+const basePath =
+  getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
+  process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
 
 type PaginationRequest = {
   limit?: number

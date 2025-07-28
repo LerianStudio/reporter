@@ -60,11 +60,7 @@ export const smartTemplatesApiMessages = {
     defaultMessage:
       'The specified templateID is not a valid UUID. Please check the value passed.'
   },
-  TPL_0013: {
-    id: 'error.smartTemplates.invalidLedgerID',
-    defaultMessage:
-      'The specified ledgerID inside ledger ID list is not a valid UUID. Please check the value passed.'
-  },
+
   TPL_0014: {
     id: 'error.smartTemplates.missingRequiredFieldsInSchema',
     defaultMessage:

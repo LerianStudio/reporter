@@ -36,7 +36,6 @@ export type ReportDto = {
  * DTO for complex report filtering operations
  */
 export type ReportFiltersDto = {
-  ledger_ids?: string[]
   date_range?: {
     start: string // ISO 8601 date string
     end: string // ISO 8601 date string

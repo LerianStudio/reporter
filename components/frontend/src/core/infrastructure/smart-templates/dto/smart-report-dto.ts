@@ -22,7 +22,6 @@ export type SmartReportDto = {
  */
 export type SmartCreateReportDto = {
   templateId: string
-  ledgerId: string[]
   filters: Record<string, Record<string, Record<string, string[]>>>
   metadata?: SmartMetadataDto
 }
