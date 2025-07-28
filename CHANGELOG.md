@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.35] - 2025-07-28
+
+This release focuses on streamlining data handling and improving system efficiency by removing redundant fields, which requires user attention for continued functionality.
+
+### ⚠️ Breaking Changes
+- **Removal of `ledgerId` Field**: The `ledgerId` field has been removed from forms across authentication, backend, configuration, database, and frontend components. This change simplifies data management but requires users to update their configurations and code. 
+  - **Migration Steps**:
+    1. Review and update any API calls that include `ledgerId`.
+    2. Modify database schemas to remove references to `ledgerId`.
+    3. Adjust frontend forms to accommodate this change.
+  - **Impact**: Ensures a more efficient system by eliminating unnecessary fields.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to accurately document recent changes, ensuring users have a clear history of updates and enhancements.
+
+This release requires users to take action to maintain compatibility and avoid disruptions. Please review the breaking changes section carefully.
+
 ## [v2.0.0-beta.34] - 2025-07-28
 
 This release enhances the efficiency of the build process, significantly reducing build times and improving the overall development workflow. Updated documentation ensures developers can easily adapt to these changes.
