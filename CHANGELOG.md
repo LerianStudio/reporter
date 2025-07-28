@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.38] - 2025-07-28
+
+This release focuses on enhancing the visual consistency of the application, contributing to a more cohesive user experience.
+
+### 🔄 Changes
+- **Frontend/Backend**: The icon in the manifest file has been updated to ensure visual consistency across the application. This enhancement improves the overall aesthetics and provides users with a more uniform and pleasant interface.
+
+### 📚 Documentation
+- The changelog has been updated to include the latest improvements and changes. This ensures that users and developers have access to the most current information about the software's evolution, promoting transparency and effective communication.
+
+This changelog highlights the key changes in version 2.0.0, focusing on the user benefits of improved visual consistency and updated documentation. The concise format ensures that users can quickly understand the impact of this release.
+
 ## [v2.0.0-beta.37] - 2025-07-28
 
 This release focuses on enhancing the reliability and transparency of the plugin-smart-templates project, ensuring accurate data handling and providing clear documentation of changes.
