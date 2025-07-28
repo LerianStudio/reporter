@@ -10,6 +10,8 @@ WORKDIR /plugin-smart-templates
 
 # Copia tudo do projeto
 COPY . .
+
+#List file and show go.mod
 RUN ls -la /plugin-smart-templates && cat /plugin-smart-templates/go.mod
 
 # Usa BuildKit secret para acessar módulos privados
