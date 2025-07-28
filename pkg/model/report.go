@@ -8,7 +8,6 @@ import "github.com/google/uuid"
 // @Description CreateReportInput is the input payload to create a report.
 type CreateReportInput struct {
 	TemplateID string                                    `json:"templateId" validate:"required" example:"00000000-0000-0000-0000-000000000000"`
-	LedgerID   []string                                  `json:"ledgerId" example:"00000000-0000-0000-0000-000000000000"`
 	Filters    map[string]map[string]map[string][]string `json:"filters" validate:"required"`
 } // @name CreateReportInput
 

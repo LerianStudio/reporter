@@ -37,18 +37,6 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	logger.Infof("Creating report")
 
-	// Validate the ledgerID list if all values are uuid
-	ledgerIDConverted := make([]uuid.UUID, 0, len(reportInput.LedgerID))
-
-	for _, ledgerId := range reportInput.LedgerID {
-		ledgerConverted, errParseLedgerID := uuid.Parse(ledgerId)
-		if errParseLedgerID != nil {
-			return nil, pkg.ValidateBusinessError(constant.ErrInvalidLedgerIDList, "", ledgerId)
-		}
-
-		ledgerIDConverted = append(ledgerIDConverted, ledgerConverted)
-	}
-
 	// Validate templateID is UUID
 	templateId, errParseUUID := uuid.Parse(reportInput.TemplateID)
 	if errParseUUID != nil {
@@ -78,7 +66,6 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	reportModel := &report.Report{
 		ID:         commons.GenerateUUIDv7(),
 		TemplateID: templateId,
-		LedgerID:   ledgerIDConverted,
 		Filters:    reportInput.Filters,
 		Status:     constant.ProcessingStatus,
 	}
