@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.30] - 2025-07-28
+
+This release focuses on enhancing the documentation experience with a new context input feature, designed to improve user engagement and understanding.
+
+### ✨ Features  
+- **Enhanced Documentation**: A new context input feature has been added to the documentation, providing a more intuitive way for users to interact with and understand context-related functionalities. This enhancement aims to improve user engagement and comprehension, offering clearer guidance and examples.
+
+### 📚 Documentation
+- **Improved Clarity and Guidance**: The documentation now includes more detailed examples and explanations, making it easier for users to grasp complex concepts and utilize the software effectively.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The changelog has been updated to reflect recent changes and improvements, ensuring users have access to the latest information about updates and features. This transparency aids in version tracking and user awareness.
+
+No breaking changes were identified in this release, ensuring a smooth transition for users upgrading to the latest version.
+
+
 ## [v2.0.0-beta.29] - 2025-07-28
 
 This release enhances the organization and usability of documentation for projects involving Go components, ensuring a smoother integration and improved clarity for developers.
