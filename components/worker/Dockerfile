@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1.4
 
-# Stage 1: Build the Go binary using garble for obfuscation
 FROM golang:1.23-alpine AS builder
 
 # Install required packages: git is needed for private modules
@@ -25,7 +24,7 @@ RUN --mount=type=secret,id=github_token \
 COPY . .
 
 # Build the binary with garble for code obfuscation
-RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
+RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -tags netgo \
   -ldflags='-w -extldflags "-static"' \
   -o /worker ./components/worker/cmd/app/main.go
 
