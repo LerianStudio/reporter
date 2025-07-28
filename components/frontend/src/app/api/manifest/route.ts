@@ -29,7 +29,7 @@ export async function GET() {
           ? 'http://localhost:8083'
           : process.env.PLUGIN_SMART_TEMPLATES_UI_HOST ||
             'http://plugin-smart-templates-ui:8083',
-      icon: '💬', // Smart Templates icon representing templates
+      icon: 'LayoutTemplate',
       enabled: true,
       author: 'Lerian Studio'
     }
