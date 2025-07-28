@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.37] - 2025-07-28
+
+This release focuses on enhancing the reliability and transparency of the plugin-smart-templates project, ensuring accurate data handling and providing clear documentation of changes.
+
+### 🐛 Bug Fixes
+- **Improved Data Handling**: Resolved an issue with form data request headers that could lead to incorrect data submission. This fix enhances the reliability of data processing across both frontend and backend components, ensuring user inputs are handled accurately and consistently.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to reflect the latest changes and improvements. This ensures users have access to a clear history of updates and fixes, enhancing transparency and understanding of the software's evolution.
+
+These updates collectively contribute to a more stable and user-friendly experience, reducing errors and providing users with up-to-date information about the software's development.
+
 ## [v2.0.0-beta.36] - 2025-07-28
 
 This release focuses on enhancing the development workflow with improved build processes and updated documentation, ensuring a more efficient and informed environment for developers.
