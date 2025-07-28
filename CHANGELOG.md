@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.29] - 2025-07-28
+
+This release enhances the organization and usability of documentation for projects involving Go components, ensuring a smoother integration and improved clarity for developers.
+
+### ✨ Features  
+- **Improved Documentation for Go Projects**: We've introduced the ability to set context paths for Go files within our documentation. This enhancement allows developers to better organize and reference Go code, significantly improving the clarity and usability of documentation. Teams working with Go will find it easier to integrate their code into documentation workflows, streamlining their development process.
+
+### 📚 Documentation
+- **Enhanced Clarity and Usability**: The documentation now supports context paths for Go files, making it easier for developers to organize and reference their Go code. This improvement is particularly beneficial for teams that frequently work with Go, as it enhances the overall documentation experience and supports more efficient project management.
+
+### 🔧 Maintenance
+- **Updated Changelog**: We've refreshed the CHANGELOG to include the latest features and enhancements. This update ensures transparency and keeps all users informed about the most recent changes, supporting effective version tracking and communication.
+
+
 ## [v2.0.0-beta.28] - 2025-07-28
 
 This release focuses on enhancing the documentation structure and ensuring up-to-date release information, significantly improving the developer experience with plugin-smart-templates.
