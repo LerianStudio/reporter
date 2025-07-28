@@ -16,7 +16,7 @@ COPY . .
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-  go mod download && rm ~/.netrc
+  cd /plugin-smart-templates && go mod download && rm ~/.netrc
 
 # Compila o binário com garble
 RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
