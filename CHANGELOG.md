@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.36] - 2025-07-28
+
+This release focuses on enhancing the development workflow with improved build processes and updated documentation, ensuring a more efficient and informed environment for developers.
+
+### ⚡ Performance
+- **Build Process Optimization**: Streamlined the build configuration by removing unnecessary parameters, potentially reducing build times and improving efficiency for developers. This enhancement makes the build process more straightforward, allowing developers to focus more on coding and less on configuration.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to include the latest changes and improvements. This ensures that all users and developers have access to the most recent information, facilitating better understanding and communication of project updates.
+
+### 🔧 Maintenance
+- **Behind-the-Scenes Enhancements**: Internal improvements in the build and documentation components aim to enhance the overall development experience without directly impacting end-user functionality.
+
+This release does not introduce any breaking changes or new features but focuses on refining the development process and maintaining up-to-date project documentation.
+
 ## [v2.0.0-beta.35] - 2025-07-28
 
 This release focuses on streamlining data handling and improving system efficiency by removing redundant fields, which requires user attention for continued functionality.
