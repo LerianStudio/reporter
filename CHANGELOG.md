@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.31] - 2025-07-28
+
+This release focuses on simplifying the codebase and enhancing documentation processes, ensuring a smoother experience for users managing API documentation and transaction templates.
+
+### ⚠️ Breaking Changes
+- **Removal of OpenAPI to Postman Conversion**: This release removes the scripts and references for converting OpenAPI to Postman. Users relying on these scripts will need to explore alternative solutions for API documentation conversion. This change streamlines the codebase by removing outdated functionality, improving overall maintainability.
+
+### 📚 Documentation
+- **Refined Transaction Templates**: Unused XML fields have been removed, and value calculations have been improved within transaction templates. These changes make it easier for users to understand and implement transaction templates effectively.
+- **Enhanced Documentation Processes**: Updates to the documentation generation processes and `docker-compose` configurations make it easier to manage and deploy documentation, ensuring users have access to the latest information.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Upgraded `lib-commons` to version `1.19.0-beta.2`, ensuring compatibility with the latest features and security patches, thereby maintaining system stability and performance.
+- **Repository Clean-Up**: Improved the `.gitignore` file to exclude unnecessary directories like `scripts/node_modules` and introduced a `.dockerignore` file to exclude docs and markdown files, helping maintain a cleaner repository.
+- **Changelog Updates**: The CHANGELOG has been updated to reflect the recent changes, providing users with a clear understanding of the latest updates and modifications.
+
+This release ensures that users of the plugin-smart-templates system benefit from a more streamlined and efficient experience, with improved documentation and a cleaner codebase.
+
 ## [v2.0.0-beta.30] - 2025-07-28
 
 This release focuses on enhancing the documentation experience with a new context input feature, designed to improve user engagement and understanding.
