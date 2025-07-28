@@ -10,6 +10,7 @@ WORKDIR /plugin-smart-templates
 
 # Copia go.mod e go.sum para aproveitar cache de dependências
 COPY go.mod go.sum ./
+RUN go mod download
 
 # Usa BuildKit secret para acessar módulos privados
 RUN --mount=type=secret,id=github_token \

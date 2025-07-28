@@ -21,12 +21,14 @@ jobs:
         with:
           app_name: 'plugin-smart-templates-manager'
           working_dir: components/manager
+          context: .
           token: ${{ secrets.MANAGE_TOKEN }}
 
       - name: Build And Publish Worker Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-worker'
+          context: .
           working_dir: components/worker
           token: ${{ secrets.MANAGE_TOKEN }}
 
