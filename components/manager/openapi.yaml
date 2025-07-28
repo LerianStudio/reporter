@@ -461,8 +461,6 @@ components:
     CreateReportInput:
       description: CreateReportInput is the input payload to create a report.
       example:
-        ledgerId:
-        - 00000000-0000-0000-0000-000000000000
         filters:
           key:
             key:
@@ -481,12 +479,6 @@ components:
               type: object
             type: object
           type: object
-        ledgerId:
-          example:
-          - 00000000-0000-0000-0000-000000000000
-          items:
-            type: string
-          type: array
         templateId:
           example: 00000000-0000-0000-0000-000000000000
           type: string
@@ -583,9 +575,6 @@ components:
       type: object
     plugin-smart-templates_pkg_mongodb_report.Report:
       example:
-        ledgerId:
-        - '[''00000000-0000-0000-0000-000000000000'''
-        - ' ''00000000-0000-0000-0000-000000000000'']'
         createdAt: createdAt
         completedAt: completedAt
         deletedAt: deletedAt
@@ -621,13 +610,6 @@ components:
         id:
           example: 00000000-0000-0000-0000-000000000000
           type: string
-        ledgerId:
-          example:
-          - '[''00000000-0000-0000-0000-000000000000'''
-          - ' ''00000000-0000-0000-0000-000000000000'']'
-          items:
-            type: string
-          type: array
         metadata:
           additionalProperties:
             type: object
@@ -680,10 +662,7 @@ components:
         limit: 0
         page: 6
         items:
-        - ledgerId:
-          - '[''00000000-0000-0000-0000-000000000000'''
-          - ' ''00000000-0000-0000-0000-000000000000'']'
-          createdAt: createdAt
+        - createdAt: createdAt
           completedAt: completedAt
           deletedAt: deletedAt
           metadata:
@@ -698,10 +677,7 @@ components:
           templateId: 00000000-0000-0000-0000-000000000000
           status: processing
           updatedAt: updatedAt
-        - ledgerId:
-          - '[''00000000-0000-0000-0000-000000000000'''
-          - ' ''00000000-0000-0000-0000-000000000000'']'
-          createdAt: createdAt
+        - createdAt: createdAt
           completedAt: completedAt
           deletedAt: deletedAt
           metadata:
