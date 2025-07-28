@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.28] - 2025-07-28
+
+This release focuses on enhancing the documentation structure and ensuring up-to-date release information, significantly improving the developer experience with plugin-smart-templates.
+
+### ✨ Features  
+- **Enhanced Documentation for Go Files**: We've introduced context path settings for Go files within the documentation. This improvement helps developers quickly locate and understand the context of Go files, making it easier to navigate and comprehend the codebase.
+
+### 📚 Documentation
+- **Improved Code Organization**: The new documentation structure provides clearer organization and context for Go files, enhancing the overall clarity and usability for developers.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The changelog has been updated to reflect the latest changes and improvements, ensuring transparency and easier tracking of project progress for both users and developers.
+
+
+This changelog is designed to communicate the key updates in version 2.0.0 of the plugin-smart-templates project, focusing on the benefits these changes bring to users and developers.
+
 ## [v2.0.0-beta.27] - 2025-07-28
 
 This release introduces a new context path configuration to enhance codebase organization and updates documentation for improved project tracking.
