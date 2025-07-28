@@ -12,6 +12,8 @@ WORKDIR /plugin-smart-templates
 # Copia tudo do projeto
 COPY . .
 
+RUN ls -la /plugin-smart-templates && cat /plugin-smart-templates/go.mod
+
 # Usa BuildKit secret para acessar módulos privados
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
