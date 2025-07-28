@@ -17,8 +17,9 @@ import {
   useQueryClient
 } from '@tanstack/react-query'
 import { PaginationRequest } from '@/types/pagination-request'
+import { getRuntimeEnv } from '@lerianstudio/console-layout'
 
-const basePath = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+const basePath = getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH')
 
 type UseListTemplatesProps = {
   organizationId?: string

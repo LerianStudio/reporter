@@ -12,6 +12,10 @@ RUN apk update && apk add bash && \
     npm install && \
     npm cache clean --force
 
+COPY components/frontend/scripts/entrypoint.sh /scripts/entrypoint.sh
+
+RUN chmod +x /scripts/entrypoint.sh
+
 # Copy .env.example to the working directory
 COPY components/frontend/.env.example .env.example
 
@@ -28,4 +32,6 @@ RUN npm run build
 EXPOSE 8083
 
 # Command to run the application
-ENTRYPOINT ["npm", "start"]
+ENTRYPOINT ["/scripts/entrypoint.sh"]
+
+CMD ["npm", "run", "start"]

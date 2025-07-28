@@ -7,7 +7,7 @@ services:
       context: ../..
       dockerfile: components/frontend/Dockerfile
     restart: always
-    expose:
+    ports:
       - 8083:8083
 
     env_file:
@@ -22,6 +22,7 @@ services:
       - console-network
       - transaction-network
       - plugin-auth-network
+      - plugin-smart-templates-manager-network
       - infra-network
       - ledger-network
       - proxy-network

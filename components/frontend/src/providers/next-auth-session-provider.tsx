@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { SessionProvider } from 'next-auth/react'
+import { getRuntimeEnv } from '@lerianstudio/console-layout'
 
 type NextAuthSessionProviderProps = {
   children: React.ReactNode
@@ -12,7 +13,9 @@ const NextAuthSessionProvider = ({
 }: NextAuthSessionProviderProps) => {
   return (
     <SessionProvider
-      basePath={process.env.NEXT_PUBLIC_MIDAZ_CONSOLE_BASE_URL + '/api/auth'}
+      basePath={
+        getRuntimeEnv('NEXT_PUBLIC_MIDAZ_CONSOLE_BASE_URL') + '/api/auth'
+      }
       refetchInterval={5 * 60}
       refetchOnWindowFocus={true}
     >
