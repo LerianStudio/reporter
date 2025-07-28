@@ -8,7 +8,8 @@ RUN apk add --no-cache git && \
 
 WORKDIR /plugin-smart-templates
 
-COPY ../.. .
+# Copia tudo do projeto
+COPY . .
 
 # Usa BuildKit secret para acessar módulos privados
 RUN --mount=type=secret,id=github_token \

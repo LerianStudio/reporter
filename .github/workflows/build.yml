@@ -20,6 +20,7 @@ jobs:
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-manager'
+          context: .
           working_dir: components/manager
           token: ${{ secrets.MANAGE_TOKEN }}
 
@@ -27,6 +28,7 @@ jobs:
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-worker'
+          context: .
           working_dir: components/worker
           token: ${{ secrets.MANAGE_TOKEN }}
 
