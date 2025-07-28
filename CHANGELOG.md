@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.27] - 2025-07-28
+
+This release introduces a new context path configuration to enhance codebase organization and updates documentation for improved project tracking.
+
+### ✨ Features  
+- **Enhanced Codebase Modularity**: We've introduced a new context path configuration for Go files. This improvement enhances the modularity and organization of the project, making it easier for developers to manage and navigate the codebase. This change is designed to boost development efficiency and maintainability, providing a more streamlined workflow.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect the latest enhancements and changes. This ensures all stakeholders have access to up-to-date information, facilitating better communication and project tracking.
+
+### 🔧 Maintenance
+- **Documentation Alignment**: Ensured that all documentation and frontend components are aligned with the new context path structure, providing a cohesive development experience and minimizing discrepancies across the project.
+
+
+This changelog focuses on the key benefits and impacts of the new release, highlighting the improved modularity and documentation updates that enhance user experience and project management.
+
 ## [v2.0.0-beta.26] - 2025-07-28
 
 This release introduces a significant enhancement to streamline development processes and improve documentation clarity, benefiting both developers and project stakeholders.
