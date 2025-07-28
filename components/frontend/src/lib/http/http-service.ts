@@ -113,6 +113,32 @@ export abstract class HttpService {
     )
   }
 
+  private async createRequestFormData(
+    url: URL | string,
+    options: FetchModuleOptions
+  ) {
+    const defaults = (await this.createDefaults()) as FetchModuleOptions
+
+    const { baseUrl, search, ...requestOptions } = {
+      ...defaults,
+      ...options,
+      headers: {
+        ...defaults.headers,
+        ...options.headers
+      }
+    }
+
+    if (requestOptions.headers) {
+      delete (requestOptions.headers as any)['Content-Type']
+      delete (requestOptions.headers as any)['content-type']
+    }
+
+    return new Request(
+      new URL(url + createQueryString(search), baseUrl),
+      requestOptions
+    )
+  }
+
   protected async createDefaults() {
     return {}
   }
@@ -252,7 +278,7 @@ export abstract class HttpService {
   ): Promise<T> {
     const formData = this.objectToFormData(data)
 
-    const request = await this.createRequest(url, {
+    const request = await this.createRequestFormData(url, {
       ...options,
       method: 'POST',
       body: formData
@@ -277,7 +303,7 @@ export abstract class HttpService {
   ): Promise<T> {
     const formData = this.objectToFormData(data)
 
-    const request = await this.createRequest(url, {
+    const request = await this.createRequestFormData(url, {
       ...options,
       method: 'PATCH',
       body: formData
