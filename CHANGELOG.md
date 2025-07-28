@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.32] - 2025-07-28
+
+This release enhances the deployment and configuration processes, making them more streamlined and user-friendly. It also ensures that documentation is up-to-date to support these changes.
+
+### ✨ Features
+- **Simplified Deployment with Docker**: We've introduced an updated Docker configuration along with a new runtime environment script. This change simplifies the deployment process, ensuring consistency across different environments and making it easier for developers to set up and manage the application infrastructure. This enhancement reduces setup time and minimizes potential errors, allowing you to focus more on development and less on configuration.
+
+### 📚 Documentation
+- **Updated Setup Guides**: The documentation has been updated to reflect the new Docker configuration and runtime environment script. This ensures that both users and developers have the most current information for setting up and running the application, reducing setup time and potential errors.
+
+### 🔧 Maintenance
+- **Changelog Updates**: The CHANGELOG has been updated to include the latest changes, ensuring transparency and keeping users informed about the updates and improvements made in this release.
+
+
 ## [v2.0.0-beta.31] - 2025-07-28
 
 This release focuses on simplifying the codebase and enhancing documentation processes, ensuring a smoother experience for users managing API documentation and transaction templates.
