@@ -30,7 +30,7 @@ func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.
 
 	logger.Infof("Retrieving template for id %v and organizationId %v.", id, organizationID)
 
-	templateModel, err := uc.TemplateRepo.FindByID(ctx, reflect.TypeOf(template.Template{}).Name(), id, organizationID)
+	templateModel, err := uc.TemplateRepo.FindByID(ctx, id, organizationID)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
 

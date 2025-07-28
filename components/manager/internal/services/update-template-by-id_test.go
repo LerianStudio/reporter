@@ -197,7 +197,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr: false,
@@ -226,7 +226,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -256,7 +256,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(htmlTypeP, nil)
 			},
 			expectErr: true,
@@ -338,7 +338,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrInternalServer)
 			},
 			expectErr: true,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/net/http"
-	"reflect"
 
 	"github.com/LerianStudio/lib-commons/commons"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
@@ -33,7 +32,7 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 
 	filters.OrganizationID = organizationID
 
-	reports, err := uc.ReportRepo.FindList(ctx, reflect.TypeOf(report.Report{}).Name(), filters)
+	reports, err := uc.ReportRepo.FindList(ctx, filters)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get all reports on repo", err)
 

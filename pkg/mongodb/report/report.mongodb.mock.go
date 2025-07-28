@@ -23,7 +23,6 @@ import (
 type MockRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockRepositoryMockRecorder
-	isgomock struct{}
 }
 
 // MockRepositoryMockRecorder is the mock recorder for MockRepository.
@@ -44,60 +43,60 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockRepository) Create(ctx context.Context, collection string, record *Report, organizationID uuid.UUID) (*Report, error) {
+func (m *MockRepository) Create(arg0 context.Context, arg1 *Report, arg2 uuid.UUID) (*Report, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, collection, record, organizationID)
+	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*Report)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockRepositoryMockRecorder) Create(ctx, collection, record, organizationID any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Create(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRepository)(nil).Create), ctx, collection, record, organizationID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRepository)(nil).Create), arg0, arg1, arg2)
 }
 
 // FindByID mocks base method.
-func (m *MockRepository) FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error) {
+func (m *MockRepository) FindByID(arg0 context.Context, arg1, arg2 uuid.UUID) (*Report, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByID", ctx, collection, id, organizationID)
+	ret := m.ctrl.Call(m, "FindByID", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*Report)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindByID indicates an expected call of FindByID.
-func (mr *MockRepositoryMockRecorder) FindByID(ctx, collection, id, organizationID any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FindByID(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockRepository)(nil).FindByID), ctx, collection, id, organizationID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockRepository)(nil).FindByID), arg0, arg1, arg2)
 }
 
 // FindList mocks base method.
-func (m *MockRepository) FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Report, error) {
+func (m *MockRepository) FindList(arg0 context.Context, arg1 http.QueryHeader) ([]*Report, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindList", ctx, collection, filters)
+	ret := m.ctrl.Call(m, "FindList", arg0, arg1)
 	ret0, _ := ret[0].([]*Report)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindList indicates an expected call of FindList.
-func (mr *MockRepositoryMockRecorder) FindList(ctx, collection, filters any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FindList(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindList", reflect.TypeOf((*MockRepository)(nil).FindList), ctx, collection, filters)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindList", reflect.TypeOf((*MockRepository)(nil).FindList), arg0, arg1)
 }
 
 // UpdateReportStatusById mocks base method.
-func (m *MockRepository) UpdateReportStatusById(ctx context.Context, collection, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error {
+func (m *MockRepository) UpdateReportStatusById(arg0 context.Context, arg1 string, arg2 uuid.UUID, arg3 time.Time, arg4 map[string]any) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateReportStatusById", ctx, collection, status, id, completedAt, metadata)
+	ret := m.ctrl.Call(m, "UpdateReportStatusById", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateReportStatusById indicates an expected call of UpdateReportStatusById.
-func (mr *MockRepositoryMockRecorder) UpdateReportStatusById(ctx, collection, status, id, completedAt, metadata any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateReportStatusById(arg0, arg1, arg2, arg3, arg4 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReportStatusById", reflect.TypeOf((*MockRepository)(nil).UpdateReportStatusById), ctx, collection, status, id, completedAt, metadata)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReportStatusById", reflect.TypeOf((*MockRepository)(nil).UpdateReportStatusById), arg0, arg1, arg2, arg3, arg4)
 }

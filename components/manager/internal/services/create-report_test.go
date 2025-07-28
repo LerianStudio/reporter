@@ -71,11 +71,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -97,7 +97,7 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -109,11 +109,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -126,11 +126,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().

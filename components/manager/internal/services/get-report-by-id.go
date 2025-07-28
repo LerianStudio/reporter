@@ -30,7 +30,7 @@ func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UU
 
 	logger.Infof("Retrieving report for id %v and organizationId %v.", id, organizationID)
 
-	reportModel, err := uc.ReportRepo.FindByID(ctx, reflect.TypeOf(report.Report{}).Name(), id, organizationID)
+	reportModel, err := uc.ReportRepo.FindByID(ctx, id, organizationID)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
 

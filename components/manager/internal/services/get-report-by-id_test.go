@@ -53,7 +53,7 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportModel, nil)
 			},
 			expectErr: false,
@@ -75,7 +75,7 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -87,7 +87,7 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,

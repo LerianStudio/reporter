@@ -30,7 +30,7 @@ func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id, organizationID uu
 
 	logger.Infof("Remove template for id: %s", id)
 
-	if err := uc.TemplateRepo.SoftDelete(ctx, reflect.TypeOf(template.Template{}).Name(), id, organizationID); err != nil {
+	if err := uc.TemplateRepo.SoftDelete(ctx, id, organizationID); err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to delete template on repo by id", err)
 
 		logger.Errorf("Error deleting template on repo by id: %v", err)

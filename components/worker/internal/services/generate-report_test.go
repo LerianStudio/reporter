@@ -114,7 +114,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockReportDataRepo.
 		EXPECT().
-		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
 	useCase := &UseCase{
@@ -160,7 +160,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil, errors.New("failed to get file"))
 
 	mockReportDataRepo.EXPECT().
-		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	useCase := &UseCase{

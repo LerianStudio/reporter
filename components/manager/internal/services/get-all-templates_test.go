@@ -50,7 +50,7 @@ func Test_getAllTemplates(t *testing.T) {
 			filter: filter,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), filter).
+					FindList(gomock.Any(), filter).
 					Return(resultEntity, nil)
 			},
 			expectErr: false,
@@ -68,7 +68,7 @@ func Test_getAllTemplates(t *testing.T) {
 			filter: filter,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), filter).
+					FindList(gomock.Any(), filter).
 					Return(nil, constant.ErrBadRequest)
 			},
 			expectErr:      true,

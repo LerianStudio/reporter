@@ -23,13 +23,13 @@ import (
 //
 //go:generate mockgen --destination=template.mongodb.mock.go --package=template . Repository
 type Repository interface {
-	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Template, error)
-	FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Template, error)
-	Create(ctx context.Context, collection string, record *TemplateMongoDBModel) (*Template, error)
-	Update(ctx context.Context, collection string, id, organizationID uuid.UUID, updateFields *bson.M) error
-	SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error
-	FindOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, error)
-	FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error)
+	FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Template, error)
+	FindList(ctx context.Context, filters http.QueryHeader) ([]*Template, error)
+	Create(ctx context.Context, record *TemplateMongoDBModel) (*Template, error)
+	Update(ctx context.Context, id, organizationID uuid.UUID, updateFields *bson.M) error
+	SoftDelete(ctx context.Context, id, organizationID uuid.UUID) error
+	FindOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, error)
+	FindMappedFieldsAndOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error)
 }
 
 // TemplateMongoDBRepository is a MongoDD-specific implementation of the PackageRepository.
@@ -52,7 +52,7 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDB
 }
 
 // FindByID retrieves a template from the mongodb using the provided entity_id.
-func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Template, error) {
+func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
@@ -65,7 +65,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record *TemplateMongoDBModel
 
@@ -94,7 +94,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, collection st
 }
 
 // FindList retrieves all templates from the mongodb using the provided organization_id.
-func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Template, error) {
+func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_templates")
@@ -106,7 +106,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	queryFilter := bson.M{}
 
@@ -182,7 +182,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, collection st
 }
 
 // FindOutputFormatByID retrieves outputFormat of a template provided entity_id.
-func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, error) {
+func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
@@ -200,7 +200,7 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, c
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record struct {
 		OutputFormat string `bson:"output_format"`
@@ -228,7 +228,7 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, c
 }
 
 // Create inserts a new package entity into mongo.
-func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection string, record *TemplateMongoDBModel) (*Template, error) {
+func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *TemplateMongoDBModel) (*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_template")
@@ -241,7 +241,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
 
@@ -263,7 +263,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, collection stri
 }
 
 // Update a template entity into mongodb.
-func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection string, id, organizationID uuid.UUID, updateFields *bson.M) error {
+func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizationID uuid.UUID, updateFields *bson.M) error {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.update_template")
@@ -275,7 +275,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 		return err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 	opts := options.Update().SetUpsert(false)
 
 	ctx, spanUpdate := tracer.Start(ctx, "mongodb.update_template.update_one")
@@ -297,7 +297,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to update template", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", collection)
+			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 		}
 
 		return err
@@ -309,7 +309,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, collection stri
 }
 
 // SoftDelete a template entity into mongodb.
-func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection string, id, organizationID uuid.UUID) error {
+func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organizationID uuid.UUID) error {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
@@ -324,7 +324,7 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 
 	logger := commons.NewLoggerFromContext(ctx)
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
 
@@ -350,7 +350,7 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, collection 
 }
 
 // FindMappedFieldsAndOutputFormatByID find mapped fields of template and output format.
-func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error) {
+func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
@@ -368,7 +368,7 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 		return nil, nil, err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record struct {
 		OutputFormat string                         `bson:"output_format"`

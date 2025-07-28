@@ -5,10 +5,8 @@ import (
 	"mime/multipart"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
 	"plugin-smart-templates/pkg/net/http"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
-	"reflect"
 	"strings"
 	"time"
 
@@ -54,7 +52,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 	}
 
 	if fileHeader != nil && commons.IsNilOrEmpty(&outputFormat) {
-		outputFormatExistentTemplate, err := uc.TemplateRepo.FindOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), id, organizationID)
+		outputFormatExistentTemplate, err := uc.TemplateRepo.FindOutputFormatByID(ctx, id, organizationID)
 		if err != nil {
 			logger.Errorf("Error to get outputFormat of template by ID, Error: %v", err)
 			return err
@@ -90,7 +88,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 		updateFields["$set"] = setFields
 	}
 
-	if errUpdate := uc.TemplateRepo.Update(ctx, reflect.TypeOf(template.Template{}).Name(), id, organizationID, &updateFields); errUpdate != nil {
+	if errUpdate := uc.TemplateRepo.Update(ctx, id, organizationID, &updateFields); errUpdate != nil {
 		logger.Errorf("Error into creating a template, Error: %v", errUpdate)
 		return errUpdate
 	}
