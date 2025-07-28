@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.34] - 2025-07-28
+
+This release enhances the efficiency of the build process, significantly reducing build times and improving the overall development workflow. Updated documentation ensures developers can easily adapt to these changes.
+
+### ⚡ Performance
+- **Build Process Optimization**: We've streamlined the build process, resulting in faster compilation and deployment times. This enhancement allows for quicker testing and iteration, improving developer productivity.
+
+### 📚 Documentation
+- **Updated Build Process Documentation**: The documentation has been revised to provide clear guidance on the new build procedures, helping developers understand and leverage the enhancements effectively.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG file has been updated to include recent changes, ensuring transparency and aiding users in tracking project evolution.
+
+This changelog highlights the key improvements and documentation updates in version 2.0.0, focusing on the benefits and impact for users. The performance section emphasizes the enhanced build process, while the documentation section ensures developers have the necessary information to adapt to these changes. The maintenance section underscores the importance of keeping users informed about the project's progress.
+
 ## [v2.0.0-beta.33] - 2025-07-28
 
 This release focuses on enhancing the stability and maintainability of the plugin-smart-templates, ensuring a more reliable and efficient user experience.
