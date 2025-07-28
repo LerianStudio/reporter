@@ -9,20 +9,13 @@ RUN apk add --no-cache git && \
 # Caminho raiz do projeto
 WORKDIR /plugin-smart-templates
 
-# Copia go.mod e go.sum para cache de dependências
-COPY go.mod go.sum ./
-RUN go mod download
+COPY ../.. .
 
 # Usa BuildKit secret para acessar módulos privados
 RUN --mount=type=secret,id=github_token \
   GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
   go mod download && rm ~/.netrc
-
-# Copia todo o restante do projeto
-COPY . .
-
-ENV PATH="/root/go/bin:${PATH}"
 
 # Compila o binário com garble
 RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -a -tags netgo \
