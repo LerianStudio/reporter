@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.26] - 2025-07-28
+
+This release introduces a significant enhancement to streamline development processes and improve documentation clarity, benefiting both developers and project stakeholders.
+
+### ✨ Features  
+- **Context Path Management**: Introduced a new feature that allows developers to set context paths for Go files across build, frontend, and documentation components. This enhancement improves code organization, making it easier to navigate and maintain the project. Developers can now manage context paths more efficiently, leading to a more streamlined and consistent development process.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect the latest changes and improvements, ensuring that all team members and stakeholders have access to the most current information. This update enhances transparency and supports effective project management by keeping everyone informed about the project's progress.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates and refinements to the documentation ensure that it remains accurate and useful, supporting ongoing development and collaboration efforts.
+
+
+This changelog is structured to highlight the user-centric benefits and practical applications of the new features and documentation updates. The focus is on how these changes enhance the user experience and project management, presented in a clear and accessible manner.
+
 ## [v2.0.0-beta.25] - 2025-07-28
 
 This release introduces a major enhancement to the build process, improving flexibility and organization for developers working with Go files.
