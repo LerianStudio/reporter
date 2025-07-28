@@ -14,7 +14,6 @@ export type FilterField = {
 
 // Report filters for data querying
 export type ReportFilters = {
-  ledger_ids?: string[]
   date_range?: {
     start: string // ISO 8601 date string
     end: string // ISO 8601 date string

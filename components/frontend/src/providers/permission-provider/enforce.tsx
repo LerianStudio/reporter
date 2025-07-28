@@ -10,7 +10,8 @@ type EnforceProps = React.PropsWithChildren & {
 
 export const Enforce = ({ resource, action, children }: EnforceProps) => {
   const isAuthEnabled =
-    getRuntimeEnv('NEXT_PUBLIC_MIDAZ_AUTH_ENABLED') === 'true'
+    (getRuntimeEnv('NEXT_PUBLIC_MIDAZ_AUTH_ENABLED') ??
+      process.env.NEXT_PUBLIC_MIDAZ_AUTH_ENABLED) === 'true'
 
   if (!isAuthEnabled) {
     if (action === 'get') {

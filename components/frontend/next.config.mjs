@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+
+const basePath = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+
 const nextConfig = {
   basePath: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
   assetPrefix: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
@@ -31,6 +34,18 @@ const nextConfig = {
         ]
       }
     ]
+  },
+  redirects: async () => {
+    return basePath
+      ? [
+          {
+            source: '/',
+            destination: basePath,
+            basePath: false,
+            permanent: false
+          }
+        ]
+      : []
   },
   images: {
     dangerouslyAllowSVG: true,

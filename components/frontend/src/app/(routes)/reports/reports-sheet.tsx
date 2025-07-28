@@ -36,7 +36,6 @@ type ReportsSheetProps = {
 
 const initialValues: ReportFormData = {
   templateId: '',
-  ledgerIds: '',
   fields: [
     {
       database: '',
@@ -49,7 +48,6 @@ const initialValues: ReportFormData = {
 
 const reportFormSchema = z.object({
   templateId: report.templateId,
-  ledgerIds: report.ledgerIds,
   fields: report.fields
 })
 
@@ -106,10 +104,6 @@ export function ReportsSheet({
       templateId: values.templateId,
       organizationId: currentOrganization.id,
       filters: {
-        ledger_ids: values.ledgerIds
-          .split(',')
-          .map((id: string) => id.trim())
-          .filter(Boolean),
         // Include array of filter criteria
         fields: values.fields.map((filter) => ({
           database: filter.database,
@@ -212,28 +206,6 @@ export function ReportsSheet({
                   </SelectItem>
                 ))}
               </SelectField>
-
-              {/* Ledger IDs */}
-              <InputField
-                name="ledgerIds"
-                label={intl.formatMessage({
-                  id: 'reports.form.ledgerIds',
-                  defaultMessage: 'Ledger IDs'
-                })}
-                tooltip={intl.formatMessage({
-                  id: 'reports.form.ledgerIds.tooltip',
-                  defaultMessage: 'Enter ledger IDs for the report'
-                })}
-                description={intl.formatMessage({
-                  id: 'reports.form.ledgerIds.description',
-                  defaultMessage:
-                    'Use comma separation to indicate multiple values'
-                })}
-                control={form.control}
-                textArea
-                required
-                disabled={isLoading}
-              />
 
               {/* Mandatory fields note */}
               <p className="text-muted-foreground text-sm">

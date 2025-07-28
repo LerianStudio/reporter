@@ -30,9 +30,6 @@ export class SmartReportMapper {
    * Transforms fields array to nested database -> table -> field -> values[] structure
    */
   static toCreateDto(entity: ReportEntity): SmartCreateReportDto {
-    // Transform ledger_ids from filters to ledgerId array
-    const ledgerIds = entity.filters?.ledger_ids || []
-
     // Build the nested filters structure from the fields array
     const nestedFilters: Record<
       string,
@@ -59,7 +56,6 @@ export class SmartReportMapper {
 
     return {
       templateId: entity.templateId,
-      ledgerId: ledgerIds,
       filters: nestedFilters,
       metadata: entity.metadata || undefined
     }
