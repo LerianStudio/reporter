@@ -11,9 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/pongo"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -150,7 +148,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return err
 	}
 
-	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(),
+	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx,
 		constant.FinishedStatus, message.ReportID, time.Now(), nil)
 	if errUpdateStatus != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, errUpdateStatus.Error()); errUpdate != nil {
@@ -175,7 +173,7 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 	metadata := make(map[string]any)
 	metadata["error"] = errorMessage
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), constant.ErrorStatus,
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, constant.ErrorStatus,
 		reportId, time.Now(), metadata)
 	if errUpdate != nil {
 		return errUpdate

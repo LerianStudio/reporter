@@ -7,7 +7,6 @@ import (
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/mongodb/template"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
-	"reflect"
 	"strings"
 	"time"
 
@@ -61,7 +60,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 		DeletedAt:      nil,
 	}
 
-	resultTemplateModel, err := uc.TemplateRepo.Create(ctx, reflect.TypeOf(template.Template{}).Name(), templateModel)
+	resultTemplateModel, err := uc.TemplateRepo.Create(ctx, templateModel)
 	if err != nil {
 		logger.Errorf("Error into creating a template, Error: %v", err)
 		return nil, err

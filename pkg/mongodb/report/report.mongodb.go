@@ -2,6 +2,7 @@ package report
 
 import (
 	"context"
+	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/net/http"
 	"strings"
 	"time"
@@ -20,10 +21,10 @@ import (
 //
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
-	UpdateReportStatusById(ctx context.Context, collection, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
-	Create(ctx context.Context, collection string, record *Report, organizationID uuid.UUID) (*Report, error)
-	FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error)
-	FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Report, error)
+	UpdateReportStatusById(ctx context.Context, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
+	Create(ctx context.Context, record *Report, organizationID uuid.UUID) (*Report, error)
+	FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Report, error)
+	FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error)
 }
 
 // ReportMongoDBRepository is a MongoDB-specific implementation of the ReportRepository.
@@ -48,7 +49,7 @@ func NewReportMongoDBRepository(mc *libMongo.MongoConnection) *ReportMongoDBRepo
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.
 func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	ctx context.Context,
-	collection, status string,
+	status string,
 	id uuid.UUID,
 	completedAt time.Time,
 	metadata map[string]any,
@@ -70,7 +71,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 		return err
 	}
 
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	// Create a filter using the UUID directly for matching the _id field stored as BinData
 	filter := bson.M{"_id": id}
@@ -114,7 +115,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 }
 
 // Create inserts a new report entity into mongo.
-func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string, report *Report, organizationID uuid.UUID) (*Report, error) {
+func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, organizationID uuid.UUID) (*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_report")
@@ -127,7 +128,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 	record := &ReportMongoDBModel{}
 
 	if err := record.FromEntity(report, organizationID); err != nil {
@@ -160,7 +161,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, collection string
 }
 
 // FindByID retrieves a report from the mongodb using the provided entity_id.
-func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection string, id, organizationID uuid.UUID) (*Report, error) {
+func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
@@ -173,7 +174,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection stri
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	var record *ReportMongoDBModel
 
@@ -202,7 +203,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, collection stri
 }
 
 // FindList retrieves all reports from the mongodb with filtering and pagination support.
-func (rm *ReportMongoDBRepository) FindList(ctx context.Context, collection string, filters http.QueryHeader) ([]*Report, error) {
+func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
@@ -214,7 +215,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, collection stri
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(collection))
+	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	queryFilter := bson.M{}
 

@@ -35,7 +35,7 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 
 	filters.OrganizationID = organizationID
 
-	packs, err := uc.TemplateRepo.FindList(ctx, reflect.TypeOf(template.Template{}).Name(), filters)
+	packs, err := uc.TemplateRepo.FindList(ctx, filters)
 	if err != nil || packs == nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get all templates on repo", err)
 

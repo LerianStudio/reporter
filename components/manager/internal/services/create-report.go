@@ -56,7 +56,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	}
 
 	// Find a template to generate a report
-	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
+	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, templateId, organizationID)
 	if err != nil {
 		logger.Errorf("Error to find template by id, Error: %v", err)
 
@@ -83,7 +83,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		Status:     constant.ProcessingStatus,
 	}
 
-	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel, organizationID)
+	result, err := uc.ReportRepo.Create(ctx, reportModel, organizationID)
 	if err != nil {
 		logger.Errorf("Error creating report in database: %v", err)
 		return nil, err
