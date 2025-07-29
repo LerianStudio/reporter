@@ -27,7 +27,7 @@ export async function GET() {
       host:
         process.env.NODE_ENV === 'development'
           ? 'http://localhost:8083'
-          : process.env.PLUGIN_SMART_TEMPLATES_UI_HOST ||
+          : process.env.PLUGIN_SMART_TEMPLATES_UI_BASE_URL ||
             'http://plugin-smart-templates-ui:8083',
       icon: 'LayoutTemplate',
       enabled: true,
