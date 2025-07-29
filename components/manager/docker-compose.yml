@@ -17,6 +17,8 @@ services:
       - plugin-smart-templates-infra-network
       - infra-network
       - plugin-fees-network
+      - plugin-smart-templates-manager-network
+      - plugin-auth-network
 
 networks:
   plugin-smart-templates-infra-network:
@@ -24,6 +26,10 @@ networks:
   infra-network:
     external: true
   plugin-fees-network:
+    driver: bridge
+  plugin-smart-templates-manager-network:
+    driver: bridge
+  plugin-auth-network:
     driver: bridge
 
 secrets:
