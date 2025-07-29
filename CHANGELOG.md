@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.39] - 2025-07-29
+
+This release simplifies the report structure, enhances documentation, and improves system reliability. Users should review integrations to accommodate these updates.
+
+### ⚠️ Breaking Changes
+- **Removal of `LedgerID`**: The `LedgerID` has been removed from the report structure, affecting backend, database, and frontend components. This change requires users to update their integrations and workflows that depend on `LedgerID`. Please review and modify your systems to ensure compatibility with the new structure.
+
+### ✨ Features  
+- **Streamlined Report Structure**: By removing `LedgerID`, the report generation process is now more efficient, reducing complexity in data handling and validation. This change enhances performance and simplifies maintenance for developers.
+
+### 🐛 Bug Fixes
+- **Updated Test Cases**: Test cases have been adjusted to remove dependencies on `LedgerID`, ensuring that tests accurately reflect the new system behavior. This improves test reliability and maintains comprehensive coverage.
+
+### 📚 Documentation
+- **Updated API Documentation**: Documentation has been revised to reflect the removal of `LedgerID` from swagger definitions and examples. This ensures that developers have accurate, up-to-date information when working with the API.
+
+### 🔧 Maintenance
+- **Codebase Cleanup**: Obsolete references to `LedgerID` have been removed from the backend and test components, enhancing code quality and maintainability. This cleanup reduces technical debt and prepares the system for future enhancements.
+
+
 ## [v2.0.0-beta.37] - 2025-07-28
 
 This release focuses on enhancing the reliability and transparency of the plugin-smart-templates project, ensuring accurate data handling and providing clear documentation of changes.
