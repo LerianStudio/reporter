@@ -13,12 +13,6 @@ definitions:
             type: object
           type: object
         type: object
-      ledgerId:
-        example:
-        - 00000000-0000-0000-0000-000000000000
-        items:
-          type: string
-        type: array
       templateId:
         example: 00000000-0000-0000-0000-000000000000
         type: string
@@ -106,13 +100,6 @@ definitions:
       id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
-      ledgerId:
-        example:
-        - '[''00000000-0000-0000-0000-000000000000'''
-        - ' ''00000000-0000-0000-0000-000000000000'']'
-        items:
-          type: string
-        type: array
       metadata:
         additionalProperties: {}
         type: object

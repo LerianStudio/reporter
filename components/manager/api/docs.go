@@ -663,15 +663,6 @@ const docTemplate = `{
                         }
                     }
                 },
-                "ledgerId": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "00000000-0000-0000-0000-000000000000"
-                    ]
-                },
                 "templateId": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
@@ -790,16 +781,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
-                },
-                "ledgerId": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "['00000000-0000-0000-0000-000000000000'",
-                        " '00000000-0000-0000-0000-000000000000']"
-                    ]
                 },
                 "metadata": {
                     "type": "object",

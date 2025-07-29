@@ -38,7 +38,6 @@ func Test_getAllReports(t *testing.T) {
 		{
 			ID:          reportId1,
 			TemplateID:  templateId,
-			LedgerID:    []uuid.UUID{uuid.New()},
 			Filters:     nil,
 			Status:      constant.FinishedStatus,
 			CompletedAt: &timeNow,
@@ -49,7 +48,6 @@ func Test_getAllReports(t *testing.T) {
 		{
 			ID:          reportId2,
 			TemplateID:  templateId,
-			LedgerID:    []uuid.UUID{uuid.New()},
 			Filters:     nil,
 			Status:      constant.ProcessingStatus,
 			CompletedAt: nil,

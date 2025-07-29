@@ -29,7 +29,6 @@ func Test_getReportById(t *testing.T) {
 	reportModel := &report.Report{
 		ID:          reportId,
 		TemplateID:  tempId,
-		LedgerID:    nil,
 		Filters:     nil,
 		Status:      constant.FinishedStatus,
 		CompletedAt: &timeNow,
@@ -60,7 +59,6 @@ func Test_getReportById(t *testing.T) {
 			expectedResult: &report.Report{
 				ID:          reportId,
 				TemplateID:  tempId,
-				LedgerID:    nil,
 				Filters:     nil,
 				Status:      constant.FinishedStatus,
 				CompletedAt: &timeNow,
