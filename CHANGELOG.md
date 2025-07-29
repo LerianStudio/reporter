@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.40] - 2025-07-29
+
+This release introduces significant enhancements to the plugin-smart-templates project, focusing on improved network integration, user interface configuration, and dependency management to boost overall user experience and system reliability.
+
+### ✨ Features  
+- **Enhanced Network Integration**: The Smart Templates Manager and authentication system now support additional networks, allowing for seamless integration and improved connectivity across diverse environments. This flexibility enhances operational efficiency and scalability for users managing multiple network setups.
+
+### 🔄 Changes
+- **Smart Templates UI Configuration Update**: The environment configuration for the Smart Templates user interface has been updated to ensure smoother backend and frontend integration. This change enhances the overall user experience by providing a more reliable and intuitive interface.
+
+### 📚 Documentation
+- **Updated Guidance**: The documentation has been revised to reflect the latest configuration changes, offering users clear instructions for setup and adjustments. This ensures users can easily adapt to the new enhancements without confusion.
+
+### 🔧 Maintenance
+- **Dependency Update**: The `@lerianstudio/console-layout` package has been updated to version 1.5.3, ensuring compatibility with the latest features and security updates. This maintenance step maintains the stability and performance of the frontend components.
+- **Changelog Revision**: The CHANGELOG has been updated to provide users with a comprehensive overview of recent updates, facilitating easy tracking of the software's evolution.
+
+These updates collectively enhance the functionality, reliability, and user experience of the plugin-smart-templates project, ensuring users benefit from improved network integration, updated configurations, and maintained dependencies.
+
 ## [v2.0.0-beta.39] - 2025-07-29
 
 This release simplifies the report structure, enhances documentation, and improves system reliability. Users should review integrations to accommodate these updates.
