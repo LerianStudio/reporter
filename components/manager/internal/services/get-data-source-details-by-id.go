@@ -196,7 +196,7 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 
 	result := &model.DataSourceDetails{
 		Id:           dataSourceID,
-		ExternalName: dataSource.MongoDBName,
+		ExternalName: dataSource.DatabaseConfig.DBName,
 		Type:         dataSource.DatabaseType,
 		Tables:       tableDetails,
 	}

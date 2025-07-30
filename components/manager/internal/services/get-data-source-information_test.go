@@ -4,11 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/model"
 	"plugin-smart-templates/pkg/mongodb"
 	"plugin-smart-templates/pkg/postgres"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_GetDataSourceInformation(t *testing.T) {
@@ -19,7 +20,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 	tests := []struct {
 		name         string
 		setupSvc     func() *UseCase
-		expectResult []*model.DataSourceInformation
+		expectResult []*model.DataSourceDetails
 	}{
 		{
 			name: "Success - Both MongoDB and PostgreSQL present",
@@ -39,16 +40,18 @@ func Test_GetDataSourceInformation(t *testing.T) {
 					},
 				}
 			},
-			expectResult: []*model.DataSourceInformation{
+			expectResult: []*model.DataSourceDetails{
 				{
 					Id:           "mongo_ds",
 					ExternalName: "mongo_db",
 					Type:         pkg.MongoDBType,
+					Tables:       []model.TableDetails{},
 				},
 				{
 					Id:           "pg_ds",
 					ExternalName: "pg_db",
 					Type:         pkg.PostgreSQLType,
+					Tables:       []model.TableDetails{},
 				},
 			},
 		},
@@ -65,11 +68,12 @@ func Test_GetDataSourceInformation(t *testing.T) {
 					},
 				}
 			},
-			expectResult: []*model.DataSourceInformation{
+			expectResult: []*model.DataSourceDetails{
 				{
 					Id:           "mongo_ds",
 					ExternalName: "mongo_db",
 					Type:         pkg.MongoDBType,
+					Tables:       []model.TableDetails{},
 				},
 			},
 		},
@@ -86,11 +90,12 @@ func Test_GetDataSourceInformation(t *testing.T) {
 					},
 				}
 			},
-			expectResult: []*model.DataSourceInformation{
+			expectResult: []*model.DataSourceDetails{
 				{
 					Id:           "pg_ds",
 					ExternalName: "pg_db",
 					Type:         pkg.PostgreSQLType,
+					Tables:       []model.TableDetails{},
 				},
 			},
 		},
@@ -99,10 +104,10 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			setupSvc: func() *UseCase {
 				return &UseCase{ExternalDataSources: map[string]pkg.DataSource{}}
 			},
-			expectResult: []*model.DataSourceInformation{},
+			expectResult: []*model.DataSourceDetails{},
 		},
 		{
-			name: "Unknown type - should return nil entry",
+			name: "Unknown type - should return empty result",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -112,7 +117,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 					},
 				}
 			},
-			expectResult: []*model.DataSourceInformation{nil},
+			expectResult: []*model.DataSourceDetails{},
 		},
 	}
 
@@ -121,11 +126,6 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			svc := tt.setupSvc()
 			result := svc.GetDataSourceInformation(ctx)
 			assert.ElementsMatch(t, tt.expectResult, result)
-
-			if len(tt.expectResult) == 1 && tt.expectResult[0] == nil {
-				assert.Len(t, result, 1)
-				assert.Nil(t, result[0])
-			}
 		})
 	}
 }

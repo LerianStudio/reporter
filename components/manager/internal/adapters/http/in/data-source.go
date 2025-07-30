@@ -1,15 +1,16 @@
 package in
 
 import (
+	"plugin-smart-templates/components/manager/internal/services"
+	_ "plugin-smart-templates/pkg"
+	_ "plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/pkg/net/http"
+
 	"github.com/LerianStudio/lib-commons/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/components/manager/internal/services"
-	_ "plugin-smart-templates/pkg"
-	_ "plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/net/http"
 )
 
 type DataSourceHandler struct {
@@ -19,11 +20,11 @@ type DataSourceHandler struct {
 // GetDataSourceInformation retrieves all data sources connected on plugin smart templates
 //
 //	@Summary		Get all data sources connected on plugin smart templates
-//	@Description	Retrieves all data sources connected on plugin with all information from the database
+//	@Description	Retrieves all data sources connected on plugin with detailed schema information including tables and fields
 //	@Tags			Data source
 //	@Produce		json
 //	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Success		200				{object}	[]model.DataSourceInformation
+//	@Success		200				{object}	[]model.DataSourceDetails
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/data-sources [get]
 func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
