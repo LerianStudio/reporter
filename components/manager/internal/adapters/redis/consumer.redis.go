@@ -2,10 +2,12 @@ package redis
 
 import (
 	"context"
+	"time"
+
 	libCommons "github.com/LerianStudio/lib-commons/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	libRedis "github.com/LerianStudio/lib-commons/commons/redis"
-	"time"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // RedisRepository provides an interface for redis.
@@ -39,9 +41,17 @@ func NewConsumerRedis(rc *libRedis.RedisConnection) *RedisConsumerRepository {
 func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "redis.set")
+	_, span := tracer.Start(ctx, "redis.set")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.key", key),
+		attribute.String("app.request.value", value),
+		attribute.String("app.request.ttl", ttl.String()),
+	)
 
 	rds, err := rc.conn.GetClient(ctx)
 	if err != nil {
@@ -66,9 +76,15 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "redis.get")
+	_, span := tracer.Start(ctx, "redis.get")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.key", key),
+	)
 
 	rds, err := rc.conn.GetClient(ctx)
 	if err != nil {
@@ -84,6 +100,10 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 		return "", err
 	}
 
+	span.SetAttributes(
+		attribute.String("app.response.value", val),
+	)
+
 	logger.Infof("value : %v", val)
 
 	return val, nil
@@ -93,9 +113,15 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 func (rc *RedisConsumerRepository) Del(ctx context.Context, key string) error {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "redis.del")
+	_, span := tracer.Start(ctx, "redis.del")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.key", key),
+	)
 
 	rds, err := rc.conn.GetClient(ctx)
 	if err != nil {

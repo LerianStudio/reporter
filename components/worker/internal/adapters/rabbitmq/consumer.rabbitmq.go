@@ -2,14 +2,17 @@ package rabbitmq
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/LerianStudio/lib-commons/commons"
 	constant "github.com/LerianStudio/lib-commons/commons/constants"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
-	"sync"
-	"time"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // ConsumerRepository provides an interface for Consumer related to rabbitmq.
@@ -119,14 +122,28 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 	logWithFields := cr.Logger.WithFields(
 		constant.HeaderID, requestIDStr,
-	).WithDefaultMessageTemplate(requestIDStr + " | ")
+	).WithDefaultMessageTemplate(requestIDStr + constant.LoggerDefaultSeparator)
 
 	ctx := commons.ContextWithLogger(
 		commons.ContextWithHeaderID(context.Background(), requestIDStr),
 		logWithFields,
 	)
 
-	err := handlerFunc(ctx, message.Body)
+	ctx = libOpentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
+
+	tracer := commons.NewTracerFromContext(ctx)
+	ctx, spanConsumer := tracer.Start(ctx, "rabbitmq.consumer.process_message")
+
+	spanConsumer.SetAttributes(
+		attribute.String("app.request.rabbitmq.consumer.request_id", requestIDStr),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanConsumer, "app.request.rabbitmq.consumer.message", message)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
+	}
+
+	err = handlerFunc(ctx, message.Body)
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
 
