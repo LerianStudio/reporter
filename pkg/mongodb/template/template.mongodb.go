@@ -54,9 +54,18 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDB
 // FindByID retrieves a template from the mongodb using the provided entity_id.
 func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	}
+
+	span.SetAttributes(attributes...)
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -71,10 +80,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id, organizat
 
 	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
 
-	spanFindOne.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-	)
+	spanFindOne.SetAttributes(attributes...)
 
 	if err = coll.
 		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
@@ -93,12 +99,24 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id, organizat
 	return record.ToEntity(), nil
 }
 
-// FindList retrieves all templates from the mongodb using the provided organization_id.
+// FindList retrieves all templates from the mongodb using the provided filters.
 func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_templates")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+	}
+
+	span.SetAttributes(attributes...)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", filters)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
+	}
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -138,7 +156,9 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 
 	ctx, spanFind := tracer.Start(ctx, "mongodb.find_templates.find")
 
-	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanFind, "filters", filters)
+	spanFind.SetAttributes(attributes...)
+
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanFind, "app.request.repository_filter", filters)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanFind, "Failed to convert filters to JSON string", err)
 	}
@@ -184,13 +204,15 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 // FindOutputFormatByID retrieves outputFormat of a template provided entity_id.
 func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	db, err := tm.connection.GetDB(ctx)
@@ -222,17 +244,27 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, i
 		return nil, err
 	}
 
-	span.End()
-
 	return &record.OutputFormat, nil
 }
 
 // Create inserts a new package entity into mongo.
 func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *TemplateMongoDBModel) (*Template, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_template")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+	}
+
+	span.SetAttributes(attributes...)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", record)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert template record to JSON string", err)
+	}
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -245,7 +277,9 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
 
-	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanInsert, "template_record", record)
+	spanInsert.SetAttributes(attributes...)
+
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanInsert, "app.request.repository_input", record)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to convert template record to JSON string", err)
 	}
@@ -265,9 +299,21 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 // Update a template entity into mongodb.
 func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizationID uuid.UUID, updateFields *bson.M) error {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.update_template")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+	}
+
+	span.SetAttributes(attributes...)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", updateFields)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert template record to JSON string", err)
+	}
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -280,12 +326,9 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizatio
 
 	ctx, spanUpdate := tracer.Start(ctx, "mongodb.update_template.update_one")
 
-	spanUpdate.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-	)
+	spanUpdate.SetAttributes(attributes...)
 
-	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanUpdate, "update_template_input", updateFields)
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanUpdate, "app.request.repository_input", updateFields)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to convert template record from entity to JSON string", err)
 
@@ -311,9 +354,18 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizatio
 // SoftDelete a template entity into mongodb.
 func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organizationID uuid.UUID) error {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	}
+
+	span.SetAttributes(attributes...)
 
 	db, err := tm.connection.GetDB(ctx)
 	if err != nil {
@@ -328,10 +380,7 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organiz
 
 	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
 
-	spanDelete.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-	)
+	spanDelete.SetAttributes(attributes...)
 
 	filter := bson.D{{Key: "_id", Value: id}, {Key: "organization_id", Value: organizationID}}
 	deletedAt := bson.D{{Key: "$set", Value: bson.D{{Key: "deleted_at", Value: time.Now()}}}}
@@ -352,13 +401,15 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organiz
 // FindMappedFieldsAndOutputFormatByID find mapped fields of template and output format.
 func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("template_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	db, err := tm.connection.GetDB(ctx)
@@ -391,8 +442,6 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 		libOpentelemetry.HandleSpanError(&span, "Failed to find template output_format and mapped_fields by entity ID", err)
 		return nil, nil, err
 	}
-
-	span.End()
 
 	return &record.OutputFormat, record.MappedFields, nil
 }

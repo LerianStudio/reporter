@@ -5,8 +5,8 @@ go 1.23.2
 toolchain go1.24.1
 
 require (
-	github.com/LerianStudio/lib-auth v1.15.0
-	github.com/LerianStudio/lib-commons v1.19.0-beta.2
+	github.com/LerianStudio/lib-auth v1.16.0-beta.3
+	github.com/LerianStudio/lib-commons v1.19.0-beta.9
 	github.com/LerianStudio/lib-license-go v1.23.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/flosch/pongo2/v6 v6.0.0

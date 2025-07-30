@@ -17,12 +17,14 @@ import (
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("data_source_id", dataSourceID),
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.data_source_id", dataSourceID),
 	)
 
 	logger.Infof("Retrieving data source details for id %v", dataSourceID)

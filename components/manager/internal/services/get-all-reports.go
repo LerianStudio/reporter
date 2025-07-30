@@ -15,15 +15,17 @@ import (
 func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, organizationID uuid.UUID) ([]*report.Report, error) {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "get_all_reports")
+	ctx, span := tracer.Start(ctx, "service.get_all_reports")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("organization_id", organizationID.String()),
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err := opentelemetry.SetSpanAttributesFromStruct(&span, "filters", filters)
+	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", filters)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
