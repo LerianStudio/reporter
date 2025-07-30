@@ -5,8 +5,8 @@ import (
 	"plugin-smart-templates/pkg/mongodb/report"
 	"plugin-smart-templates/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )

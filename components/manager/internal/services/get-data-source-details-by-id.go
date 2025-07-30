@@ -8,8 +8,8 @@ import (
 	"plugin-smart-templates/pkg/model"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"go.opentelemetry.io/otel/attribute"
 )
 

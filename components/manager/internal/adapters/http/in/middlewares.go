@@ -1,7 +1,7 @@
 package in
 
 import (
-	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"plugin-smart-templates/pkg"

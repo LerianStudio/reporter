@@ -2,11 +2,11 @@ package bootstrap
 
 import (
 	"fmt"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/commons/rabbitmq"
-	libZap "github.com/LerianStudio/lib-commons/commons/zap"
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
 	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"

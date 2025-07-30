@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

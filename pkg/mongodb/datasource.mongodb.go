@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

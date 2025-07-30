@@ -10,8 +10,8 @@ import (
 	"plugin-smart-templates/pkg/net/http"
 	templateUtils "plugin-smart-templates/pkg/template_utils"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"

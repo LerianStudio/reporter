@@ -4,8 +4,8 @@ import (
 	"context"
 	"plugin-smart-templates/pkg/model"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
 

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/Masterminds/squirrel"
 	"go.opentelemetry.io/otel/attribute"
 )

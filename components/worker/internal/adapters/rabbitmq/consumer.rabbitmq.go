@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	constant "github.com/LerianStudio/lib-commons/commons/constants"
-	"github.com/LerianStudio/lib-commons/commons/log"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/LerianStudio/lib-commons/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	constant "github.com/LerianStudio/lib-commons/v2/commons/constants"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel/attribute"
 )
