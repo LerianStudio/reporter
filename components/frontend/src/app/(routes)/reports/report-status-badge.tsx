@@ -70,6 +70,14 @@ export function ReportStatusBadge({
     }
   }
 
+  const getStatusLabel = () => {
+    const validStatus = Object.keys(statusLabels).includes(status) 
+      ? status as keyof typeof statusLabels 
+      : 'Processing'
+    
+    return intl.formatMessage(statusLabels[validStatus])
+  }
+
   return (
     <Badge
       variant="secondary"
@@ -77,7 +85,7 @@ export function ReportStatusBadge({
       {...props}
     >
       {getIcon()}
-      {intl.formatMessage(statusLabels[status as keyof typeof statusLabels])}
+      {getStatusLabel()}
     </Badge>
   )
 }

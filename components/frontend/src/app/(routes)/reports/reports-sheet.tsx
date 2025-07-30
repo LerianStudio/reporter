@@ -23,6 +23,7 @@ import { SelectItem } from '@/components/ui/select'
 import { report } from '@/schema/report'
 import { useCreateReport } from '@/client/reports'
 import { useListTemplates } from '@/client/templates'
+import { useListDataSources } from '@/client/data-sources'
 import { CreateReportDto } from '@/core/application/dto/report-dto'
 import { useOrganization } from '@lerianstudio/console-layout'
 import { useToast } from '@/hooks/use-toast'
@@ -77,6 +78,11 @@ export function ReportsSheet({
 
   // Fetch templates for dropdown
   const { data: templatesData } = useListTemplates({
+    organizationId: currentOrganization?.id || ''
+  })
+
+  // Fetch data sources for database dropdown
+  const { data: dataSourcesData } = useListDataSources({
     organizationId: currentOrganization?.id || ''
   })
 
@@ -139,6 +145,7 @@ export function ReportsSheet({
 
   const isLoading = createReportMutation.isPending
   const templates = templatesData?.items || []
+  const dataSources = dataSourcesData || []
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -197,12 +204,11 @@ export function ReportsSheet({
                   defaultMessage: 'Choose a template for report generation'
                 })}
                 control={form.control}
-                required
                 disabled={isLoading}
               >
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id!}>
-                    {template.fileName}
+                    {template.name}
                   </SelectItem>
                 ))}
               </SelectField>
@@ -265,7 +271,7 @@ export function ReportsSheet({
 
                       <div className="grid grid-cols-2 gap-4">
                         {/* Database */}
-                        <InputField
+                        <SelectField
                           name={`fields.${index}.database`}
                           label={intl.formatMessage({
                             id: 'reports.filters.database',
@@ -276,9 +282,14 @@ export function ReportsSheet({
                             defaultMessage: 'Select the database to filter from'
                           })}
                           control={form.control}
-                          required
                           disabled={isLoading}
-                        />
+                        >
+                          {dataSources.map((dataSource) => (
+                            <SelectItem key={dataSource.id} value={dataSource.id}>
+                              {dataSource?.externalName || dataSource?.id}
+                            </SelectItem>
+                          ))}
+                        </SelectField>
 
                         {/* Table */}
                         <InputField
@@ -292,7 +303,6 @@ export function ReportsSheet({
                             defaultMessage: 'Select the table to filter from'
                           })}
                           control={form.control}
-                          required
                           disabled={isLoading}
                         />
                       </div>
@@ -310,7 +320,6 @@ export function ReportsSheet({
                             defaultMessage: 'Select the field to filter by'
                           })}
                           control={form.control}
-                          required
                           disabled={isLoading}
                         />
                       </div>
