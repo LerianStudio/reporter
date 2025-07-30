@@ -9,7 +9,6 @@ import (
 	constant "github.com/LerianStudio/lib-commons/commons/constants"
 	"github.com/LerianStudio/lib-commons/commons/log"
 	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel/attribute"
@@ -129,7 +128,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		logWithFields,
 	)
 
-	ctx = libOpentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
+	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
 
 	tracer := commons.NewTracerFromContext(ctx)
 	ctx, spanConsumer := tracer.Start(ctx, "rabbitmq.consumer.process_message")
@@ -138,9 +137,9 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		attribute.String("app.request.rabbitmq.consumer.request_id", requestIDStr),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanConsumer, "app.request.rabbitmq.consumer.message", message)
+	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanConsumer, "app.request.rabbitmq.consumer.message", message)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
+		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}
 
 	err = handlerFunc(ctx, message.Body)
