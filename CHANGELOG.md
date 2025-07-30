@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.42] - 2025-07-30
+
+This release focuses on enhancing the clarity and efficiency of the project repository, making it easier for contributors and users to navigate and stay informed.
+
+### 📚 Documentation
+- **Streamlined Repository**: We have removed the unused `.dockerignore` file. This cleanup reduces clutter, making the project structure more straightforward and easier to manage. Users and contributors will benefit from a cleaner repository, enhancing the overall development experience.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The changelog has been refreshed to accurately reflect recent updates and improvements. This ensures that all users and developers are kept informed about the latest changes, promoting transparency and effective communication within the community.
+
+This changelog highlights the key changes in version 2.0.0, focusing on the benefits of a cleaner repository and the importance of maintaining up-to-date documentation for user and developer engagement.
+
 ## [v2.0.0-beta.41] - 2025-07-30
 
 This release focuses on enhancing the build process and updating documentation to improve efficiency and clarity for users.
