@@ -28,7 +28,7 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", filters)
+	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", filters)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
