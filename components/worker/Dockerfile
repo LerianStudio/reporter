@@ -20,8 +20,9 @@ RUN --mount=type=secret,id=github_token \
   printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
   go mod download && rm ~/.netrc
 
-# Copy the rest of the source code
-COPY . .
+# Copy only necessary source files for worker component
+COPY pkg/ pkg/
+COPY components/worker/ components/worker/
 
 # Build the binary with garble for code obfuscation
 RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -tags netgo \
