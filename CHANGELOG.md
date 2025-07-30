@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.41] - 2025-07-30
+
+This release focuses on enhancing the build process and updating documentation to improve efficiency and clarity for users.
+
+### ⚡ Performance
+- **Build System Optimization**: The Dockerfile configurations for the manager and worker components have been streamlined. This results in faster build times and improved deployment efficiency, allowing users to experience quicker updates and reduced resource consumption during the build process.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring users have access to the latest information about updates and modifications. This facilitates better understanding and tracking of the project's evolution.
+
+### 🔧 Maintenance
+- **Documentation Improvements**: Behind-the-scenes updates to documentation ensure that users can easily find and understand the latest changes, contributing to a smoother user experience.
+
+
 ## [v2.0.0-beta.40] - 2025-07-29
 
 This release introduces significant enhancements to the plugin-smart-templates project, focusing on improved network integration, user interface configuration, and dependency management to boost overall user experience and system reliability.
