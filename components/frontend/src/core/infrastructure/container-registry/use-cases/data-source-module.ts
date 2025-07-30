@@ -1,5 +1,5 @@
 import { ListDataSourcesUseCase } from '@/core/application/use-cases/data-sources/list-data-sources-use-case'
-import { GetDataSourceDetailsUseCase } from '@/core/application/use-cases/data-sources/get-data-source-details-use-case'
+import { GetDataSourceUseCase } from '@/core/application/use-cases/data-sources/get-data-source-use-case'
 import { Container, ContainerModule } from '../../utils/di/container'
 
 export const DataSourceUseCasesModule = new ContainerModule(
@@ -11,8 +11,8 @@ export const DataSourceUseCasesModule = new ContainerModule(
       .inTransientScope()
 
     container
-      .bind<GetDataSourceDetailsUseCase>(GetDataSourceDetailsUseCase)
+      .bind<GetDataSourceUseCase>(GetDataSourceUseCase)
       .toSelf()
       .inTransientScope()
   }
-) 
+)

@@ -1,26 +1,19 @@
-/**
- * DTO for data source information
- */
-export type DataSourceInformationDto = {
-  id: string
-  externalName: string
-  type: string
-}
+export type DataSourceFieldDto = string
 
 /**
  * DTO for table details within a data source
  */
-export type TableDetailsDto = {
+export type DataSourceTableDto = {
   name: string
-  fields: string[]
+  fields: DataSourceFieldDto[]
 }
 
 /**
  * DTO for detailed data source information
  */
-export type DataSourceDetailsDto = {
+export type DataSourceDto = {
   id: string
   externalName: string
   type: string
-  tables: TableDetailsDto[]
-} 
+  tables?: DataSourceTableDto[]
+}

@@ -4,6 +4,8 @@ import { SmartTemplateRepository } from '../../smart-templates/repositories/smar
 import { SmartReportRepository } from '../../smart-templates/repositories/smart-report-repository'
 import { TemplateRepository } from '@/core/domain/repositories/template-repository'
 import { ReportRepository } from '@/core/domain/repositories/report-repository'
+import { DataSourceRepository } from '@/core/domain/repositories/data-source-repository'
+import { SmartDataSourceRepository } from '../../smart-templates/repositories/smart-data-source-repository'
 
 /**
  * Smart Templates Module for dependency injection
@@ -30,5 +32,10 @@ export const SmartTemplatesModule = new ContainerModule(
 
     // Report repository registration
     container.bind<ReportRepository>(ReportRepository).to(SmartReportRepository)
+
+    // Data source repository registration
+    container
+      .bind<DataSourceRepository>(DataSourceRepository)
+      .to(SmartDataSourceRepository)
   }
 )
