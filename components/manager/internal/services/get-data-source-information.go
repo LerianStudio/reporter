@@ -65,14 +65,12 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 			details, err := uc.getDataSourceDetailsWithErrorHandling(ctx, logger, dataSourceID, dataSource)
 			if err != nil {
 				logger.Errorf("Failed to get details for data source %s: %v", dataSourceID, err)
-				// Continue with other data sources instead of failing the entire operation
 				return
 			}
 
 			// Cache the result
 			if errSet := uc.setDataSourceDetailsToCache(ctx, cacheKey, details); errSet != nil {
 				logger.Errorf("Error setting data source details to cache for %s: %v", dataSourceID, errSet)
-				// Continue even if caching fails
 			}
 
 			result = append(result, details)
@@ -133,7 +131,6 @@ func (uc *UseCase) getDataSourceDetailsWithErrorHandling(ctx context.Context, lo
 		if dataSource.PostgresRepository != nil {
 			if errClose := dataSource.PostgresRepository.CloseConnection(); errClose != nil {
 				logger.Errorf("Error closing postgres connection for %s: %s", dataSourceID, errClose)
-				// Don't return error here, just log it
 			}
 		}
 
@@ -154,7 +151,6 @@ func (uc *UseCase) getDataSourceDetailsWithErrorHandling(ctx context.Context, lo
 		if dataSource.MongoDBRepository != nil {
 			if errClose := dataSource.MongoDBRepository.CloseConnection(ctx); errClose != nil {
 				logger.Errorf("Error closing mongodb connection for %s: %s", dataSourceID, errClose)
-				// Don't return error here, just log it
 			}
 		}
 
