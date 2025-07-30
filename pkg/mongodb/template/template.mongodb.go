@@ -331,8 +331,6 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizatio
 	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanUpdate, "app.request.repository_input", updateFields)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to convert template record from entity to JSON string", err)
-
-		return err
 	}
 
 	_, err = coll.UpdateOne(ctx, bson.M{"_id": id, "organization_id": organizationID}, updateFields, opts)

@@ -55,7 +55,6 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	)
 
 	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", payload)
-
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
 	}
@@ -244,7 +243,6 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 	)
 
 	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", headerParams)
-
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
