@@ -6,6 +6,7 @@ const nextConfig = {
   basePath: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
   assetPrefix: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
   trailingSlash: true,
+  skipTrailingSlashRedirect: true,
   reactStrictMode: false,
   logging: {
     fetches: {
