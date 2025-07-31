@@ -51,28 +51,28 @@ export function ReportsSheetFilter({
   }, [currentDatabase, currentTable, dataSources])
 
   // Clear dependent fields when database changes
-  React.useEffect(() => {
-    if (currentDatabase) {
-      setValue(`${name}.table` as any, '')
-      setValue(`${name}.field` as any, '')
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentDatabase, setValue, name])
+  // React.useEffect(() => {
+  //   if (currentDatabase) {
+  //     setValue(`${name}.table` as any, '')
+  //     setValue(`${name}.field` as any, '')
+  //     setValue(`${name}.values` as any, '')
+  //   }
+  // }, [currentDatabase, setValue, name])
 
   // Clear dependent fields when table changes
-  React.useEffect(() => {
-    if (currentTable) {
-      setValue(`${name}.field` as any, '')
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentTable, setValue, name])
+  // React.useEffect(() => {
+  //   if (currentTable) {
+  //     setValue(`${name}.field` as any, '')
+  //     setValue(`${name}.values` as any, '')
+  //   }
+  // }, [currentTable, setValue, name])
 
-  // Clear values when field changes
-  React.useEffect(() => {
-    if (currentField) {
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentField, setValue, name])
+  // // Clear values when field changes
+  // React.useEffect(() => {
+  //   if (currentField) {
+  //     setValue(`${name}.values` as any, '')
+  //   }
+  // }, [currentField, setValue, name])
 
   return (
     <div className="space-y-4 rounded-lg border p-6">
@@ -106,13 +106,13 @@ export function ReportsSheetFilter({
         >
           {dataSources?.map((dataSource) => (
             <SelectItem key={dataSource.id} value={dataSource.id}>
-              {dataSource.externalName || dataSource.id}
+              {dataSource.id}
             </SelectItem>
           ))}
         </SelectField>
 
         {/* Table */}
-        <SelectField
+        <InputField
           name={`${name}.table`}
           label={intl.formatMessage({
             id: 'reports.filters.table',
@@ -124,18 +124,12 @@ export function ReportsSheetFilter({
           })}
           control={control}
           disabled={loading || !currentDatabase}
-        >
-          {availableTables.map((table) => (
-            <SelectItem key={table.name} value={table.name}>
-              {table.name}
-            </SelectItem>
-          ))}
-        </SelectField>
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Field */}
-        <SelectField
+        <InputField
           name={`${name}.field`}
           label={intl.formatMessage({
             id: 'reports.filters.field',
@@ -147,13 +141,7 @@ export function ReportsSheetFilter({
           })}
           control={control}
           disabled={loading || !currentTable}
-        >
-          {availableFields.map((fieldName) => (
-            <SelectItem key={fieldName} value={fieldName}>
-              {fieldName}
-            </SelectItem>
-          ))}
-        </SelectField>
+        />
       </div>
 
       {/* Values */}
