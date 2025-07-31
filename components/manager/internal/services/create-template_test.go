@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/postgres"
 	"testing"
 	"time"
 

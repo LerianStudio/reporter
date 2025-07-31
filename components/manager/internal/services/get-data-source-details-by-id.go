@@ -3,9 +3,9 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"

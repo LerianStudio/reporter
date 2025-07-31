@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/net/http"
 	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"

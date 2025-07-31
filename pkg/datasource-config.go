@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"plugin-smart-templates/pkg/mongodb"
-	pg "plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	pg "plugin-smart-templates/v2/pkg/postgres"
 	"strings"
 
 	"context"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb"
-	"plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v2/pkg/postgres"
 )
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema

@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
-	templateUtils "plugin-smart-templates/pkg/template_utils"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	templateUtils "plugin-smart-templates/v2/pkg/template_utils"
 	"strings"
 	"time"
 

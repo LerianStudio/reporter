@@ -7,14 +7,14 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/gofiber/fiber/v2"
 	"gopkg.in/go-playground/validator.v9"
-	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/v2/pkg"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	en2 "github.com/go-playground/validator/translations/en"
-	cn "plugin-smart-templates/pkg/constant"
+	cn "plugin-smart-templates/v2/pkg/constant"
 )
 
 // DecodeHandlerFunc is a handler which works with withBody decorator.

@@ -6,7 +6,7 @@ import (
 	libCommonsLog "github.com/LerianStudio/lib-commons/v2/commons/log"
 	libCommonsOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libCommonsServer "github.com/LerianStudio/lib-commons/v2/commons/server"
-	libLicense "github.com/LerianStudio/lib-license-go/middleware"
+	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 

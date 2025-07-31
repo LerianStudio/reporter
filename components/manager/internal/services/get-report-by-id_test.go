@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
 	"testing"
 	"time"
 )
