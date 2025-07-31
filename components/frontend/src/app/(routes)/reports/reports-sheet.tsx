@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Plus, Trash2 } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -17,15 +17,16 @@ import { LoadingButton } from '@/components/ui/loading-button'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { InputField } from '@/components/form/input-field'
 import { SelectField } from '@/components/form/select-field'
 import { SelectItem } from '@/components/ui/select'
 import { report } from '@/schema/report'
 import { useCreateReport } from '@/client/reports'
 import { useListTemplates } from '@/client/templates'
+import { useListDataSources } from '@/client/data-sources'
 import { CreateReportDto } from '@/core/application/dto/report-dto'
 import { useOrganization } from '@lerianstudio/console-layout'
 import { useToast } from '@/hooks/use-toast'
+import { ReportsSheetFilter } from './reports-sheet-filter'
 import z from 'zod'
 
 type ReportsSheetProps = {
@@ -36,14 +37,7 @@ type ReportsSheetProps = {
 
 const initialValues: ReportFormData = {
   templateId: '',
-  fields: [
-    {
-      database: '',
-      table: '',
-      field: '',
-      values: ''
-    }
-  ]
+  fields: []
 }
 
 const reportFormSchema = z.object({
@@ -51,7 +45,7 @@ const reportFormSchema = z.object({
   fields: report.fields
 })
 
-type ReportFormData = z.infer<typeof reportFormSchema>
+export type ReportFormData = z.infer<typeof reportFormSchema>
 
 export function ReportsSheet({
   open,
@@ -76,9 +70,12 @@ export function ReportsSheet({
   })
 
   // Fetch templates for dropdown
-  const { data: templatesData } = useListTemplates({
+  const { data: templates } = useListTemplates({
     organizationId: currentOrganization?.id || ''
   })
+
+  // Fetch data sources for database dropdown
+  const { data: dataSources } = useListDataSources({})
 
   // API mutation for creating report
   const createReportMutation = useCreateReport({
@@ -130,15 +127,7 @@ export function ReportsSheet({
     })
   }
 
-  // Handle removing filter section
-  const handleRemoveFilter = (index: number) => {
-    if (fields.length > 1) {
-      remove(index)
-    }
-  }
-
   const isLoading = createReportMutation.isPending
-  const templates = templatesData?.items || []
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -197,12 +186,11 @@ export function ReportsSheet({
                   defaultMessage: 'Choose a template for report generation'
                 })}
                 control={form.control}
-                required
                 disabled={isLoading}
               >
-                {templates.map((template) => (
+                {templates?.items?.map((template) => (
                   <SelectItem key={template.id} value={template.id!}>
-                    {template.fileName}
+                    {template.name}
                   </SelectItem>
                 ))}
               </SelectField>
@@ -244,98 +232,14 @@ export function ReportsSheet({
                 {/* Dynamic Filter Sections */}
                 <div className="space-y-4">
                   {fields.map((field, index) => (
-                    <div
+                    <ReportsSheetFilter
                       key={field.id}
-                      className="space-y-4 rounded-lg border p-6"
-                    >
-                      {/* Filter Header with Remove Button */}
-                      {fields.length > 1 && (
-                        <div className="-mt-4 -mr-4 flex justify-end">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            type="button"
-                            onClick={() => handleRemoveFilter(index)}
-                            disabled={isLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Database */}
-                        <InputField
-                          name={`fields.${index}.database`}
-                          label={intl.formatMessage({
-                            id: 'reports.filters.database',
-                            defaultMessage: 'Database'
-                          })}
-                          tooltip={intl.formatMessage({
-                            id: 'reports.filters.database.tooltip',
-                            defaultMessage: 'Select the database to filter from'
-                          })}
-                          control={form.control}
-                          required
-                          disabled={isLoading}
-                        />
-
-                        {/* Table */}
-                        <InputField
-                          name={`fields.${index}.table`}
-                          label={intl.formatMessage({
-                            id: 'reports.filters.table',
-                            defaultMessage: 'Table'
-                          })}
-                          tooltip={intl.formatMessage({
-                            id: 'reports.filters.table.tooltip',
-                            defaultMessage: 'Select the table to filter from'
-                          })}
-                          control={form.control}
-                          required
-                          disabled={isLoading}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Field */}
-                        <InputField
-                          name={`fields.${index}.field`}
-                          label={intl.formatMessage({
-                            id: 'reports.filters.field',
-                            defaultMessage: 'Field'
-                          })}
-                          tooltip={intl.formatMessage({
-                            id: 'reports.filters.field.tooltip',
-                            defaultMessage: 'Select the field to filter by'
-                          })}
-                          control={form.control}
-                          required
-                          disabled={isLoading}
-                        />
-                      </div>
-
-                      {/* Values */}
-                      <InputField
-                        name={`fields.${index}.values`}
-                        label={intl.formatMessage({
-                          id: 'reports.filters.values',
-                          defaultMessage: 'Values'
-                        })}
-                        tooltip={intl.formatMessage({
-                          id: 'reports.filters.values.tooltip',
-                          defaultMessage: 'Enter the values to filter by'
-                        })}
-                        description={intl.formatMessage({
-                          id: 'reports.filters.values.description',
-                          defaultMessage:
-                            'Use comma separation to indicate multiple values'
-                        })}
-                        control={form.control}
-                        textArea
-                        disabled={isLoading}
-                      />
-                    </div>
+                      name={`fields.${index}`}
+                      onRemove={() => remove(index)}
+                      control={form.control}
+                      loading={isLoading}
+                      dataSources={dataSources || []}
+                    />
                   ))}
                 </div>
               </div>
