@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"mime/multipart"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/net/http"
-	templateUtils "plugin-smart-templates/pkg/template_utils"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/net/http"
+	templateUtils "plugin-smart-templates/v2/pkg/template_utils"
 	"strings"
 	"time"
 

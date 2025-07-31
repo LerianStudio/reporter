@@ -5,11 +5,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/v2/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"testing"
 )
 

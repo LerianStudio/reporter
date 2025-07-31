@@ -1,12 +1,12 @@
 package in
 
 import (
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/net/http"
 
-	libLicense "github.com/LerianStudio/lib-license-go/middleware"
+	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 
-	middlewareAuth "github.com/LerianStudio/lib-auth/auth/middleware"
+	middlewareAuth "github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

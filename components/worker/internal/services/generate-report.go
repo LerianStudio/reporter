@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/pongo"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/pongo"
 	"strings"
 	"time"
 

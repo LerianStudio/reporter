@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"html/template"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
 	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"

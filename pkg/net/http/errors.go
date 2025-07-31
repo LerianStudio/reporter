@@ -3,7 +3,7 @@ package http
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/v2/pkg"
 )
 
 // WithError returns an error with the given status code and message.

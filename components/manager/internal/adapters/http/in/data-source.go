@@ -6,10 +6,10 @@ import (
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/components/manager/internal/services"
-	_ "plugin-smart-templates/pkg"
-	_ "plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/components/manager/internal/services"
+	_ "plugin-smart-templates/v2/pkg"
+	_ "plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 type DataSourceHandler struct {

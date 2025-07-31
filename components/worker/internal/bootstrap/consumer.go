@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/components/worker/internal/services"
+	"plugin-smart-templates/v2/components/worker/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v2/components/worker/internal/services"
 	"sync"
 	"syscall"
 

@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"errors"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
