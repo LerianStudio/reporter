@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.46] - 2025-07-31
+
+This release of plugin-smart-templates introduces major enhancements to data integration and performance, improving user interaction and application efficiency.
+
+### ✨ Features  
+- **Seamless Data Integration**: Users can now select and interact with database inputs directly from the UI, providing a more intuitive and streamlined experience. This feature simplifies data handling and enhances productivity.
+
+### 🐛 Bug Fixes
+- **Reliable Template Rendering**: Resolved an issue affecting smart template rendering, ensuring users can create and utilize templates without encountering errors or unexpected behavior.
+
+### ⚡ Performance
+- **Optimized Backend Processing**: Refactored data sources to enhance backend speed and application responsiveness, resulting in a smoother user experience.
+
+### 🔄 Changes
+- **Updated Dependencies**: Library dependencies have been updated to improve code quality and maintainability, ensuring compatibility with the latest features and security patches.
+
+### 🔧 Maintenance
+- **Documentation Updates**: The changelog has been updated to reflect recent changes, providing clear and informative project history for users.
+
+This changelog is designed to clearly communicate the value and impact of the v2.0.0 release, focusing on enhancements that improve user experience and application performance.
+
 ## [v2.0.0-beta.45] - 2025-07-31
 
 This release introduces enhancements to the build process, improving security and efficiency for developers, along with updated documentation to ensure clarity and transparency.
