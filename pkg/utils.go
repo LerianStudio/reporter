@@ -3,7 +3,7 @@ package pkg
 import (
 	"math"
 	"os/exec"
-	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/v2/pkg/constant"
 	"reflect"
 	"regexp"
 	"strings"

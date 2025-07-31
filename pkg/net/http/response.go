@@ -2,7 +2,7 @@ package http
 
 import (
 	"net/http"
-	"plugin-smart-templates/pkg"
+	"plugin-smart-templates/v2/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

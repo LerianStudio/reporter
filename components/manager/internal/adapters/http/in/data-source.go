@@ -1,15 +1,15 @@
 package in
 
 import (
-	"github.com/LerianStudio/lib-commons/commons"
-	commonsHttp "github.com/LerianStudio/lib-commons/commons/net/http"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/components/manager/internal/services"
-	_ "plugin-smart-templates/pkg"
-	_ "plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/components/manager/internal/services"
+	_ "plugin-smart-templates/v2/pkg"
+	_ "plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 type DataSourceHandler struct {
@@ -31,9 +31,14 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_data_source")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
 
 	logger.Infof("Initiating retrieval data source information")
 
@@ -62,6 +67,7 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_data_source_details_by_id")
 	defer span.End()
@@ -69,7 +75,10 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	dataSourceID := c.Params("dataSourceId")
 	logger.Infof("Initiating retrieval data source information with ID: %s", dataSourceID)
 
-	span.SetAttributes(attribute.String("data_source_id", dataSourceID))
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.data_source_id", dataSourceID),
+	)
 
 	dataSourceInfo, err := ds.Service.GetDataSourceDetailsByID(ctx, dataSourceID)
 	if err != nil {

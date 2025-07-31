@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"plugin-smart-templates/pkg/mongodb"
-	pg "plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	pg "plugin-smart-templates/v2/pkg/postgres"
 	"strings"
 
 	"context"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons/log"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

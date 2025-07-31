@@ -2,6 +2,94 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.45] - 2025-07-31
+
+This release introduces enhancements to the build process, improving security and efficiency for developers, along with updated documentation to ensure clarity and transparency.
+
+### ⚡ Performance
+- **Optimized Build Process**: The introduction of the 'garble' command in the Dockerfile enhances security by obfuscating code and reduces the final build size. This streamlines deployment and protects your application, making it easier and safer to manage.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been updated to accurately reflect recent changes and improvements, ensuring that all stakeholders have access to the latest information and can easily track project progress.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates to documentation ensure that users have the most current and accurate information, supporting better decision-making and project transparency.
+
+
+## [v2.0.0-beta.44] - 2025-07-31
+
+This release focuses on a comprehensive refactor of the system's architecture, enhancing maintainability and paving the way for future feature expansions. Users will benefit from improved performance and easier integration of new functionalities.
+
+### ✨ Improvements  
+- **System Architecture Overhaul**: The backend, configuration, database, and testing modules have been refactored to improve code maintainability. This enhancement ensures a more robust system performance and simplifies the integration of future updates, providing a smoother user experience.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to accurately reflect recent changes and improvements, ensuring transparency and effective communication with users and developers. This update supports ongoing community engagement and awareness of system enhancements.
+
+This changelog provides a clear, user-focused overview of the changes in version 2.0.0, emphasizing the benefits of the architectural refactor and maintaining transparency through updated documentation.
+
+## [v2.0.0-beta.43] - 2025-07-31
+
+This release of `plugin-smart-templates` introduces significant enhancements in performance monitoring and system maintainability, ensuring a more robust and efficient user experience.
+
+### ✨ Features  
+- **Enhanced Observability**: We've integrated OpenTelemetry tracing into our backend and database systems. This improvement allows you to monitor data flow and system performance more effectively, making it easier to diagnose issues and optimize your setup.
+
+### 🔄 Changes
+- **Consistent Telemetry Data**: We've standardized OpenTelemetry attributes and error handling across services. This change provides a more uniform and clear view of telemetry data, enhancing error diagnostics and trace readability.
+- **Code Simplification**: Redundant imports and unnecessary code elements have been removed from the database, improving code readability and reducing maintenance efforts.
+
+### 🔧 Maintenance
+- **Dependency Updates**: We've streamlined the build process by removing and upgrading dependencies. Notably, `lib-commons` has been upgraded to v2.0.0, and `lib-auth` and `lib-license-go` have been updated to their latest beta versions. These updates ensure compatibility with the latest features and security enhancements.
+- **Changelog Refresh**: The changelog has been updated to reflect recent changes, ensuring you have access to current and comprehensive documentation.
+
+These updates collectively enhance the system's performance, maintainability, and observability, providing you with a more robust and efficient experience.
+
+## [v2.0.0-beta.42] - 2025-07-30
+
+This release focuses on enhancing the clarity and efficiency of the project repository, making it easier for contributors and users to navigate and stay informed.
+
+### 📚 Documentation
+- **Streamlined Repository**: We have removed the unused `.dockerignore` file. This cleanup reduces clutter, making the project structure more straightforward and easier to manage. Users and contributors will benefit from a cleaner repository, enhancing the overall development experience.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The changelog has been refreshed to accurately reflect recent updates and improvements. This ensures that all users and developers are kept informed about the latest changes, promoting transparency and effective communication within the community.
+
+This changelog highlights the key changes in version 2.0.0, focusing on the benefits of a cleaner repository and the importance of maintaining up-to-date documentation for user and developer engagement.
+
+## [v2.0.0-beta.41] - 2025-07-30
+
+This release focuses on enhancing the build process and updating documentation to improve efficiency and clarity for users.
+
+### ⚡ Performance
+- **Build System Optimization**: The Dockerfile configurations for the manager and worker components have been streamlined. This results in faster build times and improved deployment efficiency, allowing users to experience quicker updates and reduced resource consumption during the build process.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring users have access to the latest information about updates and modifications. This facilitates better understanding and tracking of the project's evolution.
+
+### 🔧 Maintenance
+- **Documentation Improvements**: Behind-the-scenes updates to documentation ensure that users can easily find and understand the latest changes, contributing to a smoother user experience.
+
+
+## [v2.0.0-beta.40] - 2025-07-29
+
+This release introduces significant enhancements to the plugin-smart-templates project, focusing on improved network integration, user interface configuration, and dependency management to boost overall user experience and system reliability.
+
+### ✨ Features  
+- **Enhanced Network Integration**: The Smart Templates Manager and authentication system now support additional networks, allowing for seamless integration and improved connectivity across diverse environments. This flexibility enhances operational efficiency and scalability for users managing multiple network setups.
+
+### 🔄 Changes
+- **Smart Templates UI Configuration Update**: The environment configuration for the Smart Templates user interface has been updated to ensure smoother backend and frontend integration. This change enhances the overall user experience by providing a more reliable and intuitive interface.
+
+### 📚 Documentation
+- **Updated Guidance**: The documentation has been revised to reflect the latest configuration changes, offering users clear instructions for setup and adjustments. This ensures users can easily adapt to the new enhancements without confusion.
+
+### 🔧 Maintenance
+- **Dependency Update**: The `@lerianstudio/console-layout` package has been updated to version 1.5.3, ensuring compatibility with the latest features and security updates. This maintenance step maintains the stability and performance of the frontend components.
+- **Changelog Revision**: The CHANGELOG has been updated to provide users with a comprehensive overview of recent updates, facilitating easy tracking of the software's evolution.
+
+These updates collectively enhance the functionality, reliability, and user experience of the plugin-smart-templates project, ensuring users benefit from improved network integration, updated configurations, and maintained dependencies.
+
 ## [v2.0.0-beta.39] - 2025-07-29
 
 This release simplifies the report structure, enhances documentation, and improves system reliability. Users should review integrations to accommodate these updates.

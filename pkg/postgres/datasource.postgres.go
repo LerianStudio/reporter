@@ -5,9 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/Masterminds/squirrel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Repository defines an interface for querying data from a specified table and fields.
@@ -75,6 +78,18 @@ func (ds *ExternalDataSource) CloseConnection() error {
 // It returns the query results as a slice of maps or an error in case of failure.
 func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "postgres.data_source.query")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.table", table),
+		attribute.StringSlice("app.request.fields", fields),
+	)
+
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
 	// Validate requested table and fields
@@ -109,6 +124,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 // It returns a slice of TableSchema objects or an error if the operation fails
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSchema, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "postgres.data_source.get_database_schema")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
+
 	logger.Info("Retrieving database schema information")
 
 	// Query to get all user tables in the database
@@ -294,6 +319,23 @@ func parseJSONBField(value any, logger log.Logger) any {
 // It returns a list of valid fields and an error if the table doesn't exist or fields are invalid.
 func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string, schema []TableSchema) ([]string, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "postgres.data_source.validate_table_and_fields")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.table", tableName),
+		attribute.StringSlice("app.request.fields", requestedFields),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.data_source.schema", schema)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert schema to JSON string", err)
+	}
+
 	logger.Infof("Validating table '%s' and fields %v", tableName, requestedFields)
 
 	// Check if table exists

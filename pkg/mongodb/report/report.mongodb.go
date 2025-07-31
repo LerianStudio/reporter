@@ -2,14 +2,14 @@ package report
 
 import (
 	"context"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/net/http"
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons"
-	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -55,15 +55,19 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	metadata map[string]any,
 ) error {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.update_report_status")
 	defer span.End()
 
-	span.SetAttributes(
-		attribute.String("report_id", id.String()),
-		attribute.String("status", status),
-		attribute.String("completed_at", completedAt.String()),
-	)
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", id.String()),
+		attribute.String("app.request.status", status),
+		attribute.String("app.request.completed_at", completedAt.String()),
+	}
+
+	span.SetAttributes(attributes...)
 
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
@@ -78,6 +82,8 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 
 	ctx, spanUpdate := tracer.Start(ctx, "mongo.update_report_status.update")
 	defer spanUpdate.End()
+
+	spanUpdate.SetAttributes(attributes...)
 
 	// Create an update document with only the fields we want to update
 	updateFields := bson.M{}
@@ -101,6 +107,11 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 		"$set": updateFields,
 	}
 
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanUpdate, "app.request.repository_input", update)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to convert update to JSON string", err)
+	}
+
 	result, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to update report status", err)
@@ -117,9 +128,22 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 // Create inserts a new report entity into mongo.
 func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, organizationID uuid.UUID) (*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_report")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	}
+
+	span.SetAttributes(attributes...)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", report)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert report record to JSON string", err)
+	}
 
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
@@ -139,11 +163,9 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, o
 
 	ctx, spanInsert := tracer.Start(ctx, "mongo.create_report.insert")
 
-	spanInsert.SetAttributes(
-		attribute.String("organization_id", organizationID.String()),
-	)
+	spanInsert.SetAttributes(attributes...)
 
-	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanInsert, "report_record", record)
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanInsert, "app.request.repository_input", record)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanInsert, "Failed to convert report record to JSON string", err)
 	}
@@ -163,9 +185,18 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, o
 // FindByID retrieves a report from the mongodb using the provided entity_id.
 func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	}
+
+	span.SetAttributes(attributes...)
 
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
@@ -180,10 +211,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizatio
 
 	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
 
-	spanFindOne.SetAttributes(
-		attribute.String("report_id", id.String()),
-		attribute.String("organization_id", organizationID.String()),
-	)
+	spanFindOne.SetAttributes(attributes...)
 
 	if err = coll.
 		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
@@ -205,9 +233,21 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizatio
 // FindList retrieves all reports from the mongodb with filtering and pagination support.
 func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error) {
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
 	defer span.End()
+
+	attributes := []attribute.KeyValue{
+		attribute.String("app.request.request_id", reqId),
+	}
+
+	span.SetAttributes(attributes...)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", filters)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
+	}
 
 	db, err := rm.connection.GetDB(ctx)
 	if err != nil {
@@ -253,7 +293,9 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 
 	ctx, spanFind := tracer.Start(ctx, "mongodb.find_reports.find")
 
-	err = libOpentelemetry.SetSpanAttributesFromStruct(&spanFind, "filters", filters)
+	spanFind.SetAttributes(attributes...)
+
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanFind, "app.request.repository_filter", filters)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanFind, "Failed to convert filters to JSON string", err)
 	}

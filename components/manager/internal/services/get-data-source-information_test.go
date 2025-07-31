@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/mongodb"
-	"plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v2/pkg/postgres"
 )
 
 func Test_GetDataSourceInformation(t *testing.T) {

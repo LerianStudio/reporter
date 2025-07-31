@@ -3,7 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"plugin-smart-templates/pkg/constant"
+	"plugin-smart-templates/v2/pkg/constant"
 	"strings"
 )
 
