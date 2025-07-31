@@ -29,7 +29,7 @@
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.6.1",
     "@hookform/resolvers": "^5.0.1",
-    "@lerianstudio/console-layout": "^1.6.0-beta.3",
+    "@lerianstudio/console-layout": "^1.6.0-beta.4",
     "@lerianstudio/lib-logs": "^1.1.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.202.0",
@@ -75,7 +75,6 @@
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.513.0",
     "mongoose": "^8.16.0",
-    "motion": "^12.23.3",
     "next": "^15.3.3",
     "next-auth": "^4.24.11",
     "react": "^19.1.0",
