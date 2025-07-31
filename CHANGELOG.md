@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.45] - 2025-07-31
+
+This release introduces enhancements to the build process, improving security and efficiency for developers, along with updated documentation to ensure clarity and transparency.
+
+### ⚡ Performance
+- **Optimized Build Process**: The introduction of the 'garble' command in the Dockerfile enhances security by obfuscating code and reduces the final build size. This streamlines deployment and protects your application, making it easier and safer to manage.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been updated to accurately reflect recent changes and improvements, ensuring that all stakeholders have access to the latest information and can easily track project progress.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates to documentation ensure that users have the most current and accurate information, supporting better decision-making and project transparency.
+
+
 ## [v2.0.0-beta.44] - 2025-07-31
 
 This release focuses on a comprehensive refactor of the system's architecture, enhancing maintainability and paving the way for future feature expansions. Users will benefit from improved performance and easier integration of new functionalities.
