@@ -71,10 +71,10 @@ export function ReportStatusBadge({
   }
 
   const getStatusLabel = () => {
-    const validStatus = Object.keys(statusLabels).includes(status) 
-      ? status as keyof typeof statusLabels 
+    const validStatus = Object.keys(statusLabels).includes(status)
+      ? (status as keyof typeof statusLabels)
       : 'Processing'
-    
+
     return intl.formatMessage(statusLabels[validStatus])
   }
 
