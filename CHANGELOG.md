@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.43] - 2025-07-31
+
+This release of `plugin-smart-templates` introduces significant enhancements in performance monitoring and system maintainability, ensuring a more robust and efficient user experience.
+
+### ✨ Features  
+- **Enhanced Observability**: We've integrated OpenTelemetry tracing into our backend and database systems. This improvement allows you to monitor data flow and system performance more effectively, making it easier to diagnose issues and optimize your setup.
+
+### 🔄 Changes
+- **Consistent Telemetry Data**: We've standardized OpenTelemetry attributes and error handling across services. This change provides a more uniform and clear view of telemetry data, enhancing error diagnostics and trace readability.
+- **Code Simplification**: Redundant imports and unnecessary code elements have been removed from the database, improving code readability and reducing maintenance efforts.
+
+### 🔧 Maintenance
+- **Dependency Updates**: We've streamlined the build process by removing and upgrading dependencies. Notably, `lib-commons` has been upgraded to v2.0.0, and `lib-auth` and `lib-license-go` have been updated to their latest beta versions. These updates ensure compatibility with the latest features and security enhancements.
+- **Changelog Refresh**: The changelog has been updated to reflect recent changes, ensuring you have access to current and comprehensive documentation.
+
+These updates collectively enhance the system's performance, maintainability, and observability, providing you with a more robust and efficient experience.
+
 ## [v2.0.0-beta.42] - 2025-07-30
 
 This release focuses on enhancing the clarity and efficiency of the project repository, making it easier for contributors and users to navigate and stay informed.
