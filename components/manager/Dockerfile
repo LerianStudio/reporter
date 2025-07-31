@@ -25,7 +25,7 @@ COPY pkg/ pkg/
 COPY components/manager/ components/manager/
 
 # Build the binary with garble for code obfuscation
-RUN CGO_ENABLED=0 GOOS=linux garble -tiny -literals build -tags netgo \
+RUN CGO_ENABLED=0 GOOS=linux garble -tiny build -tags netgo \
   -ldflags='-w -extldflags "-static"' \
   -o /manager ./components/manager/cmd/app/main.go
 
