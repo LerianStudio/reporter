@@ -2,14 +2,16 @@ package bootstrap
 
 import (
 	"context"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
 	"os"
 	"os/signal"
 	"plugin-smart-templates/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/components/worker/internal/services"
 	"sync"
 	"syscall"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // MultiQueueConsumer represents a multi-queue consumer.
@@ -60,9 +62,14 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []byte) error {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "consumer.handler_generate_report")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
 
 	logger.Info("Processing message from generate report queue")
 

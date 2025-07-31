@@ -5,9 +5,9 @@ go 1.23.2
 toolchain go1.24.1
 
 require (
-	github.com/LerianStudio/lib-auth v1.15.0
-	github.com/LerianStudio/lib-commons v1.19.0-beta.2
-	github.com/LerianStudio/lib-license-go v1.23.0
+	github.com/LerianStudio/lib-auth v1.16.0-beta.5
+	github.com/LerianStudio/lib-commons/v2 v2.0.0
+	github.com/LerianStudio/lib-license-go v1.24.0-beta.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/go-playground/locales v0.14.1
@@ -53,7 +53,7 @@ require (
 	github.com/go-openapi/spec v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.3 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect

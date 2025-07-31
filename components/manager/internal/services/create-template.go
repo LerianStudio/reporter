@@ -10,30 +10,35 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 // CreateTemplate creates a new template with specified parameters and stores it in the repository.
 func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, organizationID uuid.UUID) (*template.Template, error) {
-	logger := pkg.NewLoggerFromContext(ctx)
-	tracer := pkg.NewTracerFromContext(ctx)
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "services.create_template")
+	ctx, span := tracer.Start(ctx, "service.create_template")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("template_file", templateFile),
-		attribute.String("output_format", outFormat),
-		attribute.String("description", description),
-		attribute.String("organization_id", organizationID.String()),
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_file", templateFile),
+		attribute.String("app.request.output_format", outFormat),
+		attribute.String("app.request.description", description),
+		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	logger.Infof("Creating template")
 
 	// Block <script> tags
 	if err := templateUtils.ValidateNoScriptTag(templateFile); err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Script tag detected in template", err)
+
 		return nil, pkg.ValidateBusinessError(constant.ErrScriptTagDetected, "")
 	}
 
@@ -41,7 +46,10 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
 	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
+
 		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
+
 		return nil, errValidateFields
 	}
 
@@ -62,7 +70,10 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	resultTemplateModel, err := uc.TemplateRepo.Create(ctx, templateModel)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to create template in repository", err)
+
 		logger.Errorf("Error into creating a template, Error: %v", err)
+
 		return nil, err
 	}
 

@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/LerianStudio/lib-commons/commons/log"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"plugin-smart-templates/pkg"
 	"plugin-smart-templates/pkg/constant"
 	"plugin-smart-templates/pkg/mongodb"

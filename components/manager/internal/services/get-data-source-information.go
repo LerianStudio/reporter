@@ -4,7 +4,8 @@ import (
 	"context"
 	"plugin-smart-templates/pkg/model"
 
-	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -12,9 +13,19 @@ import (
 func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSourceInformation {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "get_data_source_information")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.external_data_sources", uc.ExternalDataSources)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert external data sources to JSON string", err)
+	}
 
 	logger.Infof("Getting data source information")
 
@@ -25,20 +36,12 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 		switch dataSource.DatabaseType {
 		case "postgresql":
-			span.SetAttributes(
-				attribute.String("data_source_type", dataSource.DatabaseType),
-			)
-
 			dataSourceInformation = &model.DataSourceInformation{
 				Id:           key,
 				ExternalName: dataSource.DatabaseConfig.DBName,
 				Type:         dataSource.DatabaseType,
 			}
 		case "mongodb":
-			span.SetAttributes(
-				attribute.String("data_source_type", dataSource.DatabaseType),
-			)
-
 			dataSourceInformation = &model.DataSourceInformation{
 				Id:           key,
 				ExternalName: dataSource.MongoDBName,

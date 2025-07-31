@@ -7,9 +7,9 @@ import (
 	libLicense "github.com/LerianStudio/lib-license-go/middleware"
 
 	middlewareAuth "github.com/LerianStudio/lib-auth/auth/middleware"
-	"github.com/LerianStudio/lib-commons/commons/log"
-	commonsHttp "github.com/LerianStudio/lib-commons/commons/net/http"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
