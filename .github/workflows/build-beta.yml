@@ -1,9 +1,9 @@
-name: "Build Pipeline"
+name: "Build Pipeline - Beta"
 
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v*.*.*-beta.*'
 
 permissions:
   id-token: write
@@ -23,6 +23,7 @@ jobs:
           context: .
           working_dir: components/manager
           token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
 
       - name: Build And Publish Worker Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
@@ -31,6 +32,7 @@ jobs:
           context: .
           working_dir: components/worker
           token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
 
       - name: Build And Publish Frontend Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
@@ -38,3 +40,4 @@ jobs:
           app_name: 'plugin-smart-templates-frontend'
           working_dir: components/frontend
           token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
