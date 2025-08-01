@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.47] - 2025-08-01
+
+This release focuses on enhancing the efficiency of our build process and improving project documentation to ensure clarity and transparency for all users.
+
+### 🔧 Maintenance
+- **Build Process Enhancement**: We've implemented a new workflow for building beta versions using firmino-lxc-runners. This upgrade enhances the build process by utilizing more efficient runners, which can lead to faster build times and improved resource management. This change is part of our ongoing efforts to streamline the development pipeline, ensuring more reliable and timely deployment of beta releases.
+  
+- **Documentation Update**: The CHANGELOG has been updated to accurately reflect recent changes and improvements. Keeping the changelog current ensures that users and developers have a clear understanding of the latest modifications and enhancements, facilitating better communication and transparency within the project.
+
+
+This changelog is designed to provide users with a clear understanding of the latest updates, focusing on the benefits and impacts of the changes made in this release.
+
 ## [v2.0.0-beta.46] - 2025-07-31
 
 This release of plugin-smart-templates introduces major enhancements to data integration and performance, improving user interaction and application efficiency.
