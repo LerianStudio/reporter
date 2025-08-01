@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.49] - 2025-08-01
+
+This release focuses on enhancing the security and reliability of the authentication component through important dependency updates. While there are no new user-facing features, these updates ensure a more stable and secure experience for future releases.
+
+### 🔧 Maintenance
+- **Dependency Updates**: We have upgraded the `lib-auth` and `lib-commons` libraries to their latest stable versions. This update integrates the latest security patches and performance enhancements, providing a more secure and efficient authentication process.
+  
+- **Changelog Update**: The CHANGELOG file has been refreshed to include the latest changes, ensuring users have a clear view of the software's evolution and improvements.
+
+These updates are part of our ongoing commitment to maintaining a robust and secure system, laying the groundwork for future enhancements and features.
+
+
 ## [v2.0.0-beta.48] - 2025-08-01
 
 This release enhances user experience with improved data handling precision and a refreshed interface, while maintaining system integrity through regular updates and documentation improvements.
