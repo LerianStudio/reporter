@@ -9,10 +9,10 @@ cloud.google.com/go/iam v1.5.2/go.mod h1:SE1vg0N81zQqLzQEwxL2WI6yhetBdbNQuTvIKCS
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
-github.com/LerianStudio/lib-auth/v2 v2.0.0 h1:kKZKPmM2JDK0srV9MilDW9QvDomV+aUoOWazRcEET/A=
-github.com/LerianStudio/lib-auth/v2 v2.0.0/go.mod h1:JmbBdx+l4Pcq+nl2gFmhOcYC6fHdVOCXKWIXzck5n8s=
-github.com/LerianStudio/lib-commons/v2 v2.0.0 h1:yAcBywmjG2+kbH2cl1+U1uDLHcncdSS1EPZ26RHapuk=
-github.com/LerianStudio/lib-commons/v2 v2.0.0/go.mod h1:eORVW8Fg0aRFL+ClGA/eauxfb5clJGuflRIVcKSmwwE=
+github.com/LerianStudio/lib-auth/v2 v2.1.0-beta.1 h1:nsK9MTxvQ4CQybOVAkYmfnjG0VHAWcNuVb9pdRtWlfU=
+github.com/LerianStudio/lib-auth/v2 v2.1.0-beta.1/go.mod h1:JmbBdx+l4Pcq+nl2gFmhOcYC6fHdVOCXKWIXzck5n8s=
+github.com/LerianStudio/lib-commons/v2 v2.1.0-beta.2 h1:0E3kpUl+vNoXUtcwhdxS8gzzgN0SExgC2MkzVJwFDsc=
+github.com/LerianStudio/lib-commons/v2 v2.1.0-beta.2/go.mod h1:eORVW8Fg0aRFL+ClGA/eauxfb5clJGuflRIVcKSmwwE=
 github.com/LerianStudio/lib-license-go/v2 v2.0.0 h1:Xk0Yu9Y/XD81jzvdCvfvsFW9k+oHZoBzPd/gb94Egpg=
 github.com/LerianStudio/lib-license-go/v2 v2.0.0/go.mod h1:w+7wjAWW+yBKoadYLXAz+WDIpfGUPN9vzoJ29zDRJBM=
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
