@@ -7,10 +7,8 @@ const basePath =
   getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
   process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
 
-type UseGetDataSourceProps = {
-  organizationId: string
+type UseGetDataSourceByIdProps = {
   dataSourceId: string
-  enabled?: boolean
 }
 
 /**
@@ -25,18 +23,13 @@ export const useListDataSources = ({ ...options }) => {
 }
 
 /**
- * Hook for fetching detailed information about a specific data source in an organization
+ * Hook for fetching detailed information about a specific data source
  */
-export const useGetDataSource = ({
-  organizationId,
-  dataSourceId,
-  enabled = true
-}: UseGetDataSourceProps) => {
+export const useGetDataSourceById = ({
+  dataSourceId
+}: UseGetDataSourceByIdProps) => {
   return useQuery<DataSourceDto>({
-    queryKey: ['data-sources', organizationId, dataSourceId],
-    queryFn: getFetcher(
-      `${basePath}/api/organizations/${organizationId}/data-sources/${dataSourceId}`
-    ),
-    enabled: enabled && !!organizationId && !!dataSourceId
+    queryKey: ['data-sources', dataSourceId],
+    queryFn: getFetcher(`${basePath}/api/data-sources/${dataSourceId}`)
   })
 }

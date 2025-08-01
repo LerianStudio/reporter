@@ -10,6 +10,7 @@ import { SelectField } from '@/components/form/select-field'
 import { SelectItem } from '@/components/ui/select'
 import { DataSourceDto } from '@/core/application/dto/data-source-dto'
 import { type ReportFormData } from './reports-sheet'
+import { useGetDataSourceById } from '@/client/data-sources'
 
 type ReportsSheetFilterProps = {
   name: string
@@ -39,40 +40,44 @@ export function ReportsSheetFilter({
   const currentTable = field?.table || ''
   const currentField = field?.field || ''
 
+  const { data: dataSourceDetails } = useGetDataSourceById({
+    dataSourceId: currentDatabase
+  })
+
   const availableTables = React.useMemo(() => {
-    const dataSource = dataSources?.find((ds) => ds.id === currentDatabase)
-    return dataSource?.tables || []
-  }, [dataSources, currentDatabase])
+    return dataSourceDetails?.tables || []
+  }, [dataSourceDetails])
 
   const availableFields = React.useMemo(() => {
-    const dataSource = dataSources?.find((ds) => ds.id === currentDatabase)
-    const table = dataSource?.tables?.find((t) => t.name === currentTable)
+    const table = dataSourceDetails?.tables?.find(
+      (t) => t.name === currentTable
+    )
     return table?.fields || []
-  }, [currentDatabase, currentTable, dataSources])
+  }, [currentTable, dataSourceDetails])
 
   // Clear dependent fields when database changes
-  // React.useEffect(() => {
-  //   if (currentDatabase) {
-  //     setValue(`${name}.table` as any, '')
-  //     setValue(`${name}.field` as any, '')
-  //     setValue(`${name}.values` as any, '')
-  //   }
-  // }, [currentDatabase, setValue, name])
+  React.useEffect(() => {
+    if (currentDatabase) {
+      setValue(`${name}.table` as any, '')
+      setValue(`${name}.field` as any, '')
+      setValue(`${name}.values` as any, '')
+    }
+  }, [currentDatabase, setValue, name])
 
   // Clear dependent fields when table changes
-  // React.useEffect(() => {
-  //   if (currentTable) {
-  //     setValue(`${name}.field` as any, '')
-  //     setValue(`${name}.values` as any, '')
-  //   }
-  // }, [currentTable, setValue, name])
+  React.useEffect(() => {
+    if (currentTable) {
+      setValue(`${name}.field` as any, '')
+      setValue(`${name}.values` as any, '')
+    }
+  }, [currentTable, setValue, name])
 
-  // // Clear values when field changes
-  // React.useEffect(() => {
-  //   if (currentField) {
-  //     setValue(`${name}.values` as any, '')
-  //   }
-  // }, [currentField, setValue, name])
+  // Clear values when field changes
+  React.useEffect(() => {
+    if (currentField) {
+      setValue(`${name}.values` as any, '')
+    }
+  }, [currentField, setValue, name])
 
   return (
     <div className="space-y-4 rounded-lg border p-6">
@@ -112,7 +117,7 @@ export function ReportsSheetFilter({
         </SelectField>
 
         {/* Table */}
-        <InputField
+        <SelectField
           name={`${name}.table`}
           label={intl.formatMessage({
             id: 'reports.filters.table',
@@ -124,12 +129,18 @@ export function ReportsSheetFilter({
           })}
           control={control}
           disabled={loading || !currentDatabase}
-        />
+        >
+          {availableTables.map((table) => (
+            <SelectItem key={table.name} value={table.name}>
+              {table.name}
+            </SelectItem>
+          ))}
+        </SelectField>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Field */}
-        <InputField
+        <SelectField
           name={`${name}.field`}
           label={intl.formatMessage({
             id: 'reports.filters.field',
@@ -141,7 +152,13 @@ export function ReportsSheetFilter({
           })}
           control={control}
           disabled={loading || !currentTable}
-        />
+        >
+          {availableFields.map((field) => (
+            <SelectItem key={field} value={field}>
+              {field}
+            </SelectItem>
+          ))}
+        </SelectField>
       </div>
 
       {/* Values */}
