@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"plugin-smart-templates/v2/pkg/model"
+	"strings"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -49,7 +50,9 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 			}
 		}
 
-		result = append(result, dataSourceInformation)
+		if dataSourceInformation != nil && strings.TrimSpace(dataSourceInformation.Id) != "" {
+			result = append(result, dataSourceInformation)
+		}
 	}
 
 	return result
