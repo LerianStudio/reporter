@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.51] - 2025-08-04
+
+This release focuses on enhancing performance and reliability, providing users with a faster and smoother experience.
+
+### ⚡ Performance
+- **Improved Condition Checking**: We've optimized the logic used in both the build process and the frontend. Users will experience faster load times and more responsive interactions, enhancing overall satisfaction with the software.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to accurately reflect recent improvements, ensuring users have a clear and accessible history of changes.
+
+This concise changelog communicates the key benefits of the release, focusing on how the improvements positively impact the user experience.
+
 ## [v2.0.0-beta.50] - 2025-08-04
 
 This release focuses on improving system reliability by addressing environment variable handling issues and enhancing documentation transparency.
