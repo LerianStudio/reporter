@@ -11,9 +11,46 @@ permissions:
   pull-requests: write
   packages: write
 
-#Build and Publish Docker Image to GHCR
+
 jobs:
-  build_and_publish_ghcr:
+  detect_changes:
+    runs-on: firmino-lxc-runners
+    outputs:
+      has_backend: ${{ steps.check.outputs.has_backend }}
+      has_frontend: ${{ steps.check.outputs.has_frontend }}
+    steps:
+      - name: Get changed paths
+        id: changed-paths
+        uses: LerianStudio/github-actions-changed-paths@main
+        with:
+          filter_paths: |
+            components/worker
+            components/manager
+            components/frontend
+          get_app_name: false
+          path_level: 2
+
+      - name: Determine changed components
+        id: check
+        run: |
+          matrix='${{ steps.changed-paths.outputs.matrix }}'
+
+          if echo "$matrix" | grep -E -q '"worker"|"manager"'; then
+            echo "has_backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$matrix" | grep -q '"frontend"'; then
+            echo "has_frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+  
+  # Build and Publish Docker Image to GHCR        
+  build_and_publish_ghcr_backend:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.has_backend == 'true'
     runs-on: firmino-lxc-runners
     steps:
       - name: Build And Publish Manager Docker Image to GHCR
@@ -25,6 +62,7 @@ jobs:
           token: ${{ secrets.MANAGE_TOKEN }}
           platforms: 'linux/amd64'
 
+      # Build and Publish Docker Image to GHCR
       - name: Build And Publish Worker Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
@@ -34,10 +72,58 @@ jobs:
           token: ${{ secrets.MANAGE_TOKEN }}
           platforms: 'linux/amd64'
 
+  # Build and Publish Docker Image to Dockerhub
+  build_and_publish_dockerhub_backend:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.has_backend == 'true'
+    runs-on: firmino-lxc-runners
+    steps:
+      - name: Build And Publish Docker Image to Dockerhub
+        uses: LerianStudio/github-actions-docker-private-pipeline@main
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+          app_name: 'plugin-smart-templates-worker'
+          working_dir: 'components/worker'
+          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
+      
+      - name: Build And Publish Docker Image to Dockerhub
+        uses: LerianStudio/github-actions-docker-private-pipeline@main
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+          app_name: 'plugin-smart-templates-manager'
+          working_dir: 'components/manager'
+          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
+  
+  # Build and Publish Docker Image to GHCR - FRONTEND        
+  build_and_publish_ghcr_frontend:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.has_frontend == 'true'
+    runs-on: firmino-lxc-runners
+    steps:    
       - name: Build And Publish Frontend Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-frontend'
           working_dir: components/frontend
           token: ${{ secrets.MANAGE_TOKEN }}
+          platforms: 'linux/amd64'
+  
+  # Build and Publish Docker Image to Dockerhub - FRONTEND        
+  build_and_publish_dockerhub_frontend:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.has_frontend == 'true'
+    runs-on: firmino-lxc-runners
+    steps:
+      - name: Build And Publish Docker Image to Dockerhub - frontend
+        uses: LerianStudio/github-actions-docker-private-pipeline@main
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
+          app_name: 'plugin-smart-templates-frontend'
+          working_dir: 'components/frontend'        
           platforms: 'linux/amd64'
