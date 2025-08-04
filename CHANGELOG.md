@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.54] - 2025-08-04
+
+This release focuses on enhancing the accuracy and reliability of our documentation, ensuring users have access to the most current information and maintaining a clear record of project updates.
+
+### 🐛 Bug Fixes
+- **Documentation Path Detection**: Resolved an issue where changes to documentation paths were not being detected correctly. This fix ensures that any modifications are accurately tracked, improving the reliability of documentation updates and ensuring users always have access to the most up-to-date information.
+
+### 📚 Documentation
+- **Changelog Updates**: The CHANGELOG has been updated to reflect recent changes and improvements. This ensures users have a comprehensive and up-to-date record of all modifications, aiding in transparency and facilitating easier tracking of project evolution.
+
+These updates are designed to improve the user experience by ensuring documentation is always current and changes are clearly communicated.
+
 ## [v2.0.0-beta.53] - 2025-08-04
 
 This release enhances the efficiency and reliability of the template processing system, providing users with faster processing times and a more robust experience. 
