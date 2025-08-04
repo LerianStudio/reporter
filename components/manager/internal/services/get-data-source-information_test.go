@@ -102,7 +102,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			expectResult: []*model.DataSourceInformation{},
 		},
 		{
-			name: "Unknown type - should return nil entry",
+			name: "Unknown type - should return empty slice",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -112,7 +112,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 					},
 				}
 			},
-			expectResult: []*model.DataSourceInformation{nil},
+			expectResult: []*model.DataSourceInformation{},
 		},
 	}
 
@@ -121,11 +121,6 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			svc := tt.setupSvc()
 			result := svc.GetDataSourceInformation(ctx)
 			assert.ElementsMatch(t, tt.expectResult, result)
-
-			if len(tt.expectResult) == 1 && tt.expectResult[0] == nil {
-				assert.Len(t, result, 1)
-				assert.Nil(t, result[0])
-			}
 		})
 	}
 }
