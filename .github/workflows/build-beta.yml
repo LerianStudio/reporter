@@ -27,7 +27,7 @@ jobs:
             components/worker
             components/manager
             components/frontend
-          get_app_name: false
+          get_app_name: true
           path_level: 2
 
       - name: Determine changed components
@@ -35,7 +35,7 @@ jobs:
         run: |
           matrix='${{ steps.changed-paths.outputs.matrix }}'
 
-          if echo "$matrix" | grep -E -q '"worker"|"manager"'; then
+          if echo "$matrix" | grep -q '"manager"\|"worker"'; then
             echo "has_backend=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_backend=false" >> "$GITHUB_OUTPUT"
