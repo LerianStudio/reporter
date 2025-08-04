@@ -13,4 +13,12 @@ export class SmartDataSourceMapper {
       }))
     }
   }
+
+  static toListEntity(dto: SmartDataSourceDto[]): DataSource[] {
+    return (
+      dto
+        .filter((item) => item.id !== '')
+        .map(SmartDataSourceMapper.toEntity) ?? []
+    )
+  }
 }
