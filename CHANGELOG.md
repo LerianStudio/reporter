@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.50] - 2025-08-04
+
+This release focuses on improving system reliability by addressing environment variable handling issues and enhancing documentation transparency.
+
+### 🐛 Bug Fixes
+- **Consistent Environment Configuration**: Resolved issues with environment variable handling across configuration, documentation, and frontend components. This fix ensures that settings are consistently applied, reducing configuration errors and enhancing overall system reliability for users.
+
+### 📚 Documentation
+- **Updated Environment Variable Documentation**: Improved documentation to clearly outline environment variable usage and setup. This enhancement helps users configure their systems more accurately, minimizing potential errors.
+
+### 🔧 Maintenance
+- **Changelog Updates**: Revised the CHANGELOG to accurately reflect recent fixes and improvements. This update ensures users are well-informed about the latest changes, promoting transparency and ease of tracking project progress.
+
+This changelog is crafted to emphasize the user benefits of the recent bug fixes and documentation improvements, ensuring users understand the enhancements and their impact on system reliability and configuration accuracy.
+
 ## [v2.0.0-beta.49] - 2025-08-01
 
 This release focuses on enhancing the security and reliability of the authentication component through important dependency updates. While there are no new user-facing features, these updates ensure a more stable and secure experience for future releases.
