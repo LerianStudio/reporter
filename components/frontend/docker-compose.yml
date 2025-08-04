@@ -46,6 +46,7 @@ networks:
   plugin-smart-templates-manager-network:
     name: plugin-smart-templates-manager-network
     driver: bridge
+    external: true
   proxy-network:
     name: proxy-network
     driver: bridge

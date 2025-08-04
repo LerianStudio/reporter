@@ -19,7 +19,7 @@ export class SmartDataSourceRepository implements DataSourceRepository {
         '/v1/data-sources'
       )
 
-    return response?.map(SmartDataSourceMapper.toEntity) || []
+    return SmartDataSourceMapper.toListEntity(response)
   }
 
   async fetchById(id: string): Promise<DataSource> {
