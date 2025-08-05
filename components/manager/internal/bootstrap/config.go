@@ -173,10 +173,7 @@ func InitServers() *Service {
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
-	authClient := &middleware.AuthClient{
-		Address: cfg.AuthAddress,
-		Enabled: cfg.AuthEnabled,
-	}
+	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
 
 	templateHandler := &in2.TemplateHandler{
 		Service: templateService,
