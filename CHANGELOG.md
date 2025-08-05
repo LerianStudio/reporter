@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.55] - 2025-08-05
+
+This release focuses on enhancing the reliability of user authentication processes, ensuring smoother login experiences and more stable configuration handling.
+
+### 🐛 Bug Fixes
+- **Improved Authentication Stability**: Resolved an issue with the initialization of the AuthClient. This fix enhances the reliability of user authentication, ensuring smoother login experiences and more stable configuration handling across the application.
+
+### 🔧 Maintenance
+- **Changelog Update**: Updated the CHANGELOG to reflect recent changes and improvements. This ensures all modifications are documented for transparency and future reference, aiding in better version tracking and user communication.
+
+This changelog provides a concise overview of the key improvements in version 2.0.0, focusing on the benefits to users, such as enhanced authentication reliability. The maintenance update ensures users are informed about the documentation improvements, promoting transparency and effective communication.
+
 ## [v2.0.0-beta.54] - 2025-08-04
 
 This release focuses on enhancing the accuracy and reliability of our documentation, ensuring users have access to the most current information and maintaining a clear record of project updates.
