@@ -2,12 +2,10 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v2/pkg/model"
-	"strings"
-
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
+	"plugin-smart-templates/v2/pkg/model"
 )
 
 // GetDataSourceInformation getting all data sources information connected on plugin smart templates
@@ -50,7 +48,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 			}
 		}
 
-		if dataSourceInformation != nil && strings.TrimSpace(dataSourceInformation.Id) != "" {
+		if dataSourceInformation != nil && dataSourceInformation.Id != "" {
 			result = append(result, dataSourceInformation)
 		}
 	}
