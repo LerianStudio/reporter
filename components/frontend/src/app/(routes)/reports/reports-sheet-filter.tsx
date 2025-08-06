@@ -38,49 +38,22 @@ export function ReportsSheetFilter({
     name: name as any
   })
 
-  const currentDatabase = field?.database || ''
-  const currentTable = field?.table || ''
-  const currentField = field?.field || ''
-
   const { data: dataSourceDetails } = useGetDataSourceById({
     organizationId: currentOrganization?.id!,
-    dataSourceId: currentDatabase
+    dataSourceId: field?.database
   })
 
-  const availableTables = React.useMemo(() => {
-    return dataSourceDetails?.tables || []
-  }, [dataSourceDetails])
+  const availableTables = React.useMemo(
+    () => dataSourceDetails?.tables || [],
+    [dataSourceDetails]
+  )
 
   const availableFields = React.useMemo(() => {
     const table = dataSourceDetails?.tables?.find(
-      (t) => t.name === currentTable
+      (t) => t.name === field?.table
     )
     return table?.fields || []
-  }, [currentTable, dataSourceDetails])
-
-  // Clear dependent fields when database changes
-  React.useEffect(() => {
-    if (currentDatabase) {
-      setValue(`${name}.table` as any, '')
-      setValue(`${name}.field` as any, '')
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentDatabase, setValue, name])
-
-  // Clear dependent fields when table changes
-  React.useEffect(() => {
-    if (currentTable) {
-      setValue(`${name}.field` as any, '')
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentTable, setValue, name])
-
-  // Clear values when field changes
-  React.useEffect(() => {
-    if (currentField) {
-      setValue(`${name}.values` as any, '')
-    }
-  }, [currentField, setValue, name])
+  }, [field?.table, dataSourceDetails])
 
   return (
     <div className="space-y-4 rounded-lg border p-6">
@@ -109,6 +82,11 @@ export function ReportsSheetFilter({
             id: 'reports.filters.database.tooltip',
             defaultMessage: 'Select the database to filter from'
           })}
+          onChange={() => {
+            setValue(`${name}.table` as any, '')
+            setValue(`${name}.field` as any, '')
+            setValue(`${name}.values` as any, '')
+          }}
           control={control}
           disabled={loading}
         >
@@ -130,8 +108,12 @@ export function ReportsSheetFilter({
             id: 'reports.filters.table.tooltip',
             defaultMessage: 'Select the table to filter from'
           })}
+          onChange={() => {
+            setValue(`${name}.field` as any, '')
+            setValue(`${name}.values` as any, '')
+          }}
           control={control}
-          disabled={loading || !currentDatabase}
+          disabled={loading || !field?.database}
         >
           {availableTables.map((table) => (
             <SelectItem key={table.name} value={table.name}>
@@ -153,8 +135,11 @@ export function ReportsSheetFilter({
             id: 'reports.filters.field.tooltip',
             defaultMessage: 'Select the field to filter by'
           })}
+          onChange={() => {
+            setValue(`${name}.values` as any, '')
+          }}
           control={control}
-          disabled={loading || !currentTable}
+          disabled={loading || !field?.table}
         >
           {availableFields.map((field) => (
             <SelectItem key={field} value={field}>

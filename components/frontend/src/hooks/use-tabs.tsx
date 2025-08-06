@@ -16,7 +16,7 @@ export type UseTabsProps = {
  * @returns
  */
 export const useTabs = ({ initialValue, onTabChange }: UseTabsProps) => {
-  const { searchParams, updateSearchParams } = useSearchParams()
+  const { searchParams, setSearchParams } = useSearchParams()
   const [activeTab, setActiveTab] = React.useState(initialValue || '')
 
   /**
@@ -25,7 +25,7 @@ export const useTabs = ({ initialValue, onTabChange }: UseTabsProps) => {
    */
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    updateSearchParams({ tab })
+    setSearchParams({ tab })
     onTabChange?.(tab)
   }
 

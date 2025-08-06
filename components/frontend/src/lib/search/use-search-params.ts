@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  useSearchParams as useNextSearchParams,
-  usePathname,
-  useRouter
-} from 'next/navigation'
+import { useSearchParams as useNextSearchParams } from 'next/navigation'
 import { useMemo } from 'react'
 import { getSearchParams } from './get-search-params'
 import { isNil, omitBy } from 'lodash'
@@ -16,8 +12,6 @@ import { createQueryString } from './create-query-string'
  * @returns
  */
 export function useSearchParams() {
-  const pathname = usePathname()
-  const router = useRouter()
   const nextSearchParams = useNextSearchParams()
 
   /**
@@ -27,7 +21,7 @@ export function useSearchParams() {
   const setSearchParams = (values: {}) => {
     const params = omitBy(omitBy(values, isNil), (v) => v === '')
 
-    router.replace(pathname + createQueryString(params))
+    window.history.pushState({}, '', createQueryString(params))
   }
 
   /**
@@ -42,7 +36,7 @@ export function useSearchParams() {
       (v) => v === ''
     )
 
-    router.replace(pathname + createQueryString(params))
+    window.history.pushState({}, '', createQueryString(params))
   }
 
   /**
