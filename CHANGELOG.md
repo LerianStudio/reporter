@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.59] - 2025-08-06
+
+This release introduces significant enhancements to task distribution and maintenance, improving system performance and user convenience.
+
+### ✨ Features
+- **Optimized Task Distribution**: A new job distribution system now effectively splits tasks between backend and frontend components. This enhancement optimizes resource utilization, resulting in a more responsive and efficient user experience.
+
+### ⚡ Performance
+- **Codebase Streamlining**: Redundant code structures have been removed, leading to a cleaner codebase. This improvement enhances system performance and reduces the potential for future bugs, ensuring a smoother user experience.
+
+### 🔄 Changes
+- **Automatic Updates for Firmino**: Configuration changes now enable automatic updates for Firmino, ensuring users always have access to the latest features and security patches without manual intervention. This change enhances system reliability and minimizes downtime.
+
+### 📚 Documentation
+- **Changelog Updates**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring that users are informed about the latest updates and enhancements. This supports transparency and user awareness of ongoing project developments.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates have been made to keep documentation current, supporting user understanding and engagement with the latest software features.
+
+This changelog highlights the most significant changes and their benefits to users, ensuring clarity and accessibility for both technical and non-technical audiences.
+
 ## [v2.0.0-beta.58] - 2025-08-06
 
 This release focuses on enhancing the user experience by fixing key bugs in the frontend, ensuring smoother navigation and more reliable application performance. We've also improved our testing framework to maintain high-quality standards.
