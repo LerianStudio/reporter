@@ -1,14 +1,11 @@
-import { inject, injectable } from 'inversify'
+import { inject } from 'inversify'
 import { NextResponse } from 'next/server'
 import { Controller } from '@/lib/http/server/decorators/controller-decorator'
 import { LoggerInterceptor } from '@/core/infrastructure/logger/decorators'
 import { ListDataSourcesUseCase } from '../use-cases/data-sources/list-data-sources-use-case'
 import { GetDataSourceUseCase } from '../use-cases/data-sources/get-data-source-use-case'
-
-type DataSourceParams = {
-  id: string
-  dataSourceId?: string
-}
+import { Get, Param } from '@/lib/http/server'
+import { BaseController } from '@/lib/http/server/base-controller'
 
 /**
  * Data Source Controller
@@ -17,27 +14,24 @@ type DataSourceParams = {
  * Provides RESTful endpoints for retrieving data source information and details.
  * Follows console patterns with proper request/response handling.
  */
-@injectable()
 @LoggerInterceptor()
 @Controller()
-export class DataSourceController {
+export class DataSourceController extends BaseController {
   constructor(
     @inject(ListDataSourcesUseCase)
     private readonly listDataSourcesUseCase: ListDataSourcesUseCase,
     @inject(GetDataSourceUseCase)
     private readonly getDataSourceDetailsUseCase: GetDataSourceUseCase
-  ) {}
+  ) {
+    super()
+  }
 
   /**
    * GET /api/data-sources
    * Fetches all available data sources
    */
-  async fetchAll(
-    request: Request,
-    { params }: { params: DataSourceParams }
-  ): Promise<NextResponse> {
-    const { id: organizationId } = await params
-
+  @Get()
+  async fetchAll(@Param('id') organizationId: string): Promise<NextResponse> {
     const dataSources =
       await this.listDataSourcesUseCase.execute(organizationId)
 
@@ -48,12 +42,11 @@ export class DataSourceController {
    * GET /api/data-sources/[dataSourceId]
    * Fetches detailed information for a specific data source
    */
+  @Get()
   async fetchById(
-    request: Request,
-    { params }: { params: DataSourceParams }
+    @Param('id') organizationId: string,
+    @Param('dataSourceId') dataSourceId: string
   ): Promise<NextResponse> {
-    const { id: organizationId, dataSourceId } = await params
-
     const dataSourceDetails = await this.getDataSourceDetailsUseCase.execute(
       organizationId,
       dataSourceId!
