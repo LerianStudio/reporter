@@ -1,16 +1,18 @@
 import { renderHook, act } from '@testing-library/react'
 import { useSearchParams } from './use-search-params'
-import {
-  useRouter,
-  usePathname,
-  useSearchParams as useNextSearchParams
-} from 'next/navigation'
+import { useSearchParams as useNextSearchParams } from 'next/navigation'
 import { createQueryString } from './create-query-string'
 import { getSearchParams } from './get-search-params'
 
+const mockPushState = jest.fn()
+Object.defineProperty(window, 'history', {
+  value: {
+    pushState: mockPushState
+  },
+  writable: true
+})
+
 jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(),
-  usePathname: jest.fn(),
   useSearchParams: jest.fn()
 }))
 
@@ -23,13 +25,9 @@ jest.mock('./get-search-params', () => ({
 }))
 
 describe('useSearchParams', () => {
-  const mockReplace = jest.fn()
-  const mockPathname = '/test-path'
   const mockSearchParams = { param1: 'value1', param2: 'value2' }
 
   beforeEach(() => {
-    ;(useRouter as jest.Mock).mockReturnValue({ replace: mockReplace })
-    ;(usePathname as jest.Mock).mockReturnValue(mockPathname)
     ;(useNextSearchParams as jest.Mock).mockReturnValue(mockSearchParams)
     ;(getSearchParams as jest.Mock).mockReturnValue(mockSearchParams)
     jest.clearAllMocks()
@@ -47,7 +45,7 @@ describe('useSearchParams', () => {
     })
 
     expect(createQueryString).toHaveBeenCalledWith(newParams)
-    expect(mockReplace).toHaveBeenCalledWith(mockPathname + expectedQueryString)
+    expect(mockPushState).toHaveBeenCalledWith({}, '', expectedQueryString)
   })
 
   it('should update search params', () => {
@@ -66,6 +64,6 @@ describe('useSearchParams', () => {
       param2: 'newValue2',
       param3: 'value3'
     })
-    expect(mockReplace).toHaveBeenCalledWith(mockPathname + expectedQueryString)
+    expect(mockPushState).toHaveBeenCalledWith({}, '', expectedQueryString)
   })
 })

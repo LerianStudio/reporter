@@ -1,17 +1,14 @@
 import { screen, render, act } from '@testing-library/react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+
+// Mock the custom useSearchParams hook
+const mockSetSearchParams = jest.fn()
+const mockUseSearchParams = jest.fn()
+
+jest.mock('../lib/search/use-search-params', () => ({
+  useSearchParams: () => mockUseSearchParams()
+}))
+
 import { useTabs } from './use-tabs'
-
-jest.mock('next/navigation')
-
-const pushMock = jest.fn()
-const replaceMock = jest.fn()
-
-jest.mocked(usePathname).mockReturnValue('example.com')
-jest.mocked(useRouter).mockReturnValue({
-  push: pushMock,
-  replace: replaceMock
-} as any)
 
 function TestComponent() {
   const { activeTab, handleTabChange } = useTabs({
@@ -26,10 +23,12 @@ function TestComponent() {
   )
 }
 
-function setup(toString = '') {
-  jest.mocked(useSearchParams).mockReturnValue({
-    toString: () => toString
-  } as any)
+function setup(searchParams: any = null) {
+  mockUseSearchParams.mockReturnValue({
+    searchParams,
+    setSearchParams: mockSetSearchParams
+  })
+
   render(<TestComponent />)
   const activeTab = screen.getByTestId('activeTab')
   const button = screen.getByTestId('changeTab')
@@ -37,12 +36,12 @@ function setup(toString = '') {
 }
 
 describe('useTabs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test('should change tabs', async () => {
     const { activeTab, button } = setup()
-
-    expect(useSearchParams).toHaveBeenCalled()
-    expect(usePathname).toHaveBeenCalled()
-    expect(useRouter).toHaveBeenCalled()
 
     expect(activeTab.innerHTML).toEqual('tab1')
 
@@ -51,21 +50,23 @@ describe('useTabs', () => {
     })
 
     expect(activeTab.innerHTML).toEqual('tab2')
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: 'tab2' })
   })
 
-  test('should change URL', async () => {
+  test('should call setSearchParams when tab changes', async () => {
     const { button } = setup()
 
     await act(() => {
       button.click()
     })
 
-    expect(replaceMock).toHaveBeenCalledWith(`example.com?tab=tab2`)
+    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: 'tab2' })
   })
 
-  test('should update activeTab from URL', async () => {
-    const { activeTab } = setup('tab=tab2')
+  test('should update activeTab from URL params', async () => {
+    const { activeTab } = setup({ tab: 'tab2' })
 
-    expect(activeTab.innerHTML).toEqual('tab1')
+    // The effect should update the activeTab to match the URL param
+    expect(activeTab.innerHTML).toEqual('tab2')
   })
 })
