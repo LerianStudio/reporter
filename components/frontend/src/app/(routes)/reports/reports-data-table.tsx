@@ -30,7 +30,7 @@ import { ReportDto } from '@/core/application/dto/report-dto'
 import { PaginationDto } from '@/core/application/dto/pagination-dto'
 import { IdTableCell } from '@/components/table/id-table-cell'
 import { useDownloadReport } from '@/client/reports'
-import { toast, useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/use-toast'
 import { useOrganization } from '@lerianstudio/console-layout'
 
 type ReportsDataTableProps = {
