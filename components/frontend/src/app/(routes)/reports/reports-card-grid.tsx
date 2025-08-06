@@ -80,27 +80,25 @@ export const ReportsCardGrid = ({
       </div>
 
       {/* Footer with pagination */}
-      {reportsWithFallback.items.length > 0 && (
-        <div className="space-y-4 py-4">
-          <div className="text-muted-foreground flex items-center justify-between text-sm">
-            <div>
-              {intl.formatMessage(
-                {
-                  id: 'reports.pagination.info',
-                  defaultMessage:
-                    'Showing {count} {count, plural, one {report} other {reports}}.'
-                },
-                {
-                  count: reportsWithFallback.items.length
-                }
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Pagination total={total} {...pagination} />
-            </div>
+      <div className="space-y-4 py-4">
+        <div className="text-muted-foreground flex items-center justify-between text-sm">
+          <div>
+            {intl.formatMessage(
+              {
+                id: 'reports.pagination.info',
+                defaultMessage:
+                  'Showing {count} {count, plural, one {report} other {reports}}.'
+              },
+              {
+                count: reportsWithFallback.items.length
+              }
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Pagination total={total} {...pagination} />
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
