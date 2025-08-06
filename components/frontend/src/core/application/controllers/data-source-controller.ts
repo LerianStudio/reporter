@@ -6,6 +6,7 @@ import { ListDataSourcesUseCase } from '../use-cases/data-sources/list-data-sour
 import { GetDataSourceUseCase } from '../use-cases/data-sources/get-data-source-use-case'
 
 type DataSourceParams = {
+  id: string
   dataSourceId?: string
 }
 
@@ -31,8 +32,14 @@ export class DataSourceController {
    * GET /api/data-sources
    * Fetches all available data sources
    */
-  async fetchAll(): Promise<NextResponse> {
-    const dataSources = await this.listDataSourcesUseCase.execute()
+  async fetchAll(
+    request: Request,
+    { params }: { params: DataSourceParams }
+  ): Promise<NextResponse> {
+    const { id: organizationId } = await params
+
+    const dataSources =
+      await this.listDataSourcesUseCase.execute(organizationId)
 
     return NextResponse.json(dataSources, { status: 200 })
   }
@@ -45,9 +52,10 @@ export class DataSourceController {
     request: Request,
     { params }: { params: DataSourceParams }
   ): Promise<NextResponse> {
-    const { dataSourceId } = await params
+    const { id: organizationId, dataSourceId } = await params
 
     const dataSourceDetails = await this.getDataSourceDetailsUseCase.execute(
+      organizationId,
       dataSourceId!
     )
 

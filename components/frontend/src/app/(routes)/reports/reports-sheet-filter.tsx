@@ -11,6 +11,7 @@ import { SelectItem } from '@/components/ui/select'
 import { DataSourceDto } from '@/core/application/dto/data-source-dto'
 import { type ReportFormData } from './reports-sheet'
 import { useGetDataSourceById } from '@/client/data-sources'
+import { useOrganization } from '@lerianstudio/console-layout'
 
 type ReportsSheetFilterProps = {
   name: string
@@ -28,6 +29,7 @@ export function ReportsSheetFilter({
   dataSources
 }: ReportsSheetFilterProps) {
   const intl = useIntl()
+  const { currentOrganization } = useOrganization()
   const { setValue } = useFormContext<ReportFormData>()
 
   // Watch the specific field values to enable cascading selects
@@ -41,6 +43,7 @@ export function ReportsSheetFilter({
   const currentField = field?.field || ''
 
   const { data: dataSourceDetails } = useGetDataSourceById({
+    organizationId: currentOrganization?.id!,
     dataSourceId: currentDatabase
   })
 

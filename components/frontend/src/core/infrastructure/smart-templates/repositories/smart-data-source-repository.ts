@@ -12,21 +12,29 @@ export class SmartDataSourceRepository implements DataSourceRepository {
     private readonly smartTemplatesHttpService: SmartTemplatesHttpService
   ) {}
 
-  async fetchAll(): Promise<DataSource[]> {
+  async fetchAll(organizationId: string): Promise<DataSource[]> {
     // Fetch all data sources from smart templates API
-    const response =
-      await this.smartTemplatesHttpService.get<SmartDataSourceDto[]>(
-        '/v1/data-sources'
-      )
+    const response = await this.smartTemplatesHttpService.get<
+      SmartDataSourceDto[]
+    >('/v1/data-sources', {
+      headers: {
+        'X-Organization-Id': organizationId
+      }
+    })
 
     return SmartDataSourceMapper.toListEntity(response)
   }
 
-  async fetchById(id: string): Promise<DataSource> {
+  async fetchById(organizationId: string, id: string): Promise<DataSource> {
     // Fetch data source by ID from smart templates API
     const response =
       await this.smartTemplatesHttpService.get<SmartDataSourceDto>(
-        `/v1/data-sources/${id}`
+        `/v1/data-sources/${id}`,
+        {
+          headers: {
+            'X-Organization-Id': organizationId
+          }
+        }
       )
 
     return SmartDataSourceMapper.toEntity(response)

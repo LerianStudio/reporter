@@ -75,7 +75,9 @@ export function ReportsSheet({
   })
 
   // Fetch data sources for database dropdown
-  const { data: dataSources } = useListDataSources({})
+  const { data: dataSources } = useListDataSources({
+    organizationId: currentOrganization?.id!
+  })
 
   // API mutation for creating report
   const createReportMutation = useCreateReport({
