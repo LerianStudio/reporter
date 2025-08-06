@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.56] - 2025-08-06
+
+This release of plugin-smart-templates introduces major enhancements to data management, reporting, and template systems, significantly improving user experience and efficiency.
+
+### ✨ Features  
+- **Enhanced Data Management**: Enjoy more robust and flexible data handling with improved integration across frontend and backend components. This streamlines data retrieval, boosting efficiency and user satisfaction.
+- **Upgraded Reporting System**: Access more comprehensive and customizable report options, enabling better data analysis and informed decision-making.
+- **Revamped Template System**: Experience more intuitive and versatile template creation and management, simplifying workflows and enhancing productivity.
+- **Updated HTTP Library**: Benefit from improved performance, security, and compatibility with modern web standards, ensuring reliable and fast network communications.
+
+### 🐛 Bug Fixes
+- **Resolved Frontend Pagination Issues**: Navigate data accurately across multiple pages with fixed pagination, ensuring consistent and reliable data presentation.
+
+### 🔄 Changes
+- **Data Source Requests Improvement**: Added organization ID to data source requests, enhancing data security and relevance through precise filtering and access control.
+
+### 🔧 Maintenance
+- **Changelog Update**: The project changelog has been updated to reflect recent changes and improvements, ensuring users and developers have access to the latest information about the software's evolution.
+
+These updates collectively enhance the plugin-smart-templates project by improving data handling, reporting, and template management, while also addressing critical bugs and maintaining the system's overall quality and performance.
+
 ## [v2.0.0-beta.55] - 2025-08-05
 
 This release focuses on enhancing the reliability of user authentication processes, ensuring smoother login experiences and more stable configuration handling.
