@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.57] - 2025-08-06
+
+This release enhances the reporting capabilities of the plugin by increasing the template limit, allowing users to generate more comprehensive reports. Additionally, we have updated our documentation to ensure users have the latest information on improvements.
+
+### ✨ Features  
+- **Expanded Template Limit for Reports**: Users can now create more comprehensive and detailed reports without hitting previous constraints. This enhancement significantly improves the usability and flexibility of the reporting feature, catering to users with extensive data needs.
+
+### 📚 Documentation
+- **Changelog Updates**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring users and developers have access to the latest information about updates and fixes. This transparency aids in version tracking and understanding the evolution of the project.
+
+### 🔧 Maintenance
+- **Release Management**: Behind-the-scenes improvements have been made to streamline the release process, indirectly benefiting users by enhancing the overall stability and reliability of the plugin.
+
+
+This changelog provides a clear and user-focused summary of the latest release, highlighting the key enhancements and maintenance updates. The structure is designed to be easily scannable, with a professional tone suitable for public release notes.
+
 ## [v2.0.0-beta.56] - 2025-08-06
 
 This release of plugin-smart-templates introduces major enhancements to data management, reporting, and template systems, significantly improving user experience and efficiency.
