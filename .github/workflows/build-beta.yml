@@ -123,7 +123,6 @@ jobs:
           working_dir: components/frontend
           platforms: 'linux/amd64'
 
-      # Tag file creation for GitOps update
       - name: Write GitOps tags
         if: contains(github.ref, '-beta')
         run: |
@@ -139,9 +138,9 @@ jobs:
           name: gitops-tags
           path: gitops-tags/
 
-  update_gitops:
+  update_gitops_backend:
     needs: build_and_publish
-    if: contains(github.ref, '-beta')
+    if: needs.detect_changes.outputs.has_backend == 'true' && contains(github.ref, '-beta')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -157,26 +156,54 @@ jobs:
           name: gitops-tags
           path: .gitops-tags
 
-      - name: Apply tag values
+      - name: Apply backend tag values
         run: |
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
           TAG=$(cut -d'=' -f2 .gitops-tags/manager.tag)
           yq e -i '.manager.image.tag = strenv(TAG)' "$FILE"
           yq e -i '.worker.image.tag = strenv(TAG)' "$FILE"
-          yq e -i '.frontend.image.tag = strenv(TAG)' "$FILE"
-
-          # Update configmap versions
           yq e -i '.manager.configmap.VERSION = strenv(TAG)' "$FILE"
           yq e -i '.manager.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
           yq e -i '.manager.configmap.SWAGGER_VERSION = strenv(TAG)' "$FILE"
-
           yq e -i '.worker.configmap.VERSION = strenv(TAG)' "$FILE"
           yq e -i '.worker.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
 
-      - name: Commit and push
+      - name: Commit and push backend
         run: |
           cd gitops
           git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
           git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
-          git commit -am "ci(plugin-smart-templates): update image tags and configmap versions"
+          git commit -am "ci(plugin-smart-templates): update backend image tags and configmap versions"
+          git push origin main
+
+  update_gitops_frontend:
+    needs: build_and_publish
+    if: needs.detect_changes.outputs.has_frontend == 'true' && contains(github.ref, '-beta')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: LerianStudio/midaz-firmino-gitops
+          token: ${{ secrets.MANAGE_TOKEN }}
+          path: gitops
+          fetch-depth: 0
+
+      - name: Download GitOps tag artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gitops-tags
+          path: .gitops-tags
+
+      - name: Apply frontend tag values
+        run: |
+          FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
+          TAG=$(cut -d'=' -f2 .gitops-tags/frontend.tag)
+          yq e -i '.frontend.image.tag = strenv(TAG)' "$FILE"
+
+      - name: Commit and push frontend
+        run: |
+          cd gitops
+          git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
+          git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
+          git commit -am "ci(plugin-smart-templates): update frontend image tag"
           git push origin main
