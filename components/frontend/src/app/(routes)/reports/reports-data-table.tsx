@@ -163,19 +163,36 @@ export const ReportsDataTable = ({
   return (
     <EntityDataTable.Root>
       {!reports?.items || reports.items.length === 0 ? (
-        <EmptyResource
-          message={intl.formatMessage({
-            id: 'reports.empty.message',
-            defaultMessage: "You haven't created any reports yet"
-          })}
-        >
-          <Button onClick={onCreateReport}>
-            {intl.formatMessage({
-              id: 'reports.actions.newReport',
-              defaultMessage: 'New Report'
+        <>
+          <EmptyResource
+            message={intl.formatMessage({
+              id: 'reports.empty.message',
+              defaultMessage: "You haven't created any reports yet"
             })}
-          </Button>
-        </EmptyResource>
+          >
+            <Button onClick={onCreateReport}>
+              {intl.formatMessage({
+                id: 'reports.actions.newReport',
+                defaultMessage: 'New Report'
+              })}
+            </Button>
+          </EmptyResource>
+          <EntityDataTable.Footer className="rounded-b-lg border-t border-[#E5E7EB] bg-white px-6 py-3">
+            <EntityDataTable.FooterText className="text-sm leading-8 font-medium text-[#A1A1AA] italic">
+              {intl.formatMessage(
+                {
+                  id: 'reports.pagination.info',
+                  defaultMessage:
+                    'Showing {count} {count, plural, one {report} other {reports}}.'
+                },
+                {
+                  count: reports?.items.length ?? 0
+                }
+              )}
+            </EntityDataTable.FooterText>
+            <Pagination total={total} {...pagination} />
+          </EntityDataTable.Footer>
+        </>
       ) : (
         <>
           <TableContainer>

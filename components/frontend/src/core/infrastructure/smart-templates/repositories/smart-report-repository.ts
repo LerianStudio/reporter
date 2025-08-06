@@ -1,13 +1,11 @@
 import { injectable, inject } from 'inversify'
 import {
   ReportEntity,
-  ReportStatus
+  ReportSearchEntity
 } from '@/core/domain/entities/report-entity'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
 import {
   ReportRepository,
-  ReportQueryFilters,
-  FetchReportsParams,
   DownloadFileResponse
 } from '@/core/domain/repositories/report-repository'
 import { SmartTemplatesHttpService } from '../services/smart-templates-http-service'
@@ -43,31 +41,27 @@ export class SmartReportRepository implements ReportRepository {
   }
 
   async fetchAll(
-    params: FetchReportsParams
+    organizationId: string,
+    query: ReportSearchEntity
   ): Promise<PaginationEntity<ReportEntity>> {
     const queryParams: Record<string, any> = {
-      limit: params.limit,
-      page: params.page
+      limit: query.limit,
+      page: query.page
     }
 
     // Add filters to query params
-    if (params.filters) {
-      if (params.filters.status) {
-        queryParams.status = params.filters.status
-      }
-      if (params.filters.templateId) {
-        queryParams.templateId = params.filters.templateId
-      }
-      if (params.filters.search) {
-        queryParams.search = params.filters.search
-      }
+    if (query.status) {
+      queryParams.status = query.status
+    }
+    if (query.search) {
+      queryParams.search = query.search
     }
 
     const response = await this.httpService.get<
       SmartPaginationDto<SmartReportDto>
     >(`${this.baseUrl}${createQueryString(queryParams)}`, {
       headers: {
-        'X-Organization-Id': params.organizationId
+        'X-Organization-Id': organizationId
       }
     })
 
@@ -78,7 +72,7 @@ export class SmartReportRepository implements ReportRepository {
       ...paginationResult,
       items: paginationResult.items.map((report) => ({
         ...report,
-        organizationId: params.organizationId
+        organizationId
       }))
     }
   }
@@ -97,47 +91,6 @@ export class SmartReportRepository implements ReportRepository {
       ...SmartReportMapper.toEntity(response),
       organizationId
     }
-  }
-
-  async fetchByStatus(
-    organizationId: string,
-    status: ReportStatus,
-    limit: number,
-    page: number
-  ): Promise<PaginationEntity<ReportEntity>> {
-    return this.fetchAll({
-      organizationId,
-      limit,
-      page,
-      filters: { status }
-    })
-  }
-
-  async fetchByTemplate(
-    organizationId: string,
-    templateId: string,
-    limit: number,
-    page: number
-  ): Promise<PaginationEntity<ReportEntity>> {
-    return this.fetchAll({
-      organizationId,
-      limit,
-      page,
-      filters: { templateId }
-    })
-  }
-
-  async getDownloadUrl(id: string, organizationId: string): Promise<string> {
-    const response = await this.httpService.get<{ downloadUrl: string }>(
-      `${this.baseUrl}/${id}/download-url`,
-      {
-        headers: {
-          'X-Organization-Id': organizationId
-        }
-      }
-    )
-
-    return response.downloadUrl
   }
 
   async downloadFile(
@@ -175,82 +128,5 @@ export class SmartReportRepository implements ReportRepository {
       fileName,
       contentType
     }
-  }
-
-  async countByOrganization(
-    organizationId: string,
-    filters?: ReportQueryFilters
-  ): Promise<number> {
-    const queryParams: Record<string, any> = {}
-
-    // Add filters to query params
-    if (filters) {
-      if (filters.status) {
-        queryParams.status = filters.status
-      }
-      if (filters.templateId) {
-        queryParams.templateId = filters.templateId
-      }
-      // Add other filters as needed
-    }
-
-    const response = await this.httpService.get<{ count: number }>(
-      `${this.baseUrl}/count${createQueryString(queryParams)}`,
-      {
-        headers: {
-          'X-Organization-Id': organizationId
-        }
-      }
-    )
-
-    return response.count
-  }
-
-  async countByStatus(
-    organizationId: string,
-    status: ReportStatus
-  ): Promise<number> {
-    return this.countByOrganization(organizationId, { status })
-  }
-
-  async search(
-    organizationId: string,
-    searchText: string,
-    limit: number,
-    page: number
-  ): Promise<PaginationEntity<ReportEntity>> {
-    return this.fetchAll({
-      organizationId,
-      limit,
-      page,
-      filters: { search: searchText }
-    })
-  }
-
-  async fetchProcessingReports(
-    organizationId: string,
-    olderThan?: Date
-  ): Promise<ReportEntity[]> {
-    const queryParams: Record<string, any> = {
-      status: 'Processing'
-    }
-
-    if (olderThan) {
-      queryParams.createdBefore = olderThan.toISOString()
-    }
-
-    const response = await this.httpService.get<SmartReportDto[]>(
-      `${this.baseUrl}/processing${createQueryString(queryParams)}`,
-      {
-        headers: {
-          'X-Organization-Id': organizationId
-        }
-      }
-    )
-
-    return response.map((dto) => ({
-      ...SmartReportMapper.toEntity(dto),
-      organizationId
-    }))
   }
 }

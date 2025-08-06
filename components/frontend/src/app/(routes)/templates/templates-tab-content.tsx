@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useIntl } from 'react-intl'
 import { TemplatesDataTable } from '@/app/(routes)/templates/templates-data-table'
 import { TemplatesSheet } from './templates-sheet'
@@ -24,7 +24,7 @@ import { OUTPUT_FORMAT_OPTIONS } from '@/schema/template'
 export function TemplatesTabContent() {
   const intl = useIntl()
   const { toast } = useToast()
-  const [total, setTotal] = useState(0)
+  const [total, setTotal] = useState(1000000)
   const { currentOrganization } = useOrganization()
 
   // Sheet state management
@@ -76,22 +76,6 @@ export function TemplatesTabContent() {
     organizationId: currentOrganization?.id || ''
   } as any)
 
-  // Update total when data changes to manage pagination properly
-  useEffect(() => {
-    if (!templatesData?.items) {
-      setTotal(0)
-      return
-    }
-
-    // If we have a full page of items, suggest there might be more
-    if (templatesData.items.length >= Number(searchValues.limit)) {
-      setTotal(Number(searchValues.limit) + 1)
-      return
-    }
-
-    setTotal(templatesData.items.length)
-  }, [templatesData?.items, searchValues.limit])
-
   // Create table data structure
   const table = useMemo(
     () => ({
@@ -141,7 +125,7 @@ export function TemplatesTabContent() {
             defaultMessage:
               'Are you sure you want to delete the template "{fileName}"? This action cannot be undone.'
           },
-          { fileName: selectedTemplate?.fileName || '' }
+          { fileName: selectedTemplate?.name || '' }
         )}
         loading={deleteTemplateMutation.isPending}
         {...dialogProps}

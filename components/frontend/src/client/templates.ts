@@ -102,7 +102,7 @@ export const useCreateTemplate = ({
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
-        queryKey: ['templates']
+        queryKey: ['templates', organizationId]
       })
       onSuccess?.(...args)
     },
@@ -125,10 +125,10 @@ export const useUpdateTemplate = ({
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
-        queryKey: ['templates']
+        queryKey: ['templates', organizationId]
       })
       await queryClient.invalidateQueries({
-        queryKey: ['templates', templateId]
+        queryKey: ['templates', organizationId, templateId]
       })
       onSuccess?.(...args)
     },
@@ -150,7 +150,7 @@ export const useDeleteTemplate = ({
     ),
     onSuccess: async (...args) => {
       await queryClient.invalidateQueries({
-        queryKey: ['templates']
+        queryKey: ['templates', organizationId]
       })
       onSuccess?.(...args)
     },

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { LayoutGridIcon, Plus, TableIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ import {
 
 export function ReportsTabContent() {
   const intl = useIntl()
-  const [total, setTotal] = useState(0)
+  const [total, setTotal] = useState(1000000)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const { currentOrganization } = useOrganization()
 
@@ -42,28 +42,7 @@ export function ReportsTabContent() {
     organizationId: currentOrganization?.id || ''
   } as any)
 
-  // Download functionality is now handled internally by ReportCard
-
-  // Update total when data changes to manage pagination properly
-  useEffect(() => {
-    if (!reportsData?.items) {
-      setTotal(0)
-      return
-    }
-
-    // If we have a full page of items, suggest there might be more
-    if (reportsData.items.length >= Number(searchValues.limit)) {
-      setTotal(Number(searchValues.limit) + 1)
-      return
-    }
-
-    setTotal(reportsData.items.length)
-  }, [reportsData?.items, searchValues.limit])
-
-  // Event handlers
-  const handleCreateReport = () => {
-    setIsSheetOpen(true)
-  }
+  const handleCreateReport = () => setIsSheetOpen(true)
 
   return (
     <FormProvider {...form}>

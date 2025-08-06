@@ -1,19 +1,8 @@
-import { TemplateEntity, TemplateFilters } from '../entities/template-entity'
+import {
+  TemplateEntity,
+  TemplateSearchEntity
+} from '../entities/template-entity'
 import { PaginationEntity } from '../entities/pagination-entity'
-
-/**
- * Parameters for fetching templates with pagination and filtering
- */
-export interface FetchTemplatesParams {
-  /** Organization ID for multi-tenant isolation */
-  organizationId: string
-  /** Number of items per page */
-  limit: number
-  /** Page number (1-based) */
-  page: number
-  /** Optional filters */
-  filters?: TemplateFilters
-}
 
 /**
  * Template Repository Interface
@@ -37,7 +26,8 @@ export abstract class TemplateRepository {
    * @returns Promise resolving to paginated list of templates
    */
   abstract fetchAll(
-    params: FetchTemplatesParams
+    organizationId: string,
+    query: TemplateSearchEntity
   ): Promise<PaginationEntity<TemplateEntity>>
 
   /**
@@ -74,30 +64,4 @@ export abstract class TemplateRepository {
    * @throws Error if template not found or doesn't belong to organization
    */
   abstract delete(id: string, organizationId: string): Promise<void>
-
-  /**
-   * Count total templates for an organization
-   * @param organizationId Organization ID
-   * @param filters Optional filters to apply
-   * @returns Promise resolving to total count
-   */
-  abstract countByOrganization(
-    organizationId: string,
-    filters?: TemplateFilters
-  ): Promise<number>
-
-  /**
-   * Search templates by text across fileName and description
-   * @param organizationId Organization ID for access control
-   * @param searchText Text to search for
-   * @param limit Maximum number of results
-   * @param page Page number for pagination
-   * @returns Promise resolving to paginated search results
-   */
-  abstract search(
-    organizationId: string,
-    searchText: string,
-    limit: number,
-    page: number
-  ): Promise<PaginationEntity<TemplateEntity>>
 }

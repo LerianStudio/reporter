@@ -1,13 +1,10 @@
 import { injectable, inject } from 'inversify'
 import {
   TemplateEntity,
-  TemplateFilters
+  TemplateSearchEntity
 } from '@/core/domain/entities/template-entity'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
-import {
-  TemplateRepository,
-  FetchTemplatesParams
-} from '@/core/domain/repositories/template-repository'
+import { TemplateRepository } from '@/core/domain/repositories/template-repository'
 import { SmartTemplatesHttpService } from '../services/smart-templates-http-service'
 import { SmartTemplateMapper } from '../mappers/smart-template-mapper'
 import { SmartTemplateDto } from '../dto/smart-template-dto'
@@ -43,20 +40,21 @@ export class SmartTemplateRepository implements TemplateRepository {
   }
 
   async fetchAll(
-    params: FetchTemplatesParams
+    organizationId: string,
+    query: TemplateSearchEntity
   ): Promise<PaginationEntity<TemplateEntity>> {
     const queryParams: Record<string, any> = {
-      limit: params.limit,
-      page: params.page
+      limit: query.limit,
+      page: query.page
     }
 
     // Add filters to query params
-    if (params.filters) {
-      if (params.filters.outputFormat) {
-        queryParams.outputFormat = params.filters.outputFormat
+    if (query.outputFormat) {
+      if (query.outputFormat) {
+        queryParams.outputFormat = query.outputFormat
       }
-      if (params.filters.name) {
-        queryParams.description = params.filters.name
+      if (query.name) {
+        queryParams.description = query.name
       }
     }
 
@@ -64,7 +62,7 @@ export class SmartTemplateRepository implements TemplateRepository {
       SmartPaginationDto<SmartTemplateDto>
     >(`${this.baseUrl}${createQueryString(queryParams)}`, {
       headers: {
-        'X-Organization-Id': params.organizationId
+        'X-Organization-Id': organizationId
       }
     })
 
@@ -135,43 +133,5 @@ export class SmartTemplateRepository implements TemplateRepository {
         'X-Organization-Id': organizationId
       }
     })
-  }
-
-  async countByOrganization(
-    organizationId: string,
-    filters?: TemplateFilters
-  ): Promise<number> {
-    // Since the API doesn't provide a dedicated count endpoint,
-    // we'll fetch with a small limit to get an approximation
-    const params: FetchTemplatesParams = {
-      organizationId,
-      limit: 1,
-      page: 1,
-      filters
-    }
-
-    const result = await this.fetchAll(params)
-    // This is an approximation - in a real implementation,
-    // the API should provide total count
-    return result.items.length
-  }
-
-  async search(
-    organizationId: string,
-    searchText: string,
-    limit: number,
-    page: number
-  ): Promise<PaginationEntity<TemplateEntity>> {
-    // Search both fileName and description
-    const params: FetchTemplatesParams = {
-      organizationId,
-      limit,
-      page,
-      filters: {
-        name: searchText
-      }
-    }
-
-    return this.fetchAll(params)
   }
 }

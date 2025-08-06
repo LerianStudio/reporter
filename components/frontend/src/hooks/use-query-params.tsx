@@ -129,6 +129,9 @@ export function useQueryParams<SearchParams = {}>({
       limit: pagination.limit.toString(),
       ...value
     })
+
+    pagination.setPage(Number(value.page))
+    pagination.setLimit(Number(value.limit))
   }, [])
 
   return { form, searchValues, pagination }

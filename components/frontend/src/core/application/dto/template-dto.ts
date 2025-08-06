@@ -1,4 +1,10 @@
 import { OutputFormat } from '@/core/domain/entities/template-entity'
+import { SearchParamDto } from './request-dto'
+
+export type TemplateSearchParamDto = SearchParamDto & {
+  outputFormat?: OutputFormat
+  name?: string
+}
 
 /**
  * DTO for creating a new template

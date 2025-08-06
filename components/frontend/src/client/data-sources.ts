@@ -7,29 +7,42 @@ const basePath =
   getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
   process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
 
-type UseGetDataSourceByIdProps = {
-  dataSourceId: string
+type UseListDataSourcesProps = {
+  organizationId: string
 }
 
 /**
  * Hook for fetching all available data sources for an organization
  */
-export const useListDataSources = ({ ...options }) => {
+export const useListDataSources = ({
+  organizationId,
+  ...options
+}: UseListDataSourcesProps) => {
   return useQuery<DataSourceDto[]>({
-    queryKey: ['data-sources'],
-    queryFn: getFetcher(`${basePath}/api/data-sources`),
+    queryKey: ['data-sources', organizationId],
+    queryFn: getFetcher(
+      `${basePath}/api/organizations/${organizationId}/data-sources`
+    ),
     ...options
   })
+}
+
+type UseGetDataSourceByIdProps = {
+  organizationId: string
+  dataSourceId: string
 }
 
 /**
  * Hook for fetching detailed information about a specific data source
  */
 export const useGetDataSourceById = ({
+  organizationId,
   dataSourceId
 }: UseGetDataSourceByIdProps) => {
   return useQuery<DataSourceDto>({
-    queryKey: ['data-sources', dataSourceId],
-    queryFn: getFetcher(`${basePath}/api/data-sources/${dataSourceId}`)
+    queryKey: ['data-sources', organizationId, dataSourceId],
+    queryFn: getFetcher(
+      `${basePath}/api/organizations/${organizationId}/data-sources/${dataSourceId}`
+    )
   })
 }

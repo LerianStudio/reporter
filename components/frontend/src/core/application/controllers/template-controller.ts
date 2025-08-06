@@ -1,4 +1,4 @@
-import { inject, injectable } from 'inversify'
+import { inject } from 'inversify'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Controller } from '@/lib/http/server/decorators/controller-decorator'
@@ -10,6 +10,9 @@ import { UpdateTemplateUseCase } from '../use-cases/templates/update-template-us
 import { DeleteTemplateUseCase } from '../use-cases/templates/delete-template-use-case'
 import { ValidateFormData } from '@/lib/zod/decorators/validate-form-data'
 import { OutputFormat } from '@/core/domain/entities/template-entity'
+import { Delete, Get, Param, Query } from '@/lib/http/server'
+import type { TemplateSearchParamDto } from '../dto/template-dto'
+import { BaseController } from '@/lib/http/server/base-controller'
 
 type TemplateParams = {
   id: string // organization ID
@@ -40,6 +43,8 @@ const CreateFormDataSchema = z.object({
     .refine((file) => file.size > 0, 'File cannot be empty')
 })
 
+type CreateFormData = z.infer<typeof CreateFormDataSchema>
+
 const UpdateFormDataSchema = z.object({
   name: z.string().max(1000).optional(),
   outputFormat: z
@@ -59,6 +64,8 @@ const UpdateFormDataSchema = z.object({
     .optional()
 })
 
+type UpdateFormData = z.infer<typeof UpdateFormDataSchema>
+
 /**
  * Template Controller
  *
@@ -66,10 +73,9 @@ const UpdateFormDataSchema = z.object({
  * Provides RESTful endpoints that delegate to appropriate use cases.
  * Follows console patterns with proper request/response handling.
  */
-@injectable()
 @LoggerInterceptor()
 @Controller()
-export class TemplateController {
+export class TemplateController extends BaseController {
   constructor(
     @inject(CreateTemplateUseCase)
     private readonly createTemplateUseCase: CreateTemplateUseCase,
@@ -81,15 +87,19 @@ export class TemplateController {
     private readonly updateTemplateUseCase: UpdateTemplateUseCase,
     @inject(DeleteTemplateUseCase)
     private readonly deleteTemplateUseCase: DeleteTemplateUseCase
-  ) {}
+  ) {
+    super()
+  }
 
   /**
    * Get a specific template by ID
    * GET /api/organizations/{id}/templates/{templateId}
    */
-  async fetchById(request: Request, { params }: { params: TemplateParams }) {
-    const { id: organizationId, templateId } = await params
-
+  @Get()
+  async fetchById(
+    @Param('id') organizationId: string,
+    @Param('templateId') templateId: string
+  ) {
     const template = await this.getTemplateUseCase.execute(
       templateId!,
       organizationId
@@ -102,21 +112,15 @@ export class TemplateController {
    * List templates with pagination and filtering
    * GET /api/organizations/{id}/templates
    */
-  async fetchAll(request: Request, { params }: { params: TemplateParams }) {
-    const { searchParams } = new URL(request.url)
-    const limit = Number(searchParams.get('limit')) || 10
-    const page = Number(searchParams.get('page')) || 1
-    const outputFormat = searchParams.get('outputFormat') || undefined
-    const name = searchParams.get('name') || undefined
-    const { id: organizationId } = await params
-
-    const templates = await this.listTemplatesUseCase.execute({
+  @Get()
+  async fetchAll(
+    @Param('id') organizationId: string,
+    @Query() query: TemplateSearchParamDto
+  ) {
+    const templates = await this.listTemplatesUseCase.execute(
       organizationId,
-      limit,
-      page,
-      outputFormat,
-      name
-    })
+      query
+    )
 
     return NextResponse.json(templates)
   }
@@ -127,36 +131,28 @@ export class TemplateController {
    */
   @ValidateFormData(CreateFormDataSchema)
   async create(request: Request, { params }: { params: TemplateParams }) {
-    try {
-      const formData = await request.formData()
-      const organizationId = (await params).id
-      const name = (formData.get('name') as string) || ''
-      const outputFormat = formData.get('outputFormat') as any
-      const templateFile = formData.get('templateFile') as File
+    const formData = await request.formData()
+    const organizationId = (await params).id
+    const name = (formData.get('name') as string) || ''
+    const outputFormat = formData.get('outputFormat') as any
+    const templateFile = formData.get('templateFile') as File
 
-      // Additional file validation
-      if (!templateFile || templateFile.size === 0) {
-        return NextResponse.json(
-          { error: 'Template file is required' },
-          { status: 400 }
-        )
-      }
-
-      const template = await this.createTemplateUseCase.execute({
-        organizationId,
-        name,
-        outputFormat,
-        templateFile
-      })
-
-      return NextResponse.json(template, { status: 201 })
-    } catch (error) {
-      console.error('Template creation error:', error)
+    // Additional file validation
+    if (!templateFile || templateFile.size === 0) {
       return NextResponse.json(
-        { error: 'Failed to create template' },
-        { status: 500 }
+        { error: 'Template file is required' },
+        { status: 400 }
       )
     }
+
+    const template = await this.createTemplateUseCase.execute({
+      organizationId,
+      name,
+      outputFormat,
+      templateFile
+    })
+
+    return NextResponse.json(template, { status: 201 })
   }
 
   /**
@@ -165,43 +161,36 @@ export class TemplateController {
    */
   @ValidateFormData(UpdateFormDataSchema)
   async update(request: Request, { params }: { params: TemplateParams }) {
-    try {
-      const formData = await request.formData()
-      const organizationId = (await params).id
-      const templateId = (await params).templateId
+    const formData = await request.formData()
+    const organizationId = (await params).id
+    const templateId = (await params).templateId
 
-      const name = (formData.get('name') as string) || undefined
-      const outputFormat = formData.get('outputFormat') as any
-      const templateFile = formData.get('templateFile') as File | null
+    const name = (formData.get('name') as string) || undefined
+    const outputFormat = formData.get('outputFormat') as any
+    const templateFile = formData.get('templateFile') as File | null
 
-      const template = await this.updateTemplateUseCase.execute(
-        templateId!,
-        organizationId,
-        {
-          name,
-          outputFormat,
-          templateFile: templateFile || undefined
-        }
-      )
+    const template = await this.updateTemplateUseCase.execute(
+      templateId!,
+      organizationId,
+      {
+        name,
+        outputFormat,
+        templateFile: templateFile || undefined
+      }
+    )
 
-      return NextResponse.json(template)
-    } catch (error) {
-      console.error('Template update error:', error)
-      return NextResponse.json(
-        { error: 'Failed to update template' },
-        { status: 500 }
-      )
-    }
+    return NextResponse.json(template)
   }
 
   /**
    * Delete a template (soft delete)
    * DELETE /api/organizations/{id}/templates/{templateId}
    */
-  async delete(request: Request, { params }: { params: TemplateParams }) {
-    const organizationId = params.id
-    const templateId = params.templateId
-
+  @Delete()
+  async delete(
+    @Param('id') organizationId: string,
+    @Param('templateId') templateId: string
+  ) {
     await this.deleteTemplateUseCase.execute(templateId!, organizationId)
 
     return NextResponse.json({}, { status: 200 })
