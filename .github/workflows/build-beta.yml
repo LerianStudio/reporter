@@ -124,15 +124,17 @@ jobs:
           platforms: 'linux/amd64'
 
       - name: Write GitOps tags
-        if: contains(github.ref, '-beta')
         run: |
           mkdir -p gitops-tags
-          echo "manager=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/manager.tag
-          echo "worker=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/worker.tag
-          echo "frontend=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/frontend.tag
+          if [[ "${{ needs.detect_changes.outputs.has_backend }}" == "true" ]]; then
+            echo "manager=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/manager.tag
+            echo "worker=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/worker.tag
+          fi
+          if [[ "${{ needs.detect_changes.outputs.has_frontend }}" == "true" ]]; then
+            echo "frontend=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/frontend.tag
+          fi
 
       - name: Upload GitOps tag artifact
-        if: contains(github.ref, '-beta')
         uses: actions/upload-artifact@v4
         with:
           name: gitops-tags
