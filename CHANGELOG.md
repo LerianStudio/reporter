@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.58] - 2025-08-06
+
+This release focuses on enhancing the user experience by fixing key bugs in the frontend, ensuring smoother navigation and more reliable application performance. We've also improved our testing framework to maintain high-quality standards.
+
+### 🐛 Bug Fixes
+- **Consistent Navigation Experience**: Resolved an issue where report filters were not being cleared when changing tabs. This fix ensures that users experience consistent behavior when navigating between different sections of the application, reducing confusion and improving usability.
+- **Reliable URL Handling**: Corrected URL handling to address a navigation bug. This update enhances the reliability of the application by ensuring that users are directed to the correct pages without encountering errors.
+
+### 🔧 Maintenance
+- **Enhanced Testing Framework**: Updated unit tests to improve coverage and accuracy, ensuring that new and existing functionalities are thoroughly tested. This change enhances the robustness of the application, leading to fewer bugs and more reliable performance.
+- **Changelog Update**: Updated the CHANGELOG to reflect recent changes and improvements, ensuring that users and developers have access to the latest information about updates and fixes, facilitating better understanding and tracking of project progress.
+
+This changelog provides a clear and concise overview of the improvements made in version 2.0.0, focusing on the benefits to users and maintaining a professional tone suitable for public release notes.
+
 ## [v2.0.0-beta.57] - 2025-08-06
 
 This release enhances the reporting capabilities of the plugin by increasing the template limit, allowing users to generate more comprehensive reports. Additionally, we have updated our documentation to ensure users have the latest information on improvements.
