@@ -59,12 +59,6 @@ export function useQueryParams<SearchParams = {}>({
 
     setSearchValues(newValues)
 
-    // Avoid updating the URL if the searchParams are empty and the pagination is at the first page
-    // Always update after that
-    if (pagination.page === 1 && pagination.limit === 10) {
-      return
-    }
-
     const queryParams = pick(searchParams, Object.keys(newValues))
 
     // Avoid updating the URL if the searchParams are empty and the pagination is at the first page
@@ -130,6 +124,7 @@ export function useQueryParams<SearchParams = {}>({
       ...value
     })
 
+    // Set the pagination to the values from the URL
     pagination.setPage(Number(value.page))
     pagination.setLimit(Number(value.limit))
   }, [])

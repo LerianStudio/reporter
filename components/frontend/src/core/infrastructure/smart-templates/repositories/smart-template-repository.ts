@@ -50,12 +50,10 @@ export class SmartTemplateRepository implements TemplateRepository {
 
     // Add filters to query params
     if (query.outputFormat) {
-      if (query.outputFormat) {
-        queryParams.outputFormat = query.outputFormat
-      }
-      if (query.name) {
-        queryParams.description = query.name
-      }
+      queryParams.outputFormat = query.outputFormat
+    }
+    if (query.name) {
+      queryParams.description = query.name
     }
 
     const response = await this.httpService.get<
