@@ -11,7 +11,6 @@ permissions:
   pull-requests: write
   packages: write
 
-
 jobs:
   detect_changes:
     runs-on: firmino-lxc-runners
@@ -46,14 +45,21 @@ jobs:
           else
             echo "has_frontend=false" >> "$GITHUB_OUTPUT"
           fi
-  
-  # Build and Publish Docker Image to GHCR        
-  build_and_publish_ghcr_backend:
+
+  build_and_publish:
     needs: detect_changes
-    if: needs.detect_changes.outputs.has_backend == 'true'
+    if: needs.detect_changes.outputs.has_backend == 'true' || needs.detect_changes.outputs.has_frontend == 'true'
     runs-on: firmino-lxc-runners
     steps:
-      - name: Build And Publish Manager Docker Image to GHCR
+      - uses: actions/checkout@v4
+
+      - name: Extract tag name
+        id: extract_tag
+        run: echo "tag=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      # Manager
+      - name: Build and publish manager to GHCR
+        if: needs.detect_changes.outputs.has_backend == 'true'
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-manager'
@@ -62,8 +68,20 @@ jobs:
           token: ${{ secrets.MANAGE_TOKEN }}
           platforms: 'linux/amd64'
 
-      # Build and Publish Docker Image to GHCR
-      - name: Build And Publish Worker Docker Image to GHCR
+      - name: Build and publish manager to Docker Hub
+        if: needs.detect_changes.outputs.has_backend == 'true'
+        uses: LerianStudio/github-actions-docker-private-pipeline@main
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
+          app_name: 'plugin-smart-templates-manager'
+          working_dir: components/manager
+          platforms: 'linux/amd64'
+
+      # Worker
+      - name: Build and publish worker to GHCR
+        if: needs.detect_changes.outputs.has_backend == 'true'
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-worker'
@@ -72,58 +90,122 @@ jobs:
           token: ${{ secrets.MANAGE_TOKEN }}
           platforms: 'linux/amd64'
 
-  # Build and Publish Docker Image to Dockerhub
-  build_and_publish_dockerhub_backend:
-    needs: detect_changes
-    if: needs.detect_changes.outputs.has_backend == 'true'
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Docker Image to Dockerhub
+      - name: Build and publish worker to Docker Hub
+        if: needs.detect_changes.outputs.has_backend == 'true'
         uses: LerianStudio/github-actions-docker-private-pipeline@main
         with:
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
+          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
           app_name: 'plugin-smart-templates-worker'
-          working_dir: 'components/worker'
-          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
+          working_dir: components/worker
           platforms: 'linux/amd64'
-      
-      - name: Build And Publish Docker Image to Dockerhub
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
-        with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          app_name: 'plugin-smart-templates-manager'
-          working_dir: 'components/manager'
-          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-          platforms: 'linux/amd64'
-  
-  # Build and Publish Docker Image to GHCR - FRONTEND        
-  build_and_publish_ghcr_frontend:
-    needs: detect_changes
-    if: needs.detect_changes.outputs.has_frontend == 'true'
-    runs-on: firmino-lxc-runners
-    steps:    
-      - name: Build And Publish Frontend Docker Image to GHCR
+
+      # Frontend
+      - name: Build and publish frontend to GHCR
+        if: needs.detect_changes.outputs.has_frontend == 'true'
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
           app_name: 'plugin-smart-templates-frontend'
+          context: .
           working_dir: components/frontend
           token: ${{ secrets.MANAGE_TOKEN }}
           platforms: 'linux/amd64'
-  
-  # Build and Publish Docker Image to Dockerhub - FRONTEND        
-  build_and_publish_dockerhub_frontend:
-    needs: detect_changes
-    if: needs.detect_changes.outputs.has_frontend == 'true'
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Docker Image to Dockerhub - frontend
+
+      - name: Build and publish frontend to Docker Hub
+        if: needs.detect_changes.outputs.has_frontend == 'true'
         uses: LerianStudio/github-actions-docker-private-pipeline@main
         with:
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
           app_name: 'plugin-smart-templates-frontend'
-          working_dir: 'components/frontend'        
+          working_dir: components/frontend
           platforms: 'linux/amd64'
+
+      - name: Write GitOps tags
+        run: |
+          mkdir -p gitops-tags
+          if [[ "${{ needs.detect_changes.outputs.has_backend }}" == "true" ]]; then
+            echo "manager=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/manager.tag
+            echo "worker=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/worker.tag
+          fi
+          if [[ "${{ needs.detect_changes.outputs.has_frontend }}" == "true" ]]; then
+            echo "frontend=${{ steps.extract_tag.outputs.tag }}" > gitops-tags/frontend.tag
+          fi
+
+      - name: Upload GitOps tag artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitops-tags
+          path: gitops-tags/
+
+  update_gitops_backend:
+    needs: build_and_publish
+    if: needs.detect_changes.outputs.has_backend == 'true' && contains(github.ref, '-beta')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: LerianStudio/midaz-firmino-gitops
+          token: ${{ secrets.MANAGE_TOKEN }}
+          path: gitops
+          fetch-depth: 0
+
+      - name: Download GitOps tag artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gitops-tags
+          path: .gitops-tags
+
+      - name: Apply backend tag values
+        run: |
+          FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
+          TAG=$(cut -d'=' -f2 .gitops-tags/manager.tag)
+          yq e -i '.manager.image.tag = strenv(TAG)' "$FILE"
+          yq e -i '.worker.image.tag = strenv(TAG)' "$FILE"
+          yq e -i '.manager.configmap.VERSION = strenv(TAG)' "$FILE"
+          yq e -i '.manager.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
+          yq e -i '.manager.configmap.SWAGGER_VERSION = strenv(TAG)' "$FILE"
+          yq e -i '.worker.configmap.VERSION = strenv(TAG)' "$FILE"
+          yq e -i '.worker.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
+
+      - name: Commit and push backend
+        run: |
+          cd gitops
+          git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
+          git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
+          git commit -am "ci(plugin-smart-templates): update backend image tags and configmap versions"
+          git push origin main
+
+  update_gitops_frontend:
+    needs: build_and_publish
+    if: needs.detect_changes.outputs.has_frontend == 'true' && contains(github.ref, '-beta')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: LerianStudio/midaz-firmino-gitops
+          token: ${{ secrets.MANAGE_TOKEN }}
+          path: gitops
+          fetch-depth: 0
+
+      - name: Download GitOps tag artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gitops-tags
+          path: .gitops-tags
+
+      - name: Apply frontend tag values
+        run: |
+          FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
+          TAG=$(cut -d'=' -f2 .gitops-tags/frontend.tag)
+          yq e -i '.frontend.image.tag = strenv(TAG)' "$FILE"
+
+      - name: Commit and push frontend
+        run: |
+          cd gitops
+          git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
+          git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
+          git commit -am "ci(plugin-smart-templates): update frontend image tag"
+          git push origin main
