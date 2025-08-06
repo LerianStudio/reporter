@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useIntl } from 'react-intl'
 import { TemplatesDataTable } from '@/app/(routes)/templates/templates-data-table'
 import { TemplatesSheet } from './templates-sheet'
@@ -125,7 +125,7 @@ export function TemplatesTabContent() {
             defaultMessage:
               'Are you sure you want to delete the template "{fileName}"? This action cannot be undone.'
           },
-          { fileName: selectedTemplate?.fileName || '' }
+          { fileName: selectedTemplate?.name || '' }
         )}
         loading={deleteTemplateMutation.isPending}
         {...dialogProps}

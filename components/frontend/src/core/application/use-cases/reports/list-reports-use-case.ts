@@ -1,25 +1,16 @@
 import { inject, injectable } from 'inversify'
-import {
-  ReportRepository,
-  ReportQueryFilters
-} from '@/core/domain/repositories/report-repository'
+import { ReportRepository } from '@/core/domain/repositories/report-repository'
 import { TemplateRepository } from '@/core/domain/repositories/template-repository'
-import { ReportDto } from '../../dto/report-dto'
+import type { ReportDto, ReportSearchParamDto } from '../../dto/report-dto'
 import { ReportMapper } from '../../mappers/report-mapper'
 import { LogOperation } from '@/core/infrastructure/logger/decorators/log-operation'
 import { PaginationDto } from '../../dto/pagination-dto'
-import { ReportStatus } from '@/core/domain/entities/report-entity'
-
-export type ListReportsParams = {
-  organizationId: string
-  limit: number
-  page: number
-  status?: ReportStatus
-  search?: string
-}
 
 export type ListReports = {
-  execute(params: ListReportsParams): Promise<PaginationDto<ReportDto>>
+  execute(
+    organizationId: string,
+    query: ReportSearchParamDto
+  ): Promise<PaginationDto<ReportDto>>
 }
 
 @injectable()
@@ -32,20 +23,12 @@ export class ListReportsUseCase implements ListReports {
   ) {}
 
   @LogOperation({ layer: 'application' })
-  async execute(params: ListReportsParams): Promise<PaginationDto<ReportDto>> {
-    // Build filters from parameters
-    const filters: ReportQueryFilters = {
-      status: params.status,
-      search: params.search
-    }
-
+  async execute(
+    organizationId: string,
+    query: ReportSearchParamDto
+  ): Promise<PaginationDto<ReportDto>> {
     // Fetch paginated reports
-    const reports = await this.reportRepository.fetchAll({
-      organizationId: params.organizationId,
-      limit: params.limit,
-      page: params.page,
-      filters
-    })
+    const reports = await this.reportRepository.fetchAll(organizationId, query)
 
     // Fetch template data for each report
     const reportsWithTemplates = await Promise.allSettled(
@@ -53,7 +36,7 @@ export class ListReportsUseCase implements ListReports {
         try {
           const template = await this.templateRepository.fetchById(
             report.templateId,
-            params.organizationId
+            organizationId
           )
           return {
             ...report,

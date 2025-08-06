@@ -1,4 +1,4 @@
-import { inject, injectable } from 'inversify'
+import { inject } from 'inversify'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Controller } from '@/lib/http/server/decorators/controller-decorator'
@@ -7,8 +7,9 @@ import { GenerateReportUseCase } from '../use-cases/reports/generate-report-use-
 import { ListReportsUseCase } from '../use-cases/reports/list-reports-use-case'
 import { GetReportStatusUseCase } from '../use-cases/reports/get-report-status-use-case'
 import { DownloadReportUseCase } from '../use-cases/reports/download-report-use-case'
-import { ValidateFormData } from '@/lib/zod/decorators/validate-form-data'
-import { ReportStatus } from '@/core/domain/entities/report-entity'
+import { Body, Get, Param, Post, Query } from '@/lib/http/server'
+import { BaseController } from '@/lib/http/server/base-controller'
+import type { ReportSearchParamDto } from '../dto/report-dto'
 
 type ReportParams = {
   id: string // organization ID
@@ -40,6 +41,8 @@ const CreateReportSchema = z.object({
     .optional()
 })
 
+type CreateReportData = z.infer<typeof CreateReportSchema>
+
 /**
  * Report Controller
  *
@@ -48,10 +51,9 @@ const CreateReportSchema = z.object({
  * Supports async processing, status polling, and streaming file downloads.
  * Follows console patterns with proper request/response handling.
  */
-@injectable()
 @LoggerInterceptor()
 @Controller()
-export class ReportController {
+export class ReportController extends BaseController {
   constructor(
     @inject(GenerateReportUseCase)
     private readonly generateReportUseCase: GenerateReportUseCase,
@@ -61,15 +63,19 @@ export class ReportController {
     private readonly getReportStatusUseCase: GetReportStatusUseCase,
     @inject(DownloadReportUseCase)
     private readonly downloadReportUseCase: DownloadReportUseCase
-  ) {}
+  ) {
+    super()
+  }
 
   /**
    * Get a specific report status by ID
    * GET /api/organizations/{id}/reports/{reportId}
    */
-  async fetchById(request: Request, { params }: { params: ReportParams }) {
-    const { id: organizationId, reportId } = await params
-
+  @Get()
+  async fetchById(
+    @Param('id') organizationId: string,
+    @Param('reportId') reportId: string
+  ) {
     const report = await this.getReportStatusUseCase.execute({
       id: reportId!,
       organizationId
@@ -82,22 +88,12 @@ export class ReportController {
    * List reports with pagination and filtering
    * GET /api/organizations/{id}/reports
    */
-  async fetchAll(request: Request, { params }: { params: ReportParams }) {
-    const { searchParams } = new URL(request.url)
-    const limit = Number(searchParams.get('limit')) || 10
-    const page = Number(searchParams.get('page')) || 1
-    const status = searchParams.get('status') as ReportStatus | undefined
-    const search = searchParams.get('search') || undefined
-
-    const { id: organizationId } = await params
-
-    const reports = await this.listReportsUseCase.execute({
-      organizationId,
-      limit,
-      page,
-      status,
-      search
-    })
+  @Get()
+  async fetchAll(
+    @Param('id') organizationId: string,
+    @Query() query: ReportSearchParamDto
+  ) {
+    const reports = await this.listReportsUseCase.execute(organizationId, query)
 
     return NextResponse.json(reports)
   }
@@ -106,13 +102,15 @@ export class ReportController {
    * Generate a new report (async processing)
    * POST /api/organizations/{id}/reports
    */
-  async create(request: Request) {
-    const requestData = await request.json()
-
+  @Post()
+  async create(
+    @Param('id') organizationId: string,
+    @Body(CreateReportSchema) body: CreateReportData
+  ) {
     const report = await this.generateReportUseCase.execute({
-      templateId: requestData.templateId,
-      organizationId: requestData.organizationId,
-      filters: requestData.filters
+      templateId: body.templateId,
+      organizationId,
+      filters: body.filters
     })
 
     return NextResponse.json(report, { status: 201 })
@@ -122,11 +120,12 @@ export class ReportController {
    * Download completed report file (streaming)
    * GET /api/organizations/{id}/reports/{reportId}/download
    */
-  async download(request: Request, { params }: { params: ReportParams }) {
+  @Get()
+  async download(
+    @Param('id') organizationId: string,
+    @Param('reportId') reportId: string
+  ) {
     try {
-      const organizationId = (await params).id
-      const reportId = (await params).reportId
-
       if (!reportId) {
         return NextResponse.json(
           { error: 'Report ID is required' },
@@ -175,14 +174,12 @@ export class ReportController {
    * Get download information for a report (without streaming)
    * GET /api/organizations/{id}/reports/{reportId}/download-info
    */
+  @Get()
   async getDownloadInfo(
-    request: Request,
-    { params }: { params: ReportParams }
+    @Param('id') organizationId: string,
+    @Param('reportId') reportId: string
   ) {
     try {
-      const organizationId = (await params).id
-      const reportId = (await params).reportId
-
       if (!reportId) {
         return NextResponse.json(
           { error: 'Report ID is required' },

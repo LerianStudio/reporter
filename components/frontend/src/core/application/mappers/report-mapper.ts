@@ -1,12 +1,5 @@
-import {
-  ReportEntity,
-  ReportFilters
-} from '@/core/domain/entities/report-entity'
-import {
-  ReportDto,
-  ReportFiltersDto,
-  CreateReportDto
-} from '@/core/application/dto/report-dto'
+import { ReportEntity } from '@/core/domain/entities/report-entity'
+import { ReportDto } from '@/core/application/dto/report-dto'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
 import { PaginationMapper } from './pagination-mapper'
 import { TemplateMapper } from './template-mapper'
@@ -52,49 +45,6 @@ export class ReportMapper {
       createdAt: entity.createdAt!,
       updatedAt: entity.updatedAt!,
       completedAt: entity.completedAt
-    }
-  }
-
-  /**
-   * Convert a CreateReportDto to an entity for creation
-   */
-  static fromCreateDto(dto: CreateReportDto): ReportEntity {
-    return {
-      templateId: dto.templateId,
-      organizationId: dto.organizationId,
-      filters: dto.filters,
-      metadata: dto.metadata,
-      createdAt: new Date()
-    }
-  }
-
-  /**
-   * Convert ReportFilters to ReportFiltersDto
-   */
-  static filtersToDto(filters: ReportFilters): ReportFiltersDto {
-    return {
-      date_range: filters.date_range,
-      account_types: filters.account_types,
-      minimum_balance: filters.minimum_balance,
-      maximum_balance: filters.maximum_balance,
-      asset_codes: filters.asset_codes,
-      portfolio_ids: filters.portfolio_ids,
-      search: filters.search
-    }
-  }
-
-  /**
-   * Convert ReportFiltersDto to ReportFilters
-   */
-  static filtersFromDto(dto: ReportFiltersDto): ReportFilters {
-    return {
-      date_range: dto.date_range,
-      account_types: dto.account_types,
-      minimum_balance: dto.minimum_balance,
-      maximum_balance: dto.maximum_balance,
-      asset_codes: dto.asset_codes,
-      portfolio_ids: dto.portfolio_ids,
-      search: dto.search
     }
   }
 

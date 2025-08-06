@@ -1,4 +1,5 @@
 import { MetadataEntity } from './metadata-entity'
+import { PaginationSearchEntity } from './pagination-entity'
 import { TemplateEntity } from './template-entity'
 
 // Report status types following PRD specification (Processing → Finished/Failed)
@@ -10,6 +11,12 @@ export type FilterField = {
   table: string
   field: string
   values: string[]
+}
+
+export type ReportSearchEntity = PaginationSearchEntity & {
+  status?: ReportStatus
+  search?: string
+  templateId?: string
 }
 
 // Report filters for data querying
