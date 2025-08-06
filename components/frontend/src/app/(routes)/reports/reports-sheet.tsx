@@ -71,7 +71,9 @@ export function ReportsSheet({
 
   // Fetch templates for dropdown
   const { data: templates } = useListTemplates({
-    organizationId: currentOrganization?.id || ''
+    organizationId: currentOrganization?.id!,
+    page: 1,
+    limit: 100
   })
 
   // Fetch data sources for database dropdown
