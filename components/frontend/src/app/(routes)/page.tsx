@@ -86,7 +86,6 @@ export default function Page() {
 
         <CollapsibleContent>
           <Alert className="relative">
-            {/* Help Circle Icon */}
             <div className="absolute top-4 left-4">
               <HelpCircle className="h-6 w-6 text-zinc-600" />
             </div>
