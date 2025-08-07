@@ -19,7 +19,7 @@ RUN chmod +x /scripts/entrypoint.sh
 # Copy .env.example to the working directory
 COPY components/frontend/.env.example .env.example
 
-# Run the command to set environment variables (if needed)
+# Run the command to set environment variables
 RUN npm run set-env
 
 # Copy the rest of the application source code

@@ -120,6 +120,7 @@ jobs:
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
           app_name: 'plugin-smart-templates-frontend'
+          context: .
           working_dir: components/frontend
           platforms: 'linux/amd64'
 
