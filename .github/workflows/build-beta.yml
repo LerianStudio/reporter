@@ -162,14 +162,24 @@ jobs:
       - name: Apply backend tag values
         run: |
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
-          TAG=$(cut -d'=' -f2 .gitops-tags/manager.tag)
-          yq e -i '.manager.image.tag = strenv(TAG)' "$FILE"
-          yq e -i '.worker.image.tag = strenv(TAG)' "$FILE"
-          yq e -i '.manager.configmap.VERSION = strenv(TAG)' "$FILE"
-          yq e -i '.manager.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
-          yq e -i '.manager.configmap.SWAGGER_VERSION = strenv(TAG)' "$FILE"
-          yq e -i '.worker.configmap.VERSION = strenv(TAG)' "$FILE"
-          yq e -i '.worker.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
+          TAG=$(grep '^manager=' .gitops-tags/manager.tag | cut -d'=' -f2 | xargs)
+        
+          echo "DEBUG: Loaded backend tag -> '$TAG'"
+        
+          if [ -n "$TAG" ]; then
+            yq e -i '.manager.image.tag = strenv(TAG)' "$FILE"
+            yq e -i '.worker.image.tag = strenv(TAG)' "$FILE"
+            yq e -i '.manager.configmap.VERSION = strenv(TAG)' "$FILE"
+            yq e -i '.manager.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
+            yq e -i '.manager.configmap.SWAGGER_VERSION = strenv(TAG)' "$FILE"
+            yq e -i '.worker.configmap.VERSION = strenv(TAG)' "$FILE"
+            yq e -i '.worker.configmap.OTEL_RESOURCE_SERVICE_VERSION = strenv(TAG)' "$FILE"
+          else
+            echo "❌ Empty backend tag detected. Skipping update."
+            exit 1
+          fi
+        env:
+          TAG: ${{ env.TAG }}
 
       - name: Commit and push backend
         run: |
@@ -200,8 +210,18 @@ jobs:
       - name: Apply frontend tag values
         run: |
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
-          TAG=$(cut -d'=' -f2 .gitops-tags/frontend.tag)
-          yq e -i '.frontend.image.tag = strenv(TAG)' "$FILE"
+          TAG=$(grep '^frontend=' .gitops-tags/frontend.tag | cut -d'=' -f2 | xargs)
+        
+          echo "DEBUG: Loaded tag -> '$TAG'"
+        
+          if [ -n "$TAG" ]; then
+            yq -i '.frontend.image.tag = strenv(TAG)' "$FILE"
+          else
+            echo "❌ Empty tag value detected. Skipping update."
+            exit 1
+          fi
+        env:
+          TAG: ${{ env.TAG }}
 
       - name: Commit and push frontend
         run: |
