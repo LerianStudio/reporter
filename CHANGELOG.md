@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.61] - 2025-08-07
+
+This release introduces a streamlined deployment process via DockerHub, enhancing the ease of building and deploying the plugin-smart-templates. Documentation updates ensure users can fully leverage these new capabilities.
+
+### ✨ Features  
+- **Simplified Deployment with DockerHub**: We've added DockerHub build configuration, allowing you to effortlessly build and deploy the plugin-smart-templates directly from DockerHub. This enhancement simplifies your integration and deployment workflow, making it easier to manage and deploy applications efficiently.
+
+### 📚 Documentation
+- **Updated Deployment Guides**: The documentation now includes detailed guidance on using the new DockerHub build configuration. This update ensures you have all the information needed to utilize the new feature, reducing the learning curve and enhancing usability.
+
+### 🔧 Maintenance
+- **Changelog Updates**: The CHANGELOG has been updated to reflect the latest changes, keeping you informed about the project's evolution and ensuring you have access to the most current information.
+
+
 ## [v2.0.0-beta.60] - 2025-08-07
 
 This release focuses on enhancing the user interface and maintaining up-to-date project documentation, ensuring a smoother experience for developers and users alike.
