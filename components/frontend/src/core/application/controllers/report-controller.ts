@@ -11,32 +11,21 @@ import { Body, Get, Param, Post, Query } from '@/lib/http/server'
 import { BaseController } from '@/lib/http/server/base-controller'
 import type { ReportSearchParamDto } from '../dto/report-dto'
 
-type ReportParams = {
-  id: string // organization ID
-  reportId?: string
-}
-
 const CreateReportSchema = z.object({
   templateId: z.string().uuid('Template ID must be a valid UUID'),
   organizationId: z.string().min(1, 'Organization ID is required'),
   filters: z
     .object({
-      date_range: z
-        .object({
-          start: z.string().datetime('Invalid start date format'),
-          end: z.string().datetime('Invalid end date format')
-        })
-        .refine(
-          (data) => new Date(data.start) <= new Date(data.end),
-          'Start date must be before or equal to end date'
+      fields: z
+        .array(
+          z.object({
+            database: z.string(),
+            table: z.string(),
+            field: z.string(),
+            values: z.array(z.string())
+          })
         )
-        .optional(),
-      account_types: z.array(z.string()).optional(),
-      minimum_balance: z.number().min(0).optional(),
-      maximum_balance: z.number().min(0).optional(),
-      asset_codes: z.array(z.string()).optional(),
-      portfolio_ids: z.array(z.string().uuid()).optional(),
-      search: z.string().max(255).optional()
+        .optional()
     })
     .optional()
 })
