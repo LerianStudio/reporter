@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.62] - 2025-08-07
+
+This release brings a major update to the user interface, enhancing navigation and usability, alongside crucial bug fixes for improved reliability.
+
+### ✨ Features  
+- **Revamped Console Layout**: Experience a more intuitive and streamlined user interface with the redesigned console layout. This update enhances navigation efficiency, making it easier for users to interact with the console and access features quickly.
+
+### 🐛 Bug Fixes
+- **Accurate Report Filtering**: Resolved an issue affecting data filters during report generation, ensuring users receive consistent and expected results. This fix improves the reliability of report outputs.
+- **Template Selector Improvement**: Fixed a bug in the template selector's filter functionality, allowing users to accurately filter and select templates without errors, thereby enhancing the selection process's usability.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to reflect recent changes and improvements, providing users with a current and informative overview of the latest updates.
+
+
 ## [v2.0.0-beta.61] - 2025-08-07
 
 This release introduces a streamlined deployment process via DockerHub, enhancing the ease of building and deploying the plugin-smart-templates. Documentation updates ensure users can fully leverage these new capabilities.
