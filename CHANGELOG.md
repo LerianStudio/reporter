@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.60] - 2025-08-07
+
+This release focuses on enhancing the user interface and maintaining up-to-date project documentation, ensuring a smoother experience for developers and users alike.
+
+### ✨ Features  
+- **Streamlined Frontend Interface**: We've removed unnecessary comments from the frontend codebase. This enhancement improves code readability and maintainability, allowing developers to work more efficiently and potentially enhancing load times for end users.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog now accurately reflects recent updates and improvements. This ensures that both users and developers have a clear understanding of the project's progression, aiding in better communication and project management.
+
+### 🔧 Maintenance
+- **Codebase Clean-Up**: By refining the frontend code, we've laid the groundwork for faster feature development and easier bug fixes, indirectly benefiting all users by accelerating the delivery of future updates.
+
+No breaking changes are included in this release, ensuring a seamless upgrade experience without requiring additional user actions.
+
 ## [v2.0.0-beta.59] - 2025-08-06
 
 This release introduces significant enhancements to task distribution and maintenance, improving system performance and user convenience.
