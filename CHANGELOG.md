@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0] - 2025-08-08
+
+This major release of plugin-smart-templates introduces enhanced security, improved performance, and significant updates to monitoring capabilities. Users should review breaking changes to ensure smooth integration.
+
+### ⚠️ Breaking Changes
+- **Ledger ID Removal:** The `ledgerId` has been removed from forms and reports, affecting data input and output. Users must update any scripts or integrations relying on `ledgerId` for continued functionality.
+- **Release Flow Update:** A new standardized release flow is in place. Review the updated release documentation to adapt your workflows accordingly.
+- **Conversion Script Removal:** OpenAPI to Postman conversion scripts have been discontinued. Users should seek alternative solutions for API documentation conversion.
+- **API Documentation Update:** The `LedgerID` has been removed from Swagger definitions. Update your API clients to align with these changes.
+- **Module Update:** The backend module has been updated to v2. Ensure your dependencies are compatible with the new versioning scheme.
+
+### ✨ Features
+- **Enhanced Monitoring:** OpenTelemetry tracing is now implemented for data sources and message consumers, providing improved observability across services.
+- **SSL Support:** Added support for SSL connections, enhancing the security of data transmissions.
+- **Caching for Data Retrieval:** Introduced caching for endpoint data retrieval by ID, significantly improving response times for repeated requests.
+- **License Integration:** Implemented license management for worker and manager components, streamlining compliance and administration.
+
+### 🐛 Bug Fixes
+- **Navigation Fix:** Resolved an issue preventing access to account settings, restoring full navigation functionality.
+- **Persistent Report Filters:** Fixed a bug where report filters were cleared when changing tabs, ensuring consistent filter application.
+- **Authentication Reliability:** Corrected AuthClient initialization issues, enhancing user login experience.
+- **Data Source Accuracy:** Addressed data source request issues by adding organization ID, ensuring accurate data retrieval.
+
+### ⚡ Performance
+- **Docker Build Optimization:** Optimized Dockerfile configurations, reducing build times and improving deployment efficiency.
+- **Improved Report Generation:** Enhanced filtering and pagination in report generation, providing users with greater control and flexibility.
+
+### 🔄 Changes
+- **Console Layout Update:** The frontend console layout has been updated for improved user interface consistency and data management efficiency.
+
+### 🗑️ Removed
+- **Conversion Scripts:** OpenAPI to Postman conversion scripts have been removed. Users should transition to alternative documentation methods.
+
+### 📚 Documentation
+- **Documentation Overhaul:** Refactored documentation structure and removed unused XML fields, improving clarity and reducing clutter.
+
+### 🔧 Maintenance
+- **Dependency Updates:** Updated dependencies like `lib-commons`, `lib-auth`, and `fiber` to their latest stable versions, enhancing security and performance.
+- **Telemetry Code Refactor:** Refactored telemetry code to remove redundant imports and enhance span attributes, improving code quality.
+
+Users are encouraged to review these changes thoroughly to understand their impact and take necessary actions for a seamless transition.
+
 ## [v2.0.0-beta.64] - 2025-08-08
 
 This release introduces a streamlined configuration process for release management, enhancing the efficiency and accuracy of future project updates.
