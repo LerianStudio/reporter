@@ -5,7 +5,7 @@ FROM golang:1.23-alpine AS builder
 # Install required packages: git is needed for private modules (e.g., from GitHub)
 RUN apk add --no-cache git
 
-# Install garble separately to improve layer caching
+# Install garble separately to improve layer caching build times
 RUN go install mvdan.cc/garble@latest
 
 # Set the working directory for the build
