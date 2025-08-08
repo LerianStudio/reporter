@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0] - 2025-08-08
+
+This release introduces significant enhancements to our API and build processes, improving scalability and efficiency for all users. Please review the breaking changes section for necessary migration steps.
+
+### ⚠️ Breaking Changes
+- **Backend/API Update**: We have introduced a new API for worker processes, which changes existing API behavior. This update is designed to enhance scalability and performance. **Action Required**: Users must update their integration points to align with the new API structure. Please refer to our updated documentation for detailed migration steps.
+
+### ✨ Features  
+- **Streamlined Build Configuration**: We've implemented a new build configuration for the frontend, significantly reducing build times and enhancing deployment speed. This improvement will streamline development workflows, allowing for faster iteration and delivery.
+
+### 📚 Documentation
+- **Updated Guides**: Our documentation has been updated to reflect the new API changes and frontend build configuration. This ensures you have the latest information to facilitate a smooth transition and fully leverage the new features.
+
+### 🔧 Maintenance
+- **Changelog Enhancements**: We are committed to transparency and have made regular updates to our CHANGELOG to keep you informed about ongoing developments and improvements.
+
+This changelog is structured to provide a clear and concise overview of the changes in version 3.0.0, focusing on the impact and benefits for users. It highlights the breaking changes and necessary actions, new features, and documentation updates, ensuring users have the information they need to adapt and benefit from the latest enhancements.
+
 ## [v2.0.0-beta.66] - 2025-08-08
 
 This release enhances the build process for the frontend component, delivering faster build times and a more reliable deployment pipeline. Users will experience quicker updates and a smoother development workflow.
