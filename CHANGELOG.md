@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.63] - 2025-08-08
+
+This release focuses on enhancing the user experience by ensuring consistent branding and improving documentation transparency.
+
+### 🐛 Bug Fixes
+- **Frontend/Backend**: Corrected the application title in the manifest to 'Smart Templates'. This update standardizes the branding across all interfaces, enhancing user recognition and trust in the application.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect the latest changes, ensuring users and developers have access to the most current information about the software's evolution, aiding in transparency and communication.
+
+### 🔧 Maintenance
+- **Documentation**: Regular updates to the documentation ensure clarity and accessibility, supporting users in understanding the software's capabilities and changes.
+
+This changelog provides a concise overview of the changes in version 2.0.0, focusing on user experience improvements and documentation updates. Each section highlights the value and impact of the changes, presented in a clear and accessible manner.
+
 ## [v2.0.0-beta.62] - 2025-08-07
 
 This release brings a major update to the user interface, enhancing navigation and usability, alongside crucial bug fixes for improved reliability.
