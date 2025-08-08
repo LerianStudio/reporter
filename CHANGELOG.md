@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.66] - 2025-08-08
+
+This release enhances the build process for the frontend component, delivering faster build times and a more reliable deployment pipeline. Users will experience quicker updates and a smoother development workflow.
+
+### ✨ Features  
+- **Streamlined Build Configuration**: The frontend component now benefits from an optimized build process. This enhancement reduces build times and increases reliability, allowing users to receive updates more quickly and with fewer errors. This change makes managing deployments easier and more efficient.
+
+### 📚 Documentation
+- **Updated Changelog**: We've refreshed our documentation to ensure users have access to the latest information about updates and improvements. This helps maintain transparency and keeps all stakeholders informed about the project's progress.
+
+### 🔧 Maintenance
+- **Changelog Improvements**: The changelog has been updated to accurately reflect recent changes and enhancements, ensuring users are well-informed about the latest developments in the project.
+
+
+This changelog is crafted to highlight the key benefits and improvements introduced in version 2.0.0 of the plugin-smart-templates project. It focuses on user impact, ensuring that users understand the value of the changes without delving into technical details.
+
 ## [v2.0.0-beta.65] - 2025-08-08
 
 This release introduces a major update to the worker process API, enhancing scalability and performance. Users will experience improved task handling efficiency, but should review integration points due to breaking changes.
