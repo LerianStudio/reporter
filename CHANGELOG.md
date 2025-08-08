@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0-beta.65] - 2025-08-08
+
+This release introduces a major update to the worker process API, enhancing scalability and performance. Users will experience improved task handling efficiency, but should review integration points due to breaking changes.
+
+### ⚠️ Breaking Changes
+- **API Update**: The worker process API has been overhauled for better scalability and performance. This change affects existing API endpoints and requires users to update their integration points. Please review the updated API documentation for guidance on transitioning to the new structure.
+
+### ✨ Features  
+- **Enhanced Worker Process Handling**: The new API significantly boosts task processing efficiency, particularly benefiting users handling high volumes of data. This improvement allows for faster and more reliable task execution.
+
+### ⚡ Performance
+- **Improved Scalability**: The updated API architecture enhances scalability, allowing for more efficient resource utilization and faster task processing. Users should notice a marked improvement in application responsiveness during high-load scenarios.
+
+### 📚 Documentation
+- **Updated API Guides**: Comprehensive updates to the documentation provide clear instructions on transitioning to the new API. This ensures users have the necessary information to adapt their systems smoothly and take full advantage of the new capabilities.
+
+### 🔧 Maintenance
+- **Build and Test Enhancements**: The build and testing frameworks have been updated to accommodate the new API changes, ensuring robust validation of all components. This results in a more stable and reliable development environment.
+
+This changelog is structured to clearly communicate the key updates in version 3.0.0, focusing on the impact and benefits for users. Breaking changes are prominently highlighted with guidance for migration, while new features and performance improvements are described in terms of user value. Documentation updates and maintenance improvements are also noted to ensure users are well-informed about the changes.
+
 ## [v2.0.0-beta.64] - 2025-08-08
 
 This release introduces a streamlined configuration process for release management, enhancing the efficiency and accuracy of future project updates.
