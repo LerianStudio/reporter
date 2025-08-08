@@ -5,9 +5,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
-	httpUtils "plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	httpUtils "plugin-smart-templates/v2/pkg/net/http"
 	"testing"
 )
 
@@ -50,7 +50,7 @@ func Test_getAllTemplates(t *testing.T) {
 			filter: filter,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), filter).
+					FindList(gomock.Any(), filter).
 					Return(resultEntity, nil)
 			},
 			expectErr: false,
@@ -68,7 +68,7 @@ func Test_getAllTemplates(t *testing.T) {
 			filter: filter,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), gomock.Any(), filter).
+					FindList(gomock.Any(), filter).
 					Return(nil, constant.ErrBadRequest)
 			},
 			expectErr:      true,

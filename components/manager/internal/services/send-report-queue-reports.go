@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
 	"os"
-	"plugin-smart-templates/pkg/model"
+	"plugin-smart-templates/v2/pkg/model"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // SendReportQueueReports sends a report to the queue of a generation reports message to a RabbitMQ queue for further processing.
@@ -12,12 +15,22 @@ import (
 func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
 
-	ctxLogTransaction, spanLogTransaction := tracer.Start(ctx, "command.send_report_queue_reports")
-	defer spanLogTransaction.End()
+	ctx, span := tracer.Start(ctx, "service.send_report_queue")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", reportMessage)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert report message to JSON string", err)
+	}
 
 	if _, err := uc.RabbitMQRepo.ProducerDefault(
-		ctxLogTransaction,
+		ctx,
 		os.Getenv("RABBITMQ_EXCHANGE"),
 		os.Getenv("RABBITMQ_GENERATE_REPORT_KEY"),
 		reportMessage,

@@ -13,18 +13,29 @@ definitions:
             type: object
           type: object
         type: object
-      ledgerId:
-        example:
-        - 00000000-0000-0000-0000-000000000000
-        items:
-          type: string
-        type: array
       templateId:
         example: 00000000-0000-0000-0000-000000000000
         type: string
     required:
     - filters
     - templateId
+    type: object
+  DataSourceInformation:
+    description: DataSourceDetails is the data source details of database
+    properties:
+      externalName:
+        example: onboarding
+        type: string
+      id:
+        example: midaz_onboarding
+        type: string
+      tables:
+        items:
+          $ref: '#/definitions/TableDetails'
+        type: array
+      type:
+        example: postgresql
+        type: string
     type: object
   Pagination:
     description: Pagination is the struct designed to store the pagination data of
@@ -40,6 +51,33 @@ definitions:
       total:
         example: 10
         type: integer
+    type: object
+  TableDetails:
+    description: TableDetails is the struct of table information
+    properties:
+      fields:
+        example:
+        - '[''id'''
+        - ' ''name'''
+        - ' ''parent_account_id'']'
+        items:
+          type: string
+        type: array
+      name:
+        example: account
+        type: string
+    type: object
+  pkg.HTTPError:
+    properties:
+      code:
+        type: string
+      entityType:
+        type: string
+      err: {}
+      message:
+        type: string
+      title:
+        type: string
     type: object
   plugin-smart-templates_pkg_mongodb_report.Report:
     properties:
@@ -62,13 +100,6 @@ definitions:
       id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
-      ledgerId:
-        example:
-        - '[''00000000-0000-0000-0000-000000000000'''
-        - ' ''00000000-0000-0000-0000-000000000000'']'
-        items:
-          type: string
-        type: array
       metadata:
         additionalProperties: {}
         type: object
@@ -110,7 +141,127 @@ info:
   title: Plugin Smart Template
   version: 1.0.0
 paths:
+  /v1/data-sources:
+    get:
+      description: Retrieves all data sources connected on plugin with all information
+        from the database
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/DataSourceInformation'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+      summary: Get all data sources connected on plugin smart templates
+      tags:
+      - Data source
+  /v1/data-sources/{dataSourceId}:
+    get:
+      description: Retrieves a data sources information with data source id passed
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Data source ID
+        in: path
+        name: dataSourceId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/DataSourceInformation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+      summary: Get a data sources information
+      tags:
+      - Data source
   /v1/reports:
+    get:
+      description: List all the reports
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.
+          Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        type: string
+      - description: Report status (processing, finished, error)
+        in: query
+        name: status
+        type: string
+      - description: Template ID
+        in: query
+        name: templateId
+        type: string
+      - description: Created at date (YYYY-MM-DD)
+        in: query
+        name: createdAt
+        type: string
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/Pagination'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+                  type: array
+                limit:
+                  type: integer
+                page:
+                  type: integer
+                total:
+                  type: integer
+              type: object
+      summary: Get all reports
+      tags:
+      - Reports
     post:
       consumes:
       - application/json

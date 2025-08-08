@@ -1,12 +1,12 @@
 package in
 
 import (
-	"github.com/LerianStudio/lib-commons/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/net/http"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 var (
@@ -14,8 +14,8 @@ var (
 	OrgIDHeaderParameter = "X-Organization-Id"
 )
 
-// ParsePathParameters convert and validate if the path parameter is UUID
-func ParsePathParameters(c *fiber.Ctx) error {
+// ParsePathParametersUUID convert and validate if the path parameter is UUID
+func ParsePathParametersUUID(c *fiber.Ctx) error {
 	pathParam := c.Params(UUIDPathParameter)
 
 	if commons.IsNilOrEmpty(&pathParam) {

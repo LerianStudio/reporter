@@ -3,12 +3,14 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	libConstants "github.com/LerianStudio/lib-commons/commons/constants"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
+	"plugin-smart-templates/v2/pkg/model"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"plugin-smart-templates/pkg/model"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // ProducerRepository provides an interface for Producer related to rabbitmq.
@@ -40,11 +42,23 @@ func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRep
 func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exchange, key string, queueMessage model.ReportMessage) (*string, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
 	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
 
 	logger.Infof("Init sent message")
 
 	_, spanProducer := tracer.Start(ctx, "rabbitmq.producer.publish_message")
 	defer spanProducer.End()
+
+	spanProducer.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.exchange", exchange),
+		attribute.String("app.request.key", key),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanProducer, "app.request.rabbitmq.message", queueMessage)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&spanProducer, "Failed to convert queue message to JSON string", err)
+	}
 
 	message, err := json.Marshal(queueMessage)
 	if err != nil {
@@ -57,6 +71,13 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 
 	retryCount := 0
 
+	headers := amqp.Table{
+		libConstants.HeaderID: reqId,
+		"x-retry-count":       retryCount,
+	}
+
+	libOpentelemetry.InjectTraceHeadersIntoQueue(ctx, (*map[string]any)(&headers))
+
 	err = prmq.conn.Channel.Publish(
 		exchange,
 		key,
@@ -65,11 +86,8 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 		amqp.Publishing{
 			ContentType:  "application/json",
 			DeliveryMode: amqp.Persistent,
-			Headers: amqp.Table{
-				libConstants.HeaderID: libCommons.NewHeaderIDFromContext(ctx),
-				"x-retry-count":       retryCount,
-			},
-			Body: message,
+			Headers:      headers,
+			Body:         message,
 		})
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanProducer, "Failed to marshal queue message struct", err)

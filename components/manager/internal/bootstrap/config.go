@@ -2,22 +2,29 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/LerianStudio/lib-auth/auth/middleware"
-	mongoDB "github.com/LerianStudio/lib-commons/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/commons/rabbitmq"
-	"github.com/LerianStudio/lib-commons/commons/zap"
+	"net/url"
+	in2 "plugin-smart-templates/v2/components/manager/internal/adapters/http/in"
+	"plugin-smart-templates/v2/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v2/components/manager/internal/adapters/redis"
+	"plugin-smart-templates/v2/components/manager/internal/services"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	reportMinio "plugin-smart-templates/v2/pkg/minio/report"
+	templateMinio "plugin-smart-templates/v2/pkg/minio/template"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"strings"
+	"time"
+
+	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
+	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"net/url"
-	in2 "plugin-smart-templates/components/manager/internal/adapters/http/in"
-	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/components/manager/internal/services"
-	"plugin-smart-templates/pkg"
-	reportMinio "plugin-smart-templates/pkg/minio/report"
-	templateMinio "plugin-smart-templates/pkg/minio/template"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/mongodb/template"
 )
 
 const (
@@ -54,14 +61,31 @@ type Config struct {
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
+	RabbitMQHealthCheckURL      string `env:"RABBITMQ_HEALTH_CHECK_URL"`
 	RabbitMQPortHost            string `env:"RABBITMQ_PORT_HOST"`
 	RabbitMQPortAMQP            string `env:"RABBITMQ_PORT_AMQP"`
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
+	// Redis/Valkey configuration envs
+	RedisHost                    string `env:"REDIS_HOST"`
+	RedisMasterName              string `env:"REDIS_MASTER_NAME" default:""`
+	RedisPassword                string `env:"REDIS_PASSWORD"`
+	RedisDB                      int    `env:"REDIS_DB" default:"0"`
+	RedisProtocol                int    `env:"REDIS_PROTOCOL" default:"3"`
+	RedisTLS                     bool   `env:"REDIS_TLS" default:"false"`
+	RedisCACert                  string `env:"REDIS_CA_CERT"`
+	RedisUseGCPIAM               bool   `env:"REDIS_USE_GCP_IAM" default:"false"`
+	RedisServiceAccount          string `env:"REDIS_SERVICE_ACCOUNT" default:""`
+	GoogleApplicationCredentials string `env:"GOOGLE_APPLICATION_CREDENTIALS" default:""`
+	RedisTokenLifeTime           int    `env:"REDIS_TOKEN_LIFETIME" default:"60"`
+	RedisTokenRefreshDuration    int    `env:"REDIS_TOKEN_REFRESH_DURATION" default:"45"`
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
+	// License configuration envs
+	LicenseKey      string `env:"LICENSE_KEY"`
+	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -110,10 +134,9 @@ func InitServers() *Service {
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
-	logger.Infof(rabbitSource)
-
 	rabbitMQConnection := &libRabbitmq.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
+		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
 		Host:                   cfg.RabbitMQHost,
 		Port:                   cfg.RabbitMQPortHost,
 		User:                   cfg.RabbitMQUser,
@@ -125,16 +148,32 @@ func InitServers() *Service {
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
+	// Init Redis/Valkey connection
+	redisConnection := &libRedis.RedisConnection{
+		Address:                      strings.Split(cfg.RedisHost, ","),
+		Password:                     cfg.RedisPassword,
+		DB:                           cfg.RedisDB,
+		Protocol:                     cfg.RedisProtocol,
+		MasterName:                   cfg.RedisMasterName,
+		UseTLS:                       cfg.RedisTLS,
+		CACert:                       cfg.RedisCACert,
+		UseGCPIAMAuth:                cfg.RedisUseGCPIAM,
+		ServiceAccount:               cfg.RedisServiceAccount,
+		GoogleApplicationCredentials: cfg.GoogleApplicationCredentials,
+		TokenLifeTime:                time.Duration(cfg.RedisTokenLifeTime) * time.Minute,
+		RefreshDuration:              time.Duration(cfg.RedisTokenRefreshDuration) * time.Minute,
+		Logger:                       logger,
+	}
+
+	redisConsumerRepository := redis.NewConsumerRedis(redisConnection)
+
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
 		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, TemplateBucketName),
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
-	authClient := &middleware.AuthClient{
-		Address: cfg.AuthAddress,
-		Enabled: cfg.AuthEnabled,
-	}
+	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
 
 	templateHandler := &in2.TemplateHandler{
 		Service: templateService,
@@ -153,8 +192,24 @@ func InitServers() *Service {
 		Service: reportService,
 	}
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, authClient)
-	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
+	dataSourceService := &services.UseCase{
+		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		RedisRepo:           redisConsumerRepository,
+	}
+
+	dataSourceHandler := &in2.DataSourceHandler{
+		Service: dataSourceService,
+	}
+
+	licenseClient := libLicense.NewLicenseClient(
+		constant.ApplicationName,
+		cfg.LicenseKey,
+		cfg.OrganizationIDs,
+		&logger,
+	)
+
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, licenseClient)
+	serverAPI := NewServer(cfg, httpApp, logger, telemetry, licenseClient)
 
 	return &Service{
 		Server: serverAPI,

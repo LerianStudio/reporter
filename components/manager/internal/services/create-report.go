@@ -3,48 +3,57 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/LerianStudio/lib-commons/commons"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"reflect"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"reflect"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // CreateReport create a new report
 func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput, organizationID uuid.UUID) (*report.Report, error) {
-	logger := pkg.NewLoggerFromContext(ctx)
-	tracer := pkg.NewTracerFromContext(ctx)
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "services.create_report")
+	ctx, span := tracer.Start(ctx, "service.create_report")
 	defer span.End()
 
-	logger.Infof("Creating report")
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID.String()),
+		attribute.String("app.request.template_id", reportInput.TemplateID),
+	)
 
-	// Validate the ledgerID list if all values are uuid
-	ledgerIDConverted := make([]uuid.UUID, 0, len(reportInput.LedgerID))
-
-	for _, ledgerId := range reportInput.LedgerID {
-		ledgerConverted, errParseLedgerID := uuid.Parse(ledgerId)
-		if errParseLedgerID != nil {
-			return nil, pkg.ValidateBusinessError(constant.ErrInvalidLedgerIDList, "", ledgerId)
-		}
-
-		ledgerIDConverted = append(ledgerIDConverted, ledgerConverted)
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", reportInput)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert report input to JSON string", err)
 	}
+
+	logger.Infof("Creating report")
 
 	// Validate templateID is UUID
 	templateId, errParseUUID := uuid.Parse(reportInput.TemplateID)
 	if errParseUUID != nil {
-		return nil, pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
+		errInvalidID := pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
+
+		libOpentelemetry.HandleSpanError(&span, "Invalid template ID format", errParseUUID)
+
+		return nil, errInvalidID
 	}
 
 	// Find a template to generate a report
-	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, reflect.TypeOf(template.Template{}).Name(), templateId, organizationID)
+	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, templateId, organizationID)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to find template by ID", err)
+
 		logger.Errorf("Error to find template by id, Error: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -57,6 +66,8 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
 		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, filtersMapped); errValidateFields != nil {
+			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
+
 			return nil, errValidateFields
 		}
 	}
@@ -65,14 +76,16 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	reportModel := &report.Report{
 		ID:         commons.GenerateUUIDv7(),
 		TemplateID: templateId,
-		LedgerID:   ledgerIDConverted,
 		Filters:    reportInput.Filters,
 		Status:     constant.ProcessingStatus,
 	}
 
-	result, err := uc.ReportRepo.Create(ctx, reflect.TypeOf(report.Report{}).Name(), reportModel, organizationID)
+	result, err := uc.ReportRepo.Create(ctx, reportModel, organizationID)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to create report in repository", err)
+
 		logger.Errorf("Error creating report in database: %v", err)
+
 		return nil, err
 	}
 

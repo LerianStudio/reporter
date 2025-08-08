@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/minio/report"
-	"plugin-smart-templates/pkg/minio/template"
-	reportData "plugin-smart-templates/pkg/mongodb/report"
-	postgres2 "plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/minio/report"
+	"plugin-smart-templates/v2/pkg/minio/template"
+	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
+	postgres2 "plugin-smart-templates/v2/pkg/postgres"
 	"strings"
 	"testing"
 )
@@ -114,7 +114,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockReportDataRepo.
 		EXPECT().
-		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
 	useCase := &UseCase{
@@ -160,7 +160,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil, errors.New("failed to get file"))
 
 	mockReportDataRepo.EXPECT().
-		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	useCase := &UseCase{

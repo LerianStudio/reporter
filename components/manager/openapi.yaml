@@ -1,0 +1,746 @@
+openapi: 3.0.1
+info:
+  contact: {}
+  description: This is a swagger documentation for plugin smart template
+  termsOfService: http://swagger.io/terms/
+  title: Plugin Smart Template
+  version: 1.0.0
+servers:
+- url: //localhost:4005/
+paths:
+  /v1/data-sources:
+    get:
+      description: Retrieves all data sources connected on plugin with all information
+        from the database
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DataSourceInformation'
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
+      summary: Get all data sources connected on plugin smart templates
+      tags:
+      - Data source
+  /v1/data-sources/{dataSourceId}:
+    get:
+      description: Retrieves a data sources information with data source id passed
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Data source ID
+        in: path
+        name: dataSourceId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSourceInformation'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
+      summary: Get a data sources information
+      tags:
+      - Data source
+  /v1/reports:
+    get:
+      description: List all the reports
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Report status (processing, finished, error)
+        in: query
+        name: status
+        schema:
+          type: string
+      - description: Template ID
+        in: query
+        name: templateId
+        schema:
+          type: string
+      - description: Created at date (YYYY-MM-DD)
+        in: query
+        name: createdAt
+        schema:
+          type: string
+      - description: Limit
+        in: query
+        name: limit
+        schema:
+          default: 10
+          type: integer
+      - description: Page
+        in: query
+        name: page
+        schema:
+          default: 1
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: OK
+      summary: Get all reports
+      tags:
+      - Reports
+    post:
+      description: Create a Report of existent template with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReportInput'
+        description: Report Input
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+          description: Created
+      summary: Create a Report
+      tags:
+      - Reports
+      x-codegen-request-body-name: reports
+  /v1/reports/{id}:
+    get:
+      description: Get information of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+          description: OK
+      summary: Get a Report
+      tags:
+      - Reports
+  /v1/reports/{id}/download:
+    get:
+      description: Make a download of a Report passing the ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                format: binary
+                type: string
+          description: OK
+      summary: Download a Report
+      tags:
+      - Reports
+  /v1/templates:
+    get:
+      description: List all the templates
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: XML, HTML, TXT and CSV
+        in: query
+        name: outputFormat
+        schema:
+          type: string
+      - description: Description of template
+        in: query
+        name: description
+        schema:
+          type: string
+      - description: Limit
+        in: query
+        name: limit
+        schema:
+          default: 10
+          type: integer
+      - description: Page
+        in: query
+        name: page
+        schema:
+          default: 1
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: OK
+      summary: Get all templates
+      tags:
+      - Templates
+    post:
+      description: Create a Template for reports with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                templateFile:
+                  description: Template file (.tpl)
+                  format: binary
+                  type: string
+                outputFormat:
+                  description: Output format (e.g., pdf, html)
+                  type: string
+                description:
+                  description: Description of the template
+                  type: string
+              required:
+              - description
+              - outputFormat
+              - templateFile
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+          description: Created
+      summary: Create a Template for reports
+      tags:
+      - Templates
+  /v1/templates/{id}:
+    delete:
+      description: SoftDelete a Template with the input ID
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          content: {}
+          description: No Content
+      summary: SoftDelete a Template by ID
+      tags:
+      - Templates
+    get:
+      description: Get a template by id
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                templateFile:
+                  description: Template file (.tpl)
+                  format: binary
+                  type: string
+                outputFormat:
+                  description: Output format (e.g., pdf, html)
+                  type: string
+                description:
+                  description: Description of the template
+                  type: string
+              required:
+              - description
+              - outputFormat
+              - templateFile
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+          description: OK
+      summary: Get template
+      tags:
+      - Templates
+    patch:
+      description: Update a template with the input payload
+      parameters:
+      - description: "The authorization token in the 'Bearer\taccess_token' format.\
+          \ Only required when auth plugin is enabled."
+        in: header
+        name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
+        schema:
+          type: string
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                templateFile:
+                  description: Template file (.tpl)
+                  format: binary
+                  type: string
+                outputFormat:
+                  description: Output format (e.g., pdf, html)
+                  type: string
+                description:
+                  description: Description of the template
+                  type: string
+              required:
+              - description
+              - outputFormat
+              - templateFile
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+          description: OK
+      summary: Update a template
+      tags:
+      - Templates
+components:
+  schemas:
+    CreateReportInput:
+      description: CreateReportInput is the input payload to create a report.
+      example:
+        filters:
+          key:
+            key:
+              key:
+              - filters
+              - filters
+        templateId: 00000000-0000-0000-0000-000000000000
+      properties:
+        filters:
+          additionalProperties:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
+            type: object
+          type: object
+        templateId:
+          example: 00000000-0000-0000-0000-000000000000
+          type: string
+      required:
+      - filters
+      - templateId
+      type: object
+    DataSourceInformation:
+      description: DataSourceDetails is the data source details of database
+      example:
+        tables:
+        - name: account
+          fields:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+        - name: account
+          fields:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+        externalName: onboarding
+        id: midaz_onboarding
+        type: postgresql
+      properties:
+        externalName:
+          example: onboarding
+          type: string
+        id:
+          example: midaz_onboarding
+          type: string
+        tables:
+          items:
+            $ref: '#/components/schemas/TableDetails'
+          type: array
+        type:
+          example: postgresql
+          type: string
+      type: object
+    Pagination:
+      description: Pagination is the struct designed to store the pagination data
+        of an entity list.
+      example:
+        total: 10
+        limit: 10
+        page: 1
+        items: '{}'
+      properties:
+        items:
+          type: object
+        limit:
+          example: 10
+          type: integer
+        page:
+          example: 1
+          type: integer
+        total:
+          example: 10
+          type: integer
+      type: object
+    TableDetails:
+      description: TableDetails is the struct of table information
+      example:
+        name: account
+        fields:
+        - '[''id'''
+        - ' ''name'''
+        - ' ''parent_account_id'']'
+      properties:
+        fields:
+          example:
+          - '[''id'''
+          - ' ''name'''
+          - ' ''parent_account_id'']'
+          items:
+            type: string
+          type: array
+        name:
+          example: account
+          type: string
+      type: object
+    pkg.HTTPError:
+      properties:
+        code:
+          type: string
+        entityType:
+          type: string
+        err:
+          type: object
+        message:
+          type: string
+        title:
+          type: string
+      type: object
+    plugin-smart-templates_pkg_mongodb_report.Report:
+      example:
+        createdAt: createdAt
+        completedAt: completedAt
+        deletedAt: deletedAt
+        metadata:
+          key: '{}'
+        filters:
+          key:
+            key:
+              key:
+              - filters
+              - filters
+        id: 00000000-0000-0000-0000-000000000000
+        templateId: 00000000-0000-0000-0000-000000000000
+        status: processing
+        updatedAt: updatedAt
+      properties:
+        completedAt:
+          type: string
+        createdAt:
+          type: string
+        deletedAt:
+          type: string
+        filters:
+          additionalProperties:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
+            type: object
+          type: object
+        id:
+          example: 00000000-0000-0000-0000-000000000000
+          type: string
+        metadata:
+          additionalProperties:
+            type: object
+          type: object
+        status:
+          example: processing
+          type: string
+        templateId:
+          example: 00000000-0000-0000-0000-000000000000
+          type: string
+        updatedAt:
+          type: string
+      type: object
+    plugin-smart-templates_pkg_mongodb_template.Template:
+      example:
+        createdAt: 2021-01-01T00:00:00Z
+        fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+        description: Template Financeiro
+        id: 00000000-0000-0000-0000-000000000000
+        outputFormat: HTML
+        updatedAt: 2021-01-01T00:00:00Z
+      properties:
+        createdAt:
+          example: 2021-01-01T00:00:00Z
+          type: string
+        description:
+          example: Template Financeiro
+          type: string
+        fileName:
+          example: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          type: string
+        id:
+          example: 00000000-0000-0000-0000-000000000000
+          type: string
+        outputFormat:
+          example: HTML
+          type: string
+        updatedAt:
+          example: 2021-01-01T00:00:00Z
+          type: string
+      type: object
+    inline_response_200:
+      example:
+        Pagination:
+          total: 10
+          limit: 10
+          page: 1
+          items: '{}'
+        total: 1
+        limit: 0
+        page: 6
+        items:
+        - createdAt: createdAt
+          completedAt: completedAt
+          deletedAt: deletedAt
+          metadata:
+            key: '{}'
+          filters:
+            key:
+              key:
+                key:
+                - filters
+                - filters
+          id: 00000000-0000-0000-0000-000000000000
+          templateId: 00000000-0000-0000-0000-000000000000
+          status: processing
+          updatedAt: updatedAt
+        - createdAt: createdAt
+          completedAt: completedAt
+          deletedAt: deletedAt
+          metadata:
+            key: '{}'
+          filters:
+            key:
+              key:
+                key:
+                - filters
+                - filters
+          id: 00000000-0000-0000-0000-000000000000
+          templateId: 00000000-0000-0000-0000-000000000000
+          status: processing
+          updatedAt: updatedAt
+      properties:
+        Pagination:
+          $ref: '#/components/schemas/Pagination'
+        items:
+          items:
+            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+          type: array
+        limit:
+          type: integer
+        page:
+          type: integer
+        total:
+          type: integer
+      type: object
+    inline_response_200_1:
+      example:
+        Pagination:
+          total: 10
+          limit: 10
+          page: 1
+          items: '{}'
+        total: 1
+        limit: 0
+        page: 6
+        items:
+        - createdAt: 2021-01-01T00:00:00Z
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          description: Template Financeiro
+          id: 00000000-0000-0000-0000-000000000000
+          outputFormat: HTML
+          updatedAt: 2021-01-01T00:00:00Z
+        - createdAt: 2021-01-01T00:00:00Z
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          description: Template Financeiro
+          id: 00000000-0000-0000-0000-000000000000
+          outputFormat: HTML
+          updatedAt: 2021-01-01T00:00:00Z
+      properties:
+        Pagination:
+          $ref: '#/components/schemas/Pagination'
+        items:
+          items:
+            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+          type: array
+        limit:
+          type: integer
+        page:
+          type: integer
+        total:
+          type: integer
+      type: object
+x-original-swagger-version: "2.0"

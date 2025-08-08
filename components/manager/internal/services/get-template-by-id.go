@@ -3,27 +3,36 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"reflect"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"reflect"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetTemplateByID recover a package by ID
 func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.UUID) (*template.Template, error) {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "get_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.get_template_by_id")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.template_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
 
 	logger.Infof("Retrieving template for id %v and organizationId %v.", id, organizationID)
 
-	templateModel, err := uc.TemplateRepo.FindByID(ctx, reflect.TypeOf(template.Template{}).Name(), id, organizationID)
+	templateModel, err := uc.TemplateRepo.FindByID(ctx, id, organizationID)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
 

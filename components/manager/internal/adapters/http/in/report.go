@@ -2,17 +2,19 @@ package in
 
 import (
 	"bytes"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"plugin-smart-templates/v2/components/manager/internal/services"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	_ "plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/net/http"
+	templateUtils "plugin-smart-templates/v2/pkg/template_utils"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-smart-templates/components/manager/internal/services"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
-	_ "plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/net/http"
-	templateUtils "plugin-smart-templates/pkg/template_utils"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type ReportHandler struct {
@@ -36,22 +38,30 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	logger := pkg.NewLoggerFromContext(ctx)
 	tracer := pkg.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.create_report")
 	defer span.End()
 
 	c.SetUserContext(ctx)
 
-	ctx, span = tracer.Start(ctx, "handler.create_report")
-	defer span.End()
-
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 	payload := p.(*model.CreateReportInput)
 	logger.Infof("Request to create a report with details: %#v", payload)
 
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", payload)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
+	}
+
 	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
 		return http.WithError(c, err)
 	}
@@ -78,6 +88,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_report_download")
 	defer span.End()
@@ -87,9 +98,15 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
+
 	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -98,7 +115,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	if reportModel.Status != constant.FinishedStatus {
 		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
-		opentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
+		libOpentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
 
 		logger.Errorf("Report with ID %s is not Finished", id)
 
@@ -107,7 +124,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
 		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
 
@@ -118,7 +135,10 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	fileBytes, errFile := rh.Service.ReportMinio.Get(ctx, objectName)
 	if errFile != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to download file from MinIO", errFile)
+
 		logger.Errorf("Failed to download file from MinIO: %s", errFile.Error())
+
 		return http.WithError(c, errFile)
 	}
 
@@ -140,12 +160,13 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
-//	@Router			/v1/reports/{id}											 [get]
+//	@Router			/v1/reports/{id}													 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_report")
 	defer span.End()
@@ -155,9 +176,15 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
+
 	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -165,4 +192,74 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	}
 
 	return http.OK(c, reportModel)
+}
+
+// GetAllReports is a method that recovery all Reports information.
+//
+//	@Summary		Get all reports
+//	@Description	List all the reports
+//	@Tags			Reports
+//	@Produce		json
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			X-Organization-Id	header		string	true	"Organization ID"
+//	@Param			status				query		string	false	"Report status (processing, finished, error)"
+//	@Param			templateId			query		string	false	"Template ID"
+//	@Param			createdAt			query		string	false	"Created at date (YYYY-MM-DD)"
+//	@Param			limit				query		int		false	"Limit"	default(10)
+//	@Param			page				query		int		false	"Page"	default(1)
+//	@Success		200					{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
+//	@Router			/v1/reports [get]
+func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	logger := commons.NewLoggerFromContext(ctx)
+	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "handler.get_all_reports")
+	defer span.End()
+
+	headerParams, err := http.ValidateParameters(c.Queries())
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+
+		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	pagination := model.Pagination{
+		Limit: headerParams.Limit,
+		Page:  headerParams.Page,
+	}
+
+	logger.Infof("Initiating retrieval all reports")
+
+	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
+
+	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", headerParams)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
+	}
+
+	reports, err := rh.Service.GetAllReports(ctx, *headerParams, organizationID)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+
+		logger.Errorf("Failed to retrieve all Reports, Error: %s", err.Error())
+
+		return http.WithError(c, err)
+	}
+
+	logger.Infof("Successfully retrieved all Reports")
+
+	pagination.SetItems(reports)
+	pagination.SetTotal(len(reports))
+
+	return http.OK(c, pagination)
 }

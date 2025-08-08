@@ -3,12 +3,14 @@ package mongodb
 import (
 	"context"
 	"encoding/hex"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	libMongo "github.com/LerianStudio/lib-commons/commons/mongo"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Repository defines an interface for querying data from MongoDB collections.
@@ -82,7 +84,19 @@ func (ds *ExternalDataSource) CloseConnection(ctx context.Context) error {
 // Query executes a query on the specified collection with the given fields and filter criteria.
 func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
 	logger.Infof("Querying %s collection with fields %v", collection, fields)
+
+	_, span := tracer.Start(ctx, "mongodb.data_source.query")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.collection", collection),
+		attribute.StringSlice("app.request.fields", fields),
+	)
 
 	client, err := ds.connection.GetDB(ctx)
 	if err != nil {
@@ -212,6 +226,16 @@ func convertBsonValue(value any) any {
 // GetDatabaseSchema retrieves all collections and infers their schema from sample documents
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error) {
 	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+	)
+
 	logger.Info("Retrieving MongoDB schema information")
 
 	client, err := ds.connection.GetDB(ctx)

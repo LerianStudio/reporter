@@ -1,3 +1,10 @@
+# Plugin Smart Templates Makefile
+
+ifneq ("$(wildcard .env.local)","")
+	include .env.local
+	export
+endif
+
 service_name := plugin-smart-templates-worker
 bin_dir := ./.bin
 

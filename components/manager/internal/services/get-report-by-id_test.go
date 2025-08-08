@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
 	"testing"
 	"time"
 )
@@ -29,7 +29,6 @@ func Test_getReportById(t *testing.T) {
 	reportModel := &report.Report{
 		ID:          reportId,
 		TemplateID:  tempId,
-		LedgerID:    nil,
 		Filters:     nil,
 		Status:      constant.FinishedStatus,
 		CompletedAt: &timeNow,
@@ -53,14 +52,13 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportModel, nil)
 			},
 			expectErr: false,
 			expectedResult: &report.Report{
 				ID:          reportId,
 				TemplateID:  tempId,
-				LedgerID:    nil,
 				Filters:     nil,
 				Status:      constant.FinishedStatus,
 				CompletedAt: &timeNow,
@@ -75,7 +73,7 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -87,7 +85,7 @@ func Test_getReportById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,

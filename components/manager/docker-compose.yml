@@ -1,33 +1,37 @@
 services:
-  manager:
+  plugin-smart-templates-manager:
     container_name: plugin-smart-templates-manager
     restart: always
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
+      secrets:
+        - github_token
     env_file:
       - .env
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
-      - .:/usr/src/app
+      - .:/usr/src/manager
     networks:
       - plugin-smart-templates-infra-network
-      - plugin-smart-templates-manager-network
-      - plugin-auth-network
       - infra-network
       - plugin-fees-network
+      - plugin-smart-templates-manager-network
+      - plugin-auth-network
 
 networks:
   plugin-smart-templates-infra-network:
     external: true
-  plugin-smart-templates-manager-network:
-    name: plugin-smart-templates-manager-network
-    driver: bridge
-  plugin-auth-network:
-    name: plugin-auth-network
-    driver: bridge
   infra-network:
     external: true
   plugin-fees-network:
-    external: true
+    driver: bridge
+  plugin-smart-templates-manager-network:
+    driver: bridge
+  plugin-auth-network:
+    driver: bridge
+
+secrets:
+  github_token:
+    file: ../../.secrets/github_token.txt

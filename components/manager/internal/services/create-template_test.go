@@ -3,16 +3,17 @@ package services
 import (
 	"context"
 	"fmt"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/postgres"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"plugin-smart-templates/pkg/postgres"
-	"testing"
-	"time"
 )
 
 func Test_createTemplate(t *testing.T) {
@@ -163,7 +164,7 @@ func Test_createTemplate(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
 			},
 			expectErr: false,
@@ -199,9 +200,19 @@ func Test_createTemplate(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:           "Error - Create a template with <script> tag",
+			templateFile:   `<html><script>alert('x')</script></html>`,
+			outFormat:      "html",
+			description:    "Malicious Template",
+			orgId:          orgId,
+			mockSetup:      func() {},
 			expectErr:      true,
 			expectedResult: nil,
 		},

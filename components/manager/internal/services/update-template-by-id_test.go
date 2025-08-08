@@ -5,18 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 	"io"
 	"mime/multipart"
 	"net/textproto"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb"
-	"plugin-smart-templates/pkg/mongodb/template"
-	"plugin-smart-templates/pkg/postgres"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/postgres"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func createFileHeaderFromString(content, filename string) (*multipart.FileHeader, error) {
@@ -196,7 +197,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr: false,
@@ -208,8 +209,24 @@ func Test_updateTemplateById(t *testing.T) {
 			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -222,8 +239,24 @@ func Test_updateTemplateById(t *testing.T) {
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				htmlTypeP := &htmlType
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(htmlTypeP, nil)
 			},
 			expectErr: true,
@@ -235,8 +268,24 @@ func Test_updateTemplateById(t *testing.T) {
 			description:  "Template Financeiro",
 			orgId:        orgId,
 			tempId:       uuid.New(),
-			mockSetup:    func() {},
-			expectErr:    true,
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: true,
 		},
 		{
 			name:         "Error - Update outputFormat template where template file content invalid",
@@ -245,8 +294,24 @@ func Test_updateTemplateById(t *testing.T) {
 			description:  "Template Financeiro",
 			orgId:        orgId,
 			tempId:       uuid.New(),
-			mockSetup:    func() {},
-			expectErr:    true,
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: true,
 		},
 		{
 			name:         "Error - Update template error",
@@ -273,10 +338,23 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrInternalServer)
 			},
 			expectErr: true,
+		},
+		{
+			name: "Error - Update template with <script> tag",
+			templateFile: func() *multipart.FileHeader {
+				fh, _ := createFileHeaderFromString(`<html><script>alert('x')</script></html>`, "malicious.tpl")
+				return fh
+			}(),
+			outFormat:   "html",
+			description: "Malicious Template",
+			orgId:       orgId,
+			tempId:      uuid.New(),
+			mockSetup:   func() {},
+			expectErr:   true,
 		},
 	}
 

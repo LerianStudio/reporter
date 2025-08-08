@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"testing"
 	"time"
 )
@@ -48,7 +48,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
 			},
 			expectErr: false,
@@ -66,7 +66,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -78,7 +78,7 @@ func Test_getTemplateById(t *testing.T) {
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,

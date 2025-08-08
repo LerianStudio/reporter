@@ -4,18 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	libCommons "github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/log"
-	libOtel "github.com/LerianStudio/lib-commons/commons/opentelemetry"
-	"github.com/google/uuid"
-	"go.opentelemetry.io/otel/trace"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/pongo"
-	"reflect"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/pongo"
 	"strings"
 	"time"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // GenerateReportMessage contains the information needed to generate a report.
@@ -150,7 +150,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return err
 	}
 
-	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(),
+	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx,
 		constant.FinishedStatus, message.ReportID, time.Now(), nil)
 	if errUpdateStatus != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, errUpdateStatus.Error()); errUpdate != nil {
@@ -175,7 +175,7 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 	metadata := make(map[string]any)
 	metadata["error"] = errorMessage
 
-	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, reflect.TypeOf(report.Report{}).Name(), constant.ErrorStatus,
+	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, constant.ErrorStatus,
 		reportId, time.Now(), metadata)
 	if errUpdate != nil {
 		return errUpdate
@@ -314,6 +314,17 @@ func (uc *UseCase) queryMongoDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "service.generate_report.query_mongo_database")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.database_name", databaseName),
+	)
+
 	for collection, fields := range collections {
 		filter := getTableFilters(databaseFilters, collection)
 

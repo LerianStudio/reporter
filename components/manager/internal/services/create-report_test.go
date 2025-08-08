@@ -5,11 +5,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/model"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"plugin-smart-templates/pkg/mongodb/template"
+	"plugin-smart-templates/v2/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"testing"
 )
 
@@ -45,14 +45,12 @@ func Test_createReport(t *testing.T) {
 
 	reportInput := &model.CreateReportInput{
 		TemplateID: tempId.String(),
-		LedgerID:   nil,
 		Filters:    nil,
 	}
 
 	reportEntity := &report.Report{
 		ID:         reportId,
 		TemplateID: tempId,
-		LedgerID:   nil,
 		Filters:    nil,
 		Status:     "processing",
 	}
@@ -71,11 +69,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -86,7 +84,6 @@ func Test_createReport(t *testing.T) {
 			expectedResult: &report.Report{
 				ID:         reportId,
 				TemplateID: tempId,
-				LedgerID:   nil,
 				Filters:    nil,
 				Status:     "processing",
 			},
@@ -97,7 +94,7 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -109,11 +106,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -126,11 +123,11 @@ func Test_createReport(t *testing.T) {
 			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -141,7 +138,6 @@ func Test_createReport(t *testing.T) {
 			expectedResult: &report.Report{
 				ID:         reportId,
 				TemplateID: tempId,
-				LedgerID:   nil,
 				Filters:    nil,
 				Status:     "processing",
 			},

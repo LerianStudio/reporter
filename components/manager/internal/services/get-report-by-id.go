@@ -3,27 +3,36 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/LerianStudio/lib-commons/commons"
-	"github.com/LerianStudio/lib-commons/commons/opentelemetry"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+	"reflect"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
-	"plugin-smart-templates/pkg"
-	"plugin-smart-templates/pkg/constant"
-	"plugin-smart-templates/pkg/mongodb/report"
-	"reflect"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetReportByID recover a report by ID
 func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UUID) (*report.Report, error) {
 	logger := commons.NewLoggerFromContext(ctx)
 	tracer := commons.NewTracerFromContext(ctx)
+	reqId := commons.NewHeaderIDFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "get_report_by_id")
+	ctx, span := tracer.Start(ctx, "service.get_report_by_id")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", id.String()),
+		attribute.String("app.request.organization_id", organizationID.String()),
+	)
 
 	logger.Infof("Retrieving report for id %v and organizationId %v.", id, organizationID)
 
-	reportModel, err := uc.ReportRepo.FindByID(ctx, reflect.TypeOf(report.Report{}).Name(), id, organizationID)
+	reportModel, err := uc.ReportRepo.FindByID(ctx, id, organizationID)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
 

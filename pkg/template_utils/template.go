@@ -1,6 +1,7 @@
 package template_utils
 
 import (
+	"plugin-smart-templates/v2/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"
@@ -229,13 +230,15 @@ func regexBlockForWithFilterOnPlaceholder(result map[string]any, variableMap map
 // It cleans paths, maps targets to their corresponding variables, and inserts additional parameters where applicable.
 func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile string) map[string]any {
 	result := map[string]any{}
-	withRegex := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
+	withRegex1 := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*filter\(\s*([^)]+)\s*\)[^\%]+`)
+	withRegex2 := regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*([^\s%]+)\s*-?%}`)
 
-	withMatches := withRegex.FindAllStringSubmatch(templateFile, -1)
+	withMatches := withRegex1.FindAllStringSubmatch(templateFile, -1)
+	withMatches2 := withRegex2.FindAllStringSubmatch(templateFile, -1)
 
-	if withMatches == nil {
-		withRegex = regexp.MustCompile(`{%-?\s*with\s+(\w+)\s*=\s*([^\s%]+)\s*-?%}`)
-		withMatches = withRegex.FindAllStringSubmatch(templateFile, -1)
+	// Aggregate both sets of matches
+	if withMatches2 != nil {
+		withMatches = append(withMatches, withMatches2...)
 	}
 
 	for _, match := range withMatches {
@@ -557,4 +560,14 @@ func CleanPath(path string) []string {
 	}
 
 	return clean
+}
+
+// ValidateNoScriptTag checks if the template contains <script> tags (case-insensitive) and returns an error if found.
+func ValidateNoScriptTag(templateFile string) error {
+	lower := strings.ToLower(templateFile)
+	if strings.Contains(lower, "<script>") || strings.Contains(lower, "</script>") {
+		return constant.ErrScriptTagDetected
+	}
+
+	return nil
 }
