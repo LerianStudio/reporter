@@ -15,7 +15,7 @@ export async function GET() {
   try {
     const manifest = {
       name: 'plugin-smart-templates-ui',
-      title: 'Smart Templates Plugin',
+      title: 'Smart Templates',
       description:
         'Smart Templates plugin for managing smart templates in the Midaz ecosystem.',
       version: '0.1.0',
