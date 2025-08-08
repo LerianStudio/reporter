@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [v2.0.0-beta.66] - 2025-08-08
+
+This release enhances the build process for the frontend component, delivering faster build times and a more reliable deployment pipeline. Users will experience quicker updates and a smoother development workflow.
+
+### ✨ Features  
+- **Streamlined Build Configuration**: The frontend component now benefits from an optimized build process. This enhancement reduces build times and increases reliability, allowing users to receive updates more quickly and with fewer errors. This change makes managing deployments easier and more efficient.
+
+### 📚 Documentation
+- **Updated Changelog**: We've refreshed our documentation to ensure users have access to the latest information about updates and improvements. This helps maintain transparency and keeps all stakeholders informed about the project's progress.
+
+### 🔧 Maintenance
+- **Changelog Improvements**: The changelog has been updated to accurately reflect recent changes and enhancements, ensuring users are well-informed about the latest developments in the project.
+
+
+This changelog is crafted to highlight the key benefits and improvements introduced in version 2.0.0 of the plugin-smart-templates project. It focuses on user impact, ensuring that users understand the value of the changes without delving into technical details.
+
+## [v2.0.0-beta.65] - 2025-08-08
+
+This release introduces a major update to the worker process API, enhancing scalability and performance. Users will experience improved task handling efficiency, but should review integration points due to breaking changes.
+
+### ⚠️ Breaking Changes
+- **API Update**: The worker process API has been overhauled for better scalability and performance. This change affects existing API endpoints and requires users to update their integration points. Please review the updated API documentation for guidance on transitioning to the new structure.
+
+### ✨ Features  
+- **Enhanced Worker Process Handling**: The new API significantly boosts task processing efficiency, particularly benefiting users handling high volumes of data. This improvement allows for faster and more reliable task execution.
+
+### ⚡ Performance
+- **Improved Scalability**: The updated API architecture enhances scalability, allowing for more efficient resource utilization and faster task processing. Users should notice a marked improvement in application responsiveness during high-load scenarios.
+
+### 📚 Documentation
+- **Updated API Guides**: Comprehensive updates to the documentation provide clear instructions on transitioning to the new API. This ensures users have the necessary information to adapt their systems smoothly and take full advantage of the new capabilities.
+
+### 🔧 Maintenance
+- **Build and Test Enhancements**: The build and testing frameworks have been updated to accommodate the new API changes, ensuring robust validation of all components. This results in a more stable and reliable development environment.
+
+This changelog is structured to clearly communicate the key updates in version 3.0.0, focusing on the impact and benefits for users. Breaking changes are prominently highlighted with guidance for migration, while new features and performance improvements are described in terms of user value. Documentation updates and maintenance improvements are also noted to ensure users are well-informed about the changes.
+=======
 ## [v2.0.0] - 2025-08-08
 
 This major release of plugin-smart-templates introduces enhanced security, improved performance, and significant updates to monitoring capabilities. Users should review breaking changes to ensure smooth integration.
@@ -43,6 +81,7 @@ This major release of plugin-smart-templates introduces enhanced security, impro
 - **Telemetry Code Refactor:** Refactored telemetry code to remove redundant imports and enhance span attributes, improving code quality.
 
 Users are encouraged to review these changes thoroughly to understand their impact and take necessary actions for a seamless transition.
+
 
 ## [v2.0.0-beta.64] - 2025-08-08
 
