@@ -20,15 +20,16 @@ type Report struct {
 
 // ReportMongoDBModel represents the MongoDB model for a report
 type ReportMongoDBModel struct {
-	ID             uuid.UUID      `bson:"_id"`
-	TemplateID     uuid.UUID      `bson:"template_id"`
-	OrganizationID uuid.UUID      `bson:"organization_id"`
-	Status         string         `bson:"status"`
-	Metadata       map[string]any `bson:"metadata"`
-	CompletedAt    *time.Time     `bson:"completed_at"`
-	CreatedAt      time.Time      `bson:"created_at"`
-	UpdatedAt      time.Time      `bson:"updated_at"`
-	DeletedAt      *time.Time     `bson:"deleted_at"`
+	ID             uuid.UUID                                 `bson:"_id"`
+	TemplateID     uuid.UUID                                 `bson:"template_id"`
+	OrganizationID uuid.UUID                                 `bson:"organization_id"`
+	Status         string                                    `bson:"status"`
+	Filters        map[string]map[string]map[string][]string `bson:"filters"`
+	Metadata       map[string]any                            `bson:"metadata"`
+	CompletedAt    *time.Time                                `bson:"completed_at"`
+	CreatedAt      time.Time                                 `bson:"created_at"`
+	UpdatedAt      time.Time                                 `bson:"updated_at"`
+	DeletedAt      *time.Time                                `bson:"deleted_at"`
 }
 
 // ToEntity converts ReportMongoDBModel to Report
@@ -51,6 +52,7 @@ func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
 		ID:          rm.ID,
 		TemplateID:  rm.TemplateID,
 		Status:      rm.Status,
+		Filters:     rm.Filters,
 		Metadata:    rm.Metadata,
 		CompletedAt: rm.CompletedAt,
 		CreatedAt:   rm.CreatedAt,
@@ -67,6 +69,7 @@ func (rm *ReportMongoDBModel) FromEntity(r *Report, organizationID uuid.UUID) er
 	rm.OrganizationID = organizationID
 	rm.Metadata = nil
 	rm.Status = r.Status
+	rm.Filters = r.Filters
 	rm.CompletedAt = nil
 	rm.CreatedAt = dateNow
 	rm.UpdatedAt = dateNow
