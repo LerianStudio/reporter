@@ -2,16 +2,12 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/template"
-	"plugin-smart-templates/v2/pkg/net/http"
-	"reflect"
-
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
+	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 // GetAllTemplates fetch all Templates from the repository
@@ -37,12 +33,12 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 
 	filters.OrganizationID = organizationID
 
-	packs, err := uc.TemplateRepo.FindList(ctx, filters)
-	if err != nil || packs == nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get all templates on repo", err)
+	templates, errFind := uc.TemplateRepo.FindList(ctx, filters)
+	if err != nil || templates == nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get all templates on repo", errFind)
 
-		return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+		return nil, errFind
 	}
 
-	return packs, nil
+	return templates, nil
 }
