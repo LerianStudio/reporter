@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.67] - 2025-08-13
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.66...v2.0.0-beta.67)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Error Validation**: Users now receive accurate feedback when template errors occur, enhancing the reliability of the template management system.
+- **Clear 'Not Found' Messages**: When requested resources are unavailable, users will see a clear 'not found' message, improving understanding and transparency.
+- **Persisted Report Filters**: Report filters are now saved across sessions, ensuring a seamless user experience without needing to reapply settings.
+- **Invalid Filter Handling**: Invalid filter inputs are now met with a 'bad request' response, maintaining input integrity and preventing errors.
+- **Enhanced Deletion Process**: Attempting to delete non-existent templates now results in a 'not found' error, providing robust feedback and improving system reliability.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to reflect recent changes and improvements, ensuring users are informed of the latest updates.
+
+
 ## [v2.0.0-beta.66] - 2025-08-08
 
 This release enhances the build process for the frontend component, delivering faster build times and a more reliable deployment pipeline. Users will experience quicker updates and a smoother development workflow.
