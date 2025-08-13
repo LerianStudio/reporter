@@ -2,7 +2,6 @@ package template
 
 import (
 	"context"
-	"errors"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/net/http"
@@ -336,11 +335,6 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizatio
 	_, err = coll.UpdateOne(ctx, bson.M{"_id": id, "organization_id": organizationID}, updateFields, opts)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanUpdate, "Failed to update template", err)
-
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
-		}
-
 		return err
 	}
 
@@ -388,6 +382,11 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organiz
 		libOpentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
 
 		return err
+	}
+
+	if deleted.MatchedCount == 0 {
+		libOpentelemetry.HandleSpanError(&spanDelete, "No template found to delete", mongo.ErrNoDocuments)
+		return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 	}
 
 	logger.Infof("Return from delete one: %v", deleted)
