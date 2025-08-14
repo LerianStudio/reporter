@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.68] - 2025-08-14
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.67...v2.0.0-beta.68)
+Contributors: LF Barrile, lerian-studio
+
+### ✨ Features
+- **Automated Configuration Updates with Firmino Integration**: Experience a streamlined process for keeping configurations up-to-date across your build, config, and frontend components. This automation reduces manual intervention and potential errors, providing a more seamless and reliable configuration management process.
+
+### 🔄 Changes
+- **Enhanced GitOps Integration**: We have improved the configuration update mechanism by incorporating Firmino GitOps practices. This ensures that configuration changes are automatically propagated and managed through GitOps workflows, enhancing consistency and reliability across deployments. Users will benefit from improved deployment efficiency and reduced configuration drift.
+
+### 📚 Documentation
+- **Changelog Update**: We've updated the changelog to reflect recent changes and improvements. This ensures that users and developers have access to the latest information regarding updates and enhancements, facilitating better understanding and tracking of project progress.
+
+### 🔧 Maintenance
+- **General Code Maintenance**: Minor code adjustments and optimizations have been made to improve the overall stability and performance of the plugin.
+
+
 ## [v2.0.0-beta.67] - 2025-08-13
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.66...v2.0.0-beta.67)
