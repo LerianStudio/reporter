@@ -33,13 +33,11 @@ jobs:
         id: check
         run: |
           matrix='${{ steps.changed-paths.outputs.matrix }}'
-
           if echo "$matrix" | grep -q '"manager"\|"worker"'; then
             echo "has_backend=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_backend=false" >> "$GITHUB_OUTPUT"
           fi
-
           if echo "$matrix" | grep -q '"frontend"'; then
             echo "has_frontend=true" >> "$GITHUB_OUTPUT"
           else
@@ -153,6 +151,11 @@ jobs:
           path: gitops
           fetch-depth: 0
 
+      - name: Git pull before update (Option A)
+        run: |
+          cd gitops
+          git pull origin main
+
       - name: Download GitOps tag artifact
         uses: actions/download-artifact@v4
         with:
@@ -161,8 +164,17 @@ jobs:
 
       - name: Apply backend tag values
         run: |
+          set -euo pipefail
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
-          TAG=$(cut -d'=' -f2 .gitops-tags/manager.tag)
+
+          export TAG="$(grep -E '^manager=' .gitops-tags/manager.tag | cut -d'=' -f2 | tr -d '[:space:]')"
+          echo "DEBUG backend TAG='$TAG'"
+
+          if [[ -z "${TAG}" ]]; then
+            echo "❌ backend tag vazio — abortando update."
+            exit 1
+          fi
+
           yq e -i '.manager.image.tag = strenv(TAG)' "$FILE"
           yq e -i '.worker.image.tag = strenv(TAG)' "$FILE"
           yq e -i '.manager.configmap.VERSION = strenv(TAG)' "$FILE"
@@ -176,7 +188,7 @@ jobs:
           cd gitops
           git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
           git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
-          git commit -am "ci(plugin-smart-templates): update backend image tags and configmap versions"
+          git commit -am "ci(plugin-smart-templates): update backend image tags and configmap versions" || echo "No changes to commit"
           git push origin main
 
   update_gitops_frontend:
@@ -191,6 +203,11 @@ jobs:
           path: gitops
           fetch-depth: 0
 
+      - name: Git pull before update (Option A)
+        run: |
+          cd gitops
+          git pull origin main
+
       - name: Download GitOps tag artifact
         uses: actions/download-artifact@v4
         with:
@@ -199,8 +216,17 @@ jobs:
 
       - name: Apply frontend tag values
         run: |
+          set -euo pipefail
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
-          TAG=$(cut -d'=' -f2 .gitops-tags/frontend.tag)
+
+          export TAG="$(grep -E '^frontend=' .gitops-tags/frontend.tag | cut -d'=' -f2 | tr -d '[:space:]')"
+          echo "DEBUG frontend TAG='$TAG'"
+
+          if [[ -z "${TAG}" ]]; then
+            echo "❌ frontend tag vazio — abortando update."
+            exit 1
+          fi
+
           yq e -i '.frontend.image.tag = strenv(TAG)' "$FILE"
 
       - name: Commit and push frontend
@@ -208,5 +234,5 @@ jobs:
           cd gitops
           git config user.name "${{ secrets.LERIAN_CI_CD_USER_NAME }}"
           git config user.email "${{ secrets.LERIAN_CI_CD_USER_EMAIL }}"
-          git commit -am "ci(plugin-smart-templates): update frontend image tag"
+          git commit -am "ci(plugin-smart-templates): update frontend image tag" || echo "No changes to commit"
           git push origin main
