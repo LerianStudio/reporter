@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.69] - 2025-08-14
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.68...v2.0.0-beta.69)
+Contributors: LF Barrile, lerian-studio
+
+### ✨ Features
+- **Enhanced GitOps Documentation**: We've introduced comprehensive validation for the Firmino GitOps flow. This update ensures a more accurate and reliable deployment process, making it easier for users to manage their infrastructure as code. The documentation now includes detailed guidelines and best practices, simplifying the adoption of GitOps principles and reducing potential errors.
+
+### 📚 Documentation
+- **Improved Deployment Guides**: The documentation now provides clearer, more detailed instructions for implementing the Firmino GitOps flow. This helps users streamline their deployment processes and adopt best practices with confidence.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The changelog now accurately reflects recent updates and improvements, ensuring users have access to the latest information about new features and fixes. This transparency aids in smoother transitions and adoption of updates.
+
+
 ## [v2.0.0-beta.68] - 2025-08-14
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.67...v2.0.0-beta.68)
