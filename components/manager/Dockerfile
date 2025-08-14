@@ -2,7 +2,7 @@
 
 FROM golang:1.23-alpine AS builder
 
-# Install required packages: git is needed for private modules (e.g., from GitHub)
+# Install required packages: git is needed for private modules
 RUN apk add --no-cache git
 
 # Install garble separately to improve layer caching build times
