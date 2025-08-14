@@ -151,6 +151,11 @@ jobs:
           path: gitops
           fetch-depth: 0
 
+      - name: Git pull before update (Option A)
+        run: |
+          cd gitops
+          git pull origin main
+
       - name: Download GitOps tag artifact
         uses: actions/download-artifact@v4
         with:
@@ -162,7 +167,6 @@ jobs:
           set -euo pipefail
           FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
 
-          # lê e sanitiza o tag
           export TAG="$(grep -E '^manager=' .gitops-tags/manager.tag | cut -d'=' -f2 | tr -d '[:space:]')"
           echo "DEBUG backend TAG='$TAG'"
 
@@ -198,6 +202,11 @@ jobs:
           token: ${{ secrets.MANAGE_TOKEN }}
           path: gitops
           fetch-depth: 0
+
+      - name: Git pull before update (Option A)
+        run: |
+          cd gitops
+          git pull origin main
 
       - name: Download GitOps tag artifact
         uses: actions/download-artifact@v4
