@@ -101,7 +101,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 }
 
 // convertFiltersToMappedFieldsType transforms a deeply nested filter map into a mapped fields structure with limited keys per level.
-func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string][]string) map[string]map[string][]string {
+func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string]model.FilterCondition) map[string]map[string][]string {
 	output := make(map[string]map[string][]string)
 
 	for topKey, nested := range filters {

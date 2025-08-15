@@ -5,11 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"plugin-smart-templates/v2/pkg/model"
+	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/Masterminds/squirrel"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -18,6 +21,7 @@ import (
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
 	Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
+	QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
 	CloseConnection() error
 }
@@ -430,4 +434,267 @@ func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values [
 	placeholder := squirrel.Placeholders(len(values))
 
 	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", values...)
+}
+
+// QueryWithAdvancedFilters executes a SELECT SQL query with advanced FilterCondition support
+func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
+	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "postgres.data_source.query_with_advanced_filters")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.table", table),
+		attribute.StringSlice("app.request.fields", fields),
+	)
+
+	logger.Infof("Querying %s table with advanced filters on fields %v", table, fields)
+
+	// Validate requested table and fields
+	queriedFields, err := ds.ValidateTableAndFields(ctx, table, fields, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+	queryBuilder := psql.Select(queriedFields...).From(table)
+
+	// Apply advanced filters
+	queryBuilder, err = ds.buildAdvancedFilters(queryBuilder, schema, table, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error building advanced filters: %w", err)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error generating SQL: %w", err)
+	}
+
+	logger.Infof("[DEBUG] Executing advanced filter SQL: %s", query)
+	logger.Infof("[DEBUG] SQL args: %v", args)
+	logger.Infof("[DEBUG] Original filter conditions: %+v", filter)
+
+	rows, err := ds.connection.ConnectionDB.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing query: %w", err)
+	}
+	defer rows.Close()
+
+	return scanRows(rows, logger)
+}
+
+// buildAdvancedFilters applies FilterCondition criteria to the query builder
+func (ds *ExternalDataSource) buildAdvancedFilters(queryBuilder squirrel.SelectBuilder, schema []TableSchema, table string, filter map[string]model.FilterCondition) (squirrel.SelectBuilder, error) {
+	// Find the table's column information
+	var tableColumns []ColumnInformation
+	for _, t := range schema {
+		if t.TableName == table {
+			tableColumns = t.Columns
+			break
+		}
+	}
+
+	// Create a map of valid column names for efficient lookup
+	validColumns := make(map[string]bool)
+	for _, col := range tableColumns {
+		validColumns[col.Name] = true
+	}
+
+	for field, condition := range filter {
+		// Only apply filters for valid columns
+		if !validColumns[field] {
+			continue
+		}
+
+		if isFilterConditionEmpty(condition) {
+			continue
+		}
+
+		// Validate the condition
+		if err := validateFilterCondition(field, condition); err != nil {
+			return queryBuilder, err
+		}
+
+		// Apply each filter operator
+		queryBuilder = ds.applyAdvancedFilter(queryBuilder, field, condition)
+	}
+
+	return queryBuilder, nil
+}
+
+// applyAdvancedFilter applies a single FilterCondition to the query builder
+func (ds *ExternalDataSource) applyAdvancedFilter(queryBuilder squirrel.SelectBuilder, field string, condition model.FilterCondition) squirrel.SelectBuilder {
+	// Handle equals (IN clause for multiple values, = for single value)
+	if len(condition.Equals) > 0 {
+		if len(condition.Equals) == 1 {
+			queryBuilder = queryBuilder.Where(squirrel.Eq{field: condition.Equals[0]})
+		} else {
+			queryBuilder = queryBuilder.Where(squirrel.Eq{field: condition.Equals})
+		}
+	}
+
+	// Handle greater than
+	if len(condition.GreaterThan) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.Gt{field: condition.GreaterThan[0]})
+	}
+
+	// Handle greater than or equal
+	if len(condition.GreaterOrEqual) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.GtOrEq{field: condition.GreaterOrEqual[0]})
+	}
+
+	// Handle less than
+	if len(condition.LessThan) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.Lt{field: condition.LessThan[0]})
+	}
+
+	// Handle less than or equal
+	if len(condition.LessOrEqual) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.LtOrEq{field: condition.LessOrEqual[0]})
+	}
+
+	// Handle between (using AND with >= and <=)
+	if len(condition.Between) == 2 {
+		// For date fields, ensure proper date range handling
+		startValue := condition.Between[0]
+		endValue := condition.Between[1]
+
+		// If it looks like a date field and we have date strings, adjust the end date to include the full day
+		if isDateField(field) && isDateString(startValue) && isDateString(endValue) {
+			// Convert end date to end of day (23:59:59.999)
+			if endStr, ok := endValue.(string); ok {
+				// If it's just a date (YYYY-MM-DD), add time to make it end of day
+				if len(endStr) == 10 { // YYYY-MM-DD format
+					endValue = endStr + "T23:59:59.999Z"
+				}
+			}
+		}
+
+		queryBuilder = queryBuilder.Where(squirrel.GtOrEq{field: startValue}).Where(squirrel.LtOrEq{field: endValue})
+	}
+
+	// Handle in
+	if len(condition.In) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.Eq{field: condition.In})
+	}
+
+	// Handle not in
+	if len(condition.NotIn) > 0 {
+		queryBuilder = queryBuilder.Where(squirrel.NotEq{field: condition.NotIn})
+	}
+
+	return queryBuilder
+}
+
+// isFilterConditionEmpty checks if a FilterCondition has no active filters
+func isFilterConditionEmpty(condition model.FilterCondition) bool {
+	return len(condition.Equals) == 0 &&
+		len(condition.GreaterThan) == 0 &&
+		len(condition.GreaterOrEqual) == 0 &&
+		len(condition.LessThan) == 0 &&
+		len(condition.LessOrEqual) == 0 &&
+		len(condition.Between) == 0 &&
+		len(condition.In) == 0 &&
+		len(condition.NotIn) == 0
+}
+
+// validateFilterCondition validates that a FilterCondition has proper values for each operator
+func validateFilterCondition(fieldName string, condition model.FilterCondition) error {
+	// Validate between operator has exactly 2 values
+	if len(condition.Between) > 0 && len(condition.Between) != 2 {
+		return fmt.Errorf("between operator for field '%s' must have exactly 2 values, got %d", fieldName, len(condition.Between))
+	}
+
+	// Validate single-value operators have exactly 1 value
+	singleValueOps := map[string][]any{
+		"gt":  condition.GreaterThan,
+		"gte": condition.GreaterOrEqual,
+		"lt":  condition.LessThan,
+		"lte": condition.LessOrEqual,
+	}
+
+	for opName, values := range singleValueOps {
+		if len(values) > 0 && len(values) != 1 {
+			return fmt.Errorf("%s operator for field '%s' must have exactly 1 value, got %d", opName, fieldName, len(values))
+		}
+	}
+
+	// Validate field name patterns for common UUID fields
+	if isLikelyUUIDField(fieldName) {
+		if err := validateUUIDFieldValues(fieldName, condition); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// isLikelyUUIDField checks if a field name suggests it contains UUID values
+func isLikelyUUIDField(fieldName string) bool {
+	uuidPatterns := []string{"id", "_id", "uuid", "template_id", "organization_id", "user_id", "account_id"}
+	fieldLower := strings.ToLower(fieldName)
+
+	for _, pattern := range uuidPatterns {
+		if strings.Contains(fieldLower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// validateUUIDFieldValues validates that values for UUID fields are valid UUIDs
+func validateUUIDFieldValues(fieldName string, condition model.FilterCondition) error {
+	allValues := [][]any{
+		condition.Equals,
+		condition.GreaterThan,
+		condition.GreaterOrEqual,
+		condition.LessThan,
+		condition.LessOrEqual,
+		condition.Between,
+		condition.In,
+		condition.NotIn,
+	}
+
+	for _, values := range allValues {
+		for _, value := range values {
+			if str, ok := value.(string); ok {
+				if !isValidUUIDFormat(str) {
+					return fmt.Errorf("field '%s' appears to be a UUID field but received non-UUID value '%s'. UUID fields require valid UUID format (e.g., '550e8400-e29b-41d4-a716-446655440000') or use a date field for date filtering", fieldName, str)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// isValidUUIDFormat checks if a string is a valid UUID format
+func isValidUUIDFormat(s string) bool {
+	_, err := uuid.Parse(s)
+	return err == nil
+}
+
+// isDateField checks if a field name suggests it contains date/timestamp values
+func isDateField(fieldName string) bool {
+	datePatterns := []string{"created_at", "updated_at", "deleted_at", "completed_at", "date", "time", "_at", "_date", "_time"}
+	fieldLower := strings.ToLower(fieldName)
+
+	for _, pattern := range datePatterns {
+		if strings.Contains(fieldLower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// isDateString checks if a value looks like a date string
+func isDateString(value any) bool {
+	if str, ok := value.(string); ok {
+		// Check for common date formats: YYYY-MM-DD, YYYY-MM-DDTHH:MM:SS, etc.
+		return len(str) >= 10 && strings.Contains(str, "-") && (len(str) == 10 || strings.Contains(str, "T"))
+	}
+	return false
 }
