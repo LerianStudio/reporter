@@ -21,6 +21,7 @@ go.work.sum
 # ----------------------------------------
 
 .secrets
+.mcp.json
 
 # Component-specific env files
 components/manager/.env
@@ -38,3 +39,4 @@ scripts/node_modules
 .idea
 .vscode
 .windsurf
+.claude
