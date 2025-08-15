@@ -90,9 +90,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.table", table),
-		attribute.StringSlice("app.request.fields", fields),
 	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+		"table":  table,
+		"fields": fields,
+		"filter": filter,
+	})
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
+	}
 
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
@@ -331,13 +338,15 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.table", tableName),
-		attribute.StringSlice("app.request.fields", requestedFields),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.data_source.schema", schema)
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+		"table":  tableName,
+		"fields": requestedFields,
+		"schema": schema,
+	})
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to convert schema to JSON string", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
 	}
 
 	logger.Infof("Validating table '%s' and fields %v", tableName, requestedFields)
@@ -453,9 +462,16 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.table", table),
-		attribute.StringSlice("app.request.fields", fields),
 	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+		"table":  table,
+		"fields": fields,
+		"filter": filter,
+	})
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
+	}
 
 	logger.Infof("Querying %s table with advanced filters on fields %v", table, fields)
 
