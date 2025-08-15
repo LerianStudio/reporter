@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
 	"plugin-smart-templates/v2/pkg/pongo"
 	"strings"
 	"time"
@@ -34,8 +35,10 @@ type GenerateReportMessage struct {
 	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}.
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
 
-	// Filters specify the filtering criteria for the data queries, mapping filter keys to their respective values.
-	Filters map[string]map[string]map[string][]any `json:"filters"`
+	// Filters specify advanced filtering criteria using FilterCondition for complex queries.
+	// Format: map[databaseName]map[tableName]map[fieldName]model.FilterCondition
+	// Example: {"db": {"table": {"created_at": {"gte": ["2025-06-01"], "lte": ["2025-06-30"]}}}}
+	Filters map[string]map[string]map[string]model.FilterCondition `json:"filters"`
 }
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -229,7 +232,7 @@ func (uc *UseCase) queryDatabase(
 	ctx context.Context,
 	databaseName string,
 	tables map[string][]string,
-	allFilters map[string]map[string]map[string][]any,
+	allFilters map[string]map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 	tracer trace.Tracer,
@@ -278,7 +281,7 @@ func (uc *UseCase) queryPostgresDatabase(
 	dataSource *pkg.DataSource,
 	databaseName string,
 	tables map[string][]string,
-	databaseFilters map[string]map[string][]any,
+	databaseFilters map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
@@ -289,16 +292,28 @@ func (uc *UseCase) queryPostgresDatabase(
 	}
 
 	for table, fields := range tables {
-		filter := getTableFilters(databaseFilters, table)
+		tableFilters := getTableFilters(databaseFilters, table)
 
-		tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
-		if err != nil {
-			logger.Errorf("Error querying table %s: %s", table, err.Error())
-			return err
+		// Use advanced filters
+		if len(tableFilters) > 0 {
+			tableResult, err := dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
+			if err != nil {
+				logger.Errorf("Error querying table %s with advanced filters: %s", table, err.Error())
+				return err
+			}
+
+			logger.Infof("Successfully queried table %s with advanced filters", table)
+			result[databaseName][table] = tableResult
+		} else {
+			// No filters, use legacy method for now
+			tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
+			if err != nil {
+				logger.Errorf("Error querying table %s: %s", table, err.Error())
+				return err
+			}
+
+			result[databaseName][table] = tableResult
 		}
-
-		// Add the query results to the result map
-		result[databaseName][table] = tableResult
 	}
 
 	return nil
@@ -310,7 +325,7 @@ func (uc *UseCase) queryMongoDatabase(
 	dataSource *pkg.DataSource,
 	databaseName string,
 	collections map[string][]string,
-	databaseFilters map[string]map[string][]any,
+	databaseFilters map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
@@ -326,23 +341,35 @@ func (uc *UseCase) queryMongoDatabase(
 	)
 
 	for collection, fields := range collections {
-		filter := getTableFilters(databaseFilters, collection)
+		collectionFilters := getTableFilters(databaseFilters, collection)
 
-		collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, filter)
-		if err != nil {
-			logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-			return err
+		// Use advanced filters
+		if len(collectionFilters) > 0 {
+			collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
+			if err != nil {
+				logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
+				return err
+			}
+
+			logger.Infof("Successfully queried collection %s with advanced filters", collection)
+			result[databaseName][collection] = collectionResult
+		} else {
+			// No filters, use legacy method for now
+			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+			if err != nil {
+				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+				return err
+			}
+
+			result[databaseName][collection] = collectionResult
 		}
-
-		// Add the query results to the result map
-		result[databaseName][collection] = collectionResult
 	}
 
 	return nil
 }
 
 // getTableFilters extracts filters for a specific table/collection
-func getTableFilters(databaseFilters map[string]map[string][]any, tableName string) map[string][]any {
+func getTableFilters(databaseFilters map[string]map[string]model.FilterCondition, tableName string) map[string]model.FilterCondition {
 	if databaseFilters == nil {
 		return nil
 	}

@@ -3,6 +3,8 @@ package mongodb
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
+	"plugin-smart-templates/v2/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -18,6 +20,7 @@ import (
 //go:generate mockgen --destination=datasource.mongodb.mock.go --package=mongodb . Repository
 type Repository interface {
 	Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error)
+	QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error)
 	CloseConnection(ctx context.Context) error
 }
@@ -311,4 +314,191 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 	logger.Infof("Retrieved schema for %d collections", len(schema))
 
 	return schema, nil
+}
+
+// QueryWithAdvancedFilters executes a query with advanced FilterCondition support
+func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
+	logger := libCommons.NewLoggerFromContext(ctx)
+	tracer := libCommons.NewTracerFromContext(ctx)
+	reqId := libCommons.NewHeaderIDFromContext(ctx)
+
+	logger.Infof("Querying %s collection with advanced filters on fields %v", collection, fields)
+
+	_, span := tracer.Start(ctx, "mongodb.data_source.query_with_advanced_filters")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.collection", collection),
+		attribute.StringSlice("app.request.fields", fields),
+	)
+
+	client, err := ds.connection.GetDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert FilterCondition to MongoDB format
+	mongoFilter := bson.M{}
+
+	for field, condition := range filter {
+		if isFilterConditionEmpty(condition) {
+			continue
+		}
+
+		fieldFilter, err := ds.convertFilterConditionToMongoFilter(field, condition)
+		if err != nil {
+			return nil, fmt.Errorf("error converting filter for field '%s': %w", field, err)
+		}
+
+		if fieldFilter != nil {
+			for k, v := range fieldFilter {
+				mongoFilter[k] = v
+			}
+		}
+	}
+
+	// Create projection for specified fields
+	projection := bson.M{}
+
+	if len(fields) > 0 && fields[0] != "*" {
+		for _, field := range fields {
+			projection[field] = 1
+		}
+	}
+
+	findOptions := options.Find()
+	if len(projection) > 0 {
+		findOptions.SetProjection(projection)
+	}
+
+	database := client.Database(ds.Database)
+
+	cursor, err := database.Collection(collection).Find(ctx, mongoFilter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	var results []map[string]any
+
+	for cursor.Next(ctx) {
+		var result bson.M
+		if err := cursor.Decode(&result); err != nil {
+			logger.Warnf("Error decoding document: %v", err)
+			continue
+		}
+
+		resultMap := convertBsonToMap(result)
+		results = append(results, resultMap)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// convertFilterConditionToMongoFilter converts a FilterCondition to MongoDB filter
+func (ds *ExternalDataSource) convertFilterConditionToMongoFilter(field string, condition model.FilterCondition) (map[string]any, error) {
+	if isFilterConditionEmpty(condition) {
+		return nil, nil
+	}
+
+	if err := ds.validateFilterCondition(field, condition); err != nil {
+		return nil, err
+	}
+
+	filter := make(map[string]any)
+	fieldFilter := make(map[string]any)
+
+	// Handle equals
+	if len(condition.Equals) > 0 {
+		if len(condition.Equals) == 1 {
+			filter[field] = condition.Equals[0]
+		} else {
+			fieldFilter["$in"] = condition.Equals
+		}
+	}
+
+	// Handle greater than
+	if len(condition.GreaterThan) > 0 {
+		fieldFilter["$gt"] = condition.GreaterThan[0]
+	}
+
+	// Handle greater than or equal
+	if len(condition.GreaterOrEqual) > 0 {
+		fieldFilter["$gte"] = condition.GreaterOrEqual[0]
+	}
+
+	// Handle less than
+	if len(condition.LessThan) > 0 {
+		fieldFilter["$lt"] = condition.LessThan[0]
+	}
+
+	// Handle less than or equal
+	if len(condition.LessOrEqual) > 0 {
+		fieldFilter["$lte"] = condition.LessOrEqual[0]
+	}
+
+	// Handle between (using $gte and $lte)
+	if len(condition.Between) > 0 {
+		fieldFilter["$gte"] = condition.Between[0]
+		fieldFilter["$lte"] = condition.Between[1]
+	}
+
+	// Handle in
+	if len(condition.In) > 0 {
+		fieldFilter["$in"] = condition.In
+	}
+
+	// Handle not in
+	if len(condition.NotIn) > 0 {
+		fieldFilter["$nin"] = condition.NotIn
+	}
+
+	// If we have complex field filters, use them, otherwise use the simple filter
+	if len(fieldFilter) > 0 {
+		filter[field] = fieldFilter
+	}
+
+	return filter, nil
+}
+
+// isFilterConditionEmpty checks if a FilterCondition has no active filters
+func isFilterConditionEmpty(condition model.FilterCondition) bool {
+	return len(condition.Equals) == 0 &&
+		len(condition.GreaterThan) == 0 &&
+		len(condition.GreaterOrEqual) == 0 &&
+		len(condition.LessThan) == 0 &&
+		len(condition.LessOrEqual) == 0 &&
+		len(condition.Between) == 0 &&
+		len(condition.In) == 0 &&
+		len(condition.NotIn) == 0
+}
+
+// validateFilterCondition validates that a FilterCondition has proper values for each operator
+func (ds *ExternalDataSource) validateFilterCondition(fieldName string, condition model.FilterCondition) error {
+	// Validate between operator has exactly 2 values
+	if len(condition.Between) > 0 && len(condition.Between) != 2 {
+		return fmt.Errorf("between operator for field '%s' must have exactly 2 values, got %d", fieldName, len(condition.Between))
+	}
+
+	// Validate single-value operators have exactly 1 value
+	singleValueOps := map[string][]any{
+		"gt":  condition.GreaterThan,
+		"gte": condition.GreaterOrEqual,
+		"lt":  condition.LessThan,
+		"lte": condition.LessOrEqual,
+	}
+
+	for opName, values := range singleValueOps {
+		if len(values) > 0 && len(values) != 1 {
+			return fmt.Errorf("%s operator for field '%s' must have exactly 1 value, got %d", opName, fieldName, len(values))
+		}
+	}
+
+	return nil
 }
