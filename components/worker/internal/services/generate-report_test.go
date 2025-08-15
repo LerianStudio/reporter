@@ -7,6 +7,7 @@ import (
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/minio/report"
 	"plugin-smart-templates/v2/pkg/minio/template"
+	"plugin-smart-templates/v2/pkg/model"
 	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
 	postgres2 "plugin-smart-templates/v2/pkg/postgres"
 	"strings"
@@ -69,10 +70,12 @@ func TestGenerateReport_Success(t *testing.T) {
 		DataQueries: map[string]map[string][]string{
 			"onboarding": {"organization": {"name"}},
 		},
-		Filters: map[string]map[string]map[string][]any{
+		Filters: map[string]map[string]map[string]model.FilterCondition{
 			"onboarding": {
 				"organization": {
-					"id": {1, 2, 3},
+					"id": {
+						Equals: []any{1, 2, 3},
+					},
 				},
 			},
 		},
@@ -99,7 +102,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockPostgresRepo.
 		EXPECT().
-		Query(
+		QueryWithAdvancedFilters(
 			gomock.Any(),
 			gomock.Any(),
 			"organization",
