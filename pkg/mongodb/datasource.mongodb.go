@@ -9,6 +9,7 @@ import (
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -94,9 +95,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.collection", collection),
-		attribute.StringSlice("app.request.fields", fields),
 	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+		"collection": collection,
+		"fields":     fields,
+		"filter":     filter,
+	})
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
+	}
 
 	client, err := ds.connection.GetDB(ctx)
 	if err != nil {
@@ -324,9 +332,16 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.collection", collection),
-		attribute.StringSlice("app.request.fields", fields),
 	)
+
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+		"collection": collection,
+		"fields":     fields,
+		"filter":     filter,
+	})
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
+	}
 
 	client, err := ds.connection.GetDB(ctx)
 	if err != nil {

@@ -345,62 +345,62 @@ func (uc *UseCase) queryMongoDatabase(
 				newCollection = collection + "_" + collections["organization"][0]
 			}
 
-		collectionFilters := getTableFilters(databaseFilters, collection)
-		if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
-			newCollection := collection
-			if databaseName == "plugin_crm" {
-				newCollection = collection + "_" + collections["organization"][0]
-			}
-
-			filter := getTableFilters(databaseFilters, collection)
-
-		// Use advanced filters
-		if len(collectionFilters) > 0 {
-			if databaseName == "plugin_crm" {
-				transformedFilter, err := uc.transformPluginCRMFilters(collectionFilters, logger)
-				if err != nil {
-					logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
-					return err
+			collectionFilters := getTableFilters(databaseFilters, collection)
+			if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
+				newCollection := collection
+				if databaseName == "plugin_crm" {
+					newCollection = collection + "_" + collections["organization"][0]
 				}
 
-				collectionFilters = transformedFilter
-			}
+				filter := getTableFilters(databaseFilters, collection)
 
-			collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
-			if err != nil {
-				logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
-				return err
-			}
+				// Use advanced filters
+				if len(collectionFilters) > 0 {
+					if databaseName == "plugin_crm" {
+						transformedFilter, err := uc.transformPluginCRMFilters(collectionFilters, logger)
+						if err != nil {
+							logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
+							return err
+						}
 
-			logger.Infof("Successfully queried collection %s with advanced filters", collection)
-			result[databaseName][collection] = collectionResult
-		} else {
-			// No filters, use legacy method for now
-			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
-			if err != nil {
-				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-				return err
-			}
-			// Transform filters for plugin_crm to use search fields
-			if databaseName == "plugin_crm" {
-				transformedFilter, err := uc.transformPluginCRMFilters(filter, logger)
-				if err != nil {
-					logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
-					return err
+						collectionFilters = transformedFilter
+					}
+
+					collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
+					if err != nil {
+						logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
+						return err
+					}
+
+					logger.Infof("Successfully queried collection %s with advanced filters", collection)
+					result[databaseName][collection] = collectionResult
+				} else {
+					// No filters, use legacy method for now
+					collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+					if err != nil {
+						logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+						return err
+					}
+					// Transform filters for plugin_crm to use search fields
+					if databaseName == "plugin_crm" {
+						transformedFilter, err := uc.transformPluginCRMFilters(filter, logger)
+						if err != nil {
+							logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
+							return err
+						}
+
+						filter = transformedFilter
+					}
+
+					collectionResult, err := dataSource.MongoDBRepository.Query(ctx, newCollection, fields, filter)
+					if err != nil {
+						logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+						return err
+					}
+
+					result[databaseName][collection] = collectionResult
 				}
-
-				filter = transformedFilter
 			}
-
-			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, newCollection, fields, filter)
-			if err != nil {
-				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-				return err
-			}
-
-			result[databaseName][collection] = collectionResult
-		}
-		}
 			if databaseName == "plugin_crm" {
 				decryptedResult, err := uc.decryptPluginCRMData(logger, collectionResult, fields)
 				if err != nil {
