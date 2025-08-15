@@ -92,7 +92,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
 		"table":  table,
 		"fields": fields,
 		"filter": filter,
@@ -340,7 +340,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
 		"table":  tableName,
 		"fields": requestedFields,
 		"schema": schema,
@@ -464,7 +464,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
 		"table":  table,
 		"fields": fields,
 		"filter": filter,
@@ -512,6 +512,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 func (ds *ExternalDataSource) buildAdvancedFilters(queryBuilder squirrel.SelectBuilder, schema []TableSchema, table string, filter map[string]model.FilterCondition) (squirrel.SelectBuilder, error) {
 	// Find the table's column information
 	var tableColumns []ColumnInformation
+
 	for _, t := range schema {
 		if t.TableName == table {
 			tableColumns = t.Columns
@@ -664,6 +665,7 @@ func isLikelyUUIDField(fieldName string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -709,6 +711,7 @@ func isDateField(fieldName string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -718,5 +721,6 @@ func isDateString(value any) bool {
 		// Check for common date formats: YYYY-MM-DD, YYYY-MM-DDTHH:MM:SS, etc.
 		return len(str) >= 10 && strings.Contains(str, "-") && (len(str) == 10 || strings.Contains(str, "T"))
 	}
+
 	return false
 }

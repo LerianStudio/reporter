@@ -303,6 +303,7 @@ func (uc *UseCase) queryPostgresDatabase(
 			}
 
 			logger.Infof("Successfully queried table %s with advanced filters", table)
+
 			result[databaseName][table] = tableResult
 		} else {
 			// No filters, use legacy method for now
@@ -352,6 +353,7 @@ func (uc *UseCase) queryMongoDatabase(
 			}
 
 			logger.Infof("Successfully queried collection %s with advanced filters", collection)
+
 			result[databaseName][collection] = collectionResult
 		} else {
 			// No filters, use legacy method for now
