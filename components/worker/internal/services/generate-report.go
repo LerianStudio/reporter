@@ -302,6 +302,7 @@ func (uc *UseCase) queryPostgresDatabase(
 			}
 
 			logger.Infof("Successfully queried table %s with advanced filters", table)
+
 			result[databaseName][table] = tableResult
 		} else {
 			// No filters, use legacy method for now
@@ -345,12 +346,25 @@ func (uc *UseCase) queryMongoDatabase(
 				newCollection = collection + "_" + collections["organization"][0]
 			}
 
+<<<<<<< HEAD
 			collectionFilters := getTableFilters(databaseFilters, collection)
 			if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
 				newCollection := collection
 				if databaseName == "plugin_crm" {
 					newCollection = collection + "_" + collections["organization"][0]
 				}
+=======
+			logger.Infof("Successfully queried collection %s with advanced filters", collection)
+
+			result[databaseName][collection] = collectionResult
+		} else {
+			// No filters, use legacy method for now
+			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+			if err != nil {
+				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+				return err
+			}
+>>>>>>> 908f9bb (style: lint fixes :gem:)
 
 				filter := getTableFilters(databaseFilters, collection)
 

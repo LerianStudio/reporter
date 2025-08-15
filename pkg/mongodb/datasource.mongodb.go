@@ -97,7 +97,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
 		"collection": collection,
 		"fields":     fields,
 		"filter":     filter,
@@ -334,7 +334,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
 		"collection": collection,
 		"fields":     fields,
 		"filter":     filter,
@@ -361,10 +361,8 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 			return nil, fmt.Errorf("error converting filter for field '%s': %w", field, err)
 		}
 
-		if fieldFilter != nil {
-			for k, v := range fieldFilter {
-				mongoFilter[k] = v
-			}
+		for k, v := range fieldFilter {
+			mongoFilter[k] = v
 		}
 	}
 
