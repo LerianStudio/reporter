@@ -3,9 +3,9 @@ package pongo
 import (
 	"context"
 	"fmt"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"strings"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/flosch/pongo2/v6"
 )
 
@@ -18,9 +18,7 @@ func NewTemplateRenderer() *TemplateRenderer {
 }
 
 // RenderFromBytes renders a template from bytes using the provided data context
-func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any) (string, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-
+func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any, logger log.Logger) (string, error) {
 	tpl, err := pongo2.FromBytes(templateBytes)
 	if err != nil {
 		logger.Errorf("Error parsing template: %s", err.Error())

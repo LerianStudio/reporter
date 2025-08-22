@@ -3,22 +3,21 @@ package services
 import (
 	"context"
 	"errors"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/model"
-	"plugin-smart-templates/v2/pkg/mongodb/report"
 )
 
 // CreateReport create a new report
 func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput, organizationID uuid.UUID) (*report.Report, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.create_report")
 	defer span.End()
@@ -29,7 +28,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		attribute.String("app.request.template_id", reportInput.TemplateID),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", reportInput)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", reportInput)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert report input to JSON string", err)
 	}

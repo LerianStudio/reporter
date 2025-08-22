@@ -38,10 +38,7 @@ type TemplateHandler struct {
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-
-	logger := pkg.NewLoggerFromContext(ctx)
-	tracer := pkg.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.create_template")
 	defer span.End()
@@ -69,7 +66,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
 
-	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", fileHeader)
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", fileHeader)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
@@ -148,9 +145,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.update_template")
 	defer span.End()
@@ -178,7 +173,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
 
-	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", fileHeader)
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", fileHeader)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
@@ -244,9 +239,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_template")
 	defer span.End()
@@ -293,9 +286,7 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_all_template")
 	defer span.End()
@@ -323,7 +314,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", headerParams)
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.query_params", headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
@@ -358,9 +349,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.delete_template_by_id")
 	defer span.End()

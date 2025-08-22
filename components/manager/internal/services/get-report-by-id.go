@@ -3,21 +3,20 @@ package services
 import (
 	"context"
 	"errors"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/mongodb/report"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/report"
 )
 
 // GetReportByID recover a report by ID
 func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UUID) (*report.Report, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_report_by_id")
 	defer span.End()

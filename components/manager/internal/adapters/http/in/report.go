@@ -35,10 +35,7 @@ type ReportHandler struct {
 //	@Router			/v1/reports [post]
 func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	ctx := c.UserContext()
-
-	logger := pkg.NewLoggerFromContext(ctx)
-	tracer := pkg.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.create_report")
 	defer span.End()
@@ -54,7 +51,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", payload)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", payload)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
 	}
@@ -86,9 +83,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_report_download")
 	defer span.End()
@@ -164,9 +159,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_report")
 	defer span.End()
@@ -212,9 +205,7 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_all_reports")
 	defer span.End()
@@ -242,7 +233,7 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err = libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.query_params", headerParams)
+	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.query_params", headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}

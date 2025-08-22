@@ -25,9 +25,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 		mappedFields map[string]map[string][]string
 	)
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.update_template_by_id")
 	defer span.End()

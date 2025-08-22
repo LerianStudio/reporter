@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"encoding/hex"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -41,9 +42,7 @@ type ExternalDataSource struct {
 }
 
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided MongoDB connection string and database name.
-func NewDataSourceRepository(mongoURI string, dbName string) *ExternalDataSource {
-	logger := libCommons.NewLoggerFromContext(context.Background()) // TODO
-
+func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) *ExternalDataSource {
 	mongoConnection := &libMongo.MongoConnection{
 		ConnectionStringSource: mongoURI,
 		Database:               dbName,
@@ -83,9 +82,7 @@ func (ds *ExternalDataSource) CloseConnection(ctx context.Context) error {
 
 // Query executes a query on the specified collection with the given fields and filter criteria.
 func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	logger.Infof("Querying %s collection with fields %v", collection, fields)
 
@@ -225,9 +222,7 @@ func convertBsonValue(value any) any {
 
 // GetDatabaseSchema retrieves all collections and infers their schema from sample documents
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema")
 	defer span.End()

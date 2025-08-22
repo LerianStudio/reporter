@@ -52,8 +52,7 @@ var mimeTypes = map[string]string{
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
 func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.generate_report")
 	defer span.End()
@@ -118,7 +117,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	renderer := pongo.NewTemplateRenderer()
 
-	out, err := renderer.RenderFromBytes(ctx, fileBytes, result)
+	out, err := renderer.RenderFromBytes(ctx, fileBytes, result, logger)
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -211,8 +210,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 
 // queryExternalData retrieves data from external data sources specified in the message and populates the result map.
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.generate_report.query_external_data")
 	defer span.End()
@@ -316,8 +314,7 @@ func (uc *UseCase) queryMongoDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "service.generate_report.query_mongo_database")
 	defer span.End()
@@ -485,7 +482,7 @@ func (uc *UseCase) decryptPluginCRMData(logger log.Logger, collectionResult []ma
 
 	// Process each record in the collection
 	for i, record := range collectionResult {
-		decryptedRecord, err := uc.decryptRecord(record, fields, crypto)
+		decryptedRecord, err := uc.decryptRecord(record, crypto)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt record %d: %w", i, err)
 		}
@@ -507,7 +504,7 @@ func isEncryptedField(field string) bool {
 }
 
 // decryptRecord decrypts a single record's encrypted fields
-func (uc *UseCase) decryptRecord(record map[string]any, fields []string, crypto *libCrypto.Crypto) (map[string]any, error) {
+func (uc *UseCase) decryptRecord(record map[string]any, crypto *libCrypto.Crypto) (map[string]any, error) {
 	// Create a copy of the record to avoid modifying the original
 	decryptedRecord := make(map[string]any)
 	for k, v := range record {
@@ -515,98 +512,155 @@ func (uc *UseCase) decryptRecord(record map[string]any, fields []string, crypto 
 	}
 
 	// Decrypt top-level fields
-	for fieldName, fieldValue := range decryptedRecord {
-		if isEncryptedField(fieldName) && fieldValue != nil {
-			if strValue, ok := fieldValue.(string); ok && strValue != "" {
-				decryptedValue, err := crypto.Decrypt(&strValue)
-				if err != nil {
-					return nil, fmt.Errorf("failed to decrypt field %s: %w", fieldName, err)
-				}
-
-				decryptedRecord[fieldName] = *decryptedValue
-			}
-		}
+	if err := uc.decryptTopLevelFields(decryptedRecord, crypto); err != nil {
+		return nil, err
 	}
 
-	// Decrypt nested fields in contact
-	if contact, ok := decryptedRecord["contact"].(map[string]any); ok {
-		contactFields := []string{"primary_email", "secondary_email", "mobile_phone", "other_phone"}
-		for _, fieldName := range contactFields {
-			if fieldValue, exists := contact[fieldName]; exists && fieldValue != nil {
-				if strValue, ok := fieldValue.(string); ok && strValue != "" {
-					decryptedValue, err := crypto.Decrypt(&strValue)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decrypt contact.%s: %w", fieldName, err)
-					}
-
-					contact[fieldName] = *decryptedValue
-				}
-			}
-		}
-
-		decryptedRecord["contact"] = contact
-	}
-
-	// Decrypt nested fields in banking_details
-	if bankingDetails, ok := decryptedRecord["banking_details"].(map[string]any); ok {
-		bankingFields := []string{"account", "iban"}
-		for _, fieldName := range bankingFields {
-			if fieldValue, exists := bankingDetails[fieldName]; exists && fieldValue != nil {
-				if strValue, ok := fieldValue.(string); ok && strValue != "" {
-					decryptedValue, err := crypto.Decrypt(&strValue)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decrypt banking_details.%s: %w", fieldName, err)
-					}
-
-					bankingDetails[fieldName] = *decryptedValue
-				}
-			}
-		}
-
-		decryptedRecord["banking_details"] = bankingDetails
-	}
-
-	// Decrypt nested fields in legal_person.representative
-	if legalPerson, ok := decryptedRecord["legal_person"].(map[string]any); ok {
-		if representative, ok := legalPerson["representative"].(map[string]any); ok {
-			representativeFields := []string{"name", "document", "email"}
-			for _, fieldName := range representativeFields {
-				if fieldValue, exists := representative[fieldName]; exists && fieldValue != nil {
-					if strValue, ok := fieldValue.(string); ok && strValue != "" {
-						decryptedValue, err := crypto.Decrypt(&strValue)
-						if err != nil {
-							return nil, fmt.Errorf("failed to decrypt legal_person.representative.%s: %w", fieldName, err)
-						}
-
-						representative[fieldName] = *decryptedValue
-					}
-				}
-			}
-
-			legalPerson["representative"] = representative
-		}
-
-		decryptedRecord["legal_person"] = legalPerson
-	}
-
-	// Decrypt nested fields in natural_person
-	if naturalPerson, ok := decryptedRecord["natural_person"].(map[string]any); ok {
-		naturalPersonFields := []string{"mother_name", "father_name"}
-		for _, fieldName := range naturalPersonFields {
-			if fieldValue, exists := naturalPerson[fieldName]; exists && fieldValue != nil {
-				if strValue, ok := fieldValue.(string); ok && strValue != "" {
-					decryptedValue, err := crypto.Decrypt(&strValue)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decrypt natural_person.%s: %w", fieldName, err)
-					}
-
-					naturalPerson[fieldName] = *decryptedValue
-				}
-			}
-		}
-
-		decryptedRecord["natural_person"] = naturalPerson
+	// Decrypt nested fields
+	if err := uc.decryptNestedFields(decryptedRecord, crypto); err != nil {
+		return nil, err
 	}
 
 	return decryptedRecord, nil
+}
+
+// decryptTopLevelFields decrypts top-level encrypted fields
+func (uc *UseCase) decryptTopLevelFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	for fieldName, fieldValue := range record {
+		if isEncryptedField(fieldName) && fieldValue != nil {
+			if err := uc.decryptFieldValue(record, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt field %s: %w", fieldName, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// decryptNestedFields decrypts nested encrypted fields in the record
+func (uc *UseCase) decryptNestedFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	if err := uc.decryptContactFields(record, crypto); err != nil {
+		return err
+	}
+
+	if err := uc.decryptBankingDetailsFields(record, crypto); err != nil {
+		return err
+	}
+
+	if err := uc.decryptLegalPersonFields(record, crypto); err != nil {
+		return err
+	}
+
+	if err := uc.decryptNaturalPersonFields(record, crypto); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// decryptContactFields decrypts fields within the contact object
+func (uc *UseCase) decryptContactFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	contact, ok := record["contact"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	contactFields := []string{"primary_email", "secondary_email", "mobile_phone", "other_phone"}
+	for _, fieldName := range contactFields {
+		if fieldValue, exists := contact[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(contact, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt contact.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	record["contact"] = contact
+
+	return nil
+}
+
+// decryptBankingDetailsFields decrypts fields within the banking_details object
+func (uc *UseCase) decryptBankingDetailsFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	bankingDetails, ok := record["banking_details"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	bankingFields := []string{"account", "iban"}
+	for _, fieldName := range bankingFields {
+		if fieldValue, exists := bankingDetails[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(bankingDetails, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt banking_details.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	record["banking_details"] = bankingDetails
+
+	return nil
+}
+
+// decryptLegalPersonFields decrypts fields within the legal_person object
+func (uc *UseCase) decryptLegalPersonFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	legalPerson, ok := record["legal_person"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	representative, ok := legalPerson["representative"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	representativeFields := []string{"name", "document", "email"}
+	for _, fieldName := range representativeFields {
+		if fieldValue, exists := representative[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(representative, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt legal_person.representative.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	legalPerson["representative"] = representative
+	record["legal_person"] = legalPerson
+
+	return nil
+}
+
+// decryptNaturalPersonFields decrypts fields within the natural_person object
+func (uc *UseCase) decryptNaturalPersonFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	naturalPerson, ok := record["natural_person"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	naturalPersonFields := []string{"mother_name", "father_name"}
+	for _, fieldName := range naturalPersonFields {
+		if fieldValue, exists := naturalPerson[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(naturalPerson, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt natural_person.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	record["natural_person"] = naturalPerson
+
+	return nil
+}
+
+// decryptFieldValue decrypts a single field value if it's a non-empty string
+func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string, fieldValue any, crypto *libCrypto.Crypto) error {
+	strValue, ok := fieldValue.(string)
+	if !ok || strValue == "" {
+		return nil
+	}
+
+	decryptedValue, err := crypto.Decrypt(&strValue)
+	if err != nil {
+		return err
+	}
+
+	container[fieldName] = *decryptedValue
+
+	return nil
 }

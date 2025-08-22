@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
@@ -10,9 +11,7 @@ import (
 
 // DeleteTemplateByID delete a template from the repository
 func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id, organizationID uuid.UUID) error {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.delete_template_by_id")
 	defer span.End()

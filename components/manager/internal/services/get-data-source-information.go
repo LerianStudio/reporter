@@ -12,9 +12,7 @@ import (
 
 // GetDataSourceInformation getting all data sources information connected on plugin smart templates
 func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSourceInformation {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "get_data_source_information")
 	defer span.End()
@@ -23,7 +21,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.external_data_sources", uc.ExternalDataSources)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.external_data_sources", uc.ExternalDataSources)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert external data sources to JSON string", err)
 	}

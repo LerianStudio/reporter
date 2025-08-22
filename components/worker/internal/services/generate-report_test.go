@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/google/uuid"
-	"go.uber.org/mock/gomock"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/minio/report"
 	"plugin-smart-templates/v2/pkg/minio/template"
@@ -14,6 +11,10 @@ import (
 	postgres2 "plugin-smart-templates/v2/pkg/postgres"
 	"strings"
 	"testing"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_getContentType(t *testing.T) {
@@ -199,8 +200,7 @@ func TestSaveReport_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
 	if err != nil {
@@ -234,8 +234,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 
 	ctx := context.Background()
 
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, output, logger)
 	if err == nil || !strings.Contains(err.Error(), "failed to put file") {

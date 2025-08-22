@@ -6,6 +6,7 @@ import (
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/mongodb"
 	"strings"
 	"time"
 
@@ -16,9 +17,7 @@ import (
 
 // GetDataSourceDetailsByID retrieves the data source information by data source id
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
 	defer span.End()
@@ -142,62 +141,10 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
 	if err != nil {
 		logger.Errorf("Error get schemas of mongo db: %s", err.Error())
-
 		return nil, err
 	}
 
-	tableDetails := make([]model.TableDetails, 0)
-
-	for _, collection := range schema {
-		var fields []string
-
-		// For plugin_crm, use expanded field list instead of raw schema
-		if dataSourceID == "plugin_crm" {
-			// Extract the base collection name (remove organization suffix)
-			baseCollectionName := collection.CollectionName
-			if strings.Contains(baseCollectionName, "_") {
-				parts := strings.Split(baseCollectionName, "_")
-				if len(parts) > 1 {
-					baseCollectionName = strings.Join(parts[:len(parts)-1], "_")
-				}
-			}
-
-			expandedFields := uc.getExpandedFieldsForPluginCRM(baseCollectionName)
-			if expandedFields != nil {
-				fields = expandedFields
-			} else {
-				// Fallback to filtering raw schema fields
-				for _, collectionField := range collection.Fields {
-					if uc.shouldIncludeFieldForPluginCRM(collectionField.Name, baseCollectionName) {
-						fields = append(fields, collectionField.Name)
-					}
-				}
-			}
-		} else {
-			// For other databases, include all fields
-			for _, collectionField := range collection.Fields {
-				fields = append(fields, collectionField.Name)
-			}
-		}
-
-		// For plugin_crm, strip organization ID from collection name
-		displayName := collection.CollectionName
-		if dataSourceID == "plugin_crm" {
-			if strings.Contains(displayName, "_") {
-				parts := strings.Split(displayName, "_")
-				if len(parts) > 1 {
-					displayName = strings.Join(parts[:len(parts)-1], "_")
-				}
-			}
-		}
-
-		tableSchema := model.TableDetails{
-			Name:   displayName,
-			Fields: fields,
-		}
-
-		tableDetails = append(tableDetails, tableSchema)
-	}
+	tableDetails := uc.processCollectionsForDataSource(schema, dataSourceID)
 
 	result := &model.DataSourceDetails{
 		Id:           dataSourceID,
@@ -207,6 +154,84 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	}
 
 	return result, nil
+}
+
+// processCollectionsForDataSource processes collections and returns table details
+func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSchema, dataSourceID string) []model.TableDetails {
+	tableDetails := make([]model.TableDetails, 0)
+
+	for _, collection := range schema {
+		fields := uc.getFieldsForCollection(collection, dataSourceID)
+		displayName := uc.getDisplayNameForCollection(collection.CollectionName, dataSourceID)
+
+		tableSchema := model.TableDetails{
+			Name:   displayName,
+			Fields: fields,
+		}
+
+		tableDetails = append(tableDetails, tableSchema)
+	}
+
+	return tableDetails
+}
+
+// getFieldsForCollection determines which fields to include for a collection
+func (uc *UseCase) getFieldsForCollection(collection mongodb.CollectionSchema, dataSourceID string) []string {
+	if dataSourceID == "plugin_crm" {
+		return uc.getFieldsForPluginCRM(collection)
+	}
+
+	// For other databases, include all fields
+	fields := make([]string, 0, len(collection.Fields))
+	for _, collectionField := range collection.Fields {
+		fields = append(fields, collectionField.Name)
+	}
+
+	return fields
+}
+
+// getFieldsForPluginCRM gets fields for plugin_crm collections with special handling
+func (uc *UseCase) getFieldsForPluginCRM(collection mongodb.CollectionSchema) []string {
+	baseCollectionName := uc.getBaseCollectionName(collection.CollectionName)
+
+	expandedFields := uc.getExpandedFieldsForPluginCRM(baseCollectionName)
+	if expandedFields != nil {
+		return expandedFields
+	}
+
+	// Fallback to filtering raw schema fields
+	fields := make([]string, 0)
+
+	for _, collectionField := range collection.Fields {
+		if uc.shouldIncludeFieldForPluginCRM(collectionField.Name, baseCollectionName) {
+			fields = append(fields, collectionField.Name)
+		}
+	}
+
+	return fields
+}
+
+// getBaseCollectionName extracts the base collection name by removing organization suffix
+func (uc *UseCase) getBaseCollectionName(collectionName string) string {
+	if !strings.Contains(collectionName, "_") {
+		return collectionName
+	}
+
+	parts := strings.Split(collectionName, "_")
+	if len(parts) > 1 {
+		return strings.Join(parts[:len(parts)-1], "_")
+	}
+
+	return collectionName
+}
+
+// getDisplayNameForCollection gets the display name for a collection
+func (uc *UseCase) getDisplayNameForCollection(collectionName, dataSourceID string) string {
+	if dataSourceID == "plugin_crm" {
+		return uc.getBaseCollectionName(collectionName)
+	}
+
+	return collectionName
 }
 
 // shouldIncludeFieldForPluginCRM determines if a field should be included for plugin_crm based on encryption status

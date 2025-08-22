@@ -3,9 +3,10 @@ package template
 import (
 	"bytes"
 	"context"
-	"github.com/minio/minio-go/v7"
 	"io"
 	"plugin-smart-templates/v2/pkg"
+
+	"github.com/minio/minio-go/v7"
 )
 
 // Repository provides an interface for MinIO storage operations
