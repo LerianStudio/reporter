@@ -1,8 +1,7 @@
-import { getController } from '@/lib/http/server'
-import { TemplateController } from '@/core/application/controllers/template-controller'
+import { app } from '@/core/infrastructure/app'
 
-export const GET = getController(TemplateController, (c) => c.fetchById)
+export const GET = app.handler.bind(app)
 
-export const PATCH = getController(TemplateController, (c) => c.update)
+export const PATCH = app.handler.bind(app)
 
-export const DELETE = getController(TemplateController, (c) => c.delete)
+export const DELETE = app.handler.bind(app)

@@ -46,7 +46,7 @@ export const templateUpdateFormSchema = z.object({
     .refine((file) => file.size <= 5 * 1024 * 1024, {
       params: { id: 'template_file_too_large' }
     })
-    .optional()
+    .refine((file) => file.size > 0, { params: { id: 'template_file_empty' } })
 })
 
 // Type inference for form data

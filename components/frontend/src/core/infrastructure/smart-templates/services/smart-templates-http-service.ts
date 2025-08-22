@@ -1,6 +1,5 @@
-import { inject, injectable } from 'inversify'
+import { Inject, Injectable } from '@lerianstudio/sindarian-server'
 import { LoggerAggregator, RequestIdRepository } from '@lerianstudio/lib-logs'
-import { HttpService } from '@/lib/http'
 import { getServerSession } from 'next-auth'
 import { nextAuthOptions } from '@/core/infrastructure/next-auth/next-auth-provider'
 import { OtelTracerProvider } from '@/core/infrastructure/observability/otel-tracer-provider'
@@ -8,15 +7,16 @@ import { SpanStatusCode } from '@opentelemetry/api'
 import { getIntl } from '@/lib/intl'
 import { SmartTemplatesApiException } from '../exceptions/smart-templates-api-exceptions'
 import { smartTemplatesApiMessages } from '../messages/messages'
+import { HttpService } from '@lerianstudio/sindarian-server'
 
-@injectable()
+@Injectable()
 export class SmartTemplatesHttpService extends HttpService {
   constructor(
-    @inject(LoggerAggregator)
+    @Inject(LoggerAggregator)
     private readonly logger: LoggerAggregator,
-    @inject(RequestIdRepository)
+    @Inject(RequestIdRepository)
     private readonly requestIdRepository: RequestIdRepository,
-    @inject(OtelTracerProvider)
+    @Inject(OtelTracerProvider)
     private readonly otelTracerProvider: OtelTracerProvider
   ) {
     super()

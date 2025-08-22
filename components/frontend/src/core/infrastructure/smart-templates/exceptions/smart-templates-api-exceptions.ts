@@ -1,4 +1,4 @@
-import { ApiException } from '@/lib/http/api-exception'
+import { ApiException } from '@lerianstudio/sindarian-server'
 
 /**
  * Custom exception for Smart Templates API errors

@@ -1,30 +1,29 @@
-import { inject } from 'inversify'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { Controller } from '@/lib/http/server/decorators/controller-decorator'
-import { LoggerInterceptor } from '@/core/infrastructure/logger/decorators'
 import { CreateTemplateUseCase } from '../use-cases/templates/create-template-use-case'
 import { ListTemplatesUseCase } from '../use-cases/templates/list-templates-use-case'
 import { GetTemplateUseCase } from '../use-cases/templates/get-template-use-case'
 import { UpdateTemplateUseCase } from '../use-cases/templates/update-template-use-case'
 import { DeleteTemplateUseCase } from '../use-cases/templates/delete-template-use-case'
-import { ValidateFormData } from '@/lib/zod/decorators/validate-form-data'
 import { OutputFormat } from '@/core/domain/entities/template-entity'
-import { Delete, Get, Param, Query } from '@/lib/http/server'
 import type { TemplateSearchParamDto } from '../dto/template-dto'
-import { BaseController } from '@/lib/http/server/base-controller'
-
-type TemplateParams = {
-  id: string // organization ID
-  templateId?: string
-}
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query
+} from '@lerianstudio/sindarian-server'
+import { NextResponse } from 'next/server'
 
 // Create const array from OutputFormat type for Zod validation
 const OUTPUT_FORMAT_VALUES: OutputFormat[] = ['csv', 'xml', 'html', 'txt']
 
 const CreateFormDataSchema = z.object({
-  organizationId: z.string().min(1),
-  name: z.string().max(1000).optional(),
+  name: z.string().max(1000),
   outputFormat: z.enum(
     OUTPUT_FORMAT_VALUES as [OutputFormat, ...OutputFormat[]]
   ),
@@ -73,83 +72,68 @@ type UpdateFormData = z.infer<typeof UpdateFormDataSchema>
  * Provides RESTful endpoints that delegate to appropriate use cases.
  * Follows console patterns with proper request/response handling.
  */
-@LoggerInterceptor()
-@Controller()
-export class TemplateController extends BaseController {
+@Controller('/organizations/:id/templates')
+export class TemplateController {
   constructor(
-    @inject(CreateTemplateUseCase)
+    @Inject(CreateTemplateUseCase)
     private readonly createTemplateUseCase: CreateTemplateUseCase,
-    @inject(ListTemplatesUseCase)
+    @Inject(ListTemplatesUseCase)
     private readonly listTemplatesUseCase: ListTemplatesUseCase,
-    @inject(GetTemplateUseCase)
+    @Inject(GetTemplateUseCase)
     private readonly getTemplateUseCase: GetTemplateUseCase,
-    @inject(UpdateTemplateUseCase)
+    @Inject(UpdateTemplateUseCase)
     private readonly updateTemplateUseCase: UpdateTemplateUseCase,
-    @inject(DeleteTemplateUseCase)
+    @Inject(DeleteTemplateUseCase)
     private readonly deleteTemplateUseCase: DeleteTemplateUseCase
-  ) {
-    super()
-  }
+  ) {}
 
   /**
    * Get a specific template by ID
    * GET /api/organizations/{id}/templates/{templateId}
    */
-  @Get()
+  @Get('/:templateId')
   async fetchById(
     @Param('id') organizationId: string,
     @Param('templateId') templateId: string
   ) {
-    const template = await this.getTemplateUseCase.execute(
-      templateId!,
-      organizationId
-    )
-
-    return NextResponse.json(template)
+    return await this.getTemplateUseCase.execute(templateId!, organizationId)
   }
 
   /**
    * List templates with pagination and filtering
    * GET /api/organizations/{id}/templates
    */
-  @Get()
+  @Get('/')
   async fetchAll(
     @Param('id') organizationId: string,
     @Query() query: TemplateSearchParamDto
   ) {
-    const templates = await this.listTemplatesUseCase.execute(
-      organizationId,
-      query
-    )
-
-    return NextResponse.json(templates)
+    return await this.listTemplatesUseCase.execute(organizationId, query)
   }
 
   /**
    * Create a new template
    * POST /api/organizations/{id}/templates
    */
-  @ValidateFormData(CreateFormDataSchema)
-  async create(request: Request, { params }: { params: TemplateParams }) {
-    const formData = await request.formData()
-    const organizationId = (await params).id
-    const name = (formData.get('name') as string) || ''
-    const outputFormat = formData.get('outputFormat') as any
-    const templateFile = formData.get('templateFile') as File
+  // @ValidateFormData(CreateFormDataSchema)
+  @Post('/')
+  async create(
+    @Param('id') organizationId: string,
+    @Body() body: CreateFormData
+  ) {
+    const { templateFile } = body
 
     // Additional file validation
     if (!templateFile || templateFile.size === 0) {
       return NextResponse.json(
-        { error: 'Template file is required' },
+        { message: 'Template file is required' },
         { status: 400 }
       )
     }
 
     const template = await this.createTemplateUseCase.execute({
       organizationId,
-      name,
-      outputFormat,
-      templateFile
+      ...body
     })
 
     return NextResponse.json(template, { status: 201 })
@@ -159,17 +143,15 @@ export class TemplateController extends BaseController {
    * Update an existing template
    * PATCH /api/organizations/{id}/templates/{templateId}
    */
-  @ValidateFormData(UpdateFormDataSchema)
-  async update(request: Request, { params }: { params: TemplateParams }) {
-    const formData = await request.formData()
-    const organizationId = (await params).id
-    const templateId = (await params).templateId
+  @Patch('/:templateId')
+  async update(
+    @Param('id') organizationId: string,
+    @Param('templateId') templateId: string,
+    @Body() body: UpdateFormData
+  ) {
+    const { name, outputFormat, templateFile } = body
 
-    const name = (formData.get('name') as string) || undefined
-    const outputFormat = formData.get('outputFormat') as any
-    const templateFile = formData.get('templateFile') as File | null
-
-    const template = await this.updateTemplateUseCase.execute(
+    return await this.updateTemplateUseCase.execute(
       templateId!,
       organizationId,
       {
@@ -178,15 +160,13 @@ export class TemplateController extends BaseController {
         templateFile: templateFile || undefined
       }
     )
-
-    return NextResponse.json(template)
   }
 
   /**
    * Delete a template (soft delete)
    * DELETE /api/organizations/{id}/templates/{templateId}
    */
-  @Delete()
+  @Delete('/:templateId')
   async delete(
     @Param('id') organizationId: string,
     @Param('templateId') templateId: string
