@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.70] - 2025-08-22
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.69...v2.0.0-beta.70)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **CRM Database Connection**: Seamlessly integrate CRM data into your reports and templates. This feature empowers users to make more informed, data-driven decisions by incorporating comprehensive CRM insights directly into their workflow.
+
+### 🐛 Bug Fixes
+- **Data Encryption Reliability**: Resolved issues with data encryption errors, ensuring robust protection of sensitive information and enhancing overall system reliability.
+- **Telemetry Accuracy**: Fixed errors in OpenTelemetry function implementations, ensuring consistent and accurate data collection for better system monitoring and diagnostics.
+
+### ⚡ Performance
+- **Enhanced Monitoring**: Optimized OpenTelemetry functions to improve system monitoring and observability, enabling quicker issue resolution and system optimization.
+
+### 📚 Documentation
+- **Updated Guidance**: Revised documentation to include new features and improvements, providing clear instructions on leveraging the latest capabilities for maximum benefit.
+
+### 🔧 Maintenance
+- **Changelog Update**: Ensured the changelog reflects all recent updates, maintaining transparency and keeping users informed about the latest enhancements.
+
+
 ## [v2.0.0-beta.69] - 2025-08-14
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.68...v2.0.0-beta.69)
