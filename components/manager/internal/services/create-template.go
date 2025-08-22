@@ -45,13 +45,17 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
-	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, mappedFields); errValidateFields != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
 
 		return nil, errValidateFields
 	}
+
+	// Transform mapped fields for storage (append organizationID to plugin_crm table names)
+	transformedMappedFields := TransformMappedFieldsForStorage(mappedFields, organizationID.String())
+	logger.Infof("Transformed Mapped Fields for storage %v", transformedMappedFields)
 
 	templateId := commons.GenerateUUIDv7()
 	fileName := fmt.Sprintf("%s.tpl", templateId.String())
@@ -62,7 +66,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 		OrganizationID: organizationID,
 		FileName:       fileName,
 		Description:    description,
-		MappedFields:   mappedFields,
+		MappedFields:   transformedMappedFields,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		DeletedAt:      nil,

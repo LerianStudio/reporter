@@ -50,7 +50,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 			return err
 		}
 
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, mappedFields); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 			logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)

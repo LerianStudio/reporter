@@ -6,6 +6,7 @@ import (
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/model"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -148,13 +149,50 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	tableDetails := make([]model.TableDetails, 0)
 
 	for _, collection := range schema {
-		fields := make([]string, 0)
-		for _, collectionField := range collection.Fields {
-			fields = append(fields, collectionField.Name)
+		var fields []string
+
+		// For plugin_crm, use expanded field list instead of raw schema
+		if dataSourceID == "plugin_crm" {
+			// Extract the base collection name (remove organization suffix)
+			baseCollectionName := collection.CollectionName
+			if strings.Contains(baseCollectionName, "_") {
+				parts := strings.Split(baseCollectionName, "_")
+				if len(parts) > 1 {
+					baseCollectionName = strings.Join(parts[:len(parts)-1], "_")
+				}
+			}
+
+			expandedFields := uc.getExpandedFieldsForPluginCRM(baseCollectionName)
+			if expandedFields != nil {
+				fields = expandedFields
+			} else {
+				// Fallback to filtering raw schema fields
+				for _, collectionField := range collection.Fields {
+					if uc.shouldIncludeFieldForPluginCRM(collectionField.Name, baseCollectionName) {
+						fields = append(fields, collectionField.Name)
+					}
+				}
+			}
+		} else {
+			// For other databases, include all fields
+			for _, collectionField := range collection.Fields {
+				fields = append(fields, collectionField.Name)
+			}
+		}
+
+		// For plugin_crm, strip organization ID from collection name
+		displayName := collection.CollectionName
+		if dataSourceID == "plugin_crm" {
+			if strings.Contains(displayName, "_") {
+				parts := strings.Split(displayName, "_")
+				if len(parts) > 1 {
+					displayName = strings.Join(parts[:len(parts)-1], "_")
+				}
+			}
 		}
 
 		tableSchema := model.TableDetails{
-			Name:   collection.CollectionName,
+			Name:   displayName,
 			Fields: fields,
 		}
 
@@ -169,6 +207,123 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	}
 
 	return result, nil
+}
+
+// shouldIncludeFieldForPluginCRM determines if a field should be included for plugin_crm based on encryption status
+func (uc *UseCase) shouldIncludeFieldForPluginCRM(fieldName, collectionName string) bool {
+	// Define encrypted fields that should be excluded
+	encryptedFields := map[string]bool{
+		"document": true,
+		"name":     true,
+	}
+
+	// Define search fields that should be included (these are hashes, not encrypted)
+	searchFields := map[string]bool{
+		"search.document":                true,
+		"search.banking_details_account": true,
+		"search.banking_details_iban":    true,
+		"search.contact_primary_email":   true,
+		"search.contact_secondary_email": true,
+		"search.contact_mobile_phone":    true,
+		"search.contact_other_phone":     true,
+		"search":                         true, // Include the search object itself
+	}
+
+	// Define nested encrypted fields that should be excluded
+	nestedEncryptedFields := map[string]bool{
+		"contact.primary_email":                true,
+		"contact.secondary_email":              true,
+		"contact.mobile_phone":                 true,
+		"contact.other_phone":                  true,
+		"banking_details.account":              true,
+		"banking_details.iban":                 true,
+		"legal_person.representative.name":     true,
+		"legal_person.representative.document": true,
+		"legal_person.representative.email":    true,
+		"natural_person.mother_name":           true,
+		"natural_person.father_name":           true,
+	}
+
+	// Check if it's a search field (include these)
+	if searchFields[fieldName] {
+		return true
+	}
+
+	// Check if it's a top-level encrypted field (exclude these)
+	if encryptedFields[fieldName] {
+		return false
+	}
+
+	// Check if it's a nested encrypted field (exclude these)
+	if nestedEncryptedFields[fieldName] {
+		return false
+	}
+
+	// For holders and aliases collections, be more specific about what to include
+	if collectionName == "holders" || collectionName == "aliases" {
+		// Include all non-encrypted fields
+		return true
+	}
+
+	// For other collections, include all fields
+	return true
+}
+
+// getExpandedFieldsForPluginCRM returns the expanded field list for plugin_crm collections
+func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string {
+	switch collectionName {
+	case "holders":
+		return []string{
+			"_id",
+			"external_id",
+			"type",
+			"addresses",
+			"created_at",
+			"updated_at",
+			"deleted_at",
+			"metadata",
+			"search.document",
+			// Natural person fields (non-encrypted)
+			"natural_person.favorite_name",
+			"natural_person.social_name",
+			"natural_person.gender",
+			"natural_person.birth_date",
+			"natural_person.civil_status",
+			"natural_person.nationality",
+			"natural_person.status",
+			// Legal person fields (non-encrypted)
+			"legal_person.trade_name",
+			"legal_person.activity",
+			"legal_person.type",
+			"legal_person.founding_date",
+			"legal_person.size",
+			"legal_person.status",
+			"legal_person.representative.role",
+		}
+	case "aliases":
+		return []string{
+			"_id",
+			"account_id",
+			"holder_id",
+			"ledger_id",
+			"type",
+			"created_at",
+			"updated_at",
+			"deleted_at",
+			"metadata",
+			"search.document",
+			"search.banking_details_account",
+			"search.banking_details_iban",
+			// Banking details fields (non-encrypted)
+			"banking_details.branch",
+			"banking_details.type",
+			"banking_details.opening_date",
+			"banking_details.country_code",
+			"banking_details.bank_id",
+		}
+	default:
+		return nil
+	}
 }
 
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database

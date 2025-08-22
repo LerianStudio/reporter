@@ -62,7 +62,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, filtersMapped); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, filtersMapped); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
 
 			return nil, errValidateFields

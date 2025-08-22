@@ -51,6 +51,11 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 		}
 
 		if dataSourceInformation != nil && strings.TrimSpace(dataSourceInformation.Id) != "" {
+			// Add note for plugin_crm about field filtering
+			if key == "plugin_crm" {
+				logger.Infof("Note: plugin_crm data source filters out encrypted fields and only shows non-encrypted fields and search fields for security")
+			}
+
 			result = append(result, dataSourceInformation)
 		}
 	}
