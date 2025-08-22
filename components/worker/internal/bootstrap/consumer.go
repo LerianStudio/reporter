@@ -60,9 +60,7 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 
 // handlerGenerateReport processes messages from the generate report queue.
 func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []byte) error {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "consumer.handler_generate_report")
 	defer span.End()

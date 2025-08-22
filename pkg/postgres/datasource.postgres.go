@@ -77,9 +77,7 @@ func (ds *ExternalDataSource) CloseConnection() error {
 // Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.
 // It returns the query results as a slice of maps or an error in case of failure.
 func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.query")
 	defer span.End()
@@ -123,9 +121,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 // GetDatabaseSchema retrieves all tables and their column details from the database
 // It returns a slice of TableSchema objects or an error if the operation fails
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSchema, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.get_database_schema")
 	defer span.End()
@@ -318,9 +314,7 @@ func parseJSONBField(value any, logger log.Logger) any {
 // all requested fields exist in that table.
 // It returns a list of valid fields and an error if the table doesn't exist or fields are invalid.
 func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string, schema []TableSchema) ([]string, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.validate_table_and_fields")
 	defer span.End()
@@ -331,7 +325,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		attribute.StringSlice("app.request.fields", requestedFields),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.data_source.schema", schema)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.data_source.schema", schema)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert schema to JSON string", err)
 	}

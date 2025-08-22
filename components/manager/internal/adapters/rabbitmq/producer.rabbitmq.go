@@ -40,9 +40,7 @@ func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRep
 }
 
 func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exchange, key string, queueMessage model.ReportMessage) (*string, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	logger.Infof("Init sent message")
 
@@ -55,7 +53,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 		attribute.String("app.request.key", key),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanProducer, "app.request.rabbitmq.message", queueMessage)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&spanProducer, "app.request.rabbitmq.message", queueMessage)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&spanProducer, "Failed to convert queue message to JSON string", err)
 	}

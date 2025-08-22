@@ -2,14 +2,6 @@ package bootstrap
 
 import (
 	"fmt"
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
-	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"net/url"
 	"plugin-smart-templates/v2/components/worker/internal/adapters/rabbitmq"
 	"plugin-smart-templates/v2/components/worker/internal/services"
@@ -18,6 +10,15 @@ import (
 	reportFile "plugin-smart-templates/v2/pkg/minio/report"
 	templateFile "plugin-smart-templates/v2/pkg/minio/template"
 	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -68,14 +69,15 @@ func InitWorker() *Service {
 
 	logger := libZap.InitializeLogger()
 
-	telemetry := &libOtel.Telemetry{
+	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
 		DeploymentEnv:             cfg.OtelDeploymentEnv,
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 		EnableTelemetry:           cfg.EnableTelemetry,
-	}
+		Logger:                    logger,
+	})
 
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)

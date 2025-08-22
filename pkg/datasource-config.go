@@ -72,7 +72,7 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 
 	case MongoDBType:
-		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName)
+		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName, logger)
 
 		logger.Infof("Established MongoDB connection to %s database", databaseName)
 
