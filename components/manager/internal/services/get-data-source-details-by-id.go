@@ -15,6 +15,41 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+var (
+	// Define encrypted fields that should be excluded
+	encryptedFields = map[string]bool{
+		"document": true,
+		"name":     true,
+	}
+
+	// Define search fields that should be included (these are hashes, not encrypted)
+	searchFields = map[string]bool{
+		"search.document":                true,
+		"search.banking_details_account": true,
+		"search.banking_details_iban":    true,
+		"search.contact_primary_email":   true,
+		"search.contact_secondary_email": true,
+		"search.contact_mobile_phone":    true,
+		"search.contact_other_phone":     true,
+		"search":                         true, // Include the search object itself
+	}
+
+	// Define nested encrypted fields that should be excluded
+	nestedEncryptedFields = map[string]bool{
+		"contact.primary_email":                true,
+		"contact.secondary_email":              true,
+		"contact.mobile_phone":                 true,
+		"contact.other_phone":                  true,
+		"banking_details.account":              true,
+		"banking_details.iban":                 true,
+		"legal_person.representative.name":     true,
+		"legal_person.representative.document": true,
+		"legal_person.representative.email":    true,
+		"natural_person.mother_name":           true,
+		"natural_person.father_name":           true,
+	}
+)
+
 // GetDataSourceDetailsByID retrieves the data source information by data source id
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
@@ -236,39 +271,6 @@ func (uc *UseCase) getDisplayNameForCollection(collectionName, dataSourceID stri
 
 // shouldIncludeFieldForPluginCRM determines if a field should be included for plugin_crm based on encryption status
 func (uc *UseCase) shouldIncludeFieldForPluginCRM(fieldName, collectionName string) bool {
-	// Define encrypted fields that should be excluded
-	encryptedFields := map[string]bool{
-		"document": true,
-		"name":     true,
-	}
-
-	// Define search fields that should be included (these are hashes, not encrypted)
-	searchFields := map[string]bool{
-		"search.document":                true,
-		"search.banking_details_account": true,
-		"search.banking_details_iban":    true,
-		"search.contact_primary_email":   true,
-		"search.contact_secondary_email": true,
-		"search.contact_mobile_phone":    true,
-		"search.contact_other_phone":     true,
-		"search":                         true, // Include the search object itself
-	}
-
-	// Define nested encrypted fields that should be excluded
-	nestedEncryptedFields := map[string]bool{
-		"contact.primary_email":                true,
-		"contact.secondary_email":              true,
-		"contact.mobile_phone":                 true,
-		"contact.other_phone":                  true,
-		"banking_details.account":              true,
-		"banking_details.iban":                 true,
-		"legal_person.representative.name":     true,
-		"legal_person.representative.document": true,
-		"legal_person.representative.email":    true,
-		"natural_person.mother_name":           true,
-		"natural_person.father_name":           true,
-	}
-
 	// Check if it's a search field (include these)
 	if searchFields[fieldName] {
 		return true

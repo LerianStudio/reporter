@@ -457,6 +457,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Script Tag Detected",
 			Message:    "The template file contains a script tag and is not allowed. Please check the template file and try again.",
 		},
+		constant.ErrDecryptionData: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrDecryptionData.Error(),
+			Title:      "Encryption data error Tag Detected",
+			Message:    fmt.Sprintf("Error to make the encryption of CRM data. Err: %v", args...),
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

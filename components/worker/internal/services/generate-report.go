@@ -354,7 +354,7 @@ func (uc *UseCase) queryMongoDatabase(
 				decryptedResult, err := uc.decryptPluginCRMData(logger, collectionResult, fields)
 				if err != nil {
 					logger.Errorf("Error decrypting data for collection %s: %s", collection, err.Error())
-					return err
+					return pkg.ValidateBusinessError(constant.ErrDecryptionData, "", err)
 				}
 
 				// Add the query results to the result map
@@ -468,7 +468,16 @@ func (uc *UseCase) decryptPluginCRMData(logger log.Logger, collectionResult []ma
 
 	// Initialize crypto instance
 	hashSecretKey := os.Getenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+
 	encryptSecretKey := os.Getenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
+	if encryptSecretKey == "" {
+		return nil, fmt.Errorf("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	}
+
+	if hashSecretKey == "" {
+		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	}
+
 	crypto := &libCrypto.Crypto{
 		HashSecretKey:    hashSecretKey,
 		EncryptSecretKey: encryptSecretKey,
@@ -477,7 +486,7 @@ func (uc *UseCase) decryptPluginCRMData(logger log.Logger, collectionResult []ma
 
 	err := crypto.InitializeCipher()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to initialize cipher: %w", err)
 	}
 
 	// Process each record in the collection
