@@ -82,7 +82,10 @@ const nextConfig = {
     return config
   },
 
-  transpilePackages: ['@lerianstudio/console-layout'],
+  transpilePackages: [
+    '@lerianstudio/console-layout',
+    '@lerianstudio/sindarian-ui'
+  ],
 
   serverExternalPackages: [
     'pino',

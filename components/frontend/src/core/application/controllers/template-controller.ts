@@ -115,7 +115,6 @@ export class TemplateController {
    * Create a new template
    * POST /api/organizations/{id}/templates
    */
-  // @ValidateFormData(CreateFormDataSchema)
   @Post('/')
   async create(
     @Param('id') organizationId: string,

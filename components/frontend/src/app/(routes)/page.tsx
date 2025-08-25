@@ -3,18 +3,29 @@
 import React from 'react'
 import { useIntl } from 'react-intl'
 import { HelpCircle, ExternalLink } from 'lucide-react'
-import { Breadcrumb } from '@/components/breadcrumb'
-import { PageHeader } from '@/components/page-header'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { OverviewTabContent } from './overview/overview-tab-content'
 import { TemplatesTabContent } from './templates/templates-tab-content'
 import { ReportsTabContent } from './reports/reports-tab-content'
 import { useTabs } from '@/hooks/use-tabs'
 import { useOrganization } from '@lerianstudio/console-layout'
-import { CollapsibleContent } from '@/components/ui/collapsible'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { getBreadcrumbPaths } from '@/components/breadcrumb/get-breadcrumb-paths'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  ApplicationBreadcrumb,
+  Button,
+  CollapsibleContent,
+  getBreadcrumbPaths,
+  PageHeader,
+  PageHeaderActionButtons,
+  PageHeaderCollapsibleInfoTrigger,
+  PageHeaderInfoTitle,
+  PageHeaderWrapper,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@lerianstudio/sindarian-ui'
 
 export default function Page() {
   const intl = useIntl()
@@ -28,7 +39,7 @@ export default function Page() {
   return (
     <>
       {/* Breadcrumb */}
-      <Breadcrumb
+      <ApplicationBreadcrumb
         paths={getBreadcrumbPaths([
           {
             name: currentOrganization.legalName,
@@ -66,23 +77,23 @@ export default function Page() {
       />
 
       {/* Plugin Header */}
-      <PageHeader.Root open={open} onOpenChange={setOpen}>
-        <PageHeader.Wrapper className="border-none">
-          <PageHeader.InfoTitle
+      <PageHeader open={open} onOpenChange={setOpen}>
+        <PageHeaderWrapper className="border-none">
+          <PageHeaderInfoTitle
             title={intl.formatMessage({
               id: 'smartTemplates.title',
               defaultMessage: 'Smart Templates'
             })}
           />
-          <PageHeader.ActionButtons>
-            <PageHeader.CollapsibleInfoTrigger
+          <PageHeaderActionButtons>
+            <PageHeaderCollapsibleInfoTrigger
               question={intl.formatMessage({
                 id: 'smartTemplates.header.about',
                 defaultMessage: 'About'
               })}
             />
-          </PageHeader.ActionButtons>
-        </PageHeader.Wrapper>
+          </PageHeaderActionButtons>
+        </PageHeaderWrapper>
 
         <CollapsibleContent>
           <Alert className="relative">
@@ -144,7 +155,7 @@ export default function Page() {
             </div>
           </Alert>
         </CollapsibleContent>
-      </PageHeader.Root>
+      </PageHeader>
 
       {/* Tabs Navigation */}
       <Tabs
