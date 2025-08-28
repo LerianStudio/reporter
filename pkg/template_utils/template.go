@@ -358,10 +358,8 @@ func extractIfFromExpression(expr string) []string {
 	return results
 }
 
-// extractCalcFromExpression extracts object.field patterns from a calculation expression,
-// similar to extractIfFromExpression but specifically for calc blocks.
+// extractCalcFromExpression extracts object.field patterns from a calculation expression
 func extractCalcFromExpression(expr string) []string {
-	// Use the same logic as extractIfFromExpression since calc expressions use similar field patterns
 	return extractIfFromExpression(expr)
 }
 

@@ -329,13 +329,10 @@ func makeCalcTag(_ *pongo2.Parser, _ *pongo2.Token, arguments *pongo2.Parser) (p
 }
 
 func (node *calcTagNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
-	// Get the template context to access variables
 	context := ctx.Public
 
-	// Replace variables in the expression with their values
 	expression := node.replaceVariables(node.expression, context, ctx.Private)
 
-	// Evaluate the arithmetic expression
 	result, err := evaluateArithmeticExpression(expression)
 	if err != nil {
 		return &pongo2.Error{
@@ -344,12 +341,9 @@ func (node *calcTagNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Tem
 		}
 	}
 
-	// Write the result
 	// Round to 10 decimal places to avoid artifacts (e.g., ...0000000001)
 	rounded := math.Round(result*1e10) / 1e10
-	// Format without scientific notation
 	out := formatNumber(rounded)
-	// Trim trailing zeros and trailing dot
 	out = strings.TrimRight(out, "0")
 	out = strings.TrimRight(out, ".")
 
@@ -407,29 +401,25 @@ func resolveVariableFromContext(match string, context pongo2.Context) (string, b
 	return value, true
 }
 
+// replaceVariables replaces variables in the expression with their values
 func (node *calcTagNode) replaceVariables(expression string, context pongo2.Context, privateContext pongo2.Context) string {
 	// Find all variable patterns in the expression (words with dots)
 	// This regex matches patterns like: balance.available, midaz_transaction.balance.0.initial_balance, etc.
 	re := regexp.MustCompile(`\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)*\b`)
 
 	expression = re.ReplaceAllStringFunc(expression, func(match string) string {
-		// Skip operators, parentheses, and numbers
 		if shouldSkipMatch(match) {
 			return match
 		}
 
-		// Try to resolve the variable using Pongo2's template engine
-		// First try the private context (loop variables)
 		if value, ok := resolveVariableFromContext(match, privateContext); ok {
 			return value
 		}
 
-		// If private context failed, try public context
 		if value, ok := resolveVariableFromContext(match, context); ok {
 			return value
 		}
 
-		// If both contexts failed, return "0"
 		return "0"
 	})
 

@@ -45,7 +45,6 @@ func init() {
 		}
 	}
 
-	// Register calc tag
 	if err := pongo2.RegisterTag("calc", makeCalcTag); err != nil {
 		panic("Failed to register calc tag: " + err.Error())
 	}
