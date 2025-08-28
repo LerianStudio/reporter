@@ -114,7 +114,6 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	}
 
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
-
 	renderer := pongo.NewTemplateRenderer()
 
 	out, err := renderer.RenderFromBytes(ctx, fileBytes, result, logger)
