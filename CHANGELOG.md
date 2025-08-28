@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.71] - 2025-08-28
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.70...v2.0.0-beta.71)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Arithmetic Operations in Templates**: You can now perform calculations directly within your templates. This enhancement streamlines workflows by reducing the need for external processing, allowing for more dynamic and flexible template expressions. [See updated documentation for examples]
+
+### 🐛 Bug Fixes
+- **Testing Code Cleanup**: Removed unnecessary comments from test files, making the codebase cleaner and easier to navigate. This helps developers focus on the core logic and functionality without distractions.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to reflect the latest changes, ensuring you have access to the most current information about updates and improvements.
+
+### 🔧 Maintenance
+- **Code Quality Enhancements**: General improvements have been made to the codebase, contributing to the stability and reliability of the software. While these changes are not directly visible, they ensure a robust development environment.
+
+
 ## [v2.0.0-beta.70] - 2025-08-22
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.69...v2.0.0-beta.70)
