@@ -171,7 +171,7 @@ jobs:
       - name: Apply backend tag values
         run: |
           set -euo pipefail
-          FILE=gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
+          FILE=gitops/environments/firmino/helmfile/applications/stg/plugin-smart-templates/values.yaml
 
           export TAG="$(grep -E '^manager=' .gitops-tags/manager.tag | cut -d'=' -f2 | tr -d '[:space:]')"
           echo "DEBUG backend TAG='$TAG'"
