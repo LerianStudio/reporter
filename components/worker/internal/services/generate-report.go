@@ -367,7 +367,26 @@ func (uc *UseCase) queryMongoDatabase(
 >>>>>>> 908f9bb (style: lint fixes :gem:)
 
 				filter := getTableFilters(databaseFilters, collection)
+		collectionFilters := getTableFilters(databaseFilters, collection)
 
+		// Use advanced filters
+		if len(collectionFilters) > 0 {
+			collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
+			if err != nil {
+				logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
+				return err
+			}
+
+			logger.Infof("Successfully queried collection %s with advanced filters", collection)
+
+			result[databaseName][collection] = collectionResult
+		} else {
+			// No filters, use legacy method for now
+			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+			if err != nil {
+				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+				return err
+			}
 				// Use advanced filters
 				if len(collectionFilters) > 0 {
 					if databaseName == "plugin_crm" {

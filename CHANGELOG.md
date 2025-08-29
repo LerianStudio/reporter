@@ -91,6 +91,7 @@ Contributors: LF Barrile, lerian-studio
 ### 🔧 Maintenance
 - **Updated Changelog**: The changelog now accurately reflects recent updates and improvements, ensuring users have access to the latest information about new features and fixes. This transparency aids in smoother transitions and adoption of updates.
 
+
 ## [v2.0.0-beta.68] - 2025-08-14
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.67...v2.0.0-beta.68)
@@ -108,6 +109,7 @@ Contributors: LF Barrile, lerian-studio
 ### 🔧 Maintenance
 - **General Code Maintenance**: Minor code adjustments and optimizations have been made to improve the overall stability and performance of the plugin.
 
+
 ## [v2.0.0-beta.67] - 2025-08-13
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.66...v2.0.0-beta.67)
@@ -122,6 +124,7 @@ Contributors: arthurkz, lerian-studio
 
 ### 🔧 Maintenance
 - **Changelog Update**: The changelog has been updated to reflect recent changes and improvements, ensuring users are informed of the latest updates.
+
 
 ## [v2.0.0-beta.66] - 2025-08-08
 
@@ -159,6 +162,7 @@ This release introduces a major update to the worker process API, enhancing scal
 - **Build and Test Enhancements**: The build and testing frameworks have been updated to accommodate the new API changes, ensuring robust validation of all components. This results in a more stable and reliable development environment.
 
 This changelog is structured to clearly communicate the key updates in version 3.0.0, focusing on the impact and benefits for users. Breaking changes are prominently highlighted with guidance for migration, while new features and performance improvements are described in terms of user value. Documentation updates and maintenance improvements are also noted to ensure users are well-informed about the changes.
+
 
 ## [v2.0.0] - 2025-08-08
 

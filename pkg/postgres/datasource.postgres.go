@@ -99,6 +99,15 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
 	}
 
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
+		"table":  table,
+		"fields": fields,
+		"filter": filter,
+	})
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
+	}
+
 	logger.Infof("Querying %s table with fields %v", table, fields)
 
 	// Validate requested table and fields
@@ -334,6 +343,11 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		attribute.String("app.request.request_id", reqId),
 	)
 
+	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
+		"table":  tableName,
+		"fields": requestedFields,
+		"schema": schema,
+	})
 	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]interface{}{
 		"table":  tableName,
 		"fields": requestedFields,
