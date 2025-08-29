@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.73] - 2025-08-29
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.72...v2.0.0-beta.73)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Streamlined Build Process**: A new configuration file has been introduced to selectively skip unnecessary steps in the build pipeline. This change enhances the efficiency of development cycles by reducing redundant operations, leading to a cleaner and more streamlined workflow.
+- **Updated Documentation**: The CHANGELOG has been updated to accurately reflect recent modifications. This ensures that all changes are well-documented, providing users and developers with a clear understanding of the project's evolution and context for the latest updates.
+
+
 ## [v2.0.0-beta.72] - 2025-08-28
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.71...v2.0.0-beta.72)
