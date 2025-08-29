@@ -1,9 +1,9 @@
-name: "Build Pipeline - Beta"
+name: "Build Pipeline - Release Step"
 
 on:
   push:
     tags:
-      - 'v*.*.*-beta.*'
+      - 'v*.*.*-rc.*'
 
 permissions:
   id-token: write
@@ -141,7 +141,7 @@ jobs:
 
   update_gitops_backend:
     needs: [detect_changes, build_and_publish]
-    if: ${{ needs.detect_changes.outputs.has_backend == 'true' && needs.build_and_publish.result == 'success' && contains(github.ref, '-beta') }}
+    if: ${{ needs.detect_changes.outputs.has_backend == 'true' && needs.build_and_publish.result == 'success' && contains(github.ref, '-rc') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -199,7 +199,7 @@ jobs:
 
   update_gitops_frontend:
     needs: [detect_changes, build_and_publish]
-    if: ${{ needs.detect_changes.outputs.has_frontend == 'true' && needs.build_and_publish.result == 'success' && contains(github.ref, '-beta') }}
+    if: ${{ needs.detect_changes.outputs.has_frontend == 'true' && needs.build_and_publish.result == 'success' && contains(github.ref, '-rc') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - releases
       - main
       - hotfix/v*
     paths-ignore:
