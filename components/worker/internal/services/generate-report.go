@@ -340,36 +340,59 @@ func (uc *UseCase) queryMongoDatabase(
 	)
 
 	for collection, fields := range collections {
-		if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
-			newCollection := collection
-			if databaseName == "plugin_crm" {
-				newCollection = collection + "_" + collections["organization"][0]
-			}
-
-<<<<<<< HEAD
-			collectionFilters := getTableFilters(databaseFilters, collection)
-			if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
-				newCollection := collection
-				if databaseName == "plugin_crm" {
-					newCollection = collection + "_" + collections["organization"][0]
-				}
-=======
-			logger.Infof("Successfully queried collection %s with advanced filters", collection)
-
-			result[databaseName][collection] = collectionResult
-		} else {
-			// No filters, use legacy method for now
-			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
-			if err != nil {
-				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-				return err
-			}
->>>>>>> 908f9bb (style: lint fixes :gem:)
-
-				filter := getTableFilters(databaseFilters, collection)
 		collectionFilters := getTableFilters(databaseFilters, collection)
 
-		// Use advanced filters
+		// Handle plugin_crm special case
+		if databaseName == "plugin_crm" && collection != "organization" {
+			// For plugin_crm, we need to use the organization field to create the collection name
+			orgFields, exists := collections["organization"]
+			if !exists || len(orgFields) == 0 {
+				logger.Errorf("Organization field not found for plugin_crm collection %s", collection)
+				continue
+			}
+			newCollection := collection + "_" + orgFields[0]
+
+			// Use advanced filters if available
+			if len(collectionFilters) > 0 {
+				// Transform advanced filters for plugin_crm to use search fields
+				transformedFilter, err := uc.transformPluginCRMAdvancedFilters(collectionFilters, logger)
+				if err != nil {
+					logger.Errorf("Error transforming advanced filters for collection %s: %s", collection, err.Error())
+					return err
+				}
+
+				collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, newCollection, fields, transformedFilter)
+				if err != nil {
+					logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
+					return err
+				}
+
+				logger.Infof("Successfully queried plugin_crm collection %s with advanced filters", collection)
+				result[databaseName][collection] = collectionResult
+			} else {
+				// No filters, use legacy method
+				collectionResult, err := dataSource.MongoDBRepository.Query(ctx, newCollection, fields, nil)
+				if err != nil {
+					logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+					return err
+				}
+
+				result[databaseName][collection] = collectionResult
+			}
+
+			// Decrypt data for plugin_crm
+			decryptedResult, err := uc.decryptPluginCRMData(logger, result[databaseName][collection], fields)
+			if err != nil {
+				logger.Errorf("Error decrypting data for collection %s: %s", collection, err.Error())
+				return pkg.ValidateBusinessError(constant.ErrDecryptionData, "", err)
+			}
+
+			result[databaseName][collection] = decryptedResult
+			continue
+		}
+
+		// Handle regular collections (non-plugin_crm or plugin_crm organization)
+		// Use advanced filters if available
 		if len(collectionFilters) > 0 {
 			collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
 			if err != nil {
@@ -378,75 +401,16 @@ func (uc *UseCase) queryMongoDatabase(
 			}
 
 			logger.Infof("Successfully queried collection %s with advanced filters", collection)
-
 			result[databaseName][collection] = collectionResult
 		} else {
-			// No filters, use legacy method for now
+			// No filters, use legacy method
 			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
 			if err != nil {
 				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
 				return err
 			}
-				// Use advanced filters
-				if len(collectionFilters) > 0 {
-					if databaseName == "plugin_crm" {
-						transformedFilter, err := uc.transformPluginCRMFilters(collectionFilters, logger)
-						if err != nil {
-							logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
-							return err
-						}
 
-						collectionFilters = transformedFilter
-					}
-
-					collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
-					if err != nil {
-						logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
-						return err
-					}
-
-					logger.Infof("Successfully queried collection %s with advanced filters", collection)
-					result[databaseName][collection] = collectionResult
-				} else {
-					// No filters, use legacy method for now
-					collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
-					if err != nil {
-						logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-						return err
-					}
-					// Transform filters for plugin_crm to use search fields
-					if databaseName == "plugin_crm" {
-						transformedFilter, err := uc.transformPluginCRMFilters(filter, logger)
-						if err != nil {
-							logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
-							return err
-						}
-
-						filter = transformedFilter
-					}
-
-					collectionResult, err := dataSource.MongoDBRepository.Query(ctx, newCollection, fields, filter)
-					if err != nil {
-						logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-						return err
-					}
-
-					result[databaseName][collection] = collectionResult
-				}
-			}
-			if databaseName == "plugin_crm" {
-				decryptedResult, err := uc.decryptPluginCRMData(logger, collectionResult, fields)
-				if err != nil {
-					logger.Errorf("Error decrypting data for collection %s: %s", collection, err.Error())
-					return pkg.ValidateBusinessError(constant.ErrDecryptionData, "", err)
-				}
-
-				// Add the query results to the result map
-				result[databaseName][collection] = decryptedResult
-			} else {
-				// Add the query results to the result map
-				result[databaseName][collection] = collectionResult
-			}
+			result[databaseName][collection] = collectionResult
 		}
 	}
 
@@ -516,6 +480,109 @@ func (uc *UseCase) transformPluginCRMFilters(filter map[string][]any, logger log
 	}
 
 	return transformedFilter, nil
+}
+
+// transformPluginCRMAdvancedFilters transforms advanced FilterCondition filters for plugin_crm to use search fields
+func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.FilterCondition, logger log.Logger) (map[string]model.FilterCondition, error) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	// Initialize crypto instance for hashing
+	hashSecretKey := os.Getenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+	if hashSecretKey == "" {
+		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	}
+
+	crypto := &libCrypto.Crypto{
+		HashSecretKey: hashSecretKey,
+		Logger:        logger,
+	}
+
+	transformedFilter := make(map[string]model.FilterCondition)
+
+	// Define field mappings: encrypted field -> search field
+	fieldMappings := map[string]string{
+		"document":                "search.document",
+		"name":                    "search.name",
+		"banking_details.account": "search.banking_details_account",
+		"banking_details.iban":    "search.banking_details_iban",
+		"contact.primary_email":   "search.contact_primary_email",
+		"contact.secondary_email": "search.contact_secondary_email",
+		"contact.mobile_phone":    "search.contact_mobile_phone",
+		"contact.other_phone":     "search.contact_other_phone",
+	}
+
+	for fieldName, condition := range filter {
+		if searchField, exists := fieldMappings[fieldName]; exists {
+			// Transform the condition by hashing string values
+			transformedCondition := model.FilterCondition{}
+
+			// Transform Equals values
+			if len(condition.Equals) > 0 {
+				transformedCondition.Equals = uc.hashFilterValues(condition.Equals, crypto, logger)
+			}
+
+			// Transform GreaterThan values
+			if len(condition.GreaterThan) > 0 {
+				transformedCondition.GreaterThan = uc.hashFilterValues(condition.GreaterThan, crypto, logger)
+			}
+
+			// Transform GreaterOrEqual values
+			if len(condition.GreaterOrEqual) > 0 {
+				transformedCondition.GreaterOrEqual = uc.hashFilterValues(condition.GreaterOrEqual, crypto, logger)
+			}
+
+			// Transform LessThan values
+			if len(condition.LessThan) > 0 {
+				transformedCondition.LessThan = uc.hashFilterValues(condition.LessThan, crypto, logger)
+			}
+
+			// Transform LessOrEqual values
+			if len(condition.LessOrEqual) > 0 {
+				transformedCondition.LessOrEqual = uc.hashFilterValues(condition.LessOrEqual, crypto, logger)
+			}
+
+			// Transform Between values
+			if len(condition.Between) > 0 {
+				transformedCondition.Between = uc.hashFilterValues(condition.Between, crypto, logger)
+			}
+
+			// Transform In values
+			if len(condition.In) > 0 {
+				transformedCondition.In = uc.hashFilterValues(condition.In, crypto, logger)
+			}
+
+			// Transform NotIn values
+			if len(condition.NotIn) > 0 {
+				transformedCondition.NotIn = uc.hashFilterValues(condition.NotIn, crypto, logger)
+			}
+
+			transformedFilter[searchField] = transformedCondition
+			logger.Infof("Transformed advanced filter: %s -> %s", fieldName, searchField)
+		} else {
+			// Keep non-mapped fields as-is
+			transformedFilter[fieldName] = condition
+		}
+	}
+
+	return transformedFilter, nil
+}
+
+// hashFilterValues hashes string values in a filter condition array
+func (uc *UseCase) hashFilterValues(values []any, crypto *libCrypto.Crypto, logger log.Logger) []any {
+	hashedValues := make([]any, len(values))
+
+	for i, value := range values {
+		if strValue, ok := value.(string); ok && strValue != "" {
+			hash := crypto.GenerateHash(&strValue)
+			hashedValues[i] = hash
+		} else {
+			hashedValues[i] = value // Keep non-string values as-is
+		}
+	}
+
+	return hashedValues
 }
 
 // getContentType returns the MIME type for a given file extension.
