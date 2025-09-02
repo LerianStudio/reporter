@@ -3,6 +3,7 @@ package pongo
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +25,11 @@ type aggregateTagNode struct {
 // It includes the expression representing the date format (e.g., "YYYY-MM-dd").
 type dateNowNode struct {
 	formatExpr pongo2.IEvaluator // Expression representing the date format (e.g., "YYYY-MM-dd")
+}
+
+// calcTagNode represents a calc tag that evaluates arithmetic expressions
+type calcTagNode struct {
+	expression string
 }
 
 // makeAggregateTag returns a pongo2.TagParser for creating custom aggregate template tags based on the specified operation.
@@ -297,4 +303,125 @@ func convertToGoDateLayout(layout string) string {
 	)
 
 	return replacer.Replace(layout)
+}
+
+func makeCalcTag(_ *pongo2.Parser, _ *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+	calcNode := &calcTagNode{}
+
+	// Get the raw expression as string
+	// We need to collect all remaining tokens to build the full expression
+	var tokens []string
+
+	for arguments.Remaining() > 0 {
+		token := arguments.Current()
+		tokens = append(tokens, token.Val)
+
+		arguments.Consume()
+	}
+
+	expression := strings.Join(tokens, " ")
+
+	// Remove spaces around dots to fix variable paths
+	expression = strings.ReplaceAll(expression, " . ", ".")
+	calcNode.expression = expression
+
+	return calcNode, nil
+}
+
+func (node *calcTagNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+	context := ctx.Public
+
+	expression := node.replaceVariables(node.expression, context, ctx.Private)
+
+	result, err := evaluateArithmeticExpression(expression)
+	if err != nil {
+		return &pongo2.Error{
+			Sender:    "calc",
+			OrigError: err,
+		}
+	}
+
+	// Round to 10 decimal places to avoid artifacts (e.g., ...0000000001)
+	rounded := math.Round(result*1e10) / 1e10
+	out := formatNumber(rounded)
+	out = strings.TrimRight(out, "0")
+	out = strings.TrimRight(out, ".")
+
+	if _, err := writer.WriteString(out); err != nil {
+		return ctx.Error("Error writing output", nil)
+	}
+
+	return nil
+}
+
+// shouldSkipMatch determines if a match should be skipped (operators, parentheses, numbers)
+func shouldSkipMatch(match string) bool {
+	// Skip operators and parentheses
+	operators := []string{"+", "-", "*", "/", "**", "(", ")", "[", "]", "{", "}"}
+	for _, op := range operators {
+		if match == op {
+			return true
+		}
+	}
+
+	// Skip if it's a number (but only if it doesn't contain dots)
+	if !strings.Contains(match, ".") {
+		if _, err := strconv.ParseFloat(match, 64); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// resolveVariableFromContext attempts to resolve a variable from a given context
+func resolveVariableFromContext(match string, context pongo2.Context) (string, bool) {
+	templateStr := fmt.Sprintf("{{ %s }}", match)
+
+	template, err := pongo2.FromString(templateStr)
+	if err != nil {
+		return "", false
+	}
+
+	result, err := template.ExecuteBytes(context)
+	if err != nil {
+		return "", false
+	}
+
+	value := strings.TrimSpace(string(result))
+	if value == "" {
+		return "", false
+	}
+
+	// Try to parse as number to validate it's a valid numeric value
+	if _, err := strconv.ParseFloat(value, 64); err != nil {
+		return "", false
+	}
+
+	return value, true
+}
+
+// replaceVariables replaces variables in the expression with their values
+func (node *calcTagNode) replaceVariables(expression string, context pongo2.Context, privateContext pongo2.Context) string {
+	// Find all variable patterns in the expression (words with dots)
+	// This regex matches patterns like: balance.available, midaz_transaction.balance.0.initial_balance, etc.
+	re := regexp.MustCompile(`\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)*\b`)
+
+	expression = re.ReplaceAllStringFunc(expression, func(match string) string {
+		if shouldSkipMatch(match) {
+			return match
+		}
+
+		if value, ok := resolveVariableFromContext(match, privateContext); ok {
+			return value
+		}
+
+		if value, ok := resolveVariableFromContext(match, context); ok {
+			return value
+		}
+
+		return "0"
+	})
+
+	return expression
 }

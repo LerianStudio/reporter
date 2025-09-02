@@ -3,6 +3,81 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.74] - 2025-08-29
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.73...v2.0.0-beta.74)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Build Process Update**: Improved the build process to ensure the creation of a new image. This enhancement is vital for maintaining consistency and reliability in the build pipeline, allowing developers to integrate and deploy the latest updates seamlessly.
+- **Changelog Documentation**: Updated the changelog to accurately reflect recent changes. This ensures that all stakeholders have access to the latest information, improving transparency and communication within the project.
+
+
+## [v2.0.0-beta.73] - 2025-08-29
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.72...v2.0.0-beta.73)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Streamlined Build Process**: A new configuration file has been introduced to selectively skip unnecessary steps in the build pipeline. This change enhances the efficiency of development cycles by reducing redundant operations, leading to a cleaner and more streamlined workflow.
+- **Updated Documentation**: The CHANGELOG has been updated to accurately reflect recent modifications. This ensures that all changes are well-documented, providing users and developers with a clear understanding of the project's evolution and context for the latest updates.
+
+
+## [v2.0.0-beta.72] - 2025-08-28
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.71...v2.0.0-beta.72)
+Contributors: arthurkz, lerian-studio
+
+### ⚡ Performance
+- **Backend Pipeline Update**: The backend pipeline now generates a new image incorporating the latest code changes and dependency updates. This enhancement ensures improved stability and performance, providing a smoother and more reliable user experience. Regular updates also maintain compatibility with current software standards and security practices.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to accurately reflect recent improvements and changes. This ensures users can easily track software evolution, understand new features, and stay informed about any enhancements. Keeping documentation current is crucial for effective version tracking and user transparency.
+
+### 🔧 Maintenance
+- **Backend and Dependencies**: Regular updates to the backend and dependencies have been performed to ensure the application remains stable and secure. These updates help maintain compatibility with the latest software standards, providing indirect benefits to users by enhancing overall application reliability.
+
+
+## [v2.0.0-beta.71] - 2025-08-28
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.70...v2.0.0-beta.71)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Arithmetic Operations in Templates**: You can now perform calculations directly within your templates. This enhancement streamlines workflows by reducing the need for external processing, allowing for more dynamic and flexible template expressions. [See updated documentation for examples]
+
+### 🐛 Bug Fixes
+- **Testing Code Cleanup**: Removed unnecessary comments from test files, making the codebase cleaner and easier to navigate. This helps developers focus on the core logic and functionality without distractions.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to reflect the latest changes, ensuring you have access to the most current information about updates and improvements.
+
+### 🔧 Maintenance
+- **Code Quality Enhancements**: General improvements have been made to the codebase, contributing to the stability and reliability of the software. While these changes are not directly visible, they ensure a robust development environment.
+
+
+## [v2.0.0-beta.70] - 2025-08-22
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.69...v2.0.0-beta.70)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **CRM Database Connection**: Seamlessly integrate CRM data into your reports and templates. This feature empowers users to make more informed, data-driven decisions by incorporating comprehensive CRM insights directly into their workflow.
+
+### 🐛 Bug Fixes
+- **Data Encryption Reliability**: Resolved issues with data encryption errors, ensuring robust protection of sensitive information and enhancing overall system reliability.
+- **Telemetry Accuracy**: Fixed errors in OpenTelemetry function implementations, ensuring consistent and accurate data collection for better system monitoring and diagnostics.
+
+### ⚡ Performance
+- **Enhanced Monitoring**: Optimized OpenTelemetry functions to improve system monitoring and observability, enabling quicker issue resolution and system optimization.
+
+### 📚 Documentation
+- **Updated Guidance**: Revised documentation to include new features and improvements, providing clear instructions on leveraging the latest capabilities for maximum benefit.
+
+### 🔧 Maintenance
+- **Changelog Update**: Ensured the changelog reflects all recent updates, maintaining transparency and keeping users informed about the latest enhancements.
+
+
 ## [v2.0.0-beta.69] - 2025-08-14
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.68...v2.0.0-beta.69)

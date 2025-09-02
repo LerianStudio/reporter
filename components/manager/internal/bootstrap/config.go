@@ -99,14 +99,15 @@ func InitServers() *Service {
 	logger := zap.InitializeLogger()
 
 	// Init Open telemetry to control logs and flows
-	telemetry := &libOtel.Telemetry{
+	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
 		DeploymentEnv:             cfg.OtelDeploymentEnv,
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 		EnableTelemetry:           cfg.EnableTelemetry,
-	}
+		Logger:                    logger,
+	})
 
 	// Config minio connection
 	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)

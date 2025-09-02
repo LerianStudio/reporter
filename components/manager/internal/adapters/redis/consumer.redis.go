@@ -39,9 +39,7 @@ func NewConsumerRedis(rc *libRedis.RedisConnection) *RedisConsumerRepository {
 
 // Set sets a key in the redis
 func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, ttl time.Duration) error {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "redis.set")
 	defer span.End()
@@ -74,9 +72,7 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 
 // Get recovers a key from the redis
 func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "redis.get")
 	defer span.End()
@@ -111,9 +107,7 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 
 // Del deletes a key from the redis
 func (rc *RedisConsumerRepository) Del(ctx context.Context, key string) error {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "redis.del")
 	defer span.End()
