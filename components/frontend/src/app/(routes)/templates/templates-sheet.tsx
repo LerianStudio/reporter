@@ -122,17 +122,27 @@ export function TemplatesSheet({
   ) => {
     if (isCreateMode) {
       const createData = values as TemplateFormData
-      const payload: CreateTemplateDto = {
-        organizationId: currentOrganization.id,
-        name: createData.name,
-        outputFormat: createData.outputFormat,
-        templateFile: createData.templateFile
-      }
 
-      await createTemplateMutation.mutateAsync(payload)
+      // Convert DTO to FormData for the API
+      const formData = new FormData()
+      formData.append('organizationId', currentOrganization.id)
+      formData.append('name', createData.name)
+      formData.append('outputFormat', createData.outputFormat)
+      formData.append('templateFile', createData.templateFile)
+
+      await createTemplateMutation.mutateAsync(formData)
     } else {
       const updateData = values as TemplateUpdateFormData
-      await updateTemplateMutation.mutateAsync(updateData)
+
+      // Convert DTO to FormData for the API
+      const formData = new FormData()
+      if (updateData.name) formData.append('name', updateData.name)
+      if (updateData.outputFormat)
+        formData.append('outputFormat', updateData.outputFormat)
+      if (updateData.templateFile)
+        formData.append('templateFile', updateData.templateFile)
+
+      await updateTemplateMutation.mutateAsync(formData)
     }
   }
 

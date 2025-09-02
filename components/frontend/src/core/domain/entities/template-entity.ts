@@ -1,14 +1,13 @@
 import { PaginationSearchEntity } from './pagination-entity'
 
-// Output format types for template generation
 export type OutputFormat = 'csv' | 'xml' | 'html' | 'txt'
 
 export type TemplateSearchEntity = PaginationSearchEntity & {
   outputFormat?: OutputFormat
   name?: string
+  createdAt?: Date
 }
 
-// Main template entity
 export type TemplateEntity = {
   id?: string
   organizationId: string
