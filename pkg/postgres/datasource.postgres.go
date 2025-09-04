@@ -502,7 +502,6 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 
 // buildAdvancedFilters applies FilterCondition criteria to the query builder
 func (ds *ExternalDataSource) buildAdvancedFilters(queryBuilder squirrel.SelectBuilder, schema []TableSchema, table string, filter map[string]model.FilterCondition) (squirrel.SelectBuilder, error) {
-	// Find the table's column information
 	var tableColumns []ColumnInformation
 
 	for _, t := range schema {
