@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.1] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.75...v2.1.0-beta.1)
+Contributors: Clara Tersi, arthurkz, lerian-studio
+
+### ✨ Features
+- **Advanced Filtering for Data Queries**: Users can now apply complex filtering logic to their data queries, enabling more precise and efficient data retrieval. This enhancement significantly boosts the flexibility and analytical power of your data tools.
+
+### 🐛 Bug Fixes
+- **Code Quality Improvements**: Resolved various code discrepancies and linting issues, enhancing overall code quality and maintainability. This ensures a more stable and reliable experience for users.
+
+### 📚 Documentation
+- **Expanded Filter System Documentation**: Added comprehensive examples and implementation plans for the new advanced filter system, including practical templates for financial reports. This helps users quickly understand and apply the new features to their specific needs.
+
+### 🔧 Maintenance
+- **Configuration Updates**: The `.env.example` files have been updated to reflect changes in version v2.1.0, ensuring all configurations are current and accurate for deployment.
+- **Development Environment Streamlining**: Updated `.gitignore` to exclude unnecessary files, reducing clutter and streamlining the development process.
+
+
 ## [v2.0.0-beta.75] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.74...v2.0.0-beta.75)
