@@ -91,7 +91,6 @@ type Config struct {
 // InitServers initiate http and grpc servers.
 func InitServers() *Service {
 	cfg := &Config{}
-
 	if err := pkg.SetConfigFromEnvVars(cfg); err != nil {
 		panic(err)
 	}

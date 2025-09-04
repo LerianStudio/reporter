@@ -62,7 +62,6 @@ type Config struct {
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
 func InitWorker() *Service {
 	cfg := &Config{}
-
 	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
 		panic(err)
 	}
