@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 
+## [v2.0.0-beta.75] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.74...v2.0.0-beta.75)
+Contributors: LF Barrile, lerian-studio
+
+### ✨ Features
+- **Streamlined Development Process**: We've introduced new Gitflow steps to our build and frontend components. This enhancement provides a more structured approach to managing feature development, bug fixes, and releases. Users will experience a more organized workflow, reducing the potential for errors and improving overall efficiency.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been updated to reflect the latest changes and improvements, ensuring that all documentation is up-to-date. This helps users stay informed about new features and enhancements.
+
+
 ## [v2.0.0-beta.74] - 2025-08-29
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.73...v2.0.0-beta.74)
