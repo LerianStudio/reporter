@@ -82,7 +82,6 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Router			/v1/reports/{id}/download [get]
 func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_report_download")

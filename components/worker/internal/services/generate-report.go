@@ -494,7 +494,6 @@ func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.Fil
 		return nil, nil
 	}
 
-	// Initialize crypto instance for hashing
 	hashSecretKey := os.Getenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
 	if hashSecretKey == "" {
 		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM environment variable not set")
