@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.5] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.4...v2.1.0-beta.5)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Data Consistency**: Resolved an issue with MongoDB field mapping, ensuring all fields are correctly retrieved. This fix enhances data reliability, allowing users to access complete and accurate information without interruptions.
+- **Code Quality Enhancements**: Adjusted the database component according to lint recommendations. These improvements bolster code maintainability and stability, reducing potential errors and enhancing developer efficiency.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to accurately reflect recent changes and improvements, providing users and developers with a clear record of the project's progress and updates.
+
+
 ## [v2.1.0-beta.4] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.3...v2.1.0-beta.4)
