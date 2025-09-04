@@ -7,6 +7,7 @@ import (
 	"os"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v2/pkg/model"
 	"plugin-smart-templates/v2/pkg/pongo"
 	"strings"
 	"time"
@@ -36,8 +37,10 @@ type GenerateReportMessage struct {
 	// Example: {"onboarding": {"organization": ["name"], "ledger": ["id"]}}.
 	DataQueries map[string]map[string][]string `json:"mappedFields"`
 
-	// Filters specify the filtering criteria for the data queries, mapping filter keys to their respective values.
-	Filters map[string]map[string]map[string][]any `json:"filters"`
+	// Filters specify advanced filtering criteria using FilterCondition for complex queries.
+	// Format: map[databaseName]map[tableName]map[fieldName]model.FilterCondition
+	// Example: {"db": {"table": {"created_at": {"gte": ["2025-06-01"], "lte": ["2025-06-30"]}}}}
+	Filters map[string]map[string]map[string]model.FilterCondition `json:"filters"`
 }
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -228,7 +231,7 @@ func (uc *UseCase) queryDatabase(
 	ctx context.Context,
 	databaseName string,
 	tables map[string][]string,
-	allFilters map[string]map[string]map[string][]any,
+	allFilters map[string]map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 	tracer trace.Tracer,
@@ -277,7 +280,7 @@ func (uc *UseCase) queryPostgresDatabase(
 	dataSource *pkg.DataSource,
 	databaseName string,
 	tables map[string][]string,
-	databaseFilters map[string]map[string][]any,
+	databaseFilters map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
@@ -288,16 +291,29 @@ func (uc *UseCase) queryPostgresDatabase(
 	}
 
 	for table, fields := range tables {
-		filter := getTableFilters(databaseFilters, table)
+		tableFilters := getTableFilters(databaseFilters, table)
 
-		tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, filter)
-		if err != nil {
-			logger.Errorf("Error querying table %s: %s", table, err.Error())
-			return err
+		// Use advanced filters
+		if len(tableFilters) > 0 {
+			tableResult, err := dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
+			if err != nil {
+				logger.Errorf("Error querying table %s with advanced filters: %s", table, err.Error())
+				return err
+			}
+
+			logger.Infof("Successfully queried table %s with advanced filters", table)
+
+			result[databaseName][table] = tableResult
+		} else {
+			// No filters, use legacy method for now
+			tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
+			if err != nil {
+				logger.Errorf("Error querying table %s: %s", table, err.Error())
+				return err
+			}
+
+			result[databaseName][table] = tableResult
 		}
-
-		// Add the query results to the result map
-		result[databaseName][table] = tableResult
 	}
 
 	return nil
@@ -309,7 +325,7 @@ func (uc *UseCase) queryMongoDatabase(
 	dataSource *pkg.DataSource,
 	databaseName string,
 	collections map[string][]string,
-	databaseFilters map[string]map[string][]any,
+	databaseFilters map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
@@ -324,52 +340,147 @@ func (uc *UseCase) queryMongoDatabase(
 	)
 
 	for collection, fields := range collections {
-		if (databaseName == "plugin_crm" && collection != "organization") || databaseName != "plugin_crm" {
-			newCollection := collection
-			if databaseName == "plugin_crm" {
-				newCollection = collection + "_" + collections["organization"][0]
-			}
+		collectionFilters := getTableFilters(databaseFilters, collection)
 
-			filter := getTableFilters(databaseFilters, collection)
-
-			// Transform filters for plugin_crm to use search fields
-			if databaseName == "plugin_crm" {
-				transformedFilter, err := uc.transformPluginCRMFilters(filter, logger)
-				if err != nil {
-					logger.Errorf("Error transforming filters for collection %s: %s", collection, err.Error())
-					return err
-				}
-
-				filter = transformedFilter
-			}
-
-			collectionResult, err := dataSource.MongoDBRepository.Query(ctx, newCollection, fields, filter)
-			if err != nil {
-				logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-				return err
-			}
-
-			if databaseName == "plugin_crm" {
-				decryptedResult, err := uc.decryptPluginCRMData(logger, collectionResult, fields)
-				if err != nil {
-					logger.Errorf("Error decrypting data for collection %s: %s", collection, err.Error())
-					return pkg.ValidateBusinessError(constant.ErrDecryptionData, "", err)
-				}
-
-				// Add the query results to the result map
-				result[databaseName][collection] = decryptedResult
-			} else {
-				// Add the query results to the result map
-				result[databaseName][collection] = collectionResult
-			}
+		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, collections, result, logger); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
+// processMongoCollection processes a single MongoDB collection
+func (uc *UseCase) processMongoCollection(
+	ctx context.Context,
+	dataSource *pkg.DataSource,
+	databaseName, collection string,
+	fields []string,
+	collectionFilters map[string]model.FilterCondition,
+	allCollections map[string][]string,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+) error {
+	// Handle plugin_crm special case
+	if databaseName == "plugin_crm" && collection != "organization" {
+		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, allCollections, result, logger)
+	}
+
+	// Handle regular collections
+	return uc.processRegularMongoCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
+}
+
+// processPluginCRMCollection handles plugin_crm specific collection processing
+func (uc *UseCase) processPluginCRMCollection(
+	ctx context.Context,
+	dataSource *pkg.DataSource,
+	collection string,
+	fields []string,
+	collectionFilters map[string]model.FilterCondition,
+	allCollections map[string][]string,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+) error {
+	// Get organization field to create collection name
+	orgFields, exists := allCollections["organization"]
+	if !exists || len(orgFields) == 0 {
+		logger.Errorf("Organization field not found for plugin_crm collection %s", collection)
+		return nil
+	}
+
+	newCollection := collection + "_" + orgFields[0]
+
+	// Query the collection
+	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger)
+	if err != nil {
+		return err
+	}
+
+	result["plugin_crm"][collection] = collectionResult
+
+	// Decrypt data for plugin_crm
+	decryptedResult, err := uc.decryptPluginCRMData(logger, result["plugin_crm"][collection], fields)
+	if err != nil {
+		logger.Errorf("Error decrypting data for collection %s: %s", collection, err.Error())
+		return pkg.ValidateBusinessError(constant.ErrDecryptionData, "", err)
+	}
+
+	result["plugin_crm"][collection] = decryptedResult
+
+	return nil
+}
+
+// processRegularMongoCollection handles regular MongoDB collection processing
+func (uc *UseCase) processRegularMongoCollection(
+	ctx context.Context,
+	dataSource *pkg.DataSource,
+	collection string,
+	fields []string,
+	collectionFilters map[string]model.FilterCondition,
+	result map[string]map[string][]map[string]any,
+	logger log.Logger,
+) error {
+	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, collection, fields, collectionFilters, logger)
+	if err != nil {
+		return err
+	}
+
+	// Determine database name from context (assuming it's available in the result map)
+	var databaseName string
+	for dbName := range result {
+		databaseName = dbName
+		break
+	}
+
+	result[databaseName][collection] = collectionResult
+
+	return nil
+}
+
+// queryMongoCollectionWithFilters queries a MongoDB collection with or without filters
+func (uc *UseCase) queryMongoCollectionWithFilters(
+	ctx context.Context,
+	dataSource *pkg.DataSource,
+	collection string,
+	fields []string,
+	collectionFilters map[string]model.FilterCondition,
+	logger log.Logger,
+) ([]map[string]any, error) {
+	if len(collectionFilters) > 0 {
+		// Check if this is plugin_crm and needs filter transformation
+		if strings.Contains(collection, "_") && !strings.Contains(collection, "organization") {
+			transformedFilter, err := uc.transformPluginCRMAdvancedFilters(collectionFilters, logger)
+			if err != nil {
+				logger.Errorf("Error transforming advanced filters for collection %s: %s", collection, err.Error())
+				return nil, err
+			}
+
+			collectionFilters = transformedFilter
+		}
+
+		collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
+		if err != nil {
+			logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
+			return nil, err
+		}
+
+		logger.Infof("Successfully queried collection %s with advanced filters", collection)
+
+		return collectionResult, nil
+	}
+
+	// No filters, use legacy method
+	collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+	if err != nil {
+		logger.Errorf("Error querying collection %s: %s", collection, err.Error())
+		return nil, err
+	}
+
+	return collectionResult, nil
+}
+
 // getTableFilters extracts filters for a specific table/collection
-func getTableFilters(databaseFilters map[string]map[string][]any, tableName string) map[string][]any {
+func getTableFilters(databaseFilters map[string]map[string]model.FilterCondition, tableName string) map[string]model.FilterCondition {
 	if databaseFilters == nil {
 		return nil
 	}
@@ -377,8 +488,8 @@ func getTableFilters(databaseFilters map[string]map[string][]any, tableName stri
 	return databaseFilters[tableName]
 }
 
-// transformPluginCRMFilters transforms filters for plugin_crm to use search fields instead of encrypted fields
-func (uc *UseCase) transformPluginCRMFilters(filter map[string][]any, logger log.Logger) (map[string][]any, error) {
+// transformPluginCRMAdvancedFilters transforms advanced FilterCondition filters for plugin_crm to use search fields
+func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.FilterCondition, logger log.Logger) (map[string]model.FilterCondition, error) {
 	if filter == nil {
 		return nil, nil
 	}
@@ -394,7 +505,7 @@ func (uc *UseCase) transformPluginCRMFilters(filter map[string][]any, logger log
 		Logger:        logger,
 	}
 
-	transformedFilter := make(map[string][]any)
+	transformedFilter := make(map[string]model.FilterCondition)
 
 	// Define field mappings: encrypted field -> search field
 	fieldMappings := map[string]string{
@@ -408,29 +519,77 @@ func (uc *UseCase) transformPluginCRMFilters(filter map[string][]any, logger log
 		"contact.other_phone":     "search.contact_other_phone",
 	}
 
-	for fieldName, values := range filter {
+	for fieldName, condition := range filter {
 		if searchField, exists := fieldMappings[fieldName]; exists {
-			// Transform values to hashes
-			hashedValues := make([]any, len(values))
+			// Transform the condition by hashing string values
+			transformedCondition := model.FilterCondition{}
 
-			for i, value := range values {
-				if strValue, ok := value.(string); ok && strValue != "" {
-					hash := crypto.GenerateHash(&strValue)
-					hashedValues[i] = hash
-					logger.Infof("Transformed filter: %s = %s -> %s = %s", fieldName, strValue, searchField, hash)
-				} else {
-					hashedValues[i] = value // Keep non-string values as-is
-				}
+			// Transform Equals values
+			if len(condition.Equals) > 0 {
+				transformedCondition.Equals = uc.hashFilterValues(condition.Equals, crypto)
 			}
 
-			transformedFilter[searchField] = hashedValues
+			// Transform GreaterThan values
+			if len(condition.GreaterThan) > 0 {
+				transformedCondition.GreaterThan = uc.hashFilterValues(condition.GreaterThan, crypto)
+			}
+
+			// Transform GreaterOrEqual values
+			if len(condition.GreaterOrEqual) > 0 {
+				transformedCondition.GreaterOrEqual = uc.hashFilterValues(condition.GreaterOrEqual, crypto)
+			}
+
+			// Transform LessThan values
+			if len(condition.LessThan) > 0 {
+				transformedCondition.LessThan = uc.hashFilterValues(condition.LessThan, crypto)
+			}
+
+			// Transform LessOrEqual values
+			if len(condition.LessOrEqual) > 0 {
+				transformedCondition.LessOrEqual = uc.hashFilterValues(condition.LessOrEqual, crypto)
+			}
+
+			// Transform Between values
+			if len(condition.Between) > 0 {
+				transformedCondition.Between = uc.hashFilterValues(condition.Between, crypto)
+			}
+
+			// Transform In values
+			if len(condition.In) > 0 {
+				transformedCondition.In = uc.hashFilterValues(condition.In, crypto)
+			}
+
+			// Transform NotIn values
+			if len(condition.NotIn) > 0 {
+				transformedCondition.NotIn = uc.hashFilterValues(condition.NotIn, crypto)
+			}
+
+			transformedFilter[searchField] = transformedCondition
+
+			logger.Infof("Transformed advanced filter: %s -> %s", fieldName, searchField)
 		} else {
 			// Keep non-mapped fields as-is
-			transformedFilter[fieldName] = values
+			transformedFilter[fieldName] = condition
 		}
 	}
 
 	return transformedFilter, nil
+}
+
+// hashFilterValues hashes string values in a filter condition array
+func (uc *UseCase) hashFilterValues(values []any, crypto *libCrypto.Crypto) []any {
+	hashedValues := make([]any, len(values))
+
+	for i, value := range values {
+		if strValue, ok := value.(string); ok && strValue != "" {
+			hash := crypto.GenerateHash(&strValue)
+			hashedValues[i] = hash
+		} else {
+			hashedValues[i] = value // Keep non-string values as-is
+		}
+	}
+
+	return hashedValues
 }
 
 // getContentType returns the MIME type for a given file extension.
