@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.2] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.1...v2.1.0-beta.2)
+Contributors: LF Barrile, lerian-studio
+
+### 📚 Documentation
+- **Golang Image Update**: The documentation now includes an updated Golang image to ensure compatibility with the Garble tool. This change is crucial for developers who use Garble for code obfuscation, enhancing security and privacy in their projects.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been revised to accurately reflect recent updates and improvements. This ensures all stakeholders have access to the latest project information, aiding in effective project management and communication.
+
+
 ## [v2.1.0-beta.1] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0-beta.75...v2.1.0-beta.1)
