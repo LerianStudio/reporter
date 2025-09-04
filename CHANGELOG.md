@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.6] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.5...v2.1.0-beta.6)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect the latest changes and improvements. This provides you with clear and current information on project updates, helping you track progress and understand modifications with ease.
+
+### 🔧 Maintenance
+- **Config Updates**: We've generated new images for both the worker and manager components. This ensures that you benefit from the latest configurations and dependencies, enhancing the stability and performance of your system.
+
+
 ## [v2.1.0-beta.5] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.4...v2.1.0-beta.5)
