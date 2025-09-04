@@ -16,7 +16,7 @@ env:
   IS_BETA: ${{ contains(github.ref, '-beta') }}
   IS_RC:   ${{ contains(github.ref, '-rc') }}
   # Ajuste se o path de STAGE for diferente:
-  GITOPS_FILE_DEV:  gitops/environments/firmino/helmfile/applications/plugin-smart-templates/values.yaml
+  GITOPS_FILE_DEV:  gitops/environments/firmino/helmfile/applications/dev/plugin-smart-templates/values.yaml
   GITOPS_FILE_STG:  gitops/environments/firmino/helmfile/applications/stg/plugin-smart-templates/values.yaml
 
 jobs:
