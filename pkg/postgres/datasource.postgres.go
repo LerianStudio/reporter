@@ -90,7 +90,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
 		"table":  table,
 		"fields": fields,
 		"filter": filter,
@@ -334,7 +334,7 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
 		"table":  tableName,
 		"fields": requestedFields,
 		"schema": schema,
@@ -447,9 +447,7 @@ func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values [
 
 // QueryWithAdvancedFilters executes a SELECT SQL query with advanced FilterCondition support
 func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.query_with_advanced_filters")
 	defer span.End()
@@ -458,7 +456,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]interface{}{
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
 		"table":  table,
 		"fields": fields,
 		"filter": filter,

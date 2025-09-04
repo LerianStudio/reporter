@@ -98,7 +98,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
 		"collection": collection,
 		"fields":     fields,
 		"filter":     filter,
@@ -322,9 +322,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 
 // QueryWithAdvancedFilters executes a query with advanced FilterCondition support
 func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	logger.Infof("Querying %s collection with advanced filters on fields %v", collection, fields)
 
@@ -335,7 +333,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.repository_filter", map[string]any{
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
 		"collection": collection,
 		"fields":     fields,
 		"filter":     filter,
