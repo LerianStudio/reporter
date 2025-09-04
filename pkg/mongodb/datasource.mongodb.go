@@ -267,21 +267,21 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 
 		cursor, err := coll.Find(ctx, bson.M{}, options.Find().SetLimit(1))
 		if err != nil {
-			logger.Warnf("Could not query collection %s: %v", collName, err)
-			continue
+			logger.Warnf("Aggregation failed for collection %s, falling back to sampling: %v", collName, err)
+
+			allFields = make(map[string]bool)
 		}
 
-		hasDoc := false
-
-		if cursor.Next(ctx) {
-			if err := cursor.Decode(&sampleDoc); err == nil {
-				hasDoc = true
-			}
-		}
-
-		err = cursor.Close(ctx)
+		fieldTypes, additionalFields, err := ds.sampleMultipleDocuments(ctx, coll)
 		if err != nil {
-			return nil, err
+			logger.Warnf("Document sampling failed for collection %s: %v", collName, err)
+
+			fieldTypes = make(map[string]string)
+			additionalFields = make(map[string]bool)
+		}
+
+		for field := range additionalFields {
+			allFields[field] = true
 		}
 
 		collSchema := CollectionSchema{
@@ -289,35 +289,253 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 			Fields:         []FieldInformation{},
 		}
 
-		if hasDoc {
-			for fieldName, value := range sampleDoc {
-				dataType := "unknown"
-				switch value.(type) {
-				case string:
-					dataType = "string"
-				case int, int32, int64, float32, float64:
-					dataType = "number"
-				case bool:
-					dataType = "boolean"
-				case bson.A:
-					dataType = "array"
-				case bson.M, bson.D:
-					dataType = "object"
-				}
-
-				collSchema.Fields = append(collSchema.Fields, FieldInformation{
-					Name:     fieldName,
-					DataType: dataType,
-				})
+		for fieldName := range allFields {
+			dataType := fieldTypes[fieldName]
+			if dataType == "" {
+				dataType = "unknown"
 			}
+
+			collSchema.Fields = append(collSchema.Fields, FieldInformation{
+				Name:     fieldName,
+				DataType: dataType,
+			})
 		}
 
+		logger.Infof("Discovered %d fields in collection %s", len(collSchema.Fields), collName)
 		schema = append(schema, collSchema)
 	}
 
 	logger.Infof("Retrieved schema for %d collections", len(schema))
 
 	return schema, nil
+}
+
+// discoverAllFieldsWithAggregation uses MongoDB aggregation with sampling for large collections
+func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Context, coll *mongo.Collection) (map[string]bool, error) {
+	count, err := coll.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	// For large collections (>10k docs), use sampling instead of full aggregation
+	if count > 10000 {
+		return ds.discoverFieldsWithSampling(ctx, coll, count)
+	}
+
+	// For small collections, use full aggregation
+	pipeline := []bson.M{
+		{
+			"$project": bson.M{
+				"arrayofkeyvalue": bson.M{"$objectToArray": "$$ROOT"},
+			},
+		},
+		{
+			"$unwind": "$arrayofkeyvalue",
+		},
+		{
+			"$group": bson.M{
+				"_id":     nil,
+				"allkeys": bson.M{"$addToSet": "$arrayofkeyvalue.k"},
+			},
+		},
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	allFields := make(map[string]bool)
+
+	if cursor.Next(ctx) {
+		var result struct {
+			AllKeys []string `bson:"allkeys"`
+		}
+
+		if err := cursor.Decode(&result); err == nil {
+			for _, key := range result.AllKeys {
+				allFields[key] = true
+			}
+		}
+	}
+
+	return allFields, nil
+}
+
+// discoverFieldsWithSampling uses intelligent sampling for large collections
+func (ds *ExternalDataSource) discoverFieldsWithSampling(ctx context.Context, coll *mongo.Collection, totalDocs int64) (map[string]bool, error) {
+	sampleSize := ds.calculateOptimalSampleSize(totalDocs)
+	pipeline := []bson.M{
+		{
+			"$sample": bson.M{"size": sampleSize},
+		},
+		{
+			"$project": bson.M{
+				"arrayofkeyvalue": bson.M{"$objectToArray": "$$ROOT"},
+			},
+		},
+		{
+			"$unwind": "$arrayofkeyvalue",
+		},
+		{
+			"$group": bson.M{
+				"_id":     nil,
+				"allkeys": bson.M{"$addToSet": "$arrayofkeyvalue.k"},
+			},
+		},
+	}
+
+	cursor, err := coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	allFields := make(map[string]bool)
+
+	if cursor.Next(ctx) {
+		var result struct {
+			AllKeys []string `bson:"allkeys"`
+		}
+
+		if err := cursor.Decode(&result); err == nil {
+			for _, key := range result.AllKeys {
+				allFields[key] = true
+			}
+		}
+	}
+
+	return allFields, nil
+}
+
+// calculateOptimalSampleSize calculates the optimal sample size based on collection size
+func (ds *ExternalDataSource) calculateOptimalSampleSize(totalDocs int64) int {
+	// Statistical sampling: 95% confidence, 5% margin of error
+	// For schema discovery, we don't need perfect accuracy, just good coverage
+	switch {
+	case totalDocs <= 1000:
+		return int(totalDocs) // Use all documents for small collections
+	case totalDocs <= 10000:
+		return 1000 // 10% sample
+	case totalDocs <= 100000:
+		return 2000 // 2% sample
+	case totalDocs <= 1000000:
+		return 5000 // 0.5% sample
+	default:
+		return 10000 // 0.1% sample for very large collections
+	}
+}
+
+// sampleMultipleDocuments samples multiple documents to discover field types and additional fields
+func (ds *ExternalDataSource) sampleMultipleDocuments(ctx context.Context, coll *mongo.Collection) (map[string]string, map[string]bool, error) {
+	count, err := coll.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sampleSize := 50
+	if count < 50 {
+		sampleSize = int(count)
+	}
+
+	var cursor *mongo.Cursor
+
+	if count > 1000 {
+		pipeline := []bson.M{
+			{"$sample": bson.M{"size": sampleSize}},
+		}
+		cursor, err = coll.Aggregate(ctx, pipeline)
+	} else {
+		cursor, err = coll.Find(ctx, bson.M{}, options.Find().SetLimit(int64(sampleSize)))
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	fieldTypes := make(map[string]string)
+	allFields := make(map[string]bool)
+
+	docCount := 0
+
+	for cursor.Next(ctx) {
+		var doc bson.M
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+
+		docCount++
+
+		for fieldName, value := range doc {
+			allFields[fieldName] = true
+			dataType := ds.inferDataType(value)
+
+			if currentType, exists := fieldTypes[fieldName]; !exists || ds.isMoreSpecificType(dataType, currentType) {
+				fieldTypes[fieldName] = dataType
+			}
+		}
+	}
+
+	return fieldTypes, allFields, nil
+}
+
+// inferDataType determines the MongoDB data type from a Go value
+func (ds *ExternalDataSource) inferDataType(value any) string {
+	switch value.(type) {
+	case string:
+		return "string"
+	case int, int32, int64, float32, float64:
+		return "number"
+	case bool:
+		return "boolean"
+	case bson.A:
+		return "array"
+	case bson.M, bson.D:
+		return "object"
+	case primitive.DateTime:
+		return "date"
+	case primitive.ObjectID:
+		return "objectId"
+	case primitive.Binary:
+		return "binData"
+	case primitive.Regex:
+		return "regex"
+	case primitive.Timestamp:
+		return "timestamp"
+	case primitive.Decimal128:
+		return "decimal"
+	case primitive.MinKey, primitive.MaxKey:
+		return "minKey/maxKey"
+	default:
+		return "unknown"
+	}
+}
+
+// isMoreSpecificType determines if one type is more specific than another
+func (ds *ExternalDataSource) isMoreSpecificType(newType, currentType string) bool {
+	typeHierarchy := map[string]int{
+		"objectId":      10,
+		"date":          9,
+		"timestamp":     8,
+		"decimal":       7,
+		"binData":       6,
+		"regex":         5,
+		"minKey/maxKey": 4,
+		"number":        3,
+		"string":        2,
+		"boolean":       2,
+		"array":         2,
+		"object":        2,
+		"unknown":       1,
+	}
+
+	newLevel := typeHierarchy[newType]
+	currentLevel := typeHierarchy[currentType]
+
+	return newLevel > currentLevel
 }
 
 // QueryWithAdvancedFilters executes a query with advanced FilterCondition support
