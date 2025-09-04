@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -243,7 +244,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	logger.Info("Retrieving MongoDB schema information")
+	logger.Info("Retrieving MongoDB schema information using hybrid approach")
 
 	client, err := ds.connection.GetDB(ctx)
 	if err != nil {
@@ -262,10 +263,9 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 	for _, collName := range collections {
 		coll := database.Collection(collName)
 
-		// Sample a document to infer schema
-		sampleDoc := bson.M{}
+		logger.Infof("Analyzing collection: %s", collName)
 
-		cursor, err := coll.Find(ctx, bson.M{}, options.Find().SetLimit(1))
+		allFields, err := ds.discoverAllFieldsWithAggregation(ctx, coll)
 		if err != nil {
 			logger.Warnf("Aggregation failed for collection %s, falling back to sampling: %v", collName, err)
 
