@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.3] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.2...v2.1.0-beta.3)
+Contributors: LF Barrile, lerian-studio
+
+### 🐛 Bug Fixes
+- **Build/Frontend**: Resolved an issue with the GitOps Firmino update process, leading to smoother integration and deployment workflows. This fix enhances the reliability of the build and deployment pipeline, reducing potential downtime and errors during updates.
+
+### 🔧 Maintenance
+- **Release Management**: Updated the CHANGELOG to reflect recent changes and improvements. This ensures that users have access to clear and accurate information about the latest software updates and fixes.
+
+
 ## [v2.1.0-beta.2] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.1...v2.1.0-beta.2)
