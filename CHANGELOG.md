@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.4] - 2025-09-04
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.3...v2.1.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to reflect the latest system changes. This ensures transparency and provides users and developers with the most current information about updates and modifications, supporting better understanding and easier tracking of software evolution.
+
+### 🔧 Maintenance
+- **Streamlined Backend Development**: We've automated the generation of backend component images. This change reduces setup times and enhances reliability, allowing developers to focus more on innovation and less on configuration. Expect smoother deployment processes and consistent performance across environments.
+
+
 ## [v2.1.0-beta.3] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.2...v2.1.0-beta.3)
