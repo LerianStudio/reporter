@@ -112,7 +112,8 @@ export function OverviewTabContent() {
         onClick={() => {
           window.open(
             'https://docs.lerian.studio/docs/smart-templates',
-            '_blank'
+            '_blank',
+            'noopener,noreferrer'
           )
         }}
       />

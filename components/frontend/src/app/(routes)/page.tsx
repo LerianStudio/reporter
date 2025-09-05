@@ -112,7 +112,7 @@ export default function Page() {
                 icon={<ExternalLink className="h-4 w-4" />}
                 iconPlacement="end"
                 onClick={() => {
-                  window.open(env.DOCS_URL, '_blank')
+                  window.open(env.DOCS_URL, '_blank', 'noopener,noreferrer')
                 }}
               >
                 {intl.formatMessage({
