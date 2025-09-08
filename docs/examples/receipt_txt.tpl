@@ -6,10 +6,8 @@
 Transação ID: {{ t.id }}
 Descrição: {{ t.description }}
 Data de Criação: {{ t.created_at }}
-Template: {{ t.template }}
 Status: {{ t.status }}
-Valor: {{ t.amount|scale:2 }}
-Escala: {{ t.amount_scale }}
+Valor: {{ t.amount }}
 Moeda: {{ t.asset_code }}
 Plano de Contas: {{ t.chart_of_accounts_group_name }}
 {% endfor %}
@@ -49,8 +47,8 @@ Operação ID: {{ operation.id }}
 Descrição: {{ operation.description }}
 Tipo: {{ operation.type }}
 Conta: {{ operation.account_alias }}
-Valor: {{ operation.amount|scale:2 }}
-Saldo Disponível Após: {{ operation.available_balance_after|scale:2 }}
+Valor: {{ operation.amount }}
+Saldo Disponível Após: {{ operation.available_balance_after }}
 ------------------------------------------
 {% endfor %}
 

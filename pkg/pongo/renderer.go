@@ -3,10 +3,13 @@ package pongo
 import (
 	"context"
 	"fmt"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"regexp"
 	"strings"
 
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+
 	"github.com/flosch/pongo2/v6"
+	"github.com/shopspring/decimal"
 )
 
 // TemplateRenderer handles rendering templates using pongo2
@@ -58,5 +61,34 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 		return "", err
 	}
 
-	return out, nil
+	cleaned := cleanNumericOutput(out)
+
+	return cleaned, nil
+}
+
+// cleanNumericOutput removes trailing zeros from numeric values in the output
+func cleanNumericOutput(output string) string {
+	re := regexp.MustCompile(`\b\d+\.\d*0+\b`)
+
+	cleaned := re.ReplaceAllStringFunc(output, func(match string) string {
+		return cleanNumericString(match)
+	})
+
+	return cleaned
+}
+
+// cleanNumericString removes trailing zeros from a numeric string
+func cleanNumericString(s string) string {
+	s = strings.TrimSpace(s)
+
+	if dec, err := decimal.NewFromString(s); err == nil {
+		return dec.String()
+	}
+
+	if strings.Contains(s, ".") {
+		s = strings.TrimRight(s, "0")
+		s = strings.TrimRight(s, ".")
+	}
+
+	return s
 }

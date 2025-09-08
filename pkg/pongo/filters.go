@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/flosch/pongo2/v6"
+	"github.com/shopspring/decimal"
 )
 
 // formatNumber formats a float64 as a string without scientific notation
@@ -16,78 +17,70 @@ func formatNumber(num float64) string {
 	return fmt.Sprintf("%.10f", num)
 }
 
-// scaleFilter applies a scaling factor to a numeric or string value and formats the result to the specified precision.
-// The `in` parameter is the input value, and `param` represents the scaling factor (number of decimal places).
-// Returns a scaled and formatted string, or "NaN" with an error on invalid input or unsupported types.
-func scaleFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+// stripZerosFilter formats a numeric value without trailing zeros and without rounding.
+// Accepts int, int64, float64 or numeric strings.
+func stripZerosFilter(in *pongo2.Value, _ *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	v := in.Interface()
-	scale := param.Integer()
 
-	var intVal int64
+	var dec decimal.Decimal
 	switch t := v.(type) {
 	case int:
-		intVal = int64(t)
+		dec = decimal.NewFromInt(int64(t))
 	case int64:
-		intVal = t
+		dec = decimal.NewFromInt(t)
 	case float64:
-		intVal = int64(t)
+		dec = decimal.NewFromFloat(t)
 	case string:
-		parsed, err := strconv.ParseInt(t, 10, 64)
+		d, err := decimal.NewFromString(t)
 		if err != nil {
-			return pongo2.AsSafeValue("NaN"), &pongo2.Error{
-				Sender:    "scaleFilter",
-				OrigError: fmt.Errorf("failed to parse string to int: %w", err),
-			}
+			return pongo2.AsSafeValue("NaN"), &pongo2.Error{Sender: "strip_zeros", OrigError: err}
 		}
 
-		intVal = parsed
+		dec = d
 	default:
-		return pongo2.AsSafeValue("NaN"), &pongo2.Error{
-			Sender:    "scaleFilter",
-			OrigError: fmt.Errorf("unsupported type %T", v),
-		}
+		// Fallback to string formatting
+		s := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%v", v), "0"), ".")
+		return pongo2.AsValue(s), nil
 	}
 
-	factor := math.Pow10(scale)
-	scaled := float64(intVal) / factor
+	// decimal.String() already removes trailing zeros when possible
+	out := dec.String()
 
-	return pongo2.AsValue(fmt.Sprintf("%.*f", scale, scaled)), nil
+	return pongo2.AsValue(out), nil
 }
 
 // percentOfFilter calculates the percentage of `in` relative to `param` and returns it as a formatted string.
 // Returns "NaN" with an error if inputs are invalid or the denominator is zero.
 func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
-	inVal := in.Interface()
-	totalVal := param.Interface()
-
-	getInt := func(v any) (int64, error) {
+	toDec := func(v any) (decimal.Decimal, error) {
 		switch t := v.(type) {
 		case int:
-			return int64(t), nil
+			return decimal.NewFromInt(int64(t)), nil
 		case int64:
-			return t, nil
+			return decimal.NewFromInt(t), nil
 		case float64:
-			return int64(t), nil
+			return decimal.NewFromFloat(t), nil
 		case string:
-			return strconv.ParseInt(t, 10, 64)
+			return decimal.NewFromString(t)
 		default:
-			return 0, fmt.Errorf("unsupported type %T", v)
+			return decimal.Zero, fmt.Errorf("unsupported type %T", v)
 		}
 	}
 
-	num, err1 := getInt(inVal)
-	den, err2 := getInt(totalVal)
+	num, err1 := toDec(in.Interface())
+	den, err2 := toDec(param.Interface())
 
-	if err1 != nil || err2 != nil || den == 0 {
+	if err1 != nil || err2 != nil || den.IsZero() {
 		return pongo2.AsSafeValue("NaN"), &pongo2.Error{
 			Sender:    "percentOfFilter",
 			OrigError: errors.New("invalid input or denominator is zero"),
 		}
 	}
 
-	percent := (float64(num) / float64(den)) * 100
+	hundred := decimal.NewFromInt(100)
+	pct := num.Mul(hundred).Div(den)
 
-	return pongo2.AsValue(fmt.Sprintf("%.2f%%", percent)), nil
+	return pongo2.AsValue(pct.StringFixed(2) + "%"), nil
 }
 
 // sliceFilter extracts a substring from the input string based on the specified "start:end" slice format in the parameter.
