@@ -10,7 +10,7 @@ Endereço: {{ midaz_onboarding.organization.0.address.line1 }}, {{ midaz_onboard
 DADOS DA CONTA:
 Identificador da Conta: {{ midaz_onboarding.account.0.id }}
 Alias da Conta: {{ midaz_onboarding.account.0.alias }}
-Saldo Inicial: {{ midaz_transaction.balance.0.available | scale:midaz_transaction.balance.0.scale }}
+Saldo Inicial: {{ midaz_transaction.balance.0.available }}
 Moeda da Conta: {{ midaz_onboarding.account.0.asset_code }}
 
 DADOS DO LEDGER ASSOCIADO:
