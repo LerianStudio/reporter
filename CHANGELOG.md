@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.7] - 2025-09-08
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.6...v2.1.0-beta.7)
+Contributors: arthurkz, lerian-studio
+
+### ⚡ Performance
+- **Streamlined Data Processing**: We've optimized backend operations by removing unnecessary scale references and int64 conversions. This refactor results in improved system efficiency, allowing users to experience faster processing times and more reliable data handling across various environments.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to ensure users have access to the latest information on project progress and updates, maintaining transparency and a clear history of changes.
+
+
 ## [v2.1.0-beta.6] - 2025-09-04
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.5...v2.1.0-beta.6)
