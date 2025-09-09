@@ -2,6 +2,7 @@ package in
 
 import (
 	"bytes"
+	"os"
 	"plugin-smart-templates/v2/components/manager/internal/services"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
@@ -9,6 +10,7 @@ import (
 	_ "plugin-smart-templates/v2/pkg/mongodb/report"
 	"plugin-smart-templates/v2/pkg/net/http"
 	templateUtils "plugin-smart-templates/v2/pkg/template_utils"
+	"strings"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -134,6 +136,25 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		logger.Errorf("Failed to download file from MinIO: %s", errFile.Error())
 
 		return http.WithError(c, errFile)
+	}
+
+	if strings.ToLower(templateModel.OutputFormat) == "pdf" {
+		tmpFile := "/tmp/" + reportModel.ID.String() + ".pdf"
+		err := rh.Service.PdfPool.Submit(string(fileBytes), tmpFile)
+		if err != nil {
+			libOpentelemetry.HandleSpanError(&span, "Failed to generate PDF from HTML", err)
+			logger.Errorf("Failed to generate PDF for report %s: %v", id, err)
+			return http.WithError(c, err)
+		}
+
+		fileBytes, err = os.ReadFile(tmpFile)
+		if err != nil {
+			libOpentelemetry.HandleSpanError(&span, "Failed to read generated PDF", err)
+			logger.Errorf("Failed to read generated PDF for report %s: %v", id, err)
+			return http.WithError(c, err)
+		}
+
+		objectName = reportModel.ID.String() + ".pdf"
 	}
 
 	contentType := templateUtils.GetMimeType(templateModel.OutputFormat)
