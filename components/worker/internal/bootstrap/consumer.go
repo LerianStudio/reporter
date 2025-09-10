@@ -40,7 +40,6 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 
 	wg := &sync.WaitGroup{}
 
-	// Interrupt signals
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
