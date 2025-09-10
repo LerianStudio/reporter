@@ -3,6 +3,7 @@ package in
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"plugin-smart-templates/v2/components/manager/internal/services"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
@@ -139,11 +140,19 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	}
 
 	if strings.ToLower(templateModel.OutputFormat) == "pdf" {
-		tmpFile := "/tmp/" + reportModel.ID.String() + ".pdf"
+		unsafePath := "/tmp/" + reportModel.ID.String() + ".pdf"
+
+		tmpFile := filepath.Clean(unsafePath)
+		if !strings.HasPrefix(tmpFile, "/tmp"+string(os.PathSeparator)) && tmpFile != "/tmp" {
+			libOpentelemetry.HandleSpanError(&span, "Invalid temp file path", nil)
+			return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInternalServer, ""))
+		}
+
 		err := rh.Service.PdfPool.Submit(string(fileBytes), tmpFile)
 		if err != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to generate PDF from HTML", err)
 			logger.Errorf("Failed to generate PDF for report %s: %v", id, err)
+
 			return http.WithError(c, err)
 		}
 
@@ -151,6 +160,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		if err != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to read generated PDF", err)
 			logger.Errorf("Failed to read generated PDF for report %s: %v", id, err)
+
 			return http.WithError(c, err)
 		}
 

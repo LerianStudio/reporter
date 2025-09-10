@@ -42,11 +42,12 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 		wp.wg.Add(1)
 		go wp.startWorker(i)
 	}
+
 	return wp
 }
 
 // startWorker runs a Chrome worker to generate PDFs.
-func (wp *WorkerPool) startWorker(id int) {
+func (wp *WorkerPool) startWorker(_ int) {
 	defer wp.wg.Done()
 
 	// Optimized Chrome configuration for container environment
@@ -71,9 +72,10 @@ func (wp *WorkerPool) startWorker(id int) {
 	defer cancel()
 
 	for task := range wp.tasks {
-		ctxTimeout, cancel := context.WithTimeout(ctx, wp.timeout)
+		ctxTimeout, cancelTimeout := context.WithTimeout(ctx, wp.timeout)
 
 		var pdfBuf []byte
+
 		wp.logger.Infof("Starting PDF generation for task: %s", task.Filename)
 		err := chromedp.Run(ctxTimeout,
 			chromedp.Navigate("data:text/html,"+task.HTML),
@@ -91,6 +93,7 @@ func (wp *WorkerPool) startWorker(id int) {
 					WithMarginRight(0.5).
 					WithDisplayHeaderFooter(false).
 					Do(ctx)
+
 				return err
 			}),
 		)
@@ -98,16 +101,18 @@ func (wp *WorkerPool) startWorker(id int) {
 		// If PDF is too small, try with temporary file approach
 		if err == nil && len(pdfBuf) < 1000 {
 			wp.logger.Infof("PDF too small (%d bytes), trying file approach", len(pdfBuf))
-			// Create temporary HTML file
+
 			tmpFile, tmpErr := os.CreateTemp("", "pdf-*.html")
 			if tmpErr != nil {
 				err = fmt.Errorf("failed to create temp file: %v", tmpErr)
 			} else {
 				tmpFileName := tmpFile.Name()
-				tmpFile.Close()
+				if closeErr := tmpFile.Close(); closeErr != nil {
+					wp.logger.Warnf("Failed to close temp file %s: %v", tmpFileName, closeErr)
+				}
 
-				if tmpErr := os.WriteFile(tmpFileName, []byte(task.HTML), 0644); tmpErr != nil {
-					err = fmt.Errorf("failed to write HTML to temp file: %v", tmpErr)
+				if writeErr := os.WriteFile(tmpFileName, []byte(task.HTML), 0600); writeErr != nil {
+					err = fmt.Errorf("failed to write HTML to temp file: %v", writeErr)
 				} else {
 					fileURL := "file://" + filepath.ToSlash(tmpFileName)
 					err = chromedp.Run(ctxTimeout,
@@ -126,12 +131,12 @@ func (wp *WorkerPool) startWorker(id int) {
 								WithMarginRight(0.5).
 								WithDisplayHeaderFooter(false).
 								Do(ctx)
+
 							return err
 						}),
 					)
 				}
 
-				// Cleanup temp file
 				if removeErr := os.Remove(tmpFileName); removeErr != nil {
 					wp.logger.Warnf("Failed to remove temp file %s: %v", tmpFileName, removeErr)
 				}
@@ -139,19 +144,18 @@ func (wp *WorkerPool) startWorker(id int) {
 		}
 
 		if err == nil {
-			// Check if PDF has content
 			if len(pdfBuf) < 1000 {
 				err = fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
 				wp.logger.Errorf("Final PDF too small: %d bytes", len(pdfBuf))
 			} else {
-				err = os.WriteFile(task.Filename, pdfBuf, 0644)
+				err = os.WriteFile(task.Filename, pdfBuf, 0600)
 				wp.logger.Infof("PDF generated successfully: %d bytes", len(pdfBuf))
 			}
 		} else {
 			wp.logger.Errorf("PDF generation failed: %v", err)
 		}
 
-		cancel() // Cancel context after all operations are complete
+		cancelTimeout()
 		task.Result <- err
 	}
 }
@@ -160,6 +164,7 @@ func (wp *WorkerPool) startWorker(id int) {
 func (wp *WorkerPool) Submit(html, filename string) error {
 	res := make(chan error, 1)
 	wp.tasks <- Task{HTML: html, Filename: filename, Result: res}
+
 	return <-res
 }
 
@@ -170,8 +175,8 @@ func (wp *WorkerPool) Close() {
 }
 
 // GetStats returns pool statistics
-func (wp *WorkerPool) GetStats() map[string]interface{} {
-	return map[string]interface{}{
+func (wp *WorkerPool) GetStats() map[string]any {
+	return map[string]any{
 		"workers":       wp.workers,
 		"timeout":       wp.timeout,
 		"tasks_pending": len(wp.tasks),
