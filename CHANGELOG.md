@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.9] - 2025-09-10
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.8...v2.1.0-beta.9)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Smart Templates Image Update**: We've rebuilt the smart templates image to incorporate the latest configurations and dependencies. This ensures that all components, including build, config, and frontend, are aligned with recent optimizations. Users will benefit from consistent performance and improved reliability.
+- **Changelog Update**: The CHANGELOG has been refreshed to accurately reflect recent updates. This provides users and developers with a clear and comprehensive record of changes, aiding in better tracking of project progress.
+
+
 ## [v2.1.0-beta.8] - 2025-09-10
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.7...v2.1.0-beta.8)
