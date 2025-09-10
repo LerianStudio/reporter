@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.8] - 2025-09-10
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.7...v2.1.0-beta.8)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **PDF Support for Reports**: You can now export reports as PDFs, making it easier to share and document your findings. This feature simplifies the process of disseminating information in a widely-accepted format. Check the updated documentation for guidance on using this feature.
+
+### 🐛 Bug Fixes
+- **Secure Temporary Files**: We've improved the security of temporary file creation, reducing the risk of unauthorized access and data leaks. This fix ensures your data is handled safely and securely.
+- **Reliable Build Process**: Resolved issues in the 'garble' build process that could cause failures. This fix streamlines the development workflow, allowing for smoother project builds.
+
+### ⚡ Performance
+- **Faster PDF Downloads**: Experience significantly reduced wait times when downloading large PDF documents. This improvement enhances user experience by speeding up access to your reports.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been revised to reflect recent updates, ensuring transparency and keeping you informed about the latest changes and enhancements.
+
+### 🔧 Maintenance
+- **Build System Enhancements**: Improved the build process for the 'garble' component, reducing potential errors and supporting faster development cycles.
+
+
 ## [v2.1.0-beta.7] - 2025-09-08
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.6...v2.1.0-beta.7)
