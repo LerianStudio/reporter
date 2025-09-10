@@ -3,12 +3,14 @@ package pdf
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 )
@@ -77,10 +79,16 @@ func (wp *WorkerPool) startWorker(_ int) {
 		var pdfBuf []byte
 
 		wp.logger.Infof("Starting PDF generation for task: %s", task.Filename)
+
+		dataURL := "data:text/html;charset=utf-8," + url.PathEscape(task.HTML)
 		err := chromedp.Run(ctxTimeout,
-			chromedp.Navigate("data:text/html,"+task.HTML),
+			chromedp.Navigate(dataURL),
 			chromedp.WaitVisible("body", chromedp.ByQuery),
-			chromedp.Sleep(2*time.Second), // Wait for content to render
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				return network.Enable().Do(ctx)
+			}),
+			chromedp.WaitReady("body", chromedp.ByQuery),
+			chromedp.Sleep(500*time.Millisecond),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				var err error
 				pdfBuf, _, err = page.PrintToPDF().
@@ -118,7 +126,11 @@ func (wp *WorkerPool) startWorker(_ int) {
 					err = chromedp.Run(ctxTimeout,
 						chromedp.Navigate(fileURL),
 						chromedp.WaitVisible("body", chromedp.ByQuery),
-						chromedp.Sleep(2*time.Second),
+						chromedp.ActionFunc(func(ctx context.Context) error {
+							return network.Enable().Do(ctx)
+						}),
+						chromedp.WaitReady("body", chromedp.ByQuery),
+						chromedp.Sleep(500*time.Millisecond),
 						chromedp.ActionFunc(func(ctx context.Context) error {
 							var err error
 							pdfBuf, _, err = page.PrintToPDF().
