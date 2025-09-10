@@ -26,26 +26,71 @@ export default function createZodMap(intl: IntlShape) {
         }
         break
       case ZodIssueCode.too_small:
-        const minimum =
-          issue.type === 'date'
-            ? dayjs.unix(issue.minimum as number).format('LL')
-            : issue.minimum
-        const precisionMinimum = issue.exact
-          ? 'exact'
-          : issue.inclusive
-            ? 'inclusive'
-            : 'not_inclusive'
-        const keyMinimum = `too_small_${issue.type}_${precisionMinimum}`
+        const fieldPath = issue.path?.[issue.path.length - 1]
+        if (issue.type === 'string' && issue.minimum === 1) {
+          switch (fieldPath) {
+            case 'database':
+              message = intl.formatMessage(messages.report_database_required)
+              break
+            case 'table':
+              message = intl.formatMessage(messages.report_table_required)
+              break
+            case 'field':
+              message = intl.formatMessage(messages.report_field_required)
+              break
+            case 'templateId':
+              message = intl.formatMessage(messages.report_template_id_required)
+              break
+            default:
+              const minimum =
+                issue.type === 'date'
+                  ? dayjs.unix(issue.minimum as number).format('LL')
+                  : issue.minimum
+              const precisionMinimum = issue.exact
+                ? 'exact'
+                : issue.inclusive
+                  ? 'inclusive'
+                  : 'not_inclusive'
+              const keyMinimum = `too_small_${issue.type}_${precisionMinimum}`
 
-        if (!(keyMinimum in messages)) {
-          throw new Error(
-            `Zod Intl: ${keyMinimum} id is not defined in messages`
-          )
+              if (!(keyMinimum in messages)) {
+                throw new Error(
+                  `Zod Intl: ${keyMinimum} id is not defined in messages`
+                )
+              }
+
+              // TODO: review this error
+              // @ts-ignore
+              message = intl.formatMessage(messages[keyMinimum], { minimum })
+              break
+          }
+        } else {
+          const minimum =
+            issue.type === 'date'
+              ? dayjs.unix(issue.minimum as number).format('LL')
+              : issue.minimum
+          const precisionMinimum = issue.exact
+            ? 'exact'
+            : issue.inclusive
+              ? 'inclusive'
+              : 'not_inclusive'
+          const keyMinimum = `too_small_${issue.type}_${precisionMinimum}`
+
+          if (!(keyMinimum in messages)) {
+            throw new Error(
+              `Zod Intl: ${keyMinimum} id is not defined in messages`
+            )
+          }
+
+          // TODO: review this error
+          // @ts-ignore
+          message = intl.formatMessage(messages[keyMinimum], { minimum })
         }
-
-        // TODO: review this error
-        // @ts-ignore
-        message = intl.formatMessage(messages[keyMinimum], { minimum })
+        break
+      case ZodIssueCode.invalid_enum_value:
+        if (issue.path?.[issue.path.length - 1] === 'operator') {
+          message = intl.formatMessage(messages.report_operator_invalid)
+        }
         break
       case ZodIssueCode.too_big:
         const maximum =

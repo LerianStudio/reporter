@@ -122,6 +122,32 @@ const messages = defineMessages({
   template_file_empty: {
     id: 'errors.template.file.empty',
     defaultMessage: 'File cannot be empty'
+  },
+
+  // report validation messages
+  report_database_required: {
+    id: 'errors.report.database.required',
+    defaultMessage: 'Database is required'
+  },
+  report_table_required: {
+    id: 'errors.report.table.required',
+    defaultMessage: 'Table is required'
+  },
+  report_field_required: {
+    id: 'errors.report.field.required',
+    defaultMessage: 'Field is required'
+  },
+  report_operator_invalid: {
+    id: 'errors.report.operator.invalid',
+    defaultMessage: 'Please select a valid operator'
+  },
+  report_values_invalid: {
+    id: 'errors.report.values.invalid',
+    defaultMessage: 'Please provide valid values for the selected operator'
+  },
+  report_template_id_required: {
+    id: 'errors.report.templateId.required',
+    defaultMessage: 'Template ID is required'
   }
 })
 

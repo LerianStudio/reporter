@@ -1,5 +1,9 @@
 import { ReportEntity } from '@/core/domain/entities/report-entity'
-import { CreateReportDto, ReportDto } from '@/core/application/dto/report-dto'
+import {
+  CreateReportDto,
+  CreateAdvancedReportDto,
+  ReportDto
+} from '@/core/application/dto/report-dto'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
 import { PaginationMapper } from './pagination-mapper'
 import { TemplateMapper } from './template-mapper'
@@ -11,11 +15,14 @@ export class ReportMapper {
   /**
    * Convert a report DTO to an entity
    */
-  static toEntity(dto: CreateReportDto): ReportEntity {
+  static toEntity(
+    dto: CreateReportDto | CreateAdvancedReportDto,
+    organizationId: string
+  ): ReportEntity {
     return {
       templateId: dto.templateId,
-      organizationId: dto.organizationId,
-      filters: dto.filters,
+      organizationId,
+      filters: dto.filters as any,
       metadata: dto.metadata
     }
   }

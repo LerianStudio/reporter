@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useIntl } from 'react-intl'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Plus } from 'lucide-react'
 import {
@@ -23,7 +23,7 @@ import { report } from '@/schema/report'
 import { useCreateReport } from '@/client/reports'
 import { useListTemplates } from '@/client/templates'
 import { useListDataSources } from '@/client/data-sources'
-import { CreateReportDto } from '@/core/application/dto/report-dto'
+import { transformToApiPayload } from '@/lib/filter-transformer'
 import { useOrganization } from '@lerianstudio/console-layout'
 import { useToast } from '@/hooks/use-toast'
 import { ReportsSheetFilter } from './reports-sheet-filter'
@@ -57,35 +57,30 @@ export function ReportsSheet({
   const { currentOrganization } = useOrganization()
   const [activeTab, setActiveTab] = useState('details')
 
-  // Initialize form
   const form = useForm<ReportFormData>({
     resolver: zodResolver(reportFormSchema),
     defaultValues: initialValues
   })
 
-  // Initialize field array for filters
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'fields'
   })
 
-  // Fetch templates for dropdown
   const { data: templates } = useListTemplates({
-    organizationId: currentOrganization?.id!,
+    organizationId: currentOrganization?.id || '',
     filters: {
       page: 1,
       limit: 100
     }
   })
 
-  // Fetch data sources for database dropdown
   const { data: dataSources } = useListDataSources({
-    organizationId: currentOrganization?.id!
+    organizationId: currentOrganization?.id || ''
   })
 
-  // API mutation for creating report
   const createReportMutation = useCreateReport({
-    organizationId: currentOrganization?.id!,
+    organizationId: currentOrganization?.id || '',
     onSuccess: () => {
       form.reset()
       onOpenChange(false)
@@ -100,36 +95,46 @@ export function ReportsSheet({
     }
   })
 
-  // Handle form submission
   const handleSubmit = async (values: ReportFormData) => {
-    // Transform form data to API payload
-    const payload: CreateReportDto = {
-      templateId: values.templateId,
-      organizationId: currentOrganization.id,
-      filters: {
-        // Include array of filter criteria
-        fields: values.fields.map((filter) => ({
-          database: filter.database,
-          table: filter.table,
-          field: filter.field,
-          values: filter.values
-            .split(',')
-            .map((value: string) => value.trim())
-            .filter(Boolean)
-        }))
-      }
-    }
+    try {
+      const processedFields = values.fields.map((field) => ({
+        database: field.database,
+        table: field.table,
+        field: field.field,
+        operator: field.operator,
+        values: field.values
+      }))
 
-    await createReportMutation.mutateAsync(payload)
+      // Zod schema now handles all UI validation
+      // Backend will handle business logic and security validation
+      const apiPayload = transformToApiPayload(
+        values.templateId,
+        processedFields
+      )
+
+      await createReportMutation.mutateAsync(apiPayload)
+    } catch (error) {
+      toast({
+        title: intl.formatMessage({
+          id: 'reports.create.validation.error',
+          defaultMessage: 'Filter validation error'
+        }),
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Invalid filter configuration',
+        variant: 'destructive'
+      })
+    }
   }
 
-  // Handle adding new filter section
   const handleAddFilter = () => {
     append({
       database: '',
       table: '',
       field: '',
-      values: ''
+      operator: '',
+      values: []
     })
   }
 
@@ -138,7 +143,6 @@ export function ReportsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-[594px] flex-col">
-        {/* Header */}
         <SheetHeader>
           <SheetTitle>
             {intl.formatMessage({
@@ -155,9 +159,7 @@ export function ReportsSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {/* Form */}
         <Form {...form}>
-          {/* Tabs */}
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -178,9 +180,7 @@ export function ReportsSheet({
               </TabsTrigger>
             </TabsList>
 
-            {/* Report Details Tab */}
             <TabsContent value="details" className="flex-1 space-y-4 pb-8">
-              {/* Template Selection */}
               <SelectField
                 name="templateId"
                 label={intl.formatMessage({
@@ -201,7 +201,6 @@ export function ReportsSheet({
                 ))}
               </SelectField>
 
-              {/* Mandatory fields note */}
               <p className="text-muted-foreground text-sm">
                 {intl.formatMessage({
                   id: 'reports.form.mandatoryFields',
@@ -210,9 +209,7 @@ export function ReportsSheet({
               </p>
             </TabsContent>
 
-            {/* Filters Tab */}
             <TabsContent value="filters" className="flex-1 space-y-4 pb-8">
-              {/* Filters Header */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -235,7 +232,6 @@ export function ReportsSheet({
                   </Button>
                 </div>
 
-                {/* Dynamic Filter Sections */}
                 <div className="space-y-4">
                   {fields.map((field, index) => (
                     <ReportsSheetFilter
@@ -250,7 +246,6 @@ export function ReportsSheet({
                 </div>
               </div>
 
-              {/* Mandatory fields note */}
               <p className="text-muted-foreground text-sm">
                 {intl.formatMessage({
                   id: 'reports.form.mandatoryFields',
@@ -260,7 +255,6 @@ export function ReportsSheet({
             </TabsContent>
           </Tabs>
 
-          {/* Footer */}
           <SheetFooter className="mt-auto">
             <LoadingButton
               type="submit"

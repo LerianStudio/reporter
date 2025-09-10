@@ -1,6 +1,7 @@
 import {
   ReportStatus,
-  ReportFilters
+  ReportFilters,
+  AdvancedReportFilters
 } from '@/core/domain/entities/report-entity'
 import { MetadataEntity } from '@/core/domain/entities/metadata-entity'
 import { TemplateDto } from './template-dto'
@@ -12,19 +13,18 @@ export type ReportSearchParamDto = SearchParamDto & {
   templateId?: string
 }
 
-/**
- * DTO for creating a new report generation request
- */
 export type CreateReportDto = {
   templateId: string
-  organizationId: string
   filters?: ReportFilters
   metadata?: MetadataEntity
 }
 
-/**
- * DTO for report responses
- */
+export type CreateAdvancedReportDto = {
+  templateId: string
+  filters?: AdvancedReportFilters
+  metadata?: MetadataEntity
+}
+
 export type ReportDto = {
   id: string
   templateId: string

@@ -1,11 +1,16 @@
 import { inject, injectable } from 'inversify'
 import { ReportRepository } from '@/core/domain/repositories/report-repository'
-import { type CreateReportDto, type ReportDto } from '../../dto/report-dto'
+import {
+  type CreateAdvancedReportDto,
+  type ReportDto
+} from '../../dto/report-dto'
 import { ReportMapper } from '../../mappers/report-mapper'
 import { LogOperation } from '@/core/infrastructure/logger/decorators/log-operation'
 
 export type GenerateReport = {
-  execute(reportData: CreateReportDto): Promise<ReportDto>
+  execute(
+    reportData: CreateAdvancedReportDto & { organizationId: string }
+  ): Promise<ReportDto>
 }
 
 @injectable()
@@ -16,8 +21,11 @@ export class GenerateReportUseCase implements GenerateReport {
   ) {}
 
   @LogOperation({ layer: 'application' })
-  async execute(reportData: CreateReportDto): Promise<ReportDto> {
-    const reportEntity = ReportMapper.toEntity(reportData)
+  async execute(
+    reportData: CreateAdvancedReportDto & { organizationId: string }
+  ): Promise<ReportDto> {
+    const { organizationId, ...dto } = reportData
+    const reportEntity = ReportMapper.toEntity(dto, organizationId)
 
     const createdReport = await this.reportRepository.create(reportEntity)
 
