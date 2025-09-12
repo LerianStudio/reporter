@@ -49,7 +49,6 @@ var mimeTypes = map[string]string{
 	"html": "text/html",
 	"json": "application/json",
 	"csv":  "text/csv",
-	// Add more MIME types as needed
 }
 
 // GenerateReport handles a report generation request by loading a template file,

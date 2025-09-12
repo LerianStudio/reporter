@@ -16,7 +16,7 @@ type DataSourceHandler struct {
 	Service *services.UseCase
 }
 
-// GetDataSourceInformation retrieves all data sources connected on plugin smart templates
+// GetDataSourceInformation retrieves all data sources connected on plugin smart templates.
 //
 //	@Summary		Get all data sources connected on plugin smart templates
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
