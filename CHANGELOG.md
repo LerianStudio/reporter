@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.11] - 2025-09-12
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.10...v2.1.0-beta.11)
+Contributors: LF Barrile, arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Security**: We've improved security by adding a Common Vulnerabilities and Exposures (CVE) entry to the Trivy ignore list. This helps manage known vulnerabilities more effectively, ensuring a safer environment for your projects.
+
+### 🔧 Maintenance
+- **Build System Optimization**: The image build configuration has been updated to streamline the development workflow across the frontend, backend, and build components. This change promotes a more efficient and consistent build process, making it easier for developers to maintain and deploy updates.
+- **Updated Documentation**: The CHANGELOG has been revised to reflect recent changes and improvements. This ensures you have access to the latest information about updates, enhancing transparency and clarity in the project's development history.
+
+
 ## [v2.1.0-beta.10] - 2025-09-12
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.9...v2.1.0-beta.10)
