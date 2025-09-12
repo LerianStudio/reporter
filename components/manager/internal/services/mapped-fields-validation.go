@@ -106,28 +106,30 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 		return err
 	}
 
+	validatedCollections := make(map[string]bool)
+
 	for _, s := range schema {
 		countIfTableExist := int32(0)
-		fieldsMissing := mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s, &countIfTableExist)
-		// Remove of mappedFields copies the table if exist on a schema list
+		mongodb.ValidateFieldsInSchemaMongo(mappedFields[databaseName][s.CollectionName], s, &countIfTableExist)
+
 		if countIfTableExist > 0 {
+			validatedCollections[s.CollectionName] = true
+
 			if mt, ok := mappedFields[databaseName]; ok {
 				delete(mt, s.CollectionName)
 			}
 		}
+	}
 
-		if len(fieldsMissing) > 0 {
-			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+	errorTables := make([]string, 0, len(mappedFields[databaseName]))
+
+	for key := range mappedFields[databaseName] {
+		if !validatedCollections[key] {
+			errorTables = append(errorTables, key)
 		}
 	}
 
-	// Create an array of tables that does not exist for a database passed
-	errorTables := make([]string, 0, len(mappedFields[databaseName]))
-	for key := range mappedFields[databaseName] {
-		errorTables = append(errorTables, key)
-	}
-
-	if len(mappedFields[databaseName]) > 0 {
+	if len(errorTables) > 0 {
 		return pkg.ValidateBusinessError(constant.ErrMissingSchemaTable, "", errorTables, databaseName)
 	}
 
