@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.10] - 2025-09-12
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.9...v2.1.0-beta.10)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Backend/Database**: Fixed an issue with the discovery of mapped fields in MongoDB collections. This improvement ensures accurate data mapping and prevents potential data retrieval errors, enhancing the stability of your database interactions.
+
+### 🔧 Maintenance
+- **Release Management**: Updated the CHANGELOG to provide users with the latest information on updates and fixes, ensuring transparency and ease of access to release details.
+- **Database/Test**: Added unit tests for `datasource.mongodb.go`, increasing test coverage and ensuring the MongoDB data source functions correctly. This enhancement improves the reliability and maintainability of the database component.
+
+
 ## [v2.1.0-beta.9] - 2025-09-10
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.8...v2.1.0-beta.9)
