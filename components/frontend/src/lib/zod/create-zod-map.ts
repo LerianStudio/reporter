@@ -58,7 +58,9 @@ export default function createZodMap(intl: IntlShape) {
           message = intl.formatMessage(
             messages[issue.message as keyof typeof messages]
           )
+          break
         }
+        message = intl.formatMessage(messages.invalid_type_received_undefined)
         break
       case ZodIssueCode.too_big:
         const maximum =

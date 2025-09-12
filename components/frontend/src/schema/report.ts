@@ -13,17 +13,16 @@ const VALID_OPERATORS = [
 
 export const filterFieldSchema = z
   .object({
-    database: z.string().min(1, 'report_database_required'),
-    table: z.string().min(1, 'report_table_required'),
-    field: z.string().min(1, 'report_field_required'),
-    operator: z.enum(VALID_OPERATORS, {
-      errorMap: (issue, ctx) => {
-        if (issue.code === ZodIssueCode.invalid_enum_value) {
-          return { message: 'report_operator_invalid' }
-        }
-        return { message: ctx.defaultError }
-      }
+    database: z.string().refine((val) => val && val.length > 0, {
+      params: { id: 'report_database_required' }
     }),
+    table: z.string().refine((val) => val && val.length > 0, {
+      params: { id: 'report_table_required' }
+    }),
+    field: z.string().refine((val) => val && val.length > 0, {
+      params: { id: 'report_field_required' }
+    }),
+    operator: z.enum(VALID_OPERATORS),
     values: z.union([z.string(), z.array(z.string())])
   })
   .refine(
@@ -52,7 +51,9 @@ export const filterFieldSchema = z
     }
   )
 
-export const templateId = z.string().min(1, 'report_template_id_required')
+export const templateId = z.string().refine((val) => val && val.length > 0, {
+  params: { id: 'report_template_id_required' }
+})
 export const fields = z.array(filterFieldSchema)
 
 export const report = {

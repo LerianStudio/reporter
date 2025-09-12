@@ -139,7 +139,7 @@ const messages = defineMessages({
   },
   report_operator_invalid: {
     id: 'errors.report.operator.invalid',
-    defaultMessage: 'Please select a valid operator'
+    defaultMessage: 'Operator is required'
   },
   report_values_invalid: {
     id: 'errors.report.values.invalid',
