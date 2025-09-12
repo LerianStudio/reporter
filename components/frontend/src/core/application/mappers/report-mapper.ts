@@ -1,35 +1,21 @@
 import { ReportEntity } from '@/core/domain/entities/report-entity'
-import {
-  CreateReportDto,
-  CreateAdvancedReportDto,
-  ReportDto
-} from '@/core/application/dto/report-dto'
+import { CreateReportDto, ReportDto } from '@/core/application/dto/report-dto'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
 import { PaginationMapper } from './pagination-mapper'
 import { TemplateMapper } from './template-mapper'
 
-/**
- * Mapper class for converting between Report entities and DTOs
- */
 export class ReportMapper {
-  /**
-   * Convert a report DTO to an entity
-   */
-  static toEntity(
-    dto: CreateReportDto | CreateAdvancedReportDto,
-    organizationId: string
-  ): ReportEntity {
+  static toEntity(dto: CreateReportDto, organizationId: string): ReportEntity {
     return {
       templateId: dto.templateId,
       organizationId,
-      filters: dto.filters as any,
+      filters: {
+        fields: dto.fields
+      },
       metadata: dto.metadata
     }
   }
 
-  /**
-   * Convert a report entity to a response DTO
-   */
   static toResponseDto(entity: ReportEntity): ReportDto {
     return {
       id: entity.id!,
@@ -47,9 +33,6 @@ export class ReportMapper {
     }
   }
 
-  /**
-   * Convert paginated report entities to paginated DTOs
-   */
   static toPaginationResponseDto(
     result: PaginationEntity<ReportEntity>
   ): PaginationEntity<ReportDto> {

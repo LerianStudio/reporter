@@ -26,44 +26,10 @@ export default function createZodMap(intl: IntlShape) {
         }
         break
       case ZodIssueCode.too_small:
-        const fieldPath = issue.path?.[issue.path.length - 1]
-        if (issue.type === 'string' && issue.minimum === 1) {
-          switch (fieldPath) {
-            case 'database':
-              message = intl.formatMessage(messages.report_database_required)
-              break
-            case 'table':
-              message = intl.formatMessage(messages.report_table_required)
-              break
-            case 'field':
-              message = intl.formatMessage(messages.report_field_required)
-              break
-            case 'templateId':
-              message = intl.formatMessage(messages.report_template_id_required)
-              break
-            default:
-              const minimum =
-                issue.type === 'date'
-                  ? dayjs.unix(issue.minimum as number).format('LL')
-                  : issue.minimum
-              const precisionMinimum = issue.exact
-                ? 'exact'
-                : issue.inclusive
-                  ? 'inclusive'
-                  : 'not_inclusive'
-              const keyMinimum = `too_small_${issue.type}_${precisionMinimum}`
-
-              if (!(keyMinimum in messages)) {
-                throw new Error(
-                  `Zod Intl: ${keyMinimum} id is not defined in messages`
-                )
-              }
-
-              // TODO: review this error
-              // @ts-ignore
-              message = intl.formatMessage(messages[keyMinimum], { minimum })
-              break
-          }
+        if (issue.message && issue.message in messages) {
+          message = intl.formatMessage(
+            messages[issue.message as keyof typeof messages]
+          )
         } else {
           const minimum =
             issue.type === 'date'
@@ -88,8 +54,10 @@ export default function createZodMap(intl: IntlShape) {
         }
         break
       case ZodIssueCode.invalid_enum_value:
-        if (issue.path?.[issue.path.length - 1] === 'operator') {
-          message = intl.formatMessage(messages.report_operator_invalid)
+        if (issue.message && issue.message in messages) {
+          message = intl.formatMessage(
+            messages[issue.message as keyof typeof messages]
+          )
         }
         break
       case ZodIssueCode.too_big:
@@ -110,27 +78,24 @@ export default function createZodMap(intl: IntlShape) {
           )
         }
 
-        // TODO: review this error
-        // @ts-ignore
-        message = intl.formatMessage(messages[keyMaximum], { maximum })
+        // @ts-ignore - formatMessage can return ReactNode[] with values
+        message = intl.formatMessage(
+          messages[keyMaximum as keyof typeof messages],
+          { maximum }
+        )
         break
       case ZodIssueCode.custom:
-        if (!issue?.params?.id) {
-          throw new Error(
-            `Zod Intl: Custom validation with path ${issue.path} has params.id undefined`
+        if (issue?.params?.id) {
+          if (!(issue.params.id in messages)) {
+            throw new Error(
+              `Zod Intl: ${issue.params.id} id is not defined in messages`
+            )
+          }
+          message = intl.formatMessage(
+            get(messages, issue.params.id),
+            issue.params
           )
         }
-
-        if (!(issue.params.id in messages)) {
-          throw new Error(
-            `Zod Intl: ${issue.params.id} id is not defined in messages`
-          )
-        }
-
-        message = intl.formatMessage(
-          get(messages, issue.params.id),
-          issue.params
-        )
         break
     }
     return { message }

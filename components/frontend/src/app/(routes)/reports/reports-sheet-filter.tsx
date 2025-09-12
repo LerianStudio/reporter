@@ -18,7 +18,7 @@ import {
   getOperatorsForFieldType,
   operatorRequiresNoValues,
   operatorRequiresMultipleValues
-} from '@/lib/filter-operators'
+} from '@/utils/filter-operators'
 
 type ReportsSheetFilterProps = {
   name: string
@@ -87,7 +87,7 @@ export function ReportsSheetFilter({
     }
 
     if (operatorRequiresMultipleValues(field.operator)) {
-      if (field.operator === 'between' || field.operator === 'not_between') {
+      if (field.operator === 'between') {
         return intl.formatMessage({
           id: 'reports.filters.values.description.between',
           defaultMessage: 'Enter two values separated by comma (e.g., 10, 20)'

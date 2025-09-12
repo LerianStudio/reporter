@@ -23,7 +23,6 @@ import { report } from '@/schema/report'
 import { useCreateReport } from '@/client/reports'
 import { useListTemplates } from '@/client/templates'
 import { useListDataSources } from '@/client/data-sources'
-import { transformToApiPayload } from '@/lib/filter-transformer'
 import { useOrganization } from '@lerianstudio/console-layout'
 import { useToast } from '@/hooks/use-toast'
 import { ReportsSheetFilter } from './reports-sheet-filter'
@@ -96,36 +95,12 @@ export function ReportsSheet({
   })
 
   const handleSubmit = async (values: ReportFormData) => {
-    try {
-      const processedFields = values.fields.map((field) => ({
-        database: field.database,
-        table: field.table,
-        field: field.field,
-        operator: field.operator,
-        values: field.values
-      }))
-
-      // Zod schema now handles all UI validation
-      // Backend will handle business logic and security validation
-      const apiPayload = transformToApiPayload(
-        values.templateId,
-        processedFields
-      )
-
-      await createReportMutation.mutateAsync(apiPayload)
-    } catch (error) {
-      toast({
-        title: intl.formatMessage({
-          id: 'reports.create.validation.error',
-          defaultMessage: 'Filter validation error'
-        }),
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Invalid filter configuration',
-        variant: 'destructive'
-      })
+    const payload = {
+      templateId: values.templateId,
+      ...(values.fields.length > 0 && { fields: values.fields })
     }
+
+    await createReportMutation.mutateAsync(payload)
   }
 
   const handleAddFilter = () => {
@@ -133,7 +108,7 @@ export function ReportsSheet({
       database: '',
       table: '',
       field: '',
-      operator: '',
+      operator: 'eq' as const,
       values: []
     })
   }

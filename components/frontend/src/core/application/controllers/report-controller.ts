@@ -15,17 +15,26 @@ import {
   Query
 } from '@lerianstudio/sindarian-server'
 
+const FilterFieldSchema = z.object({
+  database: z.string(),
+  table: z.string(),
+  field: z.string(),
+  operator: z.enum([
+    'eq',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'between',
+    'in',
+    'nin'
+  ] as const),
+  values: z.union([z.string(), z.array(z.string())])
+})
+
 const CreateReportSchema = z.object({
   templateId: z.string().uuid('Template ID must be a valid UUID'),
-  filters: z
-    .record(
-      z.string(),
-      z.record(
-        z.string(),
-        z.record(z.string(), z.record(z.string(), z.array(z.string())))
-      )
-    )
-    .optional()
+  fields: z.array(FilterFieldSchema).default([])
 })
 
 type CreateReportData = z.infer<typeof CreateReportSchema>
@@ -70,7 +79,7 @@ export class ReportController {
     const report = await this.generateReportUseCase.execute({
       templateId: body.templateId,
       organizationId,
-      filters: body.filters
+      fields: body.fields
     })
 
     return NextResponse.json(report, { status: 201 })

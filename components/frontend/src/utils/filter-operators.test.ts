@@ -16,7 +16,6 @@ describe('Filter Operators Utils', () => {
       const result = getOperatorsForFieldType('string')
       const operatorValues = result.map((op) => op.value)
 
-      // All operators should now be available for string fields
       expect(operatorValues).toContain('eq')
       expect(operatorValues).toContain('gt')
       expect(operatorValues).toContain('in')
@@ -69,7 +68,6 @@ describe('Filter Operators Utils', () => {
 
   describe('operatorRequiresNoValues', () => {
     it('should return true for operators that need no values', () => {
-      // None of our operators require no values
       expect(operatorRequiresNoValues('eq')).toBe(false)
       expect(operatorRequiresNoValues('gt')).toBe(false)
     })

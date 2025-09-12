@@ -6,6 +6,8 @@ import {
 import { MetadataEntity } from '@/core/domain/entities/metadata-entity'
 import { TemplateDto } from './template-dto'
 import { SearchParamDto } from './request-dto'
+import { filterFieldSchema } from '@/schema/report'
+import { z } from 'zod'
 
 export type ReportSearchParamDto = SearchParamDto & {
   status?: ReportStatus
@@ -15,13 +17,16 @@ export type ReportSearchParamDto = SearchParamDto & {
 
 export type CreateReportDto = {
   templateId: string
-  filters?: ReportFilters
+  fields: FilterField[]
   metadata?: MetadataEntity
 }
+
+export type FilterField = z.infer<typeof filterFieldSchema>
 
 export type CreateAdvancedReportDto = {
   templateId: string
   filters?: AdvancedReportFilters
+  fields?: FilterField[]
   metadata?: MetadataEntity
 }
 
