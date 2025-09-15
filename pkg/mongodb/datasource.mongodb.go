@@ -322,7 +322,7 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 		return ds.discoverFieldsWithSampling(ctx, coll, count)
 	}
 
-	// For small collections, use full aggregation with nested field discovery
+	// For small collections, use full aggregation
 	pipeline := []bson.M{
 		{
 			"$project": bson.M{
@@ -360,19 +360,6 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 		}
 	}
 
-	// Also sample a few documents to discover nested fields
-	sampleCursor, err := coll.Find(ctx, bson.M{}, options.Find().SetLimit(10))
-	if err == nil {
-		defer sampleCursor.Close(ctx)
-
-		for sampleCursor.Next(ctx) {
-			var doc bson.M
-			if err := sampleCursor.Decode(&doc); err == nil {
-				ds.discoverFieldsRecursively(doc, "", allFields, make(map[string]string))
-			}
-		}
-	}
-
 	return allFields, nil
 }
 
@@ -383,6 +370,20 @@ func (ds *ExternalDataSource) discoverFieldsWithSampling(ctx context.Context, co
 		{
 			"$sample": bson.M{"size": sampleSize},
 		},
+		{
+			"$project": bson.M{
+				"arrayofkeyvalue": bson.M{"$objectToArray": "$$ROOT"},
+			},
+		},
+		{
+			"$unwind": "$arrayofkeyvalue",
+		},
+		{
+			"$group": bson.M{
+				"_id":     nil,
+				"allkeys": bson.M{"$addToSet": "$arrayofkeyvalue.k"},
+			},
+		},
 	}
 
 	cursor, err := coll.Aggregate(ctx, pipeline)
@@ -392,16 +393,17 @@ func (ds *ExternalDataSource) discoverFieldsWithSampling(ctx context.Context, co
 	defer cursor.Close(ctx)
 
 	allFields := make(map[string]bool)
-	fieldTypes := make(map[string]string)
 
-	for cursor.Next(ctx) {
-		var doc bson.M
-		if err := cursor.Decode(&doc); err != nil {
-			continue
+	if cursor.Next(ctx) {
+		var result struct {
+			AllKeys []string `bson:"allkeys"`
 		}
 
-		// Discover both root fields and nested fields
-		ds.discoverFieldsRecursively(doc, "", allFields, fieldTypes)
+		if err := cursor.Decode(&result); err == nil {
+			for _, key := range result.AllKeys {
+				allFields[key] = true
+			}
+		}
 	}
 
 	return allFields, nil
@@ -467,49 +469,17 @@ func (ds *ExternalDataSource) sampleMultipleDocuments(ctx context.Context, coll 
 
 		docCount++
 
-		ds.discoverFieldsRecursively(doc, "", allFields, fieldTypes)
+		for fieldName, value := range doc {
+			allFields[fieldName] = true
+			dataType := ds.inferDataType(value)
+
+			if currentType, exists := fieldTypes[fieldName]; !exists || ds.isMoreSpecificType(dataType, currentType) {
+				fieldTypes[fieldName] = dataType
+			}
+		}
 	}
 
 	return fieldTypes, allFields, nil
-}
-
-// discoverFieldsRecursively discovers all fields in a document, including nested fields
-func (ds *ExternalDataSource) discoverFieldsRecursively(doc bson.M, prefix string, allFields map[string]bool, fieldTypes map[string]string) {
-	for fieldName, value := range doc {
-		fullFieldName := fieldName
-		if prefix != "" {
-			fullFieldName = prefix + "." + fieldName
-		}
-
-		allFields[fullFieldName] = true
-
-		dataType := ds.inferDataType(value)
-		if currentType, exists := fieldTypes[fullFieldName]; !exists || ds.isMoreSpecificType(dataType, currentType) {
-			fieldTypes[fullFieldName] = dataType
-		}
-
-		if obj, ok := value.(bson.M); ok {
-			ds.discoverFieldsRecursively(obj, fullFieldName, allFields, fieldTypes)
-		} else if obj, ok := value.(bson.D); ok {
-			docMap := bson.M{}
-			for _, elem := range obj {
-				docMap[elem.Key] = elem.Value
-			}
-
-			ds.discoverFieldsRecursively(docMap, fullFieldName, allFields, fieldTypes)
-		} else if arr, ok := value.(bson.A); ok && len(arr) > 0 {
-			if firstElem, ok := arr[0].(bson.M); ok {
-				ds.discoverFieldsRecursively(firstElem, fullFieldName+".0", allFields, fieldTypes)
-			} else if firstElem, ok := arr[0].(bson.D); ok {
-				docMap := bson.M{}
-				for _, elem := range firstElem {
-					docMap[elem.Key] = elem.Value
-				}
-
-				ds.discoverFieldsRecursively(docMap, fullFieldName+".0", allFields, fieldTypes)
-			}
-		}
-	}
 }
 
 // inferDataType determines the MongoDB data type from a Go value
