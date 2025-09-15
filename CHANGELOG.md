@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.12] - 2025-09-15
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.11...v2.1.0-beta.12)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Backend/Database**: Improved validation of mapped fields in MongoDB schemas. This fix enhances data integrity by ensuring schema fields are correctly validated, reducing runtime errors and boosting system reliability. Users can now expect more consistent and accurate data representation across the application.
+
+### 🔧 Maintenance
+- **Release Management**: Updated the CHANGELOG to include recent changes and improvements. This update ensures users have access to the latest information about software updates, fostering better transparency and communication regarding the project's development progress.
+
+
 ## [v2.1.0-beta.11] - 2025-09-12
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.10...v2.1.0-beta.11)
