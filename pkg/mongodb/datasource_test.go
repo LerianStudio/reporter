@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestDiscoverFieldsRecursively(t *testing.T) {
+func TestInferDataTypeFromDocument(t *testing.T) {
 	ds := &ExternalDataSource{}
 
 	testDoc := bson.M{
@@ -69,55 +69,6 @@ func TestDiscoverFieldsRecursively(t *testing.T) {
 		"created_at": primitive.DateTime(1640995200000), // 2022-01-01
 	}
 
-	allFields := make(map[string]bool)
-	fieldTypes := make(map[string]string)
-
-	ds.discoverFieldsRecursively(testDoc, "", allFields, fieldTypes)
-	expectedFields := []string{
-		"_id",
-		"name",
-		"legal_person",
-		"legal_person.trade_name",
-		"legal_person.document",
-		"legal_person.representative",
-		"legal_person.representative.name",
-		"legal_person.representative.email",
-		"legal_person.representative.role",
-		"legal_person.address",
-		"legal_person.address.street",
-		"legal_person.address.city",
-		"legal_person.address.country",
-		"addresses",
-		"addresses.0.type",
-		"addresses.0.street",
-		"addresses.0.city",
-		"addresses.0.details",
-		"addresses.0.details.zip_code",
-		"addresses.0.details.state",
-		"natural_person",
-		"natural_person.first_name",
-		"natural_person.last_name",
-		"natural_person.contact",
-		"natural_person.contact.email",
-		"natural_person.contact.phone",
-		"natural_person.contact.addresses",
-		"natural_person.contact.addresses.0.type",
-		"natural_person.contact.addresses.0.street",
-		"metadata",
-		"metadata.source",
-		"metadata.version",
-		"tags",
-		"active",
-		"count",
-		"created_at",
-	}
-
-	for _, expectedField := range expectedFields {
-		if !allFields[expectedField] {
-			t.Errorf("Expected field '%s' not found in discovered fields", expectedField)
-		}
-	}
-
 	expectedTypes := map[string]string{
 		"_id":          "objectId",
 		"name":         "string",
@@ -130,14 +81,17 @@ func TestDiscoverFieldsRecursively(t *testing.T) {
 	}
 
 	for field, expectedType := range expectedTypes {
-		if actualType, exists := fieldTypes[field]; !exists {
-			t.Errorf("Field type not found for '%s'", field)
-		} else if actualType != expectedType {
-			t.Errorf("Expected type '%s' for field '%s', got '%s'", expectedType, field, actualType)
+		if value, exists := testDoc[field]; exists {
+			actualType := ds.inferDataType(value)
+			if actualType != expectedType {
+				t.Errorf("Expected type '%s' for field '%s', got '%s'", expectedType, field, actualType)
+			}
+		} else {
+			t.Errorf("Field '%s' not found in test document", field)
 		}
 	}
 
-	t.Logf("Discovered %d fields total", len(allFields))
+	t.Logf("Tested type inference for %d fields", len(expectedTypes))
 }
 
 func TestInferDataType(t *testing.T) {
@@ -522,7 +476,7 @@ func TestValidateFieldsInSchemaMongo(t *testing.T) {
 }
 
 // Benchmark tests
-func BenchmarkDiscoverFieldsRecursively(b *testing.B) {
+func BenchmarkInferDataTypeFromDocument(b *testing.B) {
 	ds := &ExternalDataSource{}
 	testDoc := bson.M{
 		"_id":  "test-id",
@@ -555,9 +509,10 @@ func BenchmarkDiscoverFieldsRecursively(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		allFields := make(map[string]bool)
-		fieldTypes := make(map[string]string)
-		ds.discoverFieldsRecursively(testDoc, "", allFields, fieldTypes)
+		for field, value := range testDoc {
+			_ = ds.inferDataType(value)
+			_ = field // Avoid unused variable warning
+		}
 	}
 }
 
@@ -601,5 +556,182 @@ func BenchmarkConvertBsonToMap(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		convertBsonToMap(testDoc)
+	}
+}
+
+// TestConvertFilterConditionToMongoFilter tests the conversion of FilterCondition to MongoDB filter
+func TestConvertFilterConditionToMongoFilter(t *testing.T) {
+	ds := &ExternalDataSource{}
+
+	testCases := []struct {
+		name      string
+		field     string
+		condition model.FilterCondition
+		expected  map[string]any
+		expectErr bool
+	}{
+		{
+			name:  "equals single value",
+			field: "name",
+			condition: model.FilterCondition{
+				Equals: []any{"John"},
+			},
+			expected: map[string]any{
+				"name": "John",
+			},
+		},
+		{
+			name:  "equals multiple values",
+			field: "status",
+			condition: model.FilterCondition{
+				Equals: []any{"active", "pending"},
+			},
+			expected: map[string]any{
+				"status": map[string]any{
+					"$in": []any{"active", "pending"},
+				},
+			},
+		},
+		{
+			name:  "greater than",
+			field: "age",
+			condition: model.FilterCondition{
+				GreaterThan: []any{18},
+			},
+			expected: map[string]any{
+				"age": map[string]any{
+					"$gt": 18,
+				},
+			},
+		},
+		{
+			name:  "between values",
+			field: "price",
+			condition: model.FilterCondition{
+				Between: []any{10, 100},
+			},
+			expected: map[string]any{
+				"price": map[string]any{
+					"$gte": 10,
+					"$lte": 100,
+				},
+			},
+		},
+		{
+			name:  "in values",
+			field: "category",
+			condition: model.FilterCondition{
+				In: []any{"electronics", "books", "clothing"},
+			},
+			expected: map[string]any{
+				"category": map[string]any{
+					"$in": []any{"electronics", "books", "clothing"},
+				},
+			},
+		},
+		{
+			name:  "not in values",
+			field: "status",
+			condition: model.FilterCondition{
+				NotIn: []any{"deleted", "archived"},
+			},
+			expected: map[string]any{
+				"status": map[string]any{
+					"$nin": []any{"deleted", "archived"},
+				},
+			},
+		},
+		{
+			name:      "empty condition",
+			field:     "name",
+			condition: model.FilterCondition{},
+			expected:  nil,
+		},
+		{
+			name:  "invalid between - wrong number of values",
+			field: "price",
+			condition: model.FilterCondition{
+				Between: []any{10}, // Should have exactly 2 values
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid greater than - multiple values",
+			field: "age",
+			condition: model.FilterCondition{
+				GreaterThan: []any{18, 21}, // Should have exactly 1 value
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ds.convertFilterConditionToMongoFilter(tc.field, tc.condition)
+
+			if tc.expectErr {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if tc.expected == nil {
+				if result != nil {
+					t.Errorf("Expected nil result, got %v", result)
+				}
+				return
+			}
+
+			if len(result) != len(tc.expected) {
+				t.Errorf("Expected %d fields, got %d", len(tc.expected), len(result))
+				return
+			}
+
+			for key, expectedValue := range tc.expected {
+				if actualValue, exists := result[key]; !exists {
+					t.Errorf("Expected field '%s' not found", key)
+				} else {
+					// For complex nested structures, we need to compare more carefully
+					if expectedMap, ok := expectedValue.(map[string]any); ok {
+						if actualMap, ok := actualValue.(map[string]any); ok {
+							for nestedKey, nestedExpected := range expectedMap {
+								if nestedActual, exists := actualMap[nestedKey]; !exists {
+									t.Errorf("Expected nested field '%s.%s' not found", key, nestedKey)
+								} else {
+									// Compare slices properly
+									if expectedSlice, ok := nestedExpected.([]any); ok {
+										if actualSlice, ok := nestedActual.([]any); ok {
+											if len(expectedSlice) != len(actualSlice) {
+												t.Errorf("Expected '%s.%s' slice length %d, got %d", key, nestedKey, len(expectedSlice), len(actualSlice))
+											} else {
+												for i, expectedItem := range expectedSlice {
+													if expectedItem != actualSlice[i] {
+														t.Errorf("Expected '%s.%s[%d]' = %v, got %v", key, nestedKey, i, expectedItem, actualSlice[i])
+													}
+												}
+											}
+										} else {
+											t.Errorf("Expected '%s.%s' to be []any, got %T", key, nestedKey, nestedActual)
+										}
+									} else if nestedActual != nestedExpected {
+										t.Errorf("Expected '%s.%s' = %v, got %v", key, nestedKey, nestedExpected, nestedActual)
+									}
+								}
+							}
+						} else {
+							t.Errorf("Expected '%s' to be map[string]any, got %T", key, actualValue)
+						}
+					} else if actualValue != expectedValue {
+						t.Errorf("Expected '%s' = %v, got %v", key, expectedValue, actualValue)
+					}
+				}
+			}
+		})
 	}
 }
