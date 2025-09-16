@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.13] - 2025-09-16
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.12...v2.1.0-beta.13)
+Contributors: Caio Alexandre Troti Caetano, Gabriel Castro, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Codebase Cleanup**: This release removes deprecated functions and modules across various components, which may impact existing integrations. Users should review their implementations to ensure compatibility with the updated codebase. Please refer to the migration guide for detailed steps on updating your integrations.
+
+### ✨ Features
+- **Schema Management with Zod v4**: We've upgraded to Zod v4, enhancing validation processes across multiple components. This change improves support for multiple languages and locales, making your application more accessible to a global audience.
+- **New Library Integrations**: The addition of `sindarian-ui` and `sindarian-server` libraries enhances both frontend and backend capabilities, offering a more robust UI framework and improved server-side performance.
+
+### 🐛 Bug Fixes
+- **Translation Fixes**: We've resolved issues with missing translations in the frontend, ensuring all interface elements are properly localized for users in different regions. This fix enhances accessibility and user satisfaction.
+
+### ⚡ Performance
+- **Security Enhancements**: Implemented `noopener noreferrer` attributes for external links, preventing potential phishing attacks and ensuring safer navigation for users.
+
+### 🔄 Changes
+- **Enhanced Template System**: The new calendar filter feature in the template system allows for more precise date-based filtering, improving user experience by making it easier to find relevant templates quickly.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been revised to accurately reflect recent updates and improvements, providing users with a clear history of changes and enhancements.
+
+### 🔧 Maintenance
+- **Dependency Management**: Updated `package.json` to include new libraries and dependencies, ensuring the project remains up-to-date with the latest tools and frameworks.
+
+
 ## [v2.1.0-beta.12] - 2025-09-15
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.11...v2.1.0-beta.12)
