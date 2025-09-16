@@ -1,4 +1,9 @@
-export type SmartDataSourceField = string
+export type SmartDataSourceField =
+  | {
+      name: string
+      type: string
+    }
+  | string
 
 export type SmartDataSourceTable = {
   name: string

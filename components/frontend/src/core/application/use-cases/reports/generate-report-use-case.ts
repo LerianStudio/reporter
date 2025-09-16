@@ -5,7 +5,9 @@ import { ReportMapper } from '../../mappers/report-mapper'
 import { LogOperation } from '@/core/infrastructure/logger/decorators/log-operation'
 
 export type GenerateReport = {
-  execute(reportData: CreateReportDto): Promise<ReportDto>
+  execute(
+    reportData: CreateReportDto & { organizationId: string }
+  ): Promise<ReportDto>
 }
 
 @injectable()
@@ -16,8 +18,11 @@ export class GenerateReportUseCase implements GenerateReport {
   ) {}
 
   @LogOperation({ layer: 'application' })
-  async execute(reportData: CreateReportDto): Promise<ReportDto> {
-    const reportEntity = ReportMapper.toEntity(reportData)
+  async execute(
+    reportData: CreateReportDto & { organizationId: string }
+  ): Promise<ReportDto> {
+    const { organizationId, ...dto } = reportData
+    const reportEntity = ReportMapper.toEntity(dto, organizationId)
 
     const createdReport = await this.reportRepository.create(reportEntity)
 

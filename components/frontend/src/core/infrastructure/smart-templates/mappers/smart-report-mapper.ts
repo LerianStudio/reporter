@@ -15,7 +15,7 @@ export class SmartReportMapper {
     return {
       id: dto.id,
       templateId: dto.templateId,
-      organizationId: '', // Will be set from context
+      organizationId: '',
       status: dto.status,
       filters: dto.filters,
       metadata: dto.metadata,
@@ -27,36 +27,56 @@ export class SmartReportMapper {
 
   /**
    * Convert report entity to Smart Templates API create DTO
-   * Transforms fields array to nested database -> table -> field -> values[] structure
+   * Handles both old fields array format and new nested AdvancedReportFilters structure
    */
   static toCreateDto(entity: ReportEntity): SmartCreateReportDto {
-    // Build the nested filters structure from the fields array
-    const nestedFilters: Record<
-      string,
-      Record<string, Record<string, string[]>>
-    > = {}
+    let filters: any = {}
 
-    if (entity.filters?.fields && entity.filters.fields.length > 0) {
-      // Iterate over each filter field and build the nested structure
-      entity.filters.fields.forEach((filterField) => {
-        const { database, table, field, values } = filterField
+    if (entity.filters && typeof entity.filters === 'object') {
+      const filterKeys = Object.keys(entity.filters)
+      const isOldFormat = filterKeys.some((key) =>
+        [
+          'fields',
+          'date_range',
+          'account_types',
+          'minimum_balance',
+          'maximum_balance',
+          'asset_codes',
+          'portfolio_ids',
+          'search'
+        ].includes(key)
+      )
 
-        // Initialize nested structure if it doesn't exist
-        if (!nestedFilters[database]) {
-          nestedFilters[database] = {}
-        }
-        if (!nestedFilters[database][table]) {
-          nestedFilters[database][table] = {}
-        }
+      if (
+        isOldFormat &&
+        entity.filters.fields &&
+        entity.filters.fields.length > 0
+      ) {
+        entity.filters.fields.forEach((filterField) => {
+          const { database, table, field, operator, values } = filterField
 
-        // Set the field values
-        nestedFilters[database][table][field] = values
-      })
+          if (!filters[database]) {
+            filters[database] = {}
+          }
+          if (!filters[database][table]) {
+            filters[database][table] = {}
+          }
+          if (!filters[database][table][field]) {
+            filters[database][table][field] = {}
+          }
+
+          filters[database][table][field][operator] = Array.isArray(values)
+            ? values
+            : [values]
+        })
+      } else if (!isOldFormat) {
+        filters = entity.filters
+      }
     }
 
     return {
       templateId: entity.templateId,
-      filters: nestedFilters,
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
       metadata: entity.metadata || undefined
     }
   }
