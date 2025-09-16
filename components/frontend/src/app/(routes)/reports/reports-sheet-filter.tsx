@@ -10,8 +10,15 @@ import { SelectField } from '@/components/form/select-field'
 import { SelectItem } from '@/components/ui/select'
 import { DataSourceDto } from '@/core/application/dto/data-source-dto'
 import { type ReportFormData } from './reports-sheet'
+import { filterFieldSchema } from '@/schema/report'
+import { z } from 'zod'
 import { useGetDataSourceById } from '@/client/data-sources'
 import { useOrganization } from '@lerianstudio/console-layout'
+import {
+  getOperatorsForFieldType,
+  operatorRequiresNoValues,
+  operatorRequiresMultipleValues
+} from '@/utils/filter-operators'
 
 type ReportsSheetFilterProps = {
   name: string
@@ -32,15 +39,14 @@ export function ReportsSheetFilter({
   const { currentOrganization } = useOrganization()
   const { setValue } = useFormContext<ReportFormData>()
 
-  // Watch the specific field values to enable cascading selects
   const field = useWatch({
     control,
-    name: name as any
-  })
+    name: name as `fields.${number}`
+  }) as z.infer<typeof filterFieldSchema> | undefined
 
   const { data: dataSourceDetails } = useGetDataSourceById({
-    organizationId: currentOrganization?.id!,
-    dataSourceId: field?.database
+    organizationId: currentOrganization?.id || '',
+    dataSourceId: field?.database || ''
   })
 
   const availableTables = React.useMemo(
@@ -55,9 +61,53 @@ export function ReportsSheetFilter({
     return table?.fields || []
   }, [field?.table, dataSourceDetails])
 
+  const selectedField = React.useMemo(() => {
+    if (!field?.field) return null
+
+    const fieldInfo = availableFields.find((f) => f.name === field.field)
+    const fieldType = fieldInfo?.type || 'string'
+
+    return { name: field.field, type: fieldType }
+  }, [field?.field, availableFields])
+
+  const availableOperators = React.useMemo(() => {
+    return getOperatorsForFieldType(selectedField?.type)
+  }, [selectedField?.type])
+
+  const valuesRequired = React.useMemo(() => {
+    return !operatorRequiresNoValues(field?.operator || '')
+  }, [field?.operator])
+
+  const valuesDescription = React.useMemo(() => {
+    if (!field?.operator) {
+      return intl.formatMessage({
+        id: 'reports.filters.values.description',
+        defaultMessage: 'Use comma separation to indicate multiple values'
+      })
+    }
+
+    if (operatorRequiresMultipleValues(field.operator)) {
+      if (field.operator === 'between') {
+        return intl.formatMessage({
+          id: 'reports.filters.values.description.between',
+          defaultMessage: 'Enter two values separated by comma (e.g., 10, 20)'
+        })
+      } else {
+        return intl.formatMessage({
+          id: 'reports.filters.values.description.multiple',
+          defaultMessage: 'Enter multiple values separated by commas'
+        })
+      }
+    }
+
+    return intl.formatMessage({
+      id: 'reports.filters.values.description.single',
+      defaultMessage: 'Enter a single value'
+    })
+  }, [field?.operator, intl])
+
   return (
     <div className="space-y-4 rounded-lg border p-6">
-      {/* Filter Header with Remove Button */}
       <div className="-mt-4 -mr-4 flex justify-end">
         <Button
           size="sm"
@@ -71,7 +121,6 @@ export function ReportsSheetFilter({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Database */}
         <SelectField
           name={`${name}.database`}
           label={intl.formatMessage({
@@ -85,7 +134,8 @@ export function ReportsSheetFilter({
           onChange={() => {
             setValue(`${name}.table` as any, '')
             setValue(`${name}.field` as any, '')
-            setValue(`${name}.values` as any, '')
+            setValue(`${name}.operator` as any, '')
+            setValue(`${name}.values` as any, [])
           }}
           control={control}
           disabled={loading}
@@ -97,7 +147,6 @@ export function ReportsSheetFilter({
           ))}
         </SelectField>
 
-        {/* Table */}
         <SelectField
           name={`${name}.table`}
           label={intl.formatMessage({
@@ -110,7 +159,8 @@ export function ReportsSheetFilter({
           })}
           onChange={() => {
             setValue(`${name}.field` as any, '')
-            setValue(`${name}.values` as any, '')
+            setValue(`${name}.operator` as any, '')
+            setValue(`${name}.values` as any, [])
           }}
           control={control}
           disabled={loading || !field?.database}
@@ -124,7 +174,6 @@ export function ReportsSheetFilter({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Field */}
         <SelectField
           name={`${name}.field`}
           label={intl.formatMessage({
@@ -136,38 +185,63 @@ export function ReportsSheetFilter({
             defaultMessage: 'Select the field to filter by'
           })}
           onChange={() => {
-            setValue(`${name}.values` as any, '')
+            setValue(`${name}.operator` as any, '')
+            setValue(`${name}.values` as any, [])
           }}
           control={control}
           disabled={loading || !field?.table}
         >
-          {availableFields.map((field) => (
-            <SelectItem key={field} value={field}>
-              {field}
+          {availableFields.map((fieldInfo) => (
+            <SelectItem key={fieldInfo.name} value={fieldInfo.name}>
+              {fieldInfo.name}
+            </SelectItem>
+          ))}
+        </SelectField>
+
+        <SelectField
+          name={`${name}.operator`}
+          label={intl.formatMessage({
+            id: 'reports.filters.operator',
+            defaultMessage: 'Operator'
+          })}
+          tooltip={intl.formatMessage({
+            id: 'reports.filters.operator.tooltip',
+            defaultMessage: 'Select the comparison operator for filtering'
+          })}
+          onChange={() => {
+            setValue(`${name}.values` as any, [])
+          }}
+          control={control}
+          disabled={loading || !field?.field}
+        >
+          {availableOperators.map((operator) => (
+            <SelectItem key={operator.value} value={operator.value}>
+              {intl.formatMessage({
+                id: `reports.filters.operators.${operator.value}`,
+                defaultMessage: operator.label
+              })}
             </SelectItem>
           ))}
         </SelectField>
       </div>
 
-      {/* Values */}
-      <InputField
-        name={`${name}.values`}
-        label={intl.formatMessage({
-          id: 'reports.filters.values',
-          defaultMessage: 'Values'
-        })}
-        tooltip={intl.formatMessage({
-          id: 'reports.filters.values.tooltip',
-          defaultMessage: 'Enter the values to filter by'
-        })}
-        description={intl.formatMessage({
-          id: 'reports.filters.values.description',
-          defaultMessage: 'Use comma separation to indicate multiple values'
-        })}
-        control={control}
-        textArea
-        disabled={loading}
-      />
+      {valuesRequired && (
+        <InputField
+          name={`${name}.values`}
+          label={intl.formatMessage({
+            id: 'reports.filters.values',
+            defaultMessage: 'Values'
+          })}
+          tooltip={intl.formatMessage({
+            id: 'reports.filters.values.tooltip',
+            defaultMessage: 'Enter the values to filter by'
+          })}
+          description={valuesDescription}
+          control={control}
+          textArea
+          disabled={loading || !field?.operator}
+        />
+      )}
     </div>
   )
 }

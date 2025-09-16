@@ -4,7 +4,9 @@ import React from 'react'
 import { useIntl } from 'react-intl'
 import { Plus, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { ReportCard } from '@/app/(routes)/reports/report-card'
+import { ReportGridSkeleton } from '@/app/(routes)/reports/report-card-skeleton'
 import { Pagination, PaginationProps } from '@/components/pagination'
 import { PaginationDto } from '@/core/application/dto/pagination-dto'
 import { ReportDto } from '@/core/application/dto/report-dto'
@@ -26,45 +28,37 @@ export const ReportsCardGrid = ({
 }: ReportsCardGridProps) => {
   const intl = useIntl()
 
-  // Fallback data structure for empty state
   const reportsWithFallback = reports || { items: [] }
 
   return (
     <div className="rounded-lg">
-      {/* Reports Grid Content */}
       <div className="">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground text-sm">
-              {intl.formatMessage({
-                id: 'reports.loading',
-                defaultMessage: 'Loading reports...'
-              })}
-            </div>
-          </div>
+          <ReportGridSkeleton count={6} />
         ) : reportsWithFallback.items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FileText className="text-muted-foreground/50 mb-4 h-12 w-12" />
-            <h3 className="text-muted-foreground mb-2 text-lg font-medium">
-              {intl.formatMessage({
-                id: 'reports.empty.title',
-                defaultMessage: 'No reports yet'
-              })}
-            </h3>
-            <p className="text-muted-foreground mb-4 text-sm">
-              {intl.formatMessage({
-                id: 'reports.empty.description',
-                defaultMessage:
-                  'Generate your first report from a template to get started.'
-              })}
-            </p>
-            <Button onClick={onCreateReport}>
-              <Plus className="mr-2 h-4 w-4" />
-              {intl.formatMessage({
-                id: 'reports.empty.action',
-                defaultMessage: 'New Report'
-              })}
-            </Button>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="col-span-full h-[214px] overflow-hidden rounded-lg border border-[#F4F4F5] bg-white shadow-sm md:col-span-1">
+              <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-50">
+                  <FileText className="h-8 w-8 text-gray-400" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-gray-700">
+                    {intl.formatMessage({
+                      id: 'reports.empty.title',
+                      defaultMessage: 'No reports found'
+                    })}
+                  </h3>
+                  <Button onClick={onCreateReport} size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    {intl.formatMessage({
+                      id: 'reports.empty.action',
+                      defaultMessage: 'New Report'
+                    })}
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -79,7 +73,6 @@ export const ReportsCardGrid = ({
         )}
       </div>
 
-      {/* Footer with pagination */}
       <div className="space-y-4 py-4">
         <div className="text-muted-foreground flex items-center justify-between text-sm">
           <div>

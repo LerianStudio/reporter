@@ -32,6 +32,7 @@ import { IdTableCell } from '@/components/table/id-table-cell'
 import { useDownloadReport } from '@/client/reports'
 import { useToast } from '@/hooks/use-toast'
 import { useOrganization } from '@lerianstudio/console-layout'
+import { ReportTableSkeleton } from '@/app/(routes)/reports/report-table-skeleton'
 
 type ReportsDataTableProps = {
   reports: PaginationDto<ReportDto> | undefined
@@ -146,16 +147,7 @@ export const ReportsDataTable = ({
   if (isLoading) {
     return (
       <FormProvider {...form}>
-        <EntityDataTable.Root>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground text-sm">
-              {intl.formatMessage({
-                id: 'reports.loading',
-                defaultMessage: 'Loading reports...'
-              })}
-            </div>
-          </div>
-        </EntityDataTable.Root>
+        <ReportTableSkeleton rowCount={5} />
       </FormProvider>
     )
   }
