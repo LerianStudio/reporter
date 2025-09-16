@@ -1,5 +1,10 @@
 import { defineMessages } from './define-messages'
-import { MessageDescriptor } from '@formatjs/cli-lib'
+
+interface MessageDescriptor {
+  id: string
+  defaultMessage?: string
+  description?: string
+}
 
 describe('defineMessages', () => {
   it('should return the same message descriptors passed as input', () => {

@@ -1,78 +1,53 @@
 import get from 'lodash/get'
 import { IntlShape } from 'react-intl'
-import {
-  defaultErrorMap,
-  ErrorMapCtx,
-  ZodIssueCode,
-  ZodIssueOptionalMessage,
-  ZodParsedType
-} from 'zod'
+import { z } from 'zod'
 import messages from './messages'
 import dayjs from 'dayjs'
 
-/**
- * TODO: Proper implement this
- * @param intl
- * @returns
- */
 export default function createZodMap(intl: IntlShape) {
-  return (issue: ZodIssueOptionalMessage, ctx: ErrorMapCtx) => {
-    let message: string = defaultErrorMap(issue, ctx).message
+  return (issue: any, ctx?: { defaultError?: string }) => {
+    let message: string = ctx?.defaultError || 'Validation error'
 
     switch (issue.code) {
-      case ZodIssueCode.invalid_type:
-        if (issue.received === ZodParsedType.undefined) {
+      case 'invalid_type':
+        if ((issue as any).received === 'undefined') {
           message = intl.formatMessage(messages.invalid_type_received_undefined)
         }
         break
-      case ZodIssueCode.too_small:
-        if (issue.message && issue.message in messages) {
-          message = intl.formatMessage(
-            messages[issue.message as keyof typeof messages]
-          )
-        } else {
-          const minimum =
-            issue.type === 'date'
-              ? dayjs.unix(issue.minimum as number).format('LL')
-              : issue.minimum
-          const precisionMinimum = issue.exact
-            ? 'exact'
-            : issue.inclusive
-              ? 'inclusive'
-              : 'not_inclusive'
-          const keyMinimum = `too_small_${issue.type}_${precisionMinimum}`
-
-          if (!(keyMinimum in messages)) {
-            throw new Error(
-              `Zod Intl: ${keyMinimum} id is not defined in messages`
-            )
-          }
-
-          // TODO: review this error
-          // @ts-ignore
-          message = intl.formatMessage(messages[keyMinimum], { minimum })
-        }
-        break
-      case ZodIssueCode.invalid_enum_value:
-        if (issue.message && issue.message in messages) {
-          message = intl.formatMessage(
-            messages[issue.message as keyof typeof messages]
-          )
-          break
-        }
-        message = intl.formatMessage(messages.invalid_type_received_undefined)
-        break
-      case ZodIssueCode.too_big:
-        const maximum =
-          issue.type === 'date'
-            ? dayjs.unix(issue.maximum as number).format('LL')
-            : issue.maximum
-        const precisionMaximum = issue.exact
+      case 'too_small':
+        const minimum =
+          (issue as any).origin === 'date'
+            ? dayjs.unix((issue as any).minimum as number).format('LL')
+            : (issue as any).minimum
+        const precisionMinimum = (issue as any).exact
           ? 'exact'
-          : issue.inclusive
+          : (issue as any).inclusive
             ? 'inclusive'
             : 'not_inclusive'
-        const keyMaximum = `too_big_${issue.type}_${precisionMaximum}`
+        const keyMinimum = `too_small_${(issue as any).origin}_${precisionMinimum}`
+
+        if (!(keyMinimum in messages)) {
+          throw new Error(
+            `Zod Intl: ${keyMinimum} id is not defined in messages`
+          )
+        }
+
+        message = intl.formatMessage(
+          messages[keyMinimum as keyof typeof messages],
+          { minimum }
+        )
+        break
+      case 'too_big':
+        const maximum =
+          (issue as any).origin === 'date'
+            ? dayjs.unix((issue as any).maximum as number).format('LL')
+            : (issue as any).maximum
+        const precisionMaximum = (issue as any).exact
+          ? 'exact'
+          : (issue as any).inclusive
+            ? 'inclusive'
+            : 'not_inclusive'
+        const keyMaximum = `too_big_${(issue as any).origin}_${precisionMaximum}`
 
         if (!(keyMaximum in messages)) {
           throw new Error(
@@ -80,24 +55,28 @@ export default function createZodMap(intl: IntlShape) {
           )
         }
 
-        // @ts-ignore - formatMessage can return ReactNode[] with values
         message = intl.formatMessage(
           messages[keyMaximum as keyof typeof messages],
           { maximum }
         )
         break
-      case ZodIssueCode.custom:
-        if (issue?.params?.id) {
-          if (!(issue.params.id in messages)) {
-            throw new Error(
-              `Zod Intl: ${issue.params.id} id is not defined in messages`
-            )
-          }
-          message = intl.formatMessage(
-            get(messages, issue.params.id),
-            issue.params
+      case 'custom':
+        if (!(issue as any)?.params?.id) {
+          throw new Error(
+            `Zod Intl: Custom validation with path ${issue.path || []} has params.id undefined`
           )
         }
+
+        if (!((issue as any).params.id in messages)) {
+          throw new Error(
+            `Zod Intl: ${(issue as any).params.id} id is not defined in messages`
+          )
+        }
+
+        message = intl.formatMessage(
+          get(messages, (issue as any).params.id),
+          (issue as any).params
+        )
         break
     }
     return { message }
