@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.1] - 2025-09-16
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.13...v3.0.0-beta.1)
+Contributors: Gabriel Castro, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Reports System Overhaul**: The filter system has been restructured, moving utilities to a new `utils` folder. This change requires updates to custom integrations or scripts interacting with report filters. Please review and update your implementations to ensure compatibility.
+- **Advanced Filtering Update**: A new advanced filtering system with operators and skeletons has been introduced. Existing report configurations may be affected. Users should verify and adjust their setups to align with the new syntax and capabilities.
+
+### ✨ Features
+- **Advanced Filtering for Reports**: Gain deeper insights with our new filtering system that supports operators and skeletons. This enhancement allows for more precise data analysis and tailored report generation, providing greater flexibility and control.
+
+### 🐛 Bug Fixes
+- **Internationalization Enhancements**: Updated translations across the frontend to ensure accurate and consistent language support, improving the experience for non-English speaking users.
+
+### 🔧 Maintenance
+- **Codebase Refinement**: The reports system has been refactored to streamline filter logic and relocate utilities to a dedicated `utils` folder, enhancing code organization and maintainability.
+- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes, ensuring comprehensive documentation for users and developers.
+
+
 ## [v2.1.0-beta.13] - 2025-09-16
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.12...v2.1.0-beta.13)
