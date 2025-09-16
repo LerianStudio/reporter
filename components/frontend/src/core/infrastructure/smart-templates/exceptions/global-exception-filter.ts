@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import {
+  Inject,
   ArgumentsHost,
   ExceptionFilter,
-  Inject,
   HttpStatus,
   Catch
 } from '@lerianstudio/sindarian-server'
