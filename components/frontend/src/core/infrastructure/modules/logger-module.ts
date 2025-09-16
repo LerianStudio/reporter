@@ -1,4 +1,4 @@
-import { APP_INTERCEPTOR, Module } from '@lerianstudio/sindarian-server'
+import { Module, APP_INTERCEPTOR } from '@lerianstudio/sindarian-server'
 import { ResolutionContext } from 'inversify'
 import {
   LoggerAggregator,

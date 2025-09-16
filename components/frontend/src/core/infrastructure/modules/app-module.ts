@@ -1,4 +1,4 @@
-import { APP_FILTER, Module } from '@lerianstudio/sindarian-server'
+import { Module, APP_FILTER } from '@lerianstudio/sindarian-server'
 import { SmartTemplatesModule } from './smart-templates-module'
 import { ControllerModule } from './controller-module'
 import { UseCasesModule } from './use-cases-module'

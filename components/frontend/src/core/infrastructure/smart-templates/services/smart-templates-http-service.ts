@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@lerianstudio/sindarian-server'
+import { Inject, Injectable, HttpService } from '@lerianstudio/sindarian-server'
 import { LoggerAggregator, RequestIdRepository } from '@lerianstudio/lib-logs'
 import { getServerSession } from 'next-auth'
 import { nextAuthOptions } from '@/core/infrastructure/next-auth/next-auth-provider'
@@ -7,7 +7,6 @@ import { SpanStatusCode } from '@opentelemetry/api'
 import { getIntl } from '@/lib/intl'
 import { SmartTemplatesApiException } from '../exceptions/smart-templates-api-exceptions'
 import { smartTemplatesApiMessages } from '../messages/messages'
-import { HttpService } from '@lerianstudio/sindarian-server'
 
 @Injectable()
 export class SmartTemplatesHttpService extends HttpService {
@@ -30,7 +29,6 @@ export class SmartTemplatesHttpService extends HttpService {
       'X-Request-Id': this.requestIdRepository.get()!
     }
 
-    // Add authentication if enabled
     if (process.env.PLUGIN_AUTH_ENABLED === 'true') {
       const session = await getServerSession(nextAuthOptions)
       if (session?.user?.access_token) {
@@ -94,7 +92,6 @@ export class SmartTemplatesHttpService extends HttpService {
 
     const intl = await getIntl()
 
-    // Handle Smart Templates API specific errors
     if (error?.code) {
       const message =
         smartTemplatesApiMessages[
@@ -130,7 +127,6 @@ export class SmartTemplatesHttpService extends HttpService {
       )
     }
 
-    // Handle generic errors
     throw new SmartTemplatesApiException(
       intl.formatMessage({
         id: 'error.smartTemplates.unknownError',
@@ -151,7 +147,6 @@ export class SmartTemplatesHttpService extends HttpService {
   ): Promise<Response> {
     const defaults = await this.createDefaults()
 
-    // Remove Content-Type header for binary downloads
     const headers = { ...defaults.headers }
     delete headers['Content-Type']
 
