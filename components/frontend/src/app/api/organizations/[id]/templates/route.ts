@@ -1,6 +1,5 @@
-import { getController } from '@/lib/http/server'
-import { TemplateController } from '@/core/application/controllers/template-controller'
+import { app } from '@/core/infrastructure/app'
 
-export const GET = getController(TemplateController, (c) => c.fetchAll)
+export const GET = app.handler.bind(app)
 
-export const POST = getController(TemplateController, (c) => c.create)
+export const POST = app.handler.bind(app)

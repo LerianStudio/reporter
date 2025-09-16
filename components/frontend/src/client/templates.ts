@@ -14,10 +14,12 @@ import {
   useMutation,
   UseMutationOptions,
   useQuery,
-  useQueryClient
+  UseQueryOptions
 } from '@tanstack/react-query'
 import { PaginationRequest } from '@/types/pagination-request'
 import { getRuntimeEnv } from '@lerianstudio/console-layout'
+import { TemplateQueryKeys } from '@/lib/utils'
+import { useRetryInvalidation } from '@/hooks/use-retry-invalidation'
 
 const basePath =
   getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
@@ -26,11 +28,16 @@ const basePath =
 type UseListTemplatesProps = {
   organizationId?: string
   filters?: TemplateFiltersDto & PaginationRequest
-} & PaginationRequest
+} & PaginationRequest &
+  Omit<UseQueryOptions<PaginationDto<TemplateDto>>, 'queryKey' | 'queryFn'>
 
-type UseCreateTemplateProps = UseMutationOptions<any, any, any> & {
+type UseCreateTemplateProps = UseMutationOptions<
+  TemplateDto,
+  Error,
+  FormData
+> & {
   organizationId: string
-  onSuccess?: (...args: any[]) => void
+  onSuccess?: (data: TemplateDto) => void
 }
 
 type UseGetTemplateProps = {
@@ -39,16 +46,24 @@ type UseGetTemplateProps = {
   enabled?: boolean
 }
 
-type UseUpdateTemplateProps = UseMutationOptions & {
+type UseUpdateTemplateProps = UseMutationOptions<
+  TemplateDto,
+  Error,
+  FormData
+> & {
   organizationId: string
   templateId: string
-  onSuccess?: (...args: any[]) => void
+  onSuccess?: (data: TemplateDto) => void
 }
 
-type UseDeleteTemplateProps = UseMutationOptions & {
+type UseDeleteTemplateProps = UseMutationOptions<
+  void,
+  Error,
+  { id: string }
+> & {
   organizationId: string
   templateId: string
-  onSuccess?: (...args: any[]) => void
+  onSuccess?: () => void
 }
 
 export const useListTemplates = ({
@@ -62,8 +77,11 @@ export const useListTemplates = ({
     ...(filters && { ...filters })
   }
 
+  // Use centralized query key generation for consistency
+  const queryKey = TemplateQueryKeys.list(organizationId || '', filters)
+
   return useQuery<PaginationDto<TemplateDto>>({
-    queryKey: ['templates', organizationId, Object.values(filters || {})],
+    queryKey,
     queryFn: getPaginatedFetcher(
       `${basePath}/api/organizations/${organizationId}/templates`,
       queryParams
@@ -79,7 +97,7 @@ export const useGetTemplate = ({
   ...options
 }: UseGetTemplateProps) => {
   return useQuery<TemplateDto>({
-    queryKey: ['templates', templateId],
+    queryKey: TemplateQueryKeys.detail(organizationId, templateId),
     queryFn: getFetcher(
       `${basePath}/api/organizations/${organizationId}/templates/${templateId}`
     ),
@@ -93,18 +111,18 @@ export const useCreateTemplate = ({
   onSuccess,
   ...options
 }: UseCreateTemplateProps) => {
-  const queryClient = useQueryClient()
+  const { simpleInvalidateWithRetry } = useRetryInvalidation()
 
-  return useMutation<any, any, any>({
-    mutationKey: ['templates'],
+  return useMutation<TemplateDto, Error, FormData>({
+    mutationKey: TemplateQueryKeys.mutations.create(organizationId),
     mutationFn: postFormDataFetcher(
       `${basePath}/api/organizations/${organizationId}/templates`
     ),
-    onSuccess: async (...args) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['templates', organizationId]
-      })
-      onSuccess?.(...args)
+    onSuccess: async (data) => {
+      await simpleInvalidateWithRetry(
+        [TemplateQueryKeys.allLists(organizationId)],
+        () => onSuccess?.(data)
+      )
     },
     ...options
   })
@@ -116,21 +134,21 @@ export const useUpdateTemplate = ({
   onSuccess,
   ...options
 }: UseUpdateTemplateProps) => {
-  const queryClient = useQueryClient()
+  const { invalidateWithRetry } = useRetryInvalidation()
 
-  return useMutation<any, any, any>({
-    mutationKey: ['templates', templateId],
+  return useMutation<TemplateDto, Error, FormData>({
+    mutationKey: TemplateQueryKeys.mutations.update(organizationId, templateId),
     mutationFn: patchFormDataFetcher(
       `${basePath}/api/organizations/${organizationId}/templates/${templateId}`
     ),
-    onSuccess: async (...args) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['templates', organizationId]
+    onSuccess: async (data) => {
+      await invalidateWithRetry({
+        queryKeys: [
+          TemplateQueryKeys.allLists(organizationId),
+          TemplateQueryKeys.detail(organizationId, templateId)
+        ],
+        onSuccess: () => onSuccess?.(data)
       })
-      await queryClient.invalidateQueries({
-        queryKey: ['templates', organizationId, templateId]
-      })
-      onSuccess?.(...args)
     },
     ...options
   })
@@ -141,18 +159,19 @@ export const useDeleteTemplate = ({
   onSuccess,
   ...options
 }: UseDeleteTemplateProps) => {
-  const queryClient = useQueryClient()
+  const { simpleInvalidateWithRetry } = useRetryInvalidation()
 
-  return useMutation<any, any, any>({
-    mutationKey: ['templates', organizationId],
+  return useMutation<void, Error, { id: string }>({
+    mutationKey: TemplateQueryKeys.mutations.delete(organizationId),
     mutationFn: deleteFetcher(
       `${basePath}/api/organizations/${organizationId}/templates`
     ),
-    onSuccess: async (...args) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['templates', organizationId]
-      })
-      onSuccess?.(...args)
+    onSuccess: async () => {
+      await simpleInvalidateWithRetry(
+        [TemplateQueryKeys.allLists(organizationId)],
+        onSuccess,
+        1 // Single retry for delete operations (less critical)
+      )
     },
     ...options
   })

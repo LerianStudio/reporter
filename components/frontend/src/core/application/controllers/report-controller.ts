@@ -1,15 +1,19 @@
-import { inject } from 'inversify'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { Controller } from '@/lib/http/server/decorators/controller-decorator'
-import { LoggerInterceptor } from '@/core/infrastructure/logger/decorators'
 import { GenerateReportUseCase } from '../use-cases/reports/generate-report-use-case'
 import { ListReportsUseCase } from '../use-cases/reports/list-reports-use-case'
 import { GetReportStatusUseCase } from '../use-cases/reports/get-report-status-use-case'
 import { DownloadReportUseCase } from '../use-cases/reports/download-report-use-case'
-import { Body, Get, Param, Post, Query } from '@/lib/http/server'
-import { BaseController } from '@/lib/http/server/base-controller'
 import type { ReportSearchParamDto } from '../dto/report-dto'
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query
+} from '@lerianstudio/sindarian-server'
 
 const CreateReportSchema = z.object({
   templateId: z.string().uuid('Template ID must be a valid UUID'),
@@ -40,61 +44,54 @@ type CreateReportData = z.infer<typeof CreateReportSchema>
  * Supports async processing, status polling, and streaming file downloads.
  * Follows console patterns with proper request/response handling.
  */
-@LoggerInterceptor()
-@Controller()
-export class ReportController extends BaseController {
+@Controller('/organizations/:id/reports')
+export class ReportController {
   constructor(
-    @inject(GenerateReportUseCase)
+    @Inject(GenerateReportUseCase)
     private readonly generateReportUseCase: GenerateReportUseCase,
-    @inject(ListReportsUseCase)
+    @Inject(ListReportsUseCase)
     private readonly listReportsUseCase: ListReportsUseCase,
-    @inject(GetReportStatusUseCase)
+    @Inject(GetReportStatusUseCase)
     private readonly getReportStatusUseCase: GetReportStatusUseCase,
-    @inject(DownloadReportUseCase)
+    @Inject(DownloadReportUseCase)
     private readonly downloadReportUseCase: DownloadReportUseCase
-  ) {
-    super()
-  }
+  ) {}
 
   /**
    * Get a specific report status by ID
    * GET /api/organizations/{id}/reports/{reportId}
    */
-  @Get()
+  @Get('/:reportId')
   async fetchById(
     @Param('id') organizationId: string,
     @Param('reportId') reportId: string
   ) {
-    const report = await this.getReportStatusUseCase.execute({
+    return await this.getReportStatusUseCase.execute({
       id: reportId!,
       organizationId
     })
-
-    return NextResponse.json(report)
   }
 
   /**
    * List reports with pagination and filtering
    * GET /api/organizations/{id}/reports
    */
-  @Get()
+  @Get('/')
   async fetchAll(
     @Param('id') organizationId: string,
     @Query() query: ReportSearchParamDto
   ) {
-    const reports = await this.listReportsUseCase.execute(organizationId, query)
-
-    return NextResponse.json(reports)
+    return await this.listReportsUseCase.execute(organizationId, query)
   }
 
   /**
    * Generate a new report (async processing)
    * POST /api/organizations/{id}/reports
    */
-  @Post()
+  @Post('/')
   async create(
     @Param('id') organizationId: string,
-    @Body(CreateReportSchema) body: CreateReportData
+    @Body() body: CreateReportData
   ) {
     const report = await this.generateReportUseCase.execute({
       templateId: body.templateId,
@@ -109,7 +106,7 @@ export class ReportController extends BaseController {
    * Download completed report file (streaming)
    * GET /api/organizations/{id}/reports/{reportId}/download
    */
-  @Get()
+  @Get('/:reportId/download')
   async download(
     @Param('id') organizationId: string,
     @Param('reportId') reportId: string
@@ -163,7 +160,7 @@ export class ReportController extends BaseController {
    * Get download information for a report (without streaming)
    * GET /api/organizations/{id}/reports/{reportId}/download-info
    */
-  @Get()
+  @Get('/:reportId/download-info')
   async getDownloadInfo(
     @Param('id') organizationId: string,
     @Param('reportId') reportId: string
