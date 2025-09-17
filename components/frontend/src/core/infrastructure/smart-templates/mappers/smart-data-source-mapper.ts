@@ -9,9 +9,7 @@ export class SmartDataSourceMapper {
       type: dto.type,
       tables: dto.tables?.map((table) => ({
         name: table.name,
-        fields: table.fields.map((field) =>
-          typeof field === 'string' ? { name: field, type: 'string' } : field
-        )
+        fields: table.fields
       }))
     }
   }

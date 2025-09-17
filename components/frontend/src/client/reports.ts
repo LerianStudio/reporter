@@ -1,8 +1,4 @@
-import {
-  ReportDto,
-  CreateReportDto,
-  CreateAdvancedReportDto
-} from '@/core/application/dto/report-dto'
+import { ReportDto, CreateReportDto } from '@/core/application/dto/report-dto'
 import { PaginationDto } from '@/core/application/dto/pagination-dto'
 import {
   deleteFetcher,
@@ -108,7 +104,7 @@ export const useCreateReport = ({
 }: UseCreateReportProps) => {
   const queryClient = useQueryClient()
 
-  return useMutation<any, any, CreateAdvancedReportDto>({
+  return useMutation<any, any, CreateReportDto>({
     mutationKey: ['reports'],
     mutationFn: postFetcher(
       `${basePath}/api/organizations/${organizationId}/reports`

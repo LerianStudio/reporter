@@ -60,26 +60,24 @@ export const patchFetcher = (url: string) => {
 
 export const postFormDataFetcher = (url: string) => {
   return async (body: any) => {
-    let formData: FormData
+    // Convert object to FormData
+    const formData = new FormData()
 
-    if (body instanceof FormData) {
-      formData = body
-    } else {
-      formData = new FormData()
-
-      for (const [key, value] of Object.entries(body)) {
-        if (value !== null && value !== undefined) {
-          if (value instanceof File) {
-            formData.append(key, value)
-          } else {
-            formData.append(key, String(value))
-          }
+    for (const [key, value] of Object.entries(body)) {
+      if (value !== null && value !== undefined) {
+        // Handle File objects specially
+        if (value instanceof File) {
+          formData.append(key, value)
+        } else {
+          // Convert other values to string
+          formData.append(key, String(value))
         }
       }
     }
 
     const response = await fetch(url, {
       method: 'POST',
+      // Don't set Content-Type header - browser will set it with proper boundary for FormData
       body: formData
     })
 
@@ -89,26 +87,24 @@ export const postFormDataFetcher = (url: string) => {
 
 export const patchFormDataFetcher = (url: string) => {
   return async (body: any) => {
-    let formData: FormData
+    // Convert object to FormData
+    const formData = new FormData()
 
-    if (body instanceof FormData) {
-      formData = body
-    } else {
-      formData = new FormData()
-
-      for (const [key, value] of Object.entries(body)) {
-        if (value !== null && value !== undefined) {
-          if (value instanceof File) {
-            formData.append(key, value)
-          } else {
-            formData.append(key, String(value))
-          }
+    for (const [key, value] of Object.entries(body)) {
+      if (value !== null && value !== undefined) {
+        // Handle File objects specially
+        if (value instanceof File) {
+          formData.append(key, value)
+        } else {
+          // Convert other values to string
+          formData.append(key, String(value))
         }
       }
     }
 
     const response = await fetch(url, {
       method: 'PATCH',
+      // Don't set Content-Type header - browser will set it with proper boundary for FormData
       body: formData
     })
 
@@ -142,11 +138,14 @@ export const downloadFetcher = (url: string) => {
       throw new Error(`Download failed: ${response.statusText}`)
     }
 
+    // The API returns a redirect to the download URL
+    // For a download endpoint, we want to trigger the browser's download
     const downloadUrl = response.url
 
+    // Create a temporary link element to trigger download
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = ''
+    link.download = '' // Let the server determine the filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -157,6 +156,7 @@ export const serverFetcher = async <T = void>(action: () => Promise<T>) => {
   try {
     return await action()
   } catch (error) {
+    // Only log errors when not in test environment
     if (process.env.NODE_ENV !== 'test') {
       console.error('Server Fetcher Error', error)
     }

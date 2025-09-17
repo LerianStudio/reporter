@@ -120,6 +120,16 @@ export default function Page() {
                   defaultMessage: 'Read the Docs'
                 })}
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-sm font-medium text-zinc-800 hover:bg-transparent hover:text-zinc-900"
+              >
+                {intl.formatMessage({
+                  id: 'smartTemplates.about.dismiss',
+                  defaultMessage: 'Dismiss'
+                })}
+              </Button>
             </div>
           </div>
         </Alert>

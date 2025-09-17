@@ -1,7 +1,4 @@
-export type DataSourceFieldDto = {
-  name: string
-  type: string
-}
+export type DataSourceFieldDto = string
 
 /**
  * DTO for table details within a data source

@@ -2,24 +2,15 @@ import { MetadataEntity } from './metadata-entity'
 import { PaginationSearchEntity } from './pagination-entity'
 import { TemplateEntity } from './template-entity'
 
+// Report status types following PRD specification (Processing → Finished/Failed)
 export type ReportStatus = 'Processing' | 'Finished' | 'Failed'
 
+// Filter field type for individual filter criteria
 export type FilterField = {
   database: string
   table: string
   field: string
-  operator: string
-  values: string | string[]
-}
-
-export type AdvancedReportFilters = {
-  [database: string]: {
-    [table: string]: {
-      [field: string]: {
-        [operator: string]: string[]
-      }
-    }
-  }
+  values: string[]
 }
 
 export type ReportSearchEntity = PaginationSearchEntity & {
@@ -28,10 +19,11 @@ export type ReportSearchEntity = PaginationSearchEntity & {
   templateId?: string
 }
 
+// Report filters for data querying
 export type ReportFilters = {
   date_range?: {
-    start: string
-    end: string
+    start: string // ISO 8601 date string
+    end: string // ISO 8601 date string
   }
   account_types?: string[]
   minimum_balance?: number
@@ -39,9 +31,11 @@ export type ReportFilters = {
   asset_codes?: string[]
   portfolio_ids?: string[]
   search?: string
+  // Array of filter criteria for data source filtering
   fields?: FilterField[]
 }
 
+// Main report entity following Clean Architecture patterns
 export type ReportEntity = {
   id?: string
   templateId: string
