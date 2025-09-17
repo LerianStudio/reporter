@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.1] - 2025-09-17
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.13...v3.0.0-beta.1)
+Contributors: Gabriel Castro, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Reports Filtering System Overhaul**: The report filtering mechanism has been completely revamped to support advanced queries with operators and skeletons. Users must update their existing filters to comply with the new system. This change affects both the backend and frontend, as well as the database schema. Please review your custom filtering logic and update it accordingly.
+- **Reports Utilities Relocation**: Utilities for report filtering have been moved to a dedicated `utils` folder. If you have custom integrations, ensure you update any references to these utilities to their new location.
+
+### ✨ Features
+- **Enhanced Report Filtering with Date Picker**: A new date picker has been integrated into the reports module, allowing for intuitive date range selection. This enhancement simplifies the process of generating time-specific reports, making data analysis more efficient and user-friendly.
+
+### 🐛 Bug Fixes
+- **Improved Internationalization**: Updated translations across the frontend to ensure accurate language support, resolving various localization issues. This fix enhances the experience for non-English speaking users, providing consistent and reliable language options.
+
+### ⚡ Performance
+- **Advanced Filtering System**: The new filtering capabilities not only offer more precise data queries but also improve the performance of report generation, making the process faster and more efficient.
+
+### 🔧 Maintenance
+- **Changelog Update**: The changelog has been meticulously updated to document recent changes and improvements, ensuring transparency and ease of reference for users.
+
+
 ## [v2.1.0-beta.13] - 2025-09-16
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.12...v2.1.0-beta.13)
