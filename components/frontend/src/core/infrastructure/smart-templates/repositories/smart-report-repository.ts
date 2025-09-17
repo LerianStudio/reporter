@@ -13,7 +13,6 @@ import { SmartReportMapper } from '../mappers/smart-report-mapper'
 import { SmartReportDto } from '../dto/smart-report-dto'
 import { SmartPaginationDto } from '../dto/smart-pagination-dto'
 import { createQueryString } from '@/lib/search'
-import { validateAndFormatDateForQuery } from '@/lib/date-validation'
 
 @injectable()
 export class SmartReportRepository implements ReportRepository {
@@ -50,17 +49,12 @@ export class SmartReportRepository implements ReportRepository {
       page: query.page
     }
 
+    // Add filters to query params
     if (query.status) {
       queryParams.status = query.status
     }
     if (query.search) {
       queryParams.search = query.search
-    }
-    if (query.templateId) {
-      queryParams.templateId = query.templateId
-    }
-    if (query.createdAt) {
-      queryParams.createdAt = validateAndFormatDateForQuery(query.createdAt)
     }
 
     const response = await this.httpService.get<
@@ -73,6 +67,7 @@ export class SmartReportRepository implements ReportRepository {
 
     const paginationResult = SmartReportMapper.toPaginationEntity(response)
 
+    // Set organizationId for all entities
     return {
       ...paginationResult,
       items: paginationResult.items.map((report) => ({
@@ -102,14 +97,17 @@ export class SmartReportRepository implements ReportRepository {
     id: string,
     organizationId: string
   ): Promise<DownloadFileResponse> {
+    // First, get the report to ensure it's downloadable and get metadata
     const report = await this.fetchById(id, organizationId)
 
+    // Verify report is in downloadable state
     if (report.status !== 'Finished') {
       throw new Error(
         `Report is not ready for download. Current status: ${report.status}`
       )
     }
 
+    // Call the download endpoint that returns file content directly as text
     const content = await this.httpService.getText(
       `${this.baseUrl}/${id}/download`,
       {
@@ -119,8 +117,10 @@ export class SmartReportRepository implements ReportRepository {
       }
     )
 
+    // Generate filename based on report info - default to .txt since we don't have URL info
     const fileName = `report_${id}_${new Date().toISOString().split('T')[0]}.txt`
 
+    // Default content type to text/plain since we no longer have URL to infer from
     const contentType = 'text/plain'
 
     return {

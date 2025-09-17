@@ -21,14 +21,17 @@ export function validateDateString(
   dateString: string | undefined | null,
   options: DateValidationOptions = {}
 ): DateValidationResult {
+  // Set reasonable defaults for date range
   const currentYear = new Date().getFullYear()
   const minYear = options.minYear ?? 1900
   const maxYear = options.maxYear ?? currentYear + 10
 
+  // Handle null/undefined input
   if (!dateString) {
     return { isValid: true, date: undefined }
   }
 
+  // Validate date string format (YYYY-MM-DD)
   if (
     typeof dateString !== 'string' ||
     !/^\d{4}-\d{2}-\d{2}$/.test(dateString)
@@ -43,6 +46,7 @@ export function validateDateString(
   }
 
   try {
+    // Parse date using date-fns for robust handling
     const date = parseISO(dateString + 'T00:00:00')
 
     if (!isValid(date)) {
@@ -55,6 +59,7 @@ export function validateDateString(
       }
     }
 
+    // Validate date is within reasonable range
     const dateYear = date.getFullYear()
     if (dateYear < minYear || dateYear > maxYear) {
       return {
@@ -90,40 +95,4 @@ export function formatDateForDisplay(date: Date): string {
  */
 export function formatDateForInput(date: Date): string {
   return format(date, 'yyyy-MM-dd')
-}
-
-/**
- * Validates and formats date for API queries - handles both Date objects and strings
- * Consolidates date validation logic used in repositories
- */
-export function validateAndFormatDateForQuery(
-  date: Date | string | undefined
-): string | undefined {
-  if (!date) {
-    return undefined
-  }
-
-  if (date instanceof Date) {
-    if (isNaN(date.getTime())) {
-      throw new Error('Invalid date provided')
-    }
-    return date.toISOString().split('T')[0]
-  }
-
-  if (typeof date === 'string') {
-    const validation = validateDateString(date)
-    if (!validation.isValid) {
-      const errorType = validation.error?.type || 'invalid'
-      const errorMessages = {
-        format: 'Invalid date format. Expected YYYY-MM-DD',
-        invalid: 'Invalid date string provided',
-        range: 'Date is out of acceptable range',
-        parsing: 'Unable to parse date string'
-      }
-      throw new Error(errorMessages[errorType])
-    }
-    return date
-  }
-
-  throw new Error('createdAt must be a Date object or a valid date string')
 }

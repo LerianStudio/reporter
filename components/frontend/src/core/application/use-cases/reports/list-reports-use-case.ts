@@ -1,7 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { ReportRepository } from '@/core/domain/repositories/report-repository'
 import { TemplateRepository } from '@/core/domain/repositories/template-repository'
-import type { ReportSearchEntity } from '@/core/domain/entities/report-entity'
 import type { ReportDto, ReportSearchParamDto } from '../../dto/report-dto'
 import { ReportMapper } from '../../mappers/report-mapper'
 import { LogOperation } from '@/core/infrastructure/logger/decorators/log-operation'
@@ -28,22 +27,10 @@ export class ListReportsUseCase implements ListReports {
     organizationId: string,
     query: ReportSearchParamDto
   ): Promise<PaginationDto<ReportDto>> {
-    let createdAtDate: Date | undefined = undefined
-    if (query.createdAt) {
-      const date = new Date(query.createdAt)
-      createdAtDate = isNaN(date.getTime()) ? undefined : date
-    }
+    // Fetch paginated reports
+    const reports = await this.reportRepository.fetchAll(organizationId, query)
 
-    const searchEntity: ReportSearchEntity = {
-      ...query,
-      createdAt: createdAtDate
-    }
-
-    const reports = await this.reportRepository.fetchAll(
-      organizationId,
-      searchEntity
-    )
-
+    // Fetch template data for each report
     const reportsWithTemplates = await Promise.allSettled(
       reports.items.map(async (report) => {
         try {
@@ -56,6 +43,8 @@ export class ListReportsUseCase implements ListReports {
             template
           }
         } catch (error) {
+          // If template fetch fails, return report without template data
+          // This ensures the list still works even if some templates are missing
           console.warn(
             `Failed to fetch template ${report.templateId} for report ${report.id}:`,
             error
@@ -65,20 +54,24 @@ export class ListReportsUseCase implements ListReports {
       })
     )
 
+    // Extract successful results and handle failed template fetches gracefully
     const enrichedReports = reportsWithTemplates.map((result) => {
       if (result.status === 'fulfilled') {
         return result.value
       } else {
+        // This shouldn't happen due to try-catch, but adding as safety
         console.warn('Unexpected template fetch failure:', result.reason)
-        return result.reason
+        return result.reason // This would be the original report from the catch block
       }
     })
 
+    // Create new pagination result with enriched reports
     const enrichedPagination = {
       ...reports,
       items: enrichedReports
     }
 
+    // Map to DTO
     return ReportMapper.toPaginationResponseDto(enrichedPagination)
   }
 }

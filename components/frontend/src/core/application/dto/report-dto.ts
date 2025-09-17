@@ -13,14 +13,6 @@ export type ReportSearchParamDto = SearchParamDto & {
   status?: ReportStatus
   search?: string
   templateId?: string
-  createdAt?: string
-}
-
-export type ReportFiltersDto = {
-  status?: ReportStatus
-  search?: string
-  templateId?: string
-  createdAt?: string
 }
 
 export type CreateReportDto = {

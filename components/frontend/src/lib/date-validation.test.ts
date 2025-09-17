@@ -1,8 +1,7 @@
 import {
   validateDateString,
   formatDateForDisplay,
-  formatDateForInput,
-  validateAndFormatDateForQuery
+  formatDateForInput
 } from './date-validation'
 
 describe('date-validation', () => {
@@ -64,7 +63,7 @@ describe('date-validation', () => {
 
   describe('formatDateForDisplay', () => {
     it('should format date for display', () => {
-      const date = new Date(2024, 0, 15)
+      const date = new Date(2024, 0, 15) // January 15, 2024
       const formatted = formatDateForDisplay(date)
       expect(formatted).toBe('Jan 15, 2024')
     })
@@ -72,52 +71,9 @@ describe('date-validation', () => {
 
   describe('formatDateForInput', () => {
     it('should format date for input', () => {
-      const date = new Date(2024, 0, 15)
+      const date = new Date(2024, 0, 15) // January 15, 2024
       const formatted = formatDateForInput(date)
       expect(formatted).toBe('2024-01-15')
-    })
-  })
-
-  describe('validateAndFormatDateForQuery', () => {
-    it('should return undefined for undefined input', () => {
-      const result = validateAndFormatDateForQuery(undefined)
-      expect(result).toBeUndefined()
-    })
-
-    it('should format valid Date object to ISO string', () => {
-      const date = new Date(2024, 0, 15)
-      const result = validateAndFormatDateForQuery(date)
-      expect(result).toBe('2024-01-15')
-    })
-
-    it('should throw error for invalid Date object', () => {
-      const invalidDate = new Date('invalid')
-      expect(() => {
-        validateAndFormatDateForQuery(invalidDate)
-      }).toThrow('Invalid date provided')
-    })
-
-    it('should pass through valid date string', () => {
-      const result = validateAndFormatDateForQuery('2024-01-15')
-      expect(result).toBe('2024-01-15')
-    })
-
-    it('should throw error for invalid date string format', () => {
-      expect(() => {
-        validateAndFormatDateForQuery('2024/01/15')
-      }).toThrow('Invalid date format. Expected YYYY-MM-DD')
-    })
-
-    it('should throw error for invalid date string value', () => {
-      expect(() => {
-        validateAndFormatDateForQuery('2024-02-30')
-      }).toThrow('Invalid date string provided')
-    })
-
-    it('should throw error for non-date/non-string input', () => {
-      expect(() => {
-        validateAndFormatDateForQuery(123 as any)
-      }).toThrow('createdAt must be a Date object or a valid date string')
     })
   })
 })

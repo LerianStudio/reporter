@@ -26,7 +26,6 @@ export type ReportSearchEntity = PaginationSearchEntity & {
   status?: ReportStatus
   search?: string
   templateId?: string
-  createdAt?: Date
 }
 
 export type ReportFilters = {
