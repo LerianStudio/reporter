@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.1] - 2025-09-17
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.13...v3.0.0-beta.1)
+Contributors: Gabriel Castro, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Advanced Filtering System**: We've introduced a new filtering mechanism with advanced operators and skeletons, which enhances the precision and complexity of report queries. However, existing report configurations may require updates. Please review your filters and adjust them to align with the new system. Migration guidance is available in our documentation. (#feat-reports)
+- **Filter System Restructuring**: The filter utilities have been relocated to a new 'utils' folder, simplifying the system for better maintainability. Users with custom integrations should verify compatibility with this new structure. (#refactor-reports)
+
+### ✨ Features
+- **Date Picker in Reports**: A new date picker field has been added to reports, allowing users to easily specify date ranges for data queries. This enhancement improves usability and precision in data retrieval, making it simpler to generate accurate reports. (#feat-reports)
+
+### 🐛 Bug Fixes
+- **Improved Navigation Reliability**: Fixed navigation issues that previously prevented access to certain features, ensuring a smoother and more reliable user interface experience. (#fix-navigation)
+
+### 🔄 Changes
+- **Enhanced Validation Feedback**: Error handling and validation messages are now more informative, thanks to improvements using Zod. Users will receive clearer feedback, aiding in faster issue resolution and debugging. (#fix-validation)
+- **Updated Translations**: We've updated translations across the frontend to ensure consistent and accurate language support, enhancing the experience for non-English speakers. (#fix-i18n)
+
+### 📚 Documentation
+- **Changelog Corrections**: Reverted premature changes to the changelog to ensure it accurately reflects the current state of the project, maintaining the integrity of our documentation. (#docs-revert)
+
+### 🔧 Maintenance
+- **Testing Adjustments**: Reverted specific test changes to align with the current feature set, ensuring accurate test coverage and reliability in quality assurance processes. (#test-revert)
+- **Changelog Updates**: Updated the changelog to include all recent modifications, supporting transparency and traceability within the project. (#chore-release)
+
+
 ## [v2.1.0-beta.13] - 2025-09-16
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.12...v2.1.0-beta.13)
