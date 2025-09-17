@@ -2,21 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v3.0.0-beta.2] - 2025-09-16
-
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.1...v3.0.0-beta.2)
-Contributors: Gabriel Castro, lerian-studio
-
-### ✨ Features
-- **Date Picker for Reports**: A new date picker field has been added to the reporting module. This feature allows users to filter reports by specific date ranges, significantly enhancing data analysis capabilities. Users can now easily tailor reports to their exact needs, improving both backend and frontend data handling.
-
-### 🔄 Changes
-- **Enhanced Report Filtering**: The report filtering functionality has been improved, offering users more robust and flexible options to customize their data views. This change streamlines access to relevant information, enabling users to extract insights more efficiently.
-
-### 🔧 Maintenance
-- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes and improvements, ensuring all users have access to the latest information about updates and enhancements. This transparency aids in version tracking and user awareness.
-
-
 ## [v3.0.0-beta.1] - 2025-09-16
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.13...v3.0.0-beta.1)
