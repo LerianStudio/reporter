@@ -34,6 +34,6 @@ type UseCase struct {
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
 
-	// PdfPool provides an abstraction on top of the pdf pool.
+	// PdfPool provides an abstraction on top of the pdf pool
 	PdfPool *pdf.WorkerPool
 }
