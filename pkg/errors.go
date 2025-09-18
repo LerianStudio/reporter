@@ -463,6 +463,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Encryption data error Tag Detected",
 			Message:    fmt.Sprintf("Error to make the encryption of CRM data. Err: %v", args...),
 		},
+		constant.ErrCommunicateSeaweedFS: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrCommunicateSeaweedFS.Error(),
+			Title:      "Communication Error with SeaweedFS",
+			Message:    "Error to communicate with SeaweedFS to download or upload file. Please try again.",
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

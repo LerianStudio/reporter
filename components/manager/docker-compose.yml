@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   plugin-smart-templates-manager:
     container_name: plugin-smart-templates-manager
@@ -9,6 +11,11 @@ services:
         - github_token
     env_file:
       - .env
+    environment:
+      - SEAWEEDFS_HOST=${SEAWEEDFS_HOST}
+      - SEAWEEDFS_FILER_PORT=${SEAWEEDFS_FILER_PORT}
+      - SEAWEEDFS_JWT_SIGNING_READ=${SEAWEEDFS_JWT_SIGNING_READ}
+      - SEAWEEDFS_JWT_SIGNING_WRITE=${SEAWEEDFS_JWT_SIGNING_WRITE}
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:

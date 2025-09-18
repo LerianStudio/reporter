@@ -72,12 +72,24 @@ The field mapping should be:
 }
 ```
 
-## File storage with MinIO
+## File storage with SeaweedFS
 
-We use MinIO to store both the template files and the generated reports in their final format.
+We use SeaweedFS (Filer + Volume + Master) to store both template files and generated reports. Access is done via Filer HTTP API.
 
-When starting the MinIO container using the project’s docker-compose, it uses the minio/mc image, which is the official image of the MinIO Client. This is a CLI utility similar to awscli, used to interact with MinIO servers.
-The CLI image is used to create a user with upload and read permissions, which will be used by the service and the worker. It also creates two buckets: one for templates and another for the generated reports.
+### Authentication (JWT)
+
+The Filer HTTP endpoints can be protected with JWT (HS256). This project enables JWT by generating a `security.toml` at container startup (entrypoint) using the following environment variables:
+
+- `SEAWEEDFS_JWT_SIGNING_READ`: secret used to validate tokens for read operations (GET/HEAD)
+- `SEAWEEDFS_JWT_SIGNING_WRITE`: secret used to validate tokens for write operations (POST/PUT/DELETE)
+
+Generate strong secrets (32 bytes) and encode in base64, for example:
+
+```bash
+openssl rand -base64 32
+```
+
+Set the same values in Infra (Filer) and in Manager/Worker `.env` files. The application generates short-lived tokens automatically when calling the Filer.
 
 ## Swagger Documentation
 

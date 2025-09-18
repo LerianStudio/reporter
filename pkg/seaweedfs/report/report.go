@@ -3,6 +3,8 @@ package report
 import (
 	"context"
 	"fmt"
+	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/seaweedfs"
 )
 
@@ -34,7 +36,7 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 
 	err := repo.client.UploadFile(ctx, path, data)
 	if err != nil {
-		return fmt.Errorf("failed to put report to SeaweedFS: %w", err)
+		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
 	return nil
@@ -46,7 +48,7 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 
 	data, err := repo.client.DownloadFile(ctx, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get report from SeaweedFS: %w", err)
+		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
 	return data, nil

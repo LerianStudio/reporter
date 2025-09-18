@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/seaweedfs"
 )
 
@@ -36,7 +37,7 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 
 	data, err := repo.client.DownloadFile(ctx, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get template from SeaweedFS: %w, bucket: %s, object: %s", err, repo.bucket, objectName)
+		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
 	return data, nil
@@ -51,7 +52,7 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 	err := repo.client.UploadFile(ctx, path, data)
 	if err != nil {
 		logger.Errorf("Error communicating with SeaweedFS: %v", err)
-		return fmt.Errorf("failed to put template to SeaweedFS: %w", err)
+		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
 	return nil

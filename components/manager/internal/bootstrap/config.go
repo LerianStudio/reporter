@@ -79,8 +79,10 @@ type Config struct {
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"5"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"30"`
 	// SeaweedFS configuration envs
-	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
-	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
+	SeaweedFSHost            string `env:"SEAWEEDFS_HOST"`
+	SeaweedFSFilerPort       string `env:"SEAWEEDFS_FILER_PORT"`
+	SeaweedFSJWTSigningRead  string `env:"SEAWEEDFS_JWT_SIGNING_READ"`
+	SeaweedFSJWTSigningWrite string `env:"SEAWEEDFS_JWT_SIGNING_WRITE"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -105,7 +107,7 @@ func InitServers() *Service {
 
 	// Config SeaweedFS connection
 	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
-	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
+	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint, cfg.SeaweedFSJWTSigningRead, cfg.SeaweedFSJWTSigningWrite)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
