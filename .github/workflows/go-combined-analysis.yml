@@ -29,6 +29,7 @@ jobs:
       lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
       lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
       lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
+      manage_token: ${{ secrets.MANAGE_TOKEN }}
+    with:
       go_version: '1.25'
       golangci_lint_version: 'v2.4.0'
-      manage_token: ${{ secrets.MANAGE_TOKEN }}
