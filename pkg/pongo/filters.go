@@ -23,6 +23,7 @@ func stripZerosFilter(in *pongo2.Value, _ *pongo2.Value) (*pongo2.Value, *pongo2
 	v := in.Interface()
 
 	var dec decimal.Decimal
+
 	switch t := v.(type) {
 	case int:
 		dec = decimal.NewFromInt(int64(t))

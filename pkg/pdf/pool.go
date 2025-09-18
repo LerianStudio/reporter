@@ -42,6 +42,7 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 	}
 	for i := 0; i < num; i++ {
 		wp.wg.Add(1)
+
 		go wp.startWorker(i)
 	}
 
@@ -91,6 +92,7 @@ func (wp *WorkerPool) startWorker(_ int) {
 			chromedp.Sleep(500*time.Millisecond),
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				var err error
+
 				pdfBuf, _, err = page.PrintToPDF().
 					WithPrintBackground(true).
 					WithPaperWidth(8.5).
@@ -133,6 +135,7 @@ func (wp *WorkerPool) startWorker(_ int) {
 						chromedp.Sleep(500*time.Millisecond),
 						chromedp.ActionFunc(func(ctx context.Context) error {
 							var err error
+
 							pdfBuf, _, err = page.PrintToPDF().
 								WithPrintBackground(true).
 								WithPaperWidth(8.5).
@@ -168,6 +171,7 @@ func (wp *WorkerPool) startWorker(_ int) {
 		}
 
 		cancelTimeout()
+
 		task.Result <- err
 	}
 }
