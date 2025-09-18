@@ -2,26 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v3.0.0-beta.1] - 2025-09-17
+## [v2.0.1-beta.1] - 2025-09-18
 
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.13...v3.0.0-beta.1)
-Contributors: Gabriel Castro, lerian-studio
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v2.0.1-beta.1)
+Contributors: Gabriel Ferreira, lerian-studio
 
-### ⚠️ Breaking Changes
-- **Reports Filtering System Overhaul**: The report filtering mechanism has been completely revamped to support advanced queries with operators and skeletons. Users must update their existing filters to comply with the new system. This change affects both the backend and frontend, as well as the database schema. Please review your custom filtering logic and update it accordingly.
-- **Reports Utilities Relocation**: Utilities for report filtering have been moved to a dedicated `utils` folder. If you have custom integrations, ensure you update any references to these utilities to their new location.
+### 🔄 Changes
+- **Frontend & Deployment**: The frontend Dockerfile has been updated to streamline the build process, aligning with current best practices. This change reduces potential setup issues, making deployment more efficient and less error-prone for developers.
 
-### ✨ Features
-- **Enhanced Report Filtering with Date Picker**: A new date picker has been integrated into the reports module, allowing for intuitive date range selection. This enhancement simplifies the process of generating time-specific reports, making data analysis more efficient and user-friendly.
-
-### 🐛 Bug Fixes
-- **Improved Internationalization**: Updated translations across the frontend to ensure accurate language support, resolving various localization issues. This fix enhances the experience for non-English speaking users, providing consistent and reliable language options.
-
-### ⚡ Performance
-- **Advanced Filtering System**: The new filtering capabilities not only offer more precise data queries but also improve the performance of report generation, making the process faster and more efficient.
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been revised to accurately reflect recent updates, ensuring all stakeholders have access to the latest project developments and modifications.
 
 ### 🔧 Maintenance
-- **Changelog Update**: The changelog has been meticulously updated to document recent changes and improvements, ensuring transparency and ease of reference for users.
+- **Branch Management**: The develop branch was recreated to resolve inconsistencies and align with project standards. This update affects multiple components, including auth, backend, build, config, database, dependencies, docs, frontend, and test, ensuring a clean and organized development workflow.
 
 
 ## [v2.1.0-beta.13] - 2025-09-16
