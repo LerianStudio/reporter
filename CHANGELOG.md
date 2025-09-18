@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.1-beta.2] - 2025-09-18
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.1-beta.1...v2.0.1-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Updated Build System:** The Go version and linting tools have been upgraded in our GitHub workflow. This ensures that our code is compatible with the latest Go features and adheres to updated linting standards, resulting in a more robust and maintainable codebase.
+- **Library and Dependency Updates:** We've updated the `lib-commons` library and Go language version to enhance security, performance, and compatibility. This proactive maintenance ensures the project remains stable and benefits from the latest improvements in these libraries.
+- **Changelog Refresh:** The changelog has been updated to provide a clear and concise history of recent changes, helping users track the project's evolution and understand the context of updates.
+
+
 ## [v2.0.1-beta.1] - 2025-09-18
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v2.0.1-beta.1)
