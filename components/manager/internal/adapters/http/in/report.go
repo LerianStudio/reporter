@@ -129,7 +129,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	objectName := templateModel.ID.String() + "/" + reportModel.ID.String() + "." + templateModel.OutputFormat
 
-	fileBytes, errFile := rh.Service.ReportMinio.Get(ctx, objectName)
+	fileBytes, errFile := rh.Service.ReportSeaweedFS.Get(ctx, objectName)
 	if errFile != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to download file from MinIO", errFile)
 

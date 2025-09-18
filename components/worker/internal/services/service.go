@@ -2,18 +2,18 @@ package services
 
 import (
 	pkgConfig "plugin-smart-templates/v2/pkg"
-	reportFile "plugin-smart-templates/v2/pkg/minio/report"
-	templateFile "plugin-smart-templates/v2/pkg/minio/template"
 	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
+	reportSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/report"
+	templateSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/template"
 )
 
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.
 type UseCase struct {
-	// TemplateFileRepo is a repository used to retrieve template files from MinIO storage.
-	TemplateFileRepo templateFile.Repository
+	// TemplateSeaweedFS is a repository interface for storing template files in SeaweedFS.
+	TemplateSeaweedFS templateSeaweedFS.Repository
 
-	// ReportFileRepo is a repository interface for storing report files in MinIO.
-	ReportFileRepo reportFile.Repository
+	// ReportSeaweed is a repository interface for storing report files in SeaweedFS.
+	ReportSeaweedFS reportSeaweedFS.Repository
 
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
 	ExternalDataSources map[string]pkgConfig.DataSource

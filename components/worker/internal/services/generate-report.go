@@ -79,7 +79,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
 
-	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
+	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -197,7 +197,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out))
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 

@@ -113,13 +113,13 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	errPutMinio := th.Service.TemplateMinio.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
-	if errPutMinio != nil {
-		libOpentelemetry.HandleSpanError(&span, "Error putting template file.", errPutMinio)
+	errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
+	if errPutSeaweedFS != nil {
+		libOpentelemetry.HandleSpanError(&span, "Error putting template file.", errPutSeaweedFS)
 
-		logger.Errorf("Error putting template file: %s", errPutMinio.Error())
+		logger.Errorf("Error putting template file: %s", errPutSeaweedFS.Error())
 
-		return http.WithError(c, errPutMinio)
+		return http.WithError(c, errPutSeaweedFS)
 	}
 
 	logger.Infof("Successfully created create template %v", templateOut)
@@ -206,7 +206,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 			return http.WithError(c, err)
 		}
 
-		errPutMinio := th.Service.TemplateMinio.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
+		errPutMinio := th.Service.TemplateSeaweedFS.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
 		if errPutMinio != nil {
 			libOpentelemetry.HandleSpanError(&span, "Error putting template file.", errPutMinio)
 

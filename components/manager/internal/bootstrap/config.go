@@ -9,11 +9,12 @@ import (
 	"plugin-smart-templates/v2/components/manager/internal/services"
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
-	reportMinio "plugin-smart-templates/v2/pkg/minio/report"
-	templateMinio "plugin-smart-templates/v2/pkg/minio/template"
 	"plugin-smart-templates/v2/pkg/mongodb/report"
 	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"plugin-smart-templates/v2/pkg/pdf"
+	simpleClient "plugin-smart-templates/v2/pkg/seaweedfs"
+	reportSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/report"
+	templateSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/template"
 	"strings"
 	"time"
 
@@ -24,13 +25,6 @@ import (
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-)
-
-const (
-	TemplateBucketName = "templates"
-	ReportBucketName   = "reports"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -53,12 +47,6 @@ type Config struct {
 	MongoDBUser     string `env:"MONGO_USER"`
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
-	// Minio configuration envs
-	MinioAPIHost     string `env:"MINIO_API_HOST"`
-	MinioAPIPort     string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername string `env:"MINIO_APP_USER"`
-	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
@@ -90,6 +78,9 @@ type Config struct {
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"5"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"30"`
+	// SeaweedFS configuration envs
+	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
+	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -112,16 +103,9 @@ func InitServers() *Service {
 		Logger:                    logger,
 	})
 
-	// Config minio connection
-	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
-
-	minioClient, err := minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
-		Secure: cfg.MinioSSLEnabled,
-	})
-	if err != nil {
-		logger.Fatalf("Error creating minio client: %v", err)
-	}
+	// Config SeaweedFS connection
+	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
+	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -152,6 +136,9 @@ func InitServers() *Service {
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
+	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
+	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
+
 	// Init Redis/Valkey connection
 	redisConnection := &libRedis.RedisConnection{
 		Address:                      strings.Split(cfg.RedisHost, ","),
@@ -173,7 +160,7 @@ func InitServers() *Service {
 
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
-		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, TemplateBucketName),
+		TemplateSeaweedFS:   templateSeaweedFSRepository,
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
@@ -193,7 +180,7 @@ func InitServers() *Service {
 		ReportRepo:          reportMongoDBRepository,
 		RabbitMQRepo:        producerRabbitMQRepository,
 		TemplateRepo:        templateMongoDBRepository,
-		ReportMinio:         reportMinio.NewMinioRepository(minioClient, ReportBucketName),
+		ReportSeaweedFS:     reportSeaweedFSRepository,
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 		PdfPool:             pdfPool,
 	}
