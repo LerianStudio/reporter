@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.1-beta.1] - 2025-09-18
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v2.0.1-beta.1)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 🔄 Changes
+- **Frontend & Deployment**: The frontend Dockerfile has been updated to streamline the build process, aligning with current best practices. This change reduces potential setup issues, making deployment more efficient and less error-prone for developers.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been revised to accurately reflect recent updates, ensuring all stakeholders have access to the latest project developments and modifications.
+
+### 🔧 Maintenance
+- **Branch Management**: The develop branch was recreated to resolve inconsistencies and align with project standards. This update affects multiple components, including auth, backend, build, config, database, dependencies, docs, frontend, and test, ensuring a clean and organized development workflow.
+
+
 ## [v2.1.0-beta.13] - 2025-09-16
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.12...v2.1.0-beta.13)
