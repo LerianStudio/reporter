@@ -6,12 +6,12 @@ import (
 	"errors"
 	"os"
 	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/minio/report"
-	"plugin-smart-templates/v2/pkg/minio/template"
 	"plugin-smart-templates/v2/pkg/model"
 	mongodb2 "plugin-smart-templates/v2/pkg/mongodb"
 	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
 	postgres2 "plugin-smart-templates/v2/pkg/postgres"
+	reportSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/report"
+	templateSeaweedFS "plugin-smart-templates/v2/pkg/seaweedfs/template"
 	"strings"
 	"testing"
 
@@ -58,8 +58,8 @@ func TestGenerateReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockTemplateRepo := templateSeaweedFS.NewMockRepository(ctrl)
+	mockReportRepo := reportSeaweedFS.NewMockRepository(ctrl)
 	mockPostgresRepo := postgres2.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
@@ -125,9 +125,9 @@ func TestGenerateReport_Success(t *testing.T) {
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateSeaweedFS: mockTemplateRepo,
+		ReportSeaweedFS:   mockReportRepo,
+		ReportDataRepo:    mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
@@ -147,7 +147,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockTemplateRepo := templateSeaweedFS.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
@@ -171,7 +171,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateFileRepo:    mockTemplateRepo,
+		TemplateSeaweedFS:   mockTemplateRepo,
 		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
@@ -186,10 +186,10 @@ func TestSaveReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportRepo := reportSeaweedFS.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
+		ReportSeaweedFS: mockReportRepo,
 	}
 
 	reportID := uuid.New()
@@ -218,12 +218,12 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportRepo := reportSeaweedFS.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
-		ReportDataRepo: mockReportDataRepo,
+		ReportSeaweedFS: mockReportRepo,
+		ReportDataRepo:  mockReportDataRepo,
 	}
 
 	reportID := uuid.New()
@@ -262,8 +262,8 @@ func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockTemplateRepo := templateSeaweedFS.NewMockRepository(ctrl)
+	mockReportRepo := reportSeaweedFS.NewMockRepository(ctrl)
 	mockMongoRepo := mongodb2.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
@@ -407,9 +407,9 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateSeaweedFS: mockTemplateRepo,
+		ReportSeaweedFS:   mockReportRepo,
+		ReportDataRepo:    mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"plugin_crm": {
 				Initialized:       true,

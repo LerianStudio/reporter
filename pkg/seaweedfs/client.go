@@ -38,7 +38,7 @@ func NewSeaweedFSClient(baseURL string, jwtReadKey string, jwtWriteKey string) *
 func (c *SeaweedFSClient) UploadFile(ctx context.Context, path string, data []byte) error {
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -64,10 +64,11 @@ func (c *SeaweedFSClient) UploadFile(ctx context.Context, path string, data []by
 func (c *SeaweedFSClient) DownloadFile(ctx context.Context, path string) ([]byte, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
 	c.attachJWT(req, false)
 
 	resp, err := c.httpClient.Do(req)
@@ -97,32 +98,33 @@ func (c *SeaweedFSClient) attachJWT(req *http.Request, isWrite bool) {
 	} else {
 		secret = c.jwtReadKey
 	}
+
 	if secret == "" {
 		return
 	}
 
-	token, err := generateHS256JWT(secret, isWrite)
-	if err != nil {
-		return
-	}
+	token := generateHS256JWT(secret, isWrite)
 	req.Header.Set("Authorization", "Bearer "+token)
 }
 
 // generateHS256JWT creates a short-lived JWT token with minimal claims.
 // It uses HS256 with the provided secret.
-func generateHS256JWT(secret string, isWrite bool) (string, error) {
+func generateHS256JWT(secret string, isWrite bool) string {
 	header := `{"alg":"HS256","typ":"JWT"}`
 	now := time.Now().Unix()
 	exp := time.Now().Add(1 * time.Minute).Unix()
+
 	scope := "read"
 	if isWrite {
 		scope = "write"
 	}
+
 	payload := fmt.Sprintf(`{"iat":%d,"exp":%d,"scope":"%s"}`, now, exp, scope)
 
 	unsigned := base64URLEncode([]byte(header)) + "." + base64URLEncode([]byte(payload))
 	sig := hmacSHA256(unsigned, secret)
-	return unsigned + "." + base64URLEncode(sig), nil
+
+	return unsigned + "." + base64URLEncode(sig)
 }
 
 func base64URLEncode(data []byte) string {
@@ -133,15 +135,17 @@ func base64URLEncode(data []byte) string {
 func hmacSHA256(message string, secret string) []byte {
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(message))
+
 	return mac.Sum(nil)
 }
 func (c *SeaweedFSClient) DeleteFile(ctx context.Context, path string) error {
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
 
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
 	c.attachJWT(req, true)
 
 	resp, err := c.httpClient.Do(req)
@@ -162,7 +166,7 @@ func (c *SeaweedFSClient) DeleteFile(ctx context.Context, path string) error {
 func (c *SeaweedFSClient) HealthCheck(ctx context.Context) error {
 	url := fmt.Sprintf("%s/status", c.baseURL)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create health check request: %w", err)
 	}
