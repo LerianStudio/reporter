@@ -1,5 +1,4 @@
 # Plugin Smart Templates Makefile
-
 ifneq ("$(wildcard .env.local)","")
 	include .env.local
 	export

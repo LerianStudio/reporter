@@ -11,18 +11,18 @@
         <IDConta>{{ account.id }}</IDConta>
         <Alias>{{ account.alias }}</Alias>
         {%- with balance = filter(midaz_transaction.balance, "account_id", account.id)[0] %}
-        <SaldoAtual>Usando filtro customizado: {{ balance.available|scale:balance.scale }}</SaldoAtual>
+        <SaldoAtual>Usando filtro customizado: {{ balance.available scale 2 }}</SaldoAtual>
         {%- endwith %}
         {%- for balance in midaz_transaction.balance %}
         {%- if balance.account_id == account.id %}
-        <SaldoAtual>Usando padrão pongo2: {{ balance.available|scale:balance.scale }}</SaldoAtual>
+        <SaldoAtual>Usando padrão pongo2: {{ balance.available }}</SaldoAtual>
         {%- endif %}
         {%- endfor %}
         <Moeda>{{ account.asset_code }}</Moeda>
         <Operacoes>
         {%- for operation in midaz_transaction.operation %}
         {%- if operation.account_id == account.id %}
-            {%- set valor_original = operation.amount|scale:operation.amount_scale %}
+            {%- set valor_original = operation.amount %}
             {%- set valor_desconto = valor_original * 0.03 %}
             {%- set valor_final = valor_original - valor_desconto %}
             <Operacao>
@@ -41,8 +41,8 @@
         </Operacoes>
         <ResumoConta>
             <TotalOperacoes>{% count_by midaz_transaction.operation if account_id == account.id %}</TotalOperacoes>
-            <SomatorioOperacoes>{% sum_by midaz_transaction.operation by "amount" if account_id == account.id scale 2 %}</SomatorioOperacoes>
-            <MediaOperacoes>{% avg_by midaz_transaction.operation by "amount" if account_id == account.id scale 2 %}</MediaOperacoes>
+            <SomatorioOperacoes>{% sum_by midaz_transaction.operation by "amount" if account_id == account.id %}</SomatorioOperacoes>
+            <MediaOperacoes>{% avg_by midaz_transaction.operation by "amount" if account_id == account.id %}</MediaOperacoes>
         </ResumoConta>
     </Conta>
     {%- endfor %}

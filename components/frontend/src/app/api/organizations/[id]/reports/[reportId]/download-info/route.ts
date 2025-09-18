@@ -1,4 +1,3 @@
-import { getController } from '@/lib/http/server'
-import { ReportController } from '@/core/application/controllers/report-controller'
+import { app } from '@/core/infrastructure/app'
 
-export const GET = getController(ReportController, (c) => c.getDownloadInfo)
+export const GET = app.handler.bind(app)

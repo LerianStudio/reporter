@@ -1,30 +1,43 @@
 import {
   ReportStatus,
-  ReportFilters
+  ReportFilters,
+  AdvancedReportFilters
 } from '@/core/domain/entities/report-entity'
 import { MetadataEntity } from '@/core/domain/entities/metadata-entity'
 import { TemplateDto } from './template-dto'
 import { SearchParamDto } from './request-dto'
+import { filterFieldSchema } from '@/schema/report'
+import { z } from 'zod'
 
 export type ReportSearchParamDto = SearchParamDto & {
   status?: ReportStatus
   search?: string
   templateId?: string
+  createdAt?: string
 }
 
-/**
- * DTO for creating a new report generation request
- */
+export type ReportFiltersDto = {
+  status?: ReportStatus
+  search?: string
+  templateId?: string
+  createdAt?: string
+}
+
 export type CreateReportDto = {
   templateId: string
-  organizationId: string
-  filters?: ReportFilters
+  fields: FilterField[]
   metadata?: MetadataEntity
 }
 
-/**
- * DTO for report responses
- */
+export type FilterField = z.infer<typeof filterFieldSchema>
+
+export type CreateAdvancedReportDto = {
+  templateId: string
+  filters?: AdvancedReportFilters
+  fields?: FilterField[]
+  metadata?: MetadataEntity
+}
+
 export type ReportDto = {
   id: string
   templateId: string

@@ -6,7 +6,6 @@ import (
 	"plugin-smart-templates/v2/pkg"
 	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/mongodb/template"
-	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -17,9 +16,7 @@ import (
 
 // GetTemplateByID recover a package by ID
 func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.UUID) (*template.Template, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_template_by_id")
 	defer span.End()
@@ -39,7 +36,7 @@ func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.
 		logger.Errorf("Error getting template on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 		}
 
 		return nil, err

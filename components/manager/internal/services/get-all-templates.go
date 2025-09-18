@@ -2,11 +2,8 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/mongodb/template"
 	"plugin-smart-templates/v2/pkg/net/http"
-	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -16,9 +13,7 @@ import (
 
 // GetAllTemplates fetch all Templates from the repository
 func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader, organizationID uuid.UUID) ([]*template.Template, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_all_templates")
 	defer span.End()
@@ -28,7 +23,7 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", filters)
+	err := opentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", filters)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
@@ -37,12 +32,12 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 
 	filters.OrganizationID = organizationID
 
-	packs, err := uc.TemplateRepo.FindList(ctx, filters)
-	if err != nil || packs == nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get all templates on repo", err)
+	templates, errFind := uc.TemplateRepo.FindList(ctx, filters)
+	if errFind != nil {
+		opentelemetry.HandleSpanError(&span, "Failed to get all templates on repo", errFind)
 
-		return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+		return nil, errFind
 	}
 
-	return packs, nil
+	return templates, nil
 }

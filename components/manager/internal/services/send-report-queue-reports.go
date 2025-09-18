@@ -13,9 +13,7 @@ import (
 // SendReportQueueReports sends a report to the queue of a generation reports message to a RabbitMQ queue for further processing.
 // It uses context for logger and tracer management and handles data serialization and queue message construction.
 func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) {
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
-	reqId := libCommons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.send_report_queue")
 	defer span.End()
@@ -24,7 +22,7 @@ func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage mod
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", reportMessage)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", reportMessage)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert report message to JSON string", err)
 	}

@@ -431,7 +431,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingTableFields.Error(),
 			Title:      "Missing required fields",
-			Message:    fmt.Sprintf("The fields mapped on template file is missing on tables schema. Please check the fields passed '%v'.", args...),
+			Message:    fmt.Sprintf("The fields mapped on template file are missing in the table schema or may be empty. Please check the fields passed: '%v'.", args...),
 		},
 		constant.ErrReportStatusNotFinished: ValidationError{
 			EntityType: entityType,
@@ -456,6 +456,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrScriptTagDetected.Error(),
 			Title:      "Script Tag Detected",
 			Message:    "The template file contains a script tag and is not allowed. Please check the template file and try again.",
+		},
+		constant.ErrDecryptionData: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrDecryptionData.Error(),
+			Title:      "Encryption data error Tag Detected",
+			Message:    fmt.Sprintf("Error to make the encryption of CRM data. Err: %v", args...),
 		},
 	}
 

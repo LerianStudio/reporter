@@ -8,6 +8,7 @@ import (
 	templateMinio "plugin-smart-templates/v2/pkg/minio/template"
 	"plugin-smart-templates/v2/pkg/mongodb/report"
 	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/pdf"
 )
 
 // UseCase is a struct to implement the services methods
@@ -32,4 +33,7 @@ type UseCase struct {
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
+
+	// PdfPool provides an abstraction on top of the pdf pool.
+	PdfPool *pdf.WorkerPool
 }

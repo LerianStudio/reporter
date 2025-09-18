@@ -25,9 +25,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 		mappedFields map[string]map[string][]string
 	)
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.update_template_by_id")
 	defer span.End()
@@ -50,7 +48,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 			return err
 		}
 
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, mappedFields); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 			logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)

@@ -13,6 +13,7 @@ import (
 	templateMinio "plugin-smart-templates/v2/pkg/minio/template"
 	"plugin-smart-templates/v2/pkg/mongodb/report"
 	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v2/pkg/pdf"
 	"strings"
 	"time"
 
@@ -86,12 +87,14 @@ type Config struct {
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
+	// PDF Pool configuration envs
+	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"5"`
+	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"30"`
 }
 
 // InitServers initiate http and grpc servers.
 func InitServers() *Service {
 	cfg := &Config{}
-
 	if err := pkg.SetConfigFromEnvVars(cfg); err != nil {
 		panic(err)
 	}
@@ -99,14 +102,15 @@ func InitServers() *Service {
 	logger := zap.InitializeLogger()
 
 	// Init Open telemetry to control logs and flows
-	telemetry := &libOtel.Telemetry{
+	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
 		DeploymentEnv:             cfg.OtelDeploymentEnv,
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 		EnableTelemetry:           cfg.EnableTelemetry,
-	}
+		Logger:                    logger,
+	})
 
 	// Config minio connection
 	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
@@ -180,12 +184,18 @@ func InitServers() *Service {
 	}
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
+
+	// Initialize PDF Pool with logger and timeout
+	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
+	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
+
 	reportService := &services.UseCase{
 		ReportRepo:          reportMongoDBRepository,
 		RabbitMQRepo:        producerRabbitMQRepository,
 		TemplateRepo:        templateMongoDBRepository,
 		ReportMinio:         reportMinio.NewMinioRepository(minioClient, ReportBucketName),
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		PdfPool:             pdfPool,
 	}
 
 	reportHandler := &in2.ReportHandler{

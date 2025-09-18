@@ -6,9 +6,6 @@ export type TemplateSearchParamDto = SearchParamDto & {
   name?: string
 }
 
-/**
- * DTO for creating a new template
- */
 export type CreateTemplateDto = {
   organizationId: string
   name: string
@@ -16,18 +13,12 @@ export type CreateTemplateDto = {
   templateFile: File
 }
 
-/**
- * DTO for updating an existing template
- */
 export type UpdateTemplateDto = {
   name?: string
   outputFormat?: OutputFormat
   templateFile?: File
 }
 
-/**
- * DTO for template responses
- */
 export type TemplateDto = {
   id: string
   organizationId: string
@@ -41,4 +32,5 @@ export type TemplateDto = {
 export type TemplateFiltersDto = {
   name?: string
   outputFormat?: OutputFormat
+  createdAt?: string
 }

@@ -3,9 +3,9 @@ package template
 import (
 	"bytes"
 	"context"
-	"github.com/minio/minio-go/v7"
 	"io"
-	"plugin-smart-templates/v2/pkg"
+
+	"github.com/minio/minio-go/v7"
 )
 
 // Repository provides an interface for MinIO storage operations
@@ -52,13 +52,11 @@ func (repo *MinioRepository) Get(ctx context.Context, objectName string) ([]byte
 func (repo *MinioRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
 	fileReader := bytes.NewReader(data)
 	fileSize := int64(len(data))
-	logger := pkg.NewLoggerFromContext(ctx)
 
 	_, err := repo.minioClient.PutObject(ctx, repo.BucketName, objectName, fileReader, fileSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
-		logger.Errorf("Erro to comunicate with minio, Err: %v", err)
 		return err
 	}
 

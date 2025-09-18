@@ -55,6 +55,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	regexBlockIfOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockAggregationBlocksOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockCalcOnPlaceholder(templateFile, resultRegex, variableMap)
 
 	return normalizeStructure(resultRegex)
 }
@@ -150,6 +151,31 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 				insertField(resultRegex, variableMap[argPath[0]], argPath[1])
 			default:
 				insertField(resultRegex, argPath[:len(argPath)-1], argPath[len(argPath)-1])
+			}
+		}
+	}
+}
+
+// regexBlockCalcOnPlaceholder parses a template file to process "calc" blocks and updates a nested map with extracted field mappings.
+// It identifies fields used in calculation expressions, cleans their paths, and inserts them into the resultRegex map structure.
+func regexBlockCalcOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	calcRegex := regexp.MustCompile(`{%-?\s*calc\s+(.*?)\s*-?%}`)
+
+	calcMatches := calcRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range calcMatches {
+		expr := match[1]
+		fieldPaths := extractCalcFromExpression(expr)
+
+		for _, fieldExpr := range fieldPaths {
+			parts := CleanPath(fieldExpr)
+			if len(parts) < 2 {
+				continue
+			}
+
+			if loopPath, ok := variableMap[parts[0]]; ok {
+				insertField(resultRegex, loopPath, parts[1])
+			} else {
+				insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
 			}
 		}
 	}
@@ -330,6 +356,11 @@ func extractIfFromExpression(expr string) []string {
 	}
 
 	return results
+}
+
+// extractCalcFromExpression extracts object.field patterns from a calculation expression
+func extractCalcFromExpression(expr string) []string {
+	return extractIfFromExpression(expr)
 }
 
 // normalizeStructure convert input to a type pattern of mapped fields map[string]map[string][]string

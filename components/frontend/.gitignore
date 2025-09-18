@@ -68,3 +68,8 @@ docs
 
 # Build
 *.tgz
+
+# Lerian Protocol
+.claude/
+protocol-assets/
+.mcp.json

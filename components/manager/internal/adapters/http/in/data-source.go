@@ -1,22 +1,22 @@
 package in
 
 import (
+	"plugin-smart-templates/v2/components/manager/internal/services"
+	_ "plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v2/pkg/net/http"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel/attribute"
-	"plugin-smart-templates/v2/components/manager/internal/services"
-	_ "plugin-smart-templates/v2/pkg"
-	_ "plugin-smart-templates/v2/pkg/model"
-	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 type DataSourceHandler struct {
 	Service *services.UseCase
 }
 
-// GetDataSourceInformation retrieves all data sources connected on plugin smart templates
+// GetDataSourceInformation retrieves all data sources connected on plugin smart templates.
 //
 //	@Summary		Get all data sources connected on plugin smart templates
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
@@ -29,9 +29,7 @@ type DataSourceHandler struct {
 func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_data_source")
 	defer span.End()
@@ -65,9 +63,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "handler.get_data_source_details_by_id")
 	defer span.End()

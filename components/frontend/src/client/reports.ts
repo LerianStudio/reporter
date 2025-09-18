@@ -1,4 +1,9 @@
-import { ReportDto, CreateReportDto } from '@/core/application/dto/report-dto'
+import {
+  ReportDto,
+  CreateReportDto,
+  CreateAdvancedReportDto,
+  ReportFiltersDto
+} from '@/core/application/dto/report-dto'
 import { PaginationDto } from '@/core/application/dto/pagination-dto'
 import {
   deleteFetcher,
@@ -19,17 +24,11 @@ const basePath =
   getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
   process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
 
-type PaginationRequest = {
-  limit?: number
-  page?: number
-}
-
 type UseListReportsProps = {
   organizationId?: string
-  status?: string
-  templateId?: string
+  filters?: ReportFiltersDto & { limit?: number; page?: number }
   enabled?: boolean
-} & PaginationRequest
+}
 
 type UseCreateReportProps = UseMutationOptions<any, any, any> & {
   organizationId: string
@@ -56,22 +55,21 @@ type UseDownloadReportProps = UseMutationOptions & {
 
 export const useListReports = ({
   organizationId,
-  status,
-  templateId,
-  limit = 10,
-  page = 1,
+  filters,
   enabled = true,
   ...options
 }: UseListReportsProps = {}) => {
   const queryParams = {
-    limit,
-    page,
-    ...(status && { status }),
-    ...(templateId && { templateId })
+    limit: filters?.limit || 10,
+    page: filters?.page || 1,
+    ...(filters?.search && { search: filters.search }),
+    ...(filters?.status && { status: filters.status }),
+    ...(filters?.templateId && { templateId: filters.templateId }),
+    ...(filters?.createdAt && { createdAt: filters.createdAt })
   }
 
   return useQuery<PaginationDto<ReportDto>>({
-    queryKey: ['reports', { organizationId, limit, page, status, templateId }],
+    queryKey: ['reports', organizationId, queryParams],
     queryFn: getPaginatedFetcher(
       `${basePath}/api/organizations/${organizationId}/reports`,
       queryParams
@@ -104,7 +102,7 @@ export const useCreateReport = ({
 }: UseCreateReportProps) => {
   const queryClient = useQueryClient()
 
-  return useMutation<any, any, CreateReportDto>({
+  return useMutation<any, any, CreateAdvancedReportDto>({
     mutationKey: ['reports'],
     mutationFn: postFetcher(
       `${basePath}/api/organizations/${organizationId}/reports`

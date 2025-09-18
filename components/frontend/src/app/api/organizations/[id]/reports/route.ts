@@ -1,6 +1,5 @@
-import { getController } from '@/lib/http/server'
-import { ReportController } from '@/core/application/controllers/report-controller'
+import { app } from '@/core/infrastructure/app'
 
-export const GET = getController(ReportController, (c) => c.fetchAll)
+export const GET = app.handler.bind(app)
 
-export const POST = getController(ReportController, (c) => c.create)
+export const POST = app.handler.bind(app)

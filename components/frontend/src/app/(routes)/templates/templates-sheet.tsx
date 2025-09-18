@@ -19,8 +19,8 @@ import { SelectField } from '@/components/form/select-field'
 import { FileInputField } from '@/components/form/file-input-field'
 import { SelectItem } from '@/components/ui/select'
 import {
-  templateFormSchema,
-  templateUpdateFormSchema,
+  createTemplateFormSchema,
+  createTemplateUpdateFormSchema,
   TemplateFormData,
   TemplateUpdateFormData,
   OUTPUT_FORMAT_OPTIONS
@@ -59,18 +59,16 @@ export function TemplatesSheet({
   const { toast } = useToast()
   const { currentOrganization } = useOrganization()
 
-  // Determine which schema and default values to use
   const isCreateMode = mode === 'create'
-  const schema = isCreateMode ? templateFormSchema : templateUpdateFormSchema
+  const schema = isCreateMode
+    ? createTemplateFormSchema(intl)
+    : createTemplateUpdateFormSchema(intl)
 
-  // Initialize form with proper typing
   const form = useForm<TemplateFormData | TemplateUpdateFormData>({
     resolver: zodResolver(schema),
     values: getInitialValues(initialValues, data ?? {}),
     defaultValues: initialValues
   })
-
-  // API mutations
   const createTemplateMutation = useCreateTemplate({
     organizationId: currentOrganization?.id!,
     onSuccess: (data: TemplateDto) => {
@@ -116,23 +114,30 @@ export function TemplatesSheet({
     }
   })
 
-  // Handle form submission
   const handleSubmit = async (
     values: TemplateFormData | TemplateUpdateFormData
   ) => {
     if (isCreateMode) {
       const createData = values as TemplateFormData
-      const payload: CreateTemplateDto = {
-        organizationId: currentOrganization.id,
-        name: createData.name,
-        outputFormat: createData.outputFormat,
-        templateFile: createData.templateFile
-      }
 
-      await createTemplateMutation.mutateAsync(payload)
+      const formData = new FormData()
+      formData.append('organizationId', currentOrganization.id)
+      formData.append('name', createData.name)
+      formData.append('outputFormat', createData.outputFormat)
+      formData.append('templateFile', createData.templateFile)
+
+      await createTemplateMutation.mutateAsync(formData)
     } else {
       const updateData = values as TemplateUpdateFormData
-      await updateTemplateMutation.mutateAsync(updateData)
+
+      const formData = new FormData()
+      if (updateData.name) formData.append('name', updateData.name)
+      if (updateData.outputFormat)
+        formData.append('outputFormat', updateData.outputFormat)
+      if (updateData.templateFile)
+        formData.append('templateFile', updateData.templateFile)
+
+      await updateTemplateMutation.mutateAsync(formData)
     }
   }
 
@@ -142,7 +147,6 @@ export function TemplatesSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-[594px] flex-col">
-        {/* Header */}
         <SheetHeader className="mb-8">
           <SheetTitle>
             {intl.formatMessage({
@@ -159,10 +163,8 @@ export function TemplatesSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {/* Form */}
         <Form {...form}>
           <div className="flex-1 space-y-4 pb-8">
-            {/* Template Name */}
             <InputField
               name="name"
               label={intl.formatMessage({
@@ -178,7 +180,6 @@ export function TemplatesSheet({
               disabled={isLoading}
             />
 
-            {/* Output Format */}
             <SelectField
               name="outputFormat"
               label={intl.formatMessage({
@@ -208,7 +209,6 @@ export function TemplatesSheet({
               ))}
             </SelectField>
 
-            {/* Template File Upload */}
             <FileInputField
               name="templateFile"
               label={intl.formatMessage({
@@ -232,7 +232,6 @@ export function TemplatesSheet({
               disabled={isLoading}
             />
 
-            {/* Mandatory fields note */}
             <p className="text-muted-foreground text-sm">
               {intl.formatMessage({
                 id: 'templates.form.mandatoryFields',
@@ -241,7 +240,6 @@ export function TemplatesSheet({
             </p>
           </div>
 
-          {/* Footer */}
           <SheetFooter className="mt-auto">
             <LoadingButton
               type="submit"

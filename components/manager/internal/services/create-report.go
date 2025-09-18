@@ -7,8 +7,6 @@ import (
 	"plugin-smart-templates/v2/pkg/constant"
 	"plugin-smart-templates/v2/pkg/model"
 	"plugin-smart-templates/v2/pkg/mongodb/report"
-	"plugin-smart-templates/v2/pkg/mongodb/template"
-	"reflect"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -19,9 +17,7 @@ import (
 
 // CreateReport create a new report
 func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput, organizationID uuid.UUID) (*report.Report, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.create_report")
 	defer span.End()
@@ -32,7 +28,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		attribute.String("app.request.template_id", reportInput.TemplateID),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStructWithObfuscation(&span, "app.request.payload", reportInput)
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", reportInput)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert report input to JSON string", err)
 	}
@@ -57,7 +53,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		logger.Errorf("Error to find template by id, Error: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(template.Template{}).Name())
+			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 		}
 
 		return nil, err
@@ -65,7 +61,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, filtersMapped); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, filtersMapped); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
 
 			return nil, errValidateFields
@@ -105,7 +101,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 }
 
 // convertFiltersToMappedFieldsType transforms a deeply nested filter map into a mapped fields structure with limited keys per level.
-func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string][]string) map[string]map[string][]string {
+func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[string]map[string]model.FilterCondition) map[string]map[string][]string {
 	output := make(map[string]map[string][]string)
 
 	for topKey, nested := range filters {
