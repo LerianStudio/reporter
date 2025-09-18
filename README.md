@@ -75,21 +75,18 @@ The field mapping should be:
 ## File storage with SeaweedFS
 
 We use SeaweedFS (Filer + Volume + Master) to store both template files and generated reports. Access is done via Filer HTTP API.
+### Configuration
 
-### Authentication (JWT)
+Configure the following environment variables:
 
-The Filer HTTP endpoints can be protected with JWT (HS256). This project enables JWT by generating a `security.toml` at container startup (entrypoint) using the following environment variables:
+- `SEAWEEDFS_HOST`: SeaweedFS Filer hostname
+- `SEAWEEDFS_FILER_PORT`: SeaweedFS Filer port (default: 8888)
 
-- `SEAWEEDFS_JWT_SIGNING_READ`: secret used to validate tokens for read operations (GET/HEAD)
-- `SEAWEEDFS_JWT_SIGNING_WRITE`: secret used to validate tokens for write operations (POST/PUT/DELETE)
+### Accessing SeaweedFS
 
-Generate strong secrets (32 bytes) and encode in base64, for example:
+**Development**: Access the Filer web interface directly at `http://localhost:8888/`
 
-```bash
-openssl rand -base64 32
-```
-
-Set the same values in Infra (Filer) and in Manager/Worker `.env` files. The application generates short-lived tokens automatically when calling the Filer.
+**Production**: Filer should be accessible only from Manager/Worker services within the private network.
 
 ## Swagger Documentation
 

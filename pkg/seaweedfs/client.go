@@ -3,9 +3,6 @@ package seaweedfs
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,23 +11,17 @@ import (
 
 // SeaweedFSClient provides direct HTTP access to SeaweedFS
 type SeaweedFSClient struct {
-	baseURL     string
-	httpClient  *http.Client
-	jwtReadKey  string
-	jwtWriteKey string
+	baseURL    string
+	httpClient *http.Client
 }
 
 // NewSeaweedFSClient creates a new simple HTTP client for SeaweedFS
-// jwtReadKey and jwtWriteKey are optional. If provided, the client will
-// attach Authorization: Bearer <jwt> on GET/HEAD (read) and PUT/DELETE (write).
-func NewSeaweedFSClient(baseURL string, jwtReadKey string, jwtWriteKey string) *SeaweedFSClient {
+func NewSeaweedFSClient(baseURL string) *SeaweedFSClient {
 	return &SeaweedFSClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		jwtReadKey:  jwtReadKey,
-		jwtWriteKey: jwtWriteKey,
 	}
 }
 
@@ -44,7 +35,6 @@ func (c *SeaweedFSClient) UploadFile(ctx context.Context, path string, data []by
 	}
 
 	req.Header.Set("Content-Type", "application/octet-stream")
-	c.attachJWT(req, true)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -69,8 +59,6 @@ func (c *SeaweedFSClient) DownloadFile(ctx context.Context, path string) ([]byte
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	c.attachJWT(req, false)
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download file: %w", err)
@@ -90,54 +78,7 @@ func (c *SeaweedFSClient) DownloadFile(ctx context.Context, path string) ([]byte
 	return data, nil
 }
 
-// attachJWT adds Authorization header when jwt keys are configured.
-func (c *SeaweedFSClient) attachJWT(req *http.Request, isWrite bool) {
-	var secret string
-	if isWrite {
-		secret = c.jwtWriteKey
-	} else {
-		secret = c.jwtReadKey
-	}
-
-	if secret == "" {
-		return
-	}
-
-	token := generateHS256JWT(secret, isWrite)
-	req.Header.Set("Authorization", "Bearer "+token)
-}
-
-// generateHS256JWT creates a short-lived JWT token with minimal claims.
-// It uses HS256 with the provided secret.
-func generateHS256JWT(secret string, isWrite bool) string {
-	header := `{"alg":"HS256","typ":"JWT"}`
-	now := time.Now().Unix()
-	exp := time.Now().Add(1 * time.Minute).Unix()
-
-	scope := "read"
-	if isWrite {
-		scope = "write"
-	}
-
-	payload := fmt.Sprintf(`{"iat":%d,"exp":%d,"scope":"%s"}`, now, exp, scope)
-
-	unsigned := base64URLEncode([]byte(header)) + "." + base64URLEncode([]byte(payload))
-	sig := hmacSHA256(unsigned, secret)
-
-	return unsigned + "." + base64URLEncode(sig)
-}
-
-func base64URLEncode(data []byte) string {
-	// standard library without padding
-	return base64.RawURLEncoding.EncodeToString(data)
-}
-
-func hmacSHA256(message string, secret string) []byte {
-	mac := hmac.New(sha256.New, []byte(secret))
-	_, _ = mac.Write([]byte(message))
-
-	return mac.Sum(nil)
-}
+// DeleteFile deletes a file from SeaweedFS
 func (c *SeaweedFSClient) DeleteFile(ctx context.Context, path string) error {
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
 
@@ -145,8 +86,6 @@ func (c *SeaweedFSClient) DeleteFile(ctx context.Context, path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-
-	c.attachJWT(req, true)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

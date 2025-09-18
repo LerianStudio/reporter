@@ -70,15 +70,12 @@ services:
   plugin-smart-templates-seaweedfs-filer:
     image: chrislusf/seaweedfs:3.97
     container_name: plugin-smart-templates-seaweedfs-filer
-    env_file:
-      - .env
     ports:
       - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
       - "${SEAWEEDFS_FILER_S3_PORT:-8333}:8333"
-    entrypoint: ["/bin/sh", "/entrypoint/entrypoint.sh"]
+    command: "filer -ip=plugin-smart-templates-seaweedfs-filer -port=8888 -master=plugin-smart-templates-seaweedfs-master:9333"
     volumes:
       - plugin-smart-templates-seaweedfs-filer-data:/data
-      - ./seaweedfs/entrypoint.sh:/entrypoint/entrypoint.sh:ro
     networks:
       - plugin-smart-templates-infra-network
     depends_on:

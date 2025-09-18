@@ -1,7 +1,0 @@
-[jwt.filer_signing]
-key = "${SEAWEEDFS_JWT_SIGNING_WRITE}"
-
-[jwt.filer_signing.read]
-key = "${SEAWEEDFS_JWT_SIGNING_READ}"
-
-

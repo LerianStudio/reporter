@@ -40,10 +40,8 @@ type Config struct {
 	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
 	// SeaweedFS configuration envs
-	SeaweedFSHost            string `env:"SEAWEEDFS_HOST"`
-	SeaweedFSFilerPort       string `env:"SEAWEEDFS_FILER_PORT"`
-	SeaweedFSJWTSigningRead  string `env:"SEAWEEDFS_JWT_SIGNING_READ"`
-	SeaweedFSJWTSigningWrite string `env:"SEAWEEDFS_JWT_SIGNING_WRITE"`
+	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
+	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
 	// MongoDB
 	MongoURI        string `env:"MONGO_URI"`
 	MongoDBHost     string `env:"MONGO_HOST"`
@@ -96,7 +94,7 @@ func InitWorker() *Service {
 
 	// Config SeaweedFS connection
 	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
-	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint, cfg.SeaweedFSJWTSigningRead, cfg.SeaweedFSJWTSigningWrite)
+	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
