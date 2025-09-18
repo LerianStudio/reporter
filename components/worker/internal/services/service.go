@@ -18,6 +18,6 @@ type UseCase struct {
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
 	ExternalDataSources map[string]pkgConfig.DataSource
 
-	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case.
+	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case
 	ReportDataRepo reportData.Repository
 }
