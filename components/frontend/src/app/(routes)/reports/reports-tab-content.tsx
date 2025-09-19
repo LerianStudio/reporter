@@ -89,7 +89,7 @@ export function ReportsTabContent() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>
                     {intl.formatMessage({
-                      id: 'reports.loading.updating',
+                      id: 'common.loading.updating',
                       defaultMessage: 'Updating...'
                     })}
                   </span>
@@ -123,7 +123,7 @@ export function ReportsTabContent() {
                 <DatePickerField
                   name="createdAt"
                   placeholder={intl.formatMessage({
-                    id: 'reports.filters.selectDate',
+                    id: 'common.selectDate',
                     defaultMessage: 'Select date'
                   })}
                   control={form.control}

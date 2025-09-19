@@ -1,6 +1,6 @@
 import { PaginationSearchEntity } from './pagination-entity'
 
-export type OutputFormat = 'csv' | 'xml' | 'html' | 'txt'
+export type OutputFormat = 'csv' | 'xml' | 'html' | 'txt' | 'pdf'
 
 export type TemplateSearchEntity = PaginationSearchEntity & {
   outputFormat?: OutputFormat

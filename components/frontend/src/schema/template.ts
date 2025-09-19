@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { IntlShape } from 'react-intl'
 
 // Output format enum for templates
-const OUTPUT_FORMATS = ['csv', 'xml', 'html', 'txt'] as const
+const OUTPUT_FORMATS = ['csv', 'xml', 'html', 'txt', 'pdf'] as const
 
 /**
  * Creates internationalized validation schema for template creation form
