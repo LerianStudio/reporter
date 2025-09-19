@@ -86,6 +86,7 @@
   "templates.title": "Templates",
   "templates.tooltip": "Templates são estruturas de relatório pré-configuradas que ajudam a padronizar e automatizar como os dados são apresentados. Você pode definir layouts, formatos e parâmetros para agilizar a geração de relatórios e garantir consistência.",
   "common.searchPlaceholder": "Pesquisar...",
+  "common.selectDate": "Selecionar data",
   "error.query.title": "Erro do Servidor",
   "error.smartTemplates.unknownError": "Erro desconhecido ocorreu no serviço Smart Templates.",
   "errors.template.file.empty": "O arquivo não pode estar vazio",
@@ -177,8 +178,6 @@
   "error.smartTemplates.reportStatusNotFinished": "O Relatório não está pronto para download. O relatório ainda está em processamento.",
   "error.smartTemplates.unexpectedFieldsInRequest": "O corpo da solicitação contém mais campos do que o esperado. Envie apenas os campos permitidos conforme a documentação. Os campos inesperados estão listados no objeto fields.",
   "error.smartTemplates.updateOutputFormatWithoutTemplateFile": "Não é possível atualizar o formato de saída sem fornecer o arquivo de template. Verifique as informações fornecidas e tente novamente.",
-  "templates.filters.selectDate": "Selecionar data",
-  "templates.loading.updating": "Atualizando...",
   "errors.report.database.required": "Base de dados é obrigatória",
   "errors.report.field.required": "Campo é obrigatório",
   "errors.report.operator.invalid": "Operador inválido",
@@ -189,5 +188,6 @@
   "reports.filters.operator.tooltip": "Selecione o operador para filtrar os dados",
   "reports.filters.values.description.between": "Insira dois valores para definir um intervalo",
   "reports.filters.values.description.multiple": "Insira múltiplos valores separados por vírgula",
-  "reports.filters.values.description.single": "Insira um único valor"
+  "reports.filters.values.description.single": "Insira um único valor",
+  "common.loading.updating": "Atualizando..."
 }

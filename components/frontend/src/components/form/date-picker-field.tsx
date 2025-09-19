@@ -157,7 +157,7 @@ export const DatePickerField = ({
                     variant="outline"
                     disabled={disabled}
                     className={cn(
-                      'border-border h-9 w-fit justify-between gap-3 rounded-md border bg-white px-3 py-2 text-left text-sm font-normal hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-0',
+                      'h-9 w-fit justify-between gap-3 rounded-md border border-[#C7C7C7] bg-white px-3 py-2 text-left text-sm font-normal hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-0',
                       !selectedDate && 'placeholder:text-shadcn-400'
                     )}
                   >
@@ -169,7 +169,7 @@ export const DatePickerField = ({
                         <span>
                           {placeholder ||
                             intl.formatMessage({
-                              id: 'reports.filters.selectDate',
+                              id: 'common.selectDate',
                               defaultMessage: 'Select date'
                             })}
                         </span>

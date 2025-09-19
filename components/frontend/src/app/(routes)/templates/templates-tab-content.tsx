@@ -233,7 +233,7 @@ export function TemplatesTabContent() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>
                     {intl.formatMessage({
-                      id: 'templates.loading.updating',
+                      id: 'common.loading.updating',
                       defaultMessage: 'Updating...'
                     })}
                   </span>
@@ -280,7 +280,7 @@ export function TemplatesTabContent() {
                         ) : (
                           <span>
                             {intl.formatMessage({
-                              id: 'templates.filters.selectDate',
+                              id: 'common.selectDate',
                               defaultMessage: 'Select date'
                             })}
                           </span>
