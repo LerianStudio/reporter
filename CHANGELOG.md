@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.1] - 2025-09-22
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.1-beta.3...v2.1.0-beta.1)
+Contributors: Gabriel Castro, lerian-studio
+
+### ✨ Features
+- **PDF Output Format**: Users can now export documents as PDFs, providing a widely-used and portable format for easier sharing and accessibility.
+
+### 🔄 Changes
+- **UI Refinements**: Common user interface elements have been streamlined for a more consistent and intuitive experience, reducing visual clutter and enhancing usability.
+- **Centralized Output Formats**: The `OUTPUT_FORMATS` constant is now centralized, ensuring consistent updates across the application and simplifying future maintenance.
+- **Standardized Internationalization**: Internationalization keys have been standardized, making it easier to add new languages and maintain translations, supporting a more inclusive user experience.
+
+### 📚 Documentation
+- **Changelog Updates**: The CHANGELOG has been updated to reflect the latest features and improvements, ensuring users have access to current information.
+
+### 🔧 Maintenance
+- **Code Cleanup**: A redundant else clause has been removed from the frontend codebase, improving readability and reducing potential for errors.
+
+
 ## [v2.0.1-beta.3] - 2025-09-18
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.1-beta.2...v2.0.1-beta.3)
