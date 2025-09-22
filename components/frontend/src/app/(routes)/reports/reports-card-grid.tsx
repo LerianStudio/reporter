@@ -52,7 +52,7 @@ export const ReportsCardGrid = ({
                   <Button onClick={onCreateReport} size="sm">
                     <Plus className="mr-2 h-4 w-4" />
                     {intl.formatMessage({
-                      id: 'reports.empty.action',
+                      id: 'reports.actions.newReport',
                       defaultMessage: 'New Report'
                     })}
                   </Button>

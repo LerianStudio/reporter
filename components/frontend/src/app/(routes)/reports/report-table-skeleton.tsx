@@ -29,7 +29,7 @@ export function ReportTableSkeleton({
             <TableRow className="border-b border-[#E5E7EB] hover:bg-transparent">
               <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
                 {intl.formatMessage({
-                  id: 'reports.table.name',
+                  id: 'common.field.name',
                   defaultMessage: 'Name'
                 })}
               </TableHead>
@@ -41,7 +41,7 @@ export function ReportTableSkeleton({
               </TableHead>
               <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
                 {intl.formatMessage({
-                  id: 'reports.table.status',
+                  id: 'common.status',
                   defaultMessage: 'Status'
                 })}
               </TableHead>

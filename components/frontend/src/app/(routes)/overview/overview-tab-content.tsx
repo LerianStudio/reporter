@@ -106,7 +106,7 @@ export function OverviewTabContent() {
             "Need help or additional documentation? We're here to help."
         })}
         action={intl.formatMessage({
-          id: 'smartTemplates.cards.docs.action',
+          id: 'common.actions.readDocs',
           defaultMessage: 'Read the Docs'
         })}
         onClick={() => {

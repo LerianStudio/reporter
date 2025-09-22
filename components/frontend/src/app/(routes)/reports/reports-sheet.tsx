@@ -178,7 +178,7 @@ export function ReportsSheet({
 
               <p className="text-muted-foreground text-sm">
                 {intl.formatMessage({
-                  id: 'reports.form.mandatoryFields',
+                  id: 'common.form.mandatoryFields',
                   defaultMessage: '(*) mandatory fields'
                 })}
               </p>
@@ -223,7 +223,7 @@ export function ReportsSheet({
 
               <p className="text-muted-foreground text-sm">
                 {intl.formatMessage({
-                  id: 'reports.form.mandatoryFields',
+                  id: 'common.form.mandatoryFields',
                   defaultMessage: '(*) mandatory fields'
                 })}
               </p>

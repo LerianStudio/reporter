@@ -70,6 +70,8 @@ docs
 *.tgz
 
 # Lerian Protocol
+CLAUDE.md
 .claude/
-protocol-assets/
+.protocol-assets/
+.protocol-backups/
 .mcp.json
