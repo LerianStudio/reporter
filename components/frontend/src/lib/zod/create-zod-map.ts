@@ -6,14 +6,13 @@ import dayjs from 'dayjs'
 
 export default function createZodMap(intl: IntlShape) {
   return (issue: any, ctx?: { defaultError?: string }) => {
-    let message: string = ctx?.defaultError || intl.formatMessage(messages.invalid_type)
+    let message: string =
+      ctx?.defaultError || intl.formatMessage(messages.invalid_type)
 
     switch (issue.code) {
       case 'invalid_type':
         if ((issue as any).received === 'undefined') {
           message = intl.formatMessage(messages.invalid_type_received_undefined)
-        } else {
-          message = intl.formatMessage(messages.invalid_type)
         }
         break
       case 'too_small':
