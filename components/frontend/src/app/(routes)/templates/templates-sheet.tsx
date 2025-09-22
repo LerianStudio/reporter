@@ -234,7 +234,7 @@ export function TemplatesSheet({
 
             <p className="text-muted-foreground text-sm">
               {intl.formatMessage({
-                id: 'templates.form.mandatoryFields',
+                id: 'common.form.mandatoryFields',
                 defaultMessage: '(*) mandatory fields'
               })}
             </p>

@@ -6,7 +6,8 @@ import dayjs from 'dayjs'
 
 export default function createZodMap(intl: IntlShape) {
   return (issue: any, ctx?: { defaultError?: string }) => {
-    let message: string = ctx?.defaultError || 'Validation error'
+    let message: string =
+      ctx?.defaultError || intl.formatMessage(messages.invalid_type)
 
     switch (issue.code) {
       case 'invalid_type':

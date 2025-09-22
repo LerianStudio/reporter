@@ -3,7 +3,7 @@ import { defineMessages } from 'react-intl'
 const messages = defineMessages({
   invalid_type: {
     id: 'errors.invalid_type',
-    defaultMessage: ''
+    defaultMessage: 'Invalid type'
   },
   invalid_type_received_undefined: {
     id: 'errors.invalid_type_received_undefined',

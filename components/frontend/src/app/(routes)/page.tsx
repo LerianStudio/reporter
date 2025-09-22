@@ -116,7 +116,7 @@ export default function Page() {
                 }}
               >
                 {intl.formatMessage({
-                  id: 'smartTemplates.about.readDocs',
+                  id: 'common.actions.readDocs',
                   defaultMessage: 'Read the Docs'
                 })}
               </Button>

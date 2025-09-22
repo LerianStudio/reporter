@@ -158,19 +158,19 @@ export const TemplatesDataTable: React.FC<TemplatesTableProps> = ({
                 <TableRow>
                   <TableHead>
                     {intl.formatMessage({
-                      id: 'templates.field.name',
+                      id: 'common.field.name',
                       defaultMessage: 'Name'
                     })}
                   </TableHead>
                   <TableHead>
                     {intl.formatMessage({
-                      id: 'templates.field.type',
+                      id: 'common.field.type',
                       defaultMessage: 'Type'
                     })}
                   </TableHead>
                   <TableHead>
                     {intl.formatMessage({
-                      id: 'templates.field.lastModified',
+                      id: 'common.field.lastModified',
                       defaultMessage: 'Last Modified'
                     })}
                   </TableHead>

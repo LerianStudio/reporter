@@ -246,7 +246,7 @@ export function TemplatesTabContent() {
                 onClick={handleCreateTemplate}
               >
                 {intl.formatMessage({
-                  id: 'templates.listingTemplate.addButton',
+                  id: 'common.new.template',
                   defaultMessage: 'New Template'
                 })}
               </Button>
