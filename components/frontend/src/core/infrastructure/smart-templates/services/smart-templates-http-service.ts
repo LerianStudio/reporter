@@ -29,12 +29,26 @@ export class SmartTemplatesHttpService extends HttpService {
       'X-Request-Id': this.requestIdRepository.get()!
     }
 
+    console.log('[INFO] - SmartTemplatesHttpService - Creating defaults', {})
+
     if (process.env.PLUGIN_AUTH_ENABLED === 'true') {
+      console.log(
+        '[INFO] - SmartTemplatesHttpService - PLUGIN_AUTH_ENABLED is',
+        process.env.PLUGIN_AUTH_ENABLED
+      )
+
       const session = await getServerSession(nextAuthOptions)
       if (session?.user?.access_token) {
+        console.log(
+          '[INFO] - SmartTemplatesHttpService - Session user access token',
+          session.user.access_token
+        )
+
         headers.Authorization = `Bearer ${session.user.access_token}`
       }
     }
+
+    console.log('[INFO] - SmartTemplatesHttpService - Headers', headers)
 
     return {
       headers,
