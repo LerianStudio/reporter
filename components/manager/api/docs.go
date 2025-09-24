@@ -177,7 +177,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -236,7 +236,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
                         }
                     }
                 }
@@ -281,7 +281,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
                         }
                     }
                 }
@@ -397,7 +397,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -468,7 +468,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -534,7 +534,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -632,7 +632,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
                         }
                     }
                 }
@@ -655,10 +655,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
+                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -751,7 +748,52 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_pkg_mongodb_report.Report": {
+        "plugin-smart-templates_v2_pkg_model.FilterCondition": {
+            "type": "object",
+            "properties": {
+                "between": {
+                    "description": "Between specifies a range condition with exactly two values [min, max].\nMatches records where min \u003c= field \u003c= max\nExample: {\"between\": [100, 1000]} matches records where 100 \u003c= field \u003c= 1000",
+                    "type": "array",
+                    "items": {}
+                },
+                "eq": {
+                    "description": "Equals specifies exact value matches. Multiple values treated as OR conditions.\nExample: {\"eq\": [\"active\", \"pending\"]} matches records where field equals \"active\" OR \"pending\"",
+                    "type": "array",
+                    "items": {}
+                },
+                "gt": {
+                    "description": "GreaterThan specifies values that must be greater than the provided value.\nShould contain exactly one value for comparison.\nExample: {\"gt\": [100]} matches records where field \u003e 100",
+                    "type": "array",
+                    "items": {}
+                },
+                "gte": {
+                    "description": "GreaterOrEqual specifies values that must be greater than or equal to the provided value.\nShould contain exactly one value for comparison.\nExample: {\"gte\": [\"2025-06-01\"]} matches records where field \u003e= \"2025-06-01\"",
+                    "type": "array",
+                    "items": {}
+                },
+                "in": {
+                    "description": "In specifies a list of values where the field must match any one of them.\nMultiple values treated as OR conditions.\nExample: {\"in\": [\"active\", \"pending\", \"suspended\"]} matches any of these statuses",
+                    "type": "array",
+                    "items": {}
+                },
+                "lt": {
+                    "description": "LessThan specifies values that must be less than the provided value.\nShould contain exactly one value for comparison.\nExample: {\"lt\": [1000]} matches records where field \u003c 1000",
+                    "type": "array",
+                    "items": {}
+                },
+                "lte": {
+                    "description": "LessOrEqual specifies values that must be less than or equal to the provided value.\nShould contain exactly one value for comparison.\nExample: {\"lte\": [\"2025-06-30\"]} matches records where field \u003c= \"2025-06-30\"",
+                    "type": "array",
+                    "items": {}
+                },
+                "nin": {
+                    "description": "NotIn specifies a list of values where the field must NOT match any of them.\nMultiple values treated as AND NOT conditions.\nExample: {\"nin\": [\"deleted\", \"archived\"]} excludes these statuses",
+                    "type": "array",
+                    "items": {}
+                }
+            }
+        },
+        "plugin-smart-templates_v2_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -770,10 +812,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
+                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -799,7 +838,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_pkg_mongodb_template.Template": {
+        "plugin-smart-templates_v2_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -833,7 +872,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0.0",
+	Version:          "2.0.0",
 	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},

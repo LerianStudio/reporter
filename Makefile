@@ -140,6 +140,40 @@ test:
 	@go test -v ./...
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Tests completed successfully$(GREEN) ✔️$(NC)"
 
+# --- Test suites ---
+.PHONY: test-integration
+test-integration:
+	$(call title1,"Running integration tests (manager endpoints)")
+	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/integration
+
+.PHONY: test-e2e
+test-e2e:
+	$(call title1,"Running E2E tests (manager → RabbitMQ → worker)")
+	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/e2e
+
+.PHONY: test-fuzzy
+test-fuzzy:
+	$(call title1,"Running fuzz/robustness tests")
+	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/fuzzy
+
+.PHONY: test-chaos
+test-chaos:
+	$(call title1,"Running chaos tests (RabbitMQ/DB resilience)\nSet RUN_CHAOS=true to enable")
+	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} RUN_CHAOS=$${RUN_CHAOS:-false} go test -v -race -count=1 ./tests/chaos
+
+# Run all test suites
+.PHONY: test-all
+test-all:
+	$(call title1,"Running all test suites")
+	$(call title1,"Running integration tests")
+	@$(MAKE) test-integration
+	$(call title1,"Running e2e tests")
+	@$(MAKE) test-e2e
+	$(call title1,"Running fuzzy tests")
+	@$(MAKE) test-fuzzy
+	$(call title1,"Running chaos tests (set RUN_CHAOS=true to enable) ")
+	@$(MAKE) test-chaos
+
 .PHONY: cover-html
 cover-html:
 	$(call title1,"Generating HTML test coverage report")
@@ -305,9 +339,15 @@ restart:
 .PHONY: rebuild-up
 rebuild-up:
 	$(call title1,"Rebuilding and restarting services")
-	@$(DOCKER_CMD) -f docker-compose.yml down
-	@$(DOCKER_CMD) -f docker-compose.yml build
-	@$(DOCKER_CMD) -f docker-compose.yml up -d
+	@echo "Rebuilding infrastructure services..."
+	@cd $(INFRA_DIR) && ($(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate)
+	@echo "Rebuilding backend components..."
+	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "Rebuilding services in $$dir..."; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate) || exit 1; \
+		fi; \
+	done
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Services rebuilt and restarted successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: logs
