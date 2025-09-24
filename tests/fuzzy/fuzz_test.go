@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,18 +21,15 @@ func FuzzCreateReportInput(f *testing.F) {
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
 	headers := h.AuthHeadersWithOrg(h.RandHex(6), "00000000-0000-0000-0000-000000000000")
-	allowed := regexp.MustCompile(`^[\p{L}\p{N} _.,\-]*$`)
+	reCtl := regexp.MustCompile(`[\x00-\x1F\x7F]`)
 
 	f.Fuzz(func(t *testing.T, tplID string) {
 		if len(tplID) > 128 {
 			tplID = tplID[:128]
 		}
-		for _, c := range tplID {
-			if c < 0x20 {
-				tplID = allowed.ReplaceAllString(tplID, " ")
-				break
-			}
-		}
+		// Remove control characters and trim spaces
+		tplID = reCtl.ReplaceAllString(tplID, "")
+		tplID = strings.TrimSpace(tplID)
 
 		payload := map[string]any{
 			"templateId": tplID,

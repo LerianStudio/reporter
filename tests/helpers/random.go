@@ -3,6 +3,7 @@ package helpers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"math/big"
 )
 
 func RandString(n int) string {
@@ -13,11 +14,15 @@ func RandString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 	out := make([]byte, n)
-	tmp := make([]byte, n)
 
-	_, _ = rand.Read(tmp)
-	for i, b := range tmp {
-		out[i] = letters[int(b)%len(letters)]
+	upperBound := big.NewInt(int64(len(letters)))
+	for i := 0; i < n; i++ {
+		num, err := rand.Int(rand.Reader, upperBound)
+		if err != nil {
+			panic("failed to generate random number: " + err.Error())
+		}
+
+		out[i] = letters[num.Int64()]
 	}
 
 	return string(out)
@@ -29,7 +34,9 @@ func RandHex(n int) string {
 	}
 
 	b := make([]byte, n)
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic("failed to read random bytes: " + err.Error())
+	}
 
 	return hex.EncodeToString(b)
 }

@@ -35,7 +35,8 @@ func TestE2E_ReportLifecycle_ManagerToWorker(t *testing.T) {
 	if len(templates.Items) > 0 {
 		templateID = templates.Items[0].ID
 	} else {
-		templateFile := "/home/arthur_lerian/Documents/plugin-smart-templates/docs/examples/account-status_txt.tpl"
+		// Criar novo template usando account-status
+		templateFile := "../../docs/examples/account-status_txt.tpl"
 		code, body, err = cli.CreateTemplateMultipart(ctx, "/v1/templates", headers, templateFile, "Account Status Template", "TXT")
 		if err != nil {
 			t.Fatalf("create template error: %v", err)
