@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.2] - 2025-09-24
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.1...v2.1.0-beta.2)
+Contributors: Augusto Alvarenga, lerian-studio
+
+### 🐛 Bug Fixes
+- **Frontend Compatibility**: Updated `@lerianstudio/console-layout` to version 1.6.0-beta.9, resolving previous compatibility issues. This ensures smoother integration with the latest console features, enhancing the stability and performance of the user interface.
+
+### 🔧 Maintenance
+- **Session Management**: Improved logging within the `SmartTemplatesHttpService` for better monitoring and troubleshooting of session-related issues. This enhancement contributes to overall system reliability and a better user experience.
+- **Changelog Update**: The changelog has been updated to accurately reflect all recent changes and improvements, ensuring users and developers have access to the latest project information.
+
+
 ## [v2.1.0-beta.1] - 2025-09-22
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.1-beta.3...v2.1.0-beta.1)
