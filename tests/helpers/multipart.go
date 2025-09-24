@@ -40,6 +40,7 @@ func (c *HTTPClient) CreateTemplateMultipart(ctx context.Context, path string, h
 		return 0, nil, fmt.Errorf("open template file %s: %w", templateFile, err)
 	}
 	defer f.Close()
+
 	if _, err := io.Copy(fw, f); err != nil {
 		return 0, nil, fmt.Errorf("write template content: %w", err)
 	}
