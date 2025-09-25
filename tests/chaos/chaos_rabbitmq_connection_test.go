@@ -12,10 +12,6 @@ import (
 // TestChaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
 // a message to RabbitMQ but the connection is closed
 func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
-	if !shouldRunChaos(t) {
-		t.Skip("Chaos tests disabled. Set RUN_CHAOS=true to enable.")
-	}
-
 	env := h.LoadEnvironment()
 	if env.DefaultOrgID == "" {
 		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
@@ -23,7 +19,7 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	t.Log("🔧 Starting RabbitMQ connection chaos test...")
 
@@ -94,10 +90,6 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
 func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
-	if !shouldRunChaos(t) {
-		t.Skip("Chaos tests disabled. Set RUN_CHAOS=true to enable.")
-	}
-
 	env := h.LoadEnvironment()
 	if env.DefaultOrgID == "" {
 		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
@@ -105,7 +97,7 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	t.Log("🔧 Starting RabbitMQ channel chaos test...")
 
@@ -161,10 +153,6 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
 func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
-	if !shouldRunChaos(t) {
-		t.Skip("Chaos tests disabled. Set RUN_CHAOS=true to enable.")
-	}
-
 	env := h.LoadEnvironment()
 	if env.DefaultOrgID == "" {
 		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
@@ -172,7 +160,7 @@ func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	t.Log("🔧 Starting RabbitMQ queue chaos test...")
 

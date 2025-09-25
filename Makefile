@@ -2,23 +2,11 @@
 # Coordinates all component Makefiles and provides centralized commands.
 
 # Define the root directory of the project
-SERVICE_NAME := plugin-smart-templates
-BIN_DIR := ./.bin
-ARTIFACTS_DIR := ./artifacts
-
-# Ensure artifacts directory exists
-$(shell mkdir -p $(ARTIFACTS_DIR))
-
-# Define the root directory of the project
 ROOT_DIR := $(shell pwd)
 
-# Include shared color definitions and utility functions
-include $(ROOT_DIR)/pkg/shell/makefile_colors.mk
-include $(ROOT_DIR)/pkg/shell/makefile_utils.mk
-
-#-------------------------------------------------------
-# Core Commands
-#-------------------------------------------------------
+# Define the root directory of the project
+SERVICE_NAME := plugin-smart-templates
+BIN_DIR := ./.bin
 
 # Component directories
 INFRA_DIR := ./components/infra
@@ -27,43 +15,286 @@ WORKER_DIR := ./components/worker
 FRONT_END_DIR := ./components/frontend
 
 # Define a list of all component directories for easier iteration
-WORKER_MANAGER_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
+BACKEND_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
 COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR) $(FRONT_END_DIR)
 
-# Include shared color definitions and utility functions
-#include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
-#include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
-#include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
+# Include shared utility functions
+# Define common utility functions
+define print_title
+	@echo ""
+	@echo "------------------------------------------"
+	@echo "   📝 $(1)  "
+	@echo "------------------------------------------"
+endef
 
-# Display available commands
-.PHONY: info
-info:
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
-	@echo "To run a specific command inside the audit container using make, you can execute:                                                     "
-	@echo "                                                                                                                                       "
-	@echo "make audit COMMAND=\"any\"                                                                                                            "
-	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the container. Replace \"any\" with the desired command you want to execute. "
-	@echo "                                                                                                                         "
-	@echo "## Docker commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"build\"                                Builds all Docker images defined in docker-compose.yml."
-	@echo "  COMMAND=\"up\"                                   Starts and runs all services defined in docker-compose.yml."
-	@echo "  COMMAND=\"start\"                                Starts existing containers defined in docker-compose.yml without creating them."
-	@echo "  COMMAND=\"stop\"                                 Stops running containers defined in docker-compose.yml without removing them."
-	@echo "  COMMAND=\"down\"                                 Stops and removes containers, networks, and volumes defined in docker-compose.yml."
-	@echo "  COMMAND=\"destroy\"                              Stops and removes containers, networks, and volumes (including named volumes) defined in docker-compose.yml."
-	@echo "  COMMAND=\"restart\"                              Stops and removes containers, networks, and volumes, then starts all services in detached mode."
-	@echo "  COMMAND=\"logs\"                                 Shows the last 100 lines of logs and follows live log output for services defined in docker-compose.yml."
-	@echo "  COMMAND=\"logs-api\"                             Shows the last 100 lines of logs and follows live log output for the audit service defined in docker-compose.yml."
-	@echo "  COMMAND=\"ps\"                                   Lists the status of containers defined in docker-compose.yml."
-	@echo "                                                                                                                         "
-	@echo "## App commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"generate-docs\" 						  Generates Swagger API documentation and an OpenAPI Specification."
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
+# Check if a command is available
+define check_command
+	@which $(1) > /dev/null || (echo "Error: $(1) is required but not installed. $(2)" && exit 1)
+endef
+
+# Check if environment files exist
+define check_env_files
+	@missing=false; \
+	for dir in $(COMPONENTS); do \
+		if [ ! -f "$$dir/.env" ]; then \
+			missing=true; \
+			break; \
+		fi; \
+	done; \
+	if [ "$$missing" = "true" ]; then \
+		echo "Environment files are missing. Running set-env command first..."; \
+		$(MAKE) set-env; \
+	fi
+endef
+
+# ------------------------------------------------------
+# Test configuration
+# ------------------------------------------------------
+TEST_MANAGER_URL ?= http://localhost:4005
+TEST_HEALTH_WAIT ?= 60
+
+# macOS ld64 workaround: newer ld emits noisy LC_DYSYMTAB warnings when linking test binaries with -race.
+# If available, prefer Apple's classic linker to silence them.
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  # Prefer classic mode to suppress LC_DYSYMTAB warnings on macOS.
+  # Set DISABLE_OSX_LINKER_WORKAROUND=1 to disable this behavior.
+  ifneq ($(DISABLE_OSX_LINKER_WORKAROUND),1)
+    GO_TEST_LDFLAGS := -ldflags="-linkmode=external -extldflags=-ld_classic"
+  else
+    GO_TEST_LDFLAGS :=
+  endif
+else
+  GO_TEST_LDFLAGS :=
+endif
+
+define wait_for_services
+	bash -c 'echo "Waiting for services to become healthy..."; \
+	sleep 40; \
+	for i in $$(seq 1 $(TEST_HEALTH_WAIT)); do \
+	  if curl -fsS $(TEST_MANAGER_URL)/health >/dev/null 2>&1; then \
+	    echo "Services are up"; exit 0; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "[error] Services not healthy after $(TEST_HEALTH_WAIT)s"; exit 1'
+endef
+
+#-------------------------------------------------------
+# Help Command
+#-------------------------------------------------------
+
+help:
+	@echo ""
+	@echo ""
+	@echo "Plugin Smart Templates Commands"
+	@echo ""
+	@echo ""
+	@echo "Core Commands:"
+	@echo "  make help                        - Display this help message"
+	@echo "  make test                        - Run tests on all components"
+	@echo "  make build                       - Build all components"
+	@echo "  make clean                       - Clean all build artifacts"
+	@echo "  make cover                       - Run test coverage"
+	@echo ""
+	@echo ""
+	@echo "Code Quality Commands:"
+	@echo "  make lint                        - Run linting on all components"
+	@echo "  make format                      - Format code in all components"
+	@echo "  make tidy                        - Clean dependencies in root directory"
+	@echo "  make check-tests                 - Verify test coverage for components"
+	@echo "  make sec                         - Run security checks using gosec"
+	@echo ""
+	@echo ""
+	@echo "Git Hook Commands:"
+	@echo "  make setup-git-hooks             - Install and configure git hooks"
+	@echo "  make check-hooks                 - Verify git hooks installation status"
+	@echo "  make check-envs                  - Check if github hooks are installed and secret env files are not exposed"
+	@echo ""
+	@echo ""
+	@echo "Setup Commands:"
+	@echo "  make set-env                     - Copy .env.example to .env for all components"
+	@echo ""
+	@echo ""
+	@echo "Service Commands:"
+	@echo "  make up                           - Start all services with Docker Compose"
+	@echo "  make down                         - Stop all services with Docker Compose"
+	@echo "  make start                        - Start all containers"
+	@echo "  make stop                         - Stop all containers"
+	@echo "  make restart                      - Restart all containers"
+	@echo "  make rebuild-up                   - Rebuild and restart all services"
+	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
+	@echo "  make logs                         - Show logs for all services"
+	@echo ""
+	@echo ""
+	@echo "Documentation Commands:"
+	@echo "  make generate-docs               - Generate Swagger documentation for all services"
+	@echo ""
+	@echo ""
+	@echo "Test Suite Aliases:"
+	@echo "  make test-unit                   - Run Go unit tests (exclude ./tests/**)"
+	@echo "  make test-integration            - Run Go integration tests (brings up backend)"
+	@echo "  make test-e2e                    - Run Apidog E2E tests (brings up backend)"
+	@echo "  make test-fuzzy                  - Run fuzz/robustness tests (brings up backend)"
+	@echo "  make test-fuzz-engine            - Run go fuzz engine on fuzzy tests (brings up backend)"
+	@echo "  make test-chaos                  - Run chaos/resilience tests (brings up backend)"
+	@echo "  make test-property               - Run property-based tests"
+	@echo ""
+	@echo ""
+
+# ------------------------------------------------------
+# Test tooling configuration
+# ------------------------------------------------------
+
+TEST_REPORTS_DIR ?= ./reports
+GOTESTSUM := $(shell command -v gotestsum 2>/dev/null)
+RETRY_ON_FAIL ?= 0
+
+.PHONY: tools tools-gotestsum
+tools: tools-gotestsum ## Install helpful dev/test tools
+
+tools-gotestsum:
+	@if [ -z "$(GOTESTSUM)" ]; then \
+		echo "Installing gotestsum..."; \
+		GO111MODULE=on go install gotest.tools/gotestsum@latest; \
+	else \
+		echo "gotestsum already installed: $(GOTESTSUM)"; \
+	fi
+
+#-------------------------------------------------------
+# Test Commands
+#-------------------------------------------------------
+
+.PHONY: test
+test:
+	@./scripts/run-tests.sh
+
+
+#-------------------------------------------------------
+# Test Suite Aliases
+#-------------------------------------------------------
+
+# Unit tests (exclude ./tests/** packages)
+.PHONY: test-unit
+test-unit:
+	$(call print_title,Running Go unit tests (excluding ./tests/**))
+	$(call check_command,go,"Install Go from https://golang.org/doc/install")
+	@set -e; mkdir -p $(TEST_REPORTS_DIR)/unit; \
+	pkgs=$$(go list ./... | awk '!/\/tests($|\/)/'); \
+	if [ -z "$$pkgs" ]; then \
+	  echo "No unit test packages found (outside ./tests)**"; \
+	else \
+	  if [ -n "$(GOTESTSUM)" ]; then \
+		echo "Running unit tests with gotestsum"; \
+		gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/unit/unit.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) $$pkgs || { \
+		  if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
+			echo "Retrying unit tests once..."; \
+			gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/unit/unit-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) $$pkgs; \
+		  else \
+			exit 1; \
+		  fi; \
+		}; \
+	  else \
+		go test -v -race -count=1 $(GO_TEST_LDFLAGS) $$pkgs; \
+	  fi; \
+	fi
+
+.PHONY: test-integration
+test-integration:
+	$(call print_title,Running Go integration tests (with Docker stack))
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@set -e; mkdir -p $(TEST_REPORTS_DIR)/integration; \
+	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
+	$(MAKE) up; \
+	$(call wait_for_services); \
+	if [ -n "$(GOTESTSUM)" ]; then \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration || { \
+	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
+	      echo "Retrying integration tests once..."; \
+	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	    else \
+	      exit 1; \
+	    fi; \
+	  }; \
+	else \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	fi
+
+.PHONY: test-e2e
+test-e2e:
+	$(call print_title,Running E2E tests with Apidog CLI (with Docker stack))
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@set -e; \
+	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
+	$(MAKE) up; \
+	$(call wait_for_services); \
+	mkdir -p ./reports/e2e; \
+	echo "Running Apidog CLI via npx against tests/e2e/local.apidog-cli.json"; \
+	npx --yes @apidog/cli@latest run ./tests/e2e/local.apidog-cli.json -r html,cli --out-dir ./reports/e2e || \
+	npx --yes apidog-cli@latest run ./tests/e2e/local.apidog-cli.json -r html,cli --out-dir ./reports/e2e
+
+# Fuzzy/robustness tests
+.PHONY: test-fuzzy
+test-fuzzy:
+	$(call print_title,Running fuzz/robustness tests - requires Docker stack)
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@set -e; mkdir -p $(TEST_REPORTS_DIR)/fuzzy; \
+	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
+	$(MAKE) up; \
+	$(call wait_for_services); \
+	if [ -n "$(GOTESTSUM)" ]; then \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy || { \
+	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
+	      echo "Retrying fuzzy tests once..."; \
+	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	    else \
+	      exit 1; \
+	    fi; \
+	  }; \
+	else \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	fi
+
+# Chaos tests
+.PHONY: test-chaos
+test-chaos:
+	$(call print_title,Running chaos tests - requires Docker stack)
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@set -e; mkdir -p $(TEST_REPORTS_DIR)/chaos; \
+	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
+	$(MAKE) up; \
+	$(call wait_for_services); \
+	if [ -n "$(GOTESTSUM)" ]; then \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos || { \
+	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
+	      echo "Retrying chaos tests once..."; \
+	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos-rerun.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	    else \
+	      exit 1; \
+	    fi; \
+	  }; \
+	else \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	fi
+
+# Run all test suites
+.PHONY: test-all
+test-all:
+	$(call print_title,Running all tests)
+	$(call print_title,Running unit tests)
+	$(MAKE) test-unit
+	$(call print_title,Running integration tests)
+	$(MAKE) test-integration
+	$(call print_title,Running chaos tests)
+	$(MAKE) test-chaos
+	$(call print_title,Running e2e tests)
+	$(MAKE) test-e2e
+	$(call print_title,Running fuzzy tests)
+	$(MAKE) test-fuzzy
 
 #-------------------------------------------------------
 # Git Hook Commands
@@ -129,50 +360,6 @@ set-env:
 build:
 	$(call title1,"Building component")
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Build completed successfully$(GREEN) ✔️$(NC)"
-
-#-------------------------------------------------------
-# Test Commands
-#-------------------------------------------------------
-
-.PHONY: test
-test:
-	$(call title1,"Running tests")
-	@go test -v ./...
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Tests completed successfully$(GREEN) ✔️$(NC)"
-
-# --- Test suites ---
-.PHONY: test-integration
-test-integration:
-	$(call title1,"Running integration tests (manager endpoints)")
-	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/integration
-
-.PHONY: test-e2e
-test-e2e:
-	$(call title1,"Running E2E tests (manager → RabbitMQ → worker)")
-	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/e2e
-
-.PHONY: test-fuzzy
-test-fuzzy:
-	$(call title1,"Running fuzz/robustness tests")
-	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} go test -v -race -count=1 ./tests/fuzzy
-
-.PHONY: test-chaos
-test-chaos:
-	$(call title1,"Running chaos tests (RabbitMQ/DB resilience)\nSet RUN_CHAOS=true to enable")
-	@MANAGER_URL=$${MANAGER_URL:-http://localhost:4005} RUN_CHAOS=$${RUN_CHAOS:-false} go test -v -race -count=1 ./tests/chaos
-
-# Run all test suites
-.PHONY: test-all
-test-all:
-	$(call title1,"Running all test suites")
-	$(call title1,"Running integration tests")
-	@$(MAKE) test-integration
-	$(call title1,"Running e2e tests")
-	@$(MAKE) test-e2e
-	$(call title1,"Running fuzzy tests")
-	@$(MAKE) test-fuzzy
-	$(call title1,"Running chaos tests (set RUN_CHAOS=true to enable) ")
-	@$(MAKE) test-chaos
 
 .PHONY: cover-html
 cover-html:
@@ -292,7 +479,7 @@ up:
 	@echo "Starting infrastructure services first..."
 	@cd $(INFRA_DIR) && $(MAKE) up
 	@echo "Starting backend components..."
-	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
 			echo "Starting services in $$dir..."; \
 			(cd $$dir && $(MAKE) up) || exit 1; \
@@ -310,7 +497,7 @@ start:
 down:
 	$(call print_title,"Stopping services")
 	@echo "Stopping components..."
-	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
 			echo "Stopping services in $$dir..."; \
 			(cd $$dir && $(MAKE) down) || exit 1; \
@@ -342,7 +529,7 @@ rebuild-up:
 	@echo "Rebuilding infrastructure services..."
 	@cd $(INFRA_DIR) && ($(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate)
 	@echo "Rebuilding backend components..."
-	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
 			echo "Rebuilding services in $$dir..."; \
 			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate) || exit 1; \
@@ -397,8 +584,8 @@ verify-api-docs:
 	@sh ./scripts/verify-api-docs.sh
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) API documentation verification completed$(GREEN) ✔️$(NC)"
 
-.PHONY: validate-api-docs
-validate-api-docs:
+.PHONY: validate-api-docs-legacy
+validate-api-docs-legacy:
 	$(call title1,"Validating API documentation structure and implementation")
 	@if [ -f "./scripts/package.json" ]; then \
 		echo "$(CYAN)Using npm to run validation...$(NC)"; \

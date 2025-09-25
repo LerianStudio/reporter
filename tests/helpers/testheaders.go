@@ -1,18 +1,21 @@
 package helpers
 
 import (
-	"fmt"
+	"os"
 )
 
-func AuthHeaders(seed string) map[string]string {
-	return map[string]string{
-		"X-Request-Id": fmt.Sprintf("req-%s", seed),
+// AuthHeadersWithOrg returns default headers including Authorization and X-Request-Id.
+// If TEST_AUTH_HEADER is set, its value is used for Authorization.
+func AuthHeadersWithOrg(orgID string) map[string]string {
+	hdr := map[string]string{
+		"Content-Type":      "application/json",
+		"X-Organization-Id": orgID,
 	}
-}
+	if v := os.Getenv("TEST_AUTH_HEADER"); v != "" {
+		hdr["Authorization"] = v
+	} else {
+		hdr["Authorization"] = "Bearer test"
+	}
 
-func AuthHeadersWithOrg(seed, orgID string) map[string]string {
-	h := AuthHeaders(seed)
-	h["X-Organization-Id"] = orgID
-
-	return h
+	return hdr
 }

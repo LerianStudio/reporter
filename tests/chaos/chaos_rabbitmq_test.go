@@ -9,7 +9,6 @@ import (
 
 // Restarts RabbitMQ container and validates recovery of the system
 func TestChaos_RabbitMQ_RestartAndRecover(t *testing.T) {
-	shouldRunChaos(t)
 	env := h.LoadEnvironment()
 	name := env.RabbitContainer
 	if name == "" {

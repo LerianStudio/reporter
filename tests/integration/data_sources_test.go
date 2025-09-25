@@ -17,7 +17,7 @@ func TestIntegration_DataSources_CacheBehavior(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
 	if err != nil || code != 200 {

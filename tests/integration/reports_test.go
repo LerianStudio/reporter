@@ -17,9 +17,9 @@ func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
-	q := "/v1/reports?status=finished&limit=2&page=1"
+	q := "/v1/reports?status=Finished&limit=2&page=1"
 	code, body, err := cli.Request(ctx, "GET", q, headers, nil)
 	if err != nil || code != 200 {
 		t.Fatalf("list reports code=%d err=%v body=%s", code, err, string(body))
@@ -39,7 +39,7 @@ func TestIntegration_Reports_Create_MinimalValidation(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	payload := map[string]any{
 		"templateId": "00000000-0000-0000-0000-000000000000",

@@ -17,7 +17,7 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	code, body, err := cli.Request(ctx, "GET", "/v1/reports?limit=1", headers, nil)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 		t.Fatalf("Report ID mismatch: expected %s, got %s", reportID, report.ID)
 	}
 
-	validStatuses := []string{"processing", "Processing", "finished", "Finished", "error", "Error"}
+	validStatuses := []string{"Processing", "Finished", "Error"}
 	statusValid := false
 	for _, validStatus := range validStatuses {
 		if report.Status == validStatus {
@@ -113,7 +113,7 @@ func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	invalidID := "00000000-0000-0000-0000-000000000000"
 	code, body, err := cli.Request(ctx, "GET", fmt.Sprintf("/v1/reports/%s", invalidID), headers, nil)
@@ -157,9 +157,9 @@ func TestIntegration_Reports_GetByID_StatusFinished(t *testing.T) {
 	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(h.RandHex(6), env.DefaultOrgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
-	code, body, err := cli.Request(ctx, "GET", "/v1/reports?status=finished&limit=1", headers, nil)
+	code, body, err := cli.Request(ctx, "GET", "/v1/reports?status=Finished&limit=1", headers, nil)
 	if err != nil {
 		t.Fatalf("list finished reports error: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestIntegration_Reports_GetByID_StatusFinished(t *testing.T) {
 	}
 	_ = json.Unmarshal(body, &report)
 
-	if report.Status != "finished" {
+	if report.Status != "Finished" {
 		t.Fatalf("Expected report status 'finished', got '%s'", report.Status)
 	}
 
