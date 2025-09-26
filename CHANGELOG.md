@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.4] - 2025-09-26
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.3...v2.1.0-beta.4)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 🔧 Maintenance
+- **Testing and Documentation Security**: We've improved the security of our testing configurations by treating the `test_scenario_id` as a secret. This change ensures that sensitive information is not exposed in logs or documentation, providing a safer environment for end-to-end testing.
+- **Build and Frontend Security**: In line with best security practices, the `test_scenario_id` is now handled as a secret within our build and frontend components. This update minimizes the risk of sensitive data exposure, enhancing the overall security of our build processes and frontend operations.
+- **Changelog Update**: Our changelog has been thoroughly updated to reflect these changes, ensuring that all modifications are documented and accessible. This keeps our project documentation current and valuable for all stakeholders.
+
+
 ## [v2.1.0-beta.3] - 2025-09-26
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.2...v2.1.0-beta.3)
