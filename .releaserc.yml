@@ -26,7 +26,7 @@ plugins:
         release: patch
       - breaking: true
         release: major
-        
+
   # Plugin to version the CHANGELOG.md
   - path: "@semantic-release/git"
     assets:
@@ -41,7 +41,7 @@ plugins:
     successComment: false
     failComment: false
     labels: []
-  
+
   # Plugin to perform the backmerge between the 'main' and 'develop' branches
   - path: "@saithodev/semantic-release-backmerge"
     backmergeBranches:
@@ -53,10 +53,7 @@ plugins:
 
 branches:
   - name: main
-  - name: release-candidate
-    prerelease: rc
   - name: develop
     prerelease: beta
-  - name: hotfix/*
-    prerelease: false
-    channel: false
+  - name: release-candidate
+    prerelease: rc
