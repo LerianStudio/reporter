@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.3] - 2025-09-26
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.2...v2.1.0-beta.3)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 🔧 Maintenance
+- **Simplified Release Process**: Outdated hotfix rules have been removed from the semantic release configuration. This streamlines the release process, reducing maintenance overhead and helping us deliver updates more efficiently.
+- **Updated Documentation**: The CHANGELOG has been updated to reflect the latest changes, ensuring you have the most current information about the improvements and updates in this release.
+
+### ✨ Improvements
+- **Enhanced Testing Workflow**: We've upgraded our end-to-end testing process to use the latest shared workflow version. This change enhances the reliability of test executions, reducing integration issues and ensuring a smoother user experience.
+- **Streamlined Deployment with ArgoCD**: ArgoCD synchronization is now part of our build workflow. This integration ensures consistent application state management across environments, improving deployment reliability and coordination.
+
+
 ## [v2.1.0-beta.2] - 2025-09-24
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.1...v2.1.0-beta.2)
