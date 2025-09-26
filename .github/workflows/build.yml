@@ -44,7 +44,7 @@ jobs:
           app_name: 'plugin-smart-templates-worker'
           working_dir: 'components/worker'
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-      
+
       - name: Build And Publish Docker Image to Dockerhub - Manager
         uses: LerianStudio/github-actions-docker-private-pipeline@main
         with:
@@ -57,7 +57,7 @@ jobs:
   # Build and Publish Docker Image to GHCR - Frontend
   build_and_publish_ghcr_frontend:
     runs-on: firmino-lxc-runners
-    steps:    
+    steps:
       - name: Build And Publish Frontend Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
@@ -65,8 +65,8 @@ jobs:
           context: .
           working_dir: components/frontend
           token: ${{ secrets.MANAGE_TOKEN }}
-  
-  # Build and Publish Docker Image to Dockerhub - Frontend        
+
+  # Build and Publish Docker Image to Dockerhub - Frontend
   build_and_publish_dockerhub_frontend:
     runs-on: firmino-lxc-runners
     steps:

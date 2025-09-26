@@ -153,7 +153,7 @@ jobs:
   update_gitops:
     needs: [detect_changes, build_and_publish]
     if: ${{ needs.build_and_publish.result == 'success' && (needs.detect_changes.outputs.has_backend == 'true' || needs.detect_changes.outputs.has_frontend == 'true') }}
-    runs-on: ubuntu-latest
+    runs-on: firmino-lxc-runners
     steps:
       - uses: actions/checkout@v4
         with:
@@ -240,11 +240,9 @@ jobs:
     if: ${{ env.IS_BETA == 'true' || env.IS_RC == 'true' }}
     uses: LerianStudio/github-actions-shared-workflows/.github/workflows/api-dog-e2e-tests.yml@main
     with:
-      node_version: '20'
-      test_scenario_id: <plugin smart templates test scenario id>
-      environment_id: ${{ env.IS_RC == 'true' && <plugin smart templates stg environment id> || env.IS_BETA == 'true' && <plugin smart templates dev environment id> }}
-      test_iterations: '1'
-      output_formats: 'html,cli'
-      runner_type: 'firmino-lxc-runners'
+      test_scenario_id: ${{ secrets.PLUGIN_SMART_TEMPLATES_APIDOG_TEST_SCENARIO_ID }}
+      auto_detect_environment: true
     secrets:
       apidog_access_token: ${{ secrets.APIDOG_ACCESS_TOKEN }}
+      dev_environment_id: ${{ secrets.PLUGIN_SMART_TEMPLATES_APIDOG_DEV_ENVIRONMENT_ID }}
+      stg_environment_id: ${{ secrets.PLUGIN_SMART_TEMPLATES_APIDOG_STG_ENVIRONMENT_ID }}
