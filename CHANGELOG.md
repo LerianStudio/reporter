@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.5] - 2025-09-29
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.4...v2.1.0-beta.5)
+Contributors: Gabriel Castro, lerian-studio
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been meticulously updated to reflect the latest changes, ensuring that all users have access to the most current information about software enhancements and project progress. This transparency aids users in staying informed about the software's development.
+
+### 🔧 Maintenance
+- **Release Management**: Ongoing maintenance has been performed to streamline release management processes, ensuring that future updates continue to be communicated effectively and efficiently.
+
+### ✨ Improvements
+- **Enhanced Validation**: Users will now benefit from more detailed and precise error messages during validation processes in the build, database, frontend, and test components. This improvement allows for quicker identification and resolution of issues, significantly boosting usability and efficiency.
+
+
 ## [v2.1.0-beta.4] - 2025-09-26
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.3...v2.1.0-beta.4)
