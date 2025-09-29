@@ -183,5 +183,10 @@
   "reports.filters.values.description.between": "Insira dois valores para definir um intervalo",
   "reports.filters.values.description.multiple": "Insira múltiplos valores separados por vírgula",
   "reports.filters.values.description.single": "Insira um único valor",
-  "common.loading.updating": "Atualizando..."
+  "common.loading.updating": "Atualizando...",
+  "errors.report.filter.invalid": "Por favor, complete todos os campos obrigatórios do filtro: banco de dados, tabela, campo e valores",
+  "errors.report.operator.required": "Operador é obrigatório",
+  "errors.report.values.between.required": "O operador 'entre' requer exatamente dois valores",
+  "errors.report.values.multiple.required": "Este operador requer pelo menos um valor",
+  "errors.report.values.required": "Valores são obrigatórios"
 }
