@@ -133,3 +133,113 @@ func (c *HTTPClient) RequestFullWithRetry(ctx context.Context, method, path stri
 
 	return lastCode, lastBody, lastHdr, lastErr
 }
+
+// ReportStatus represents the status of a report
+type ReportStatus struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+// GetReportStatus retrieves the status of a specific report
+func (c *HTTPClient) GetReportStatus(ctx context.Context, reportID string, headers map[string]string) (*ReportStatus, error) {
+	code, body, err := c.Request(ctx, "GET", fmt.Sprintf("/v1/reports/%s", reportID), headers, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get report: %w", err)
+	}
+
+	if code != 200 {
+		return nil, fmt.Errorf("unexpected status code %d: %s", code, string(body))
+	}
+
+	var report ReportStatus
+	if err := json.Unmarshal(body, &report); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal report: %w", err)
+	}
+
+	return &report, nil
+}
+
+// WaitForReportStatus waits for a report to reach a specific status with timeout
+func (c *HTTPClient) WaitForReportStatus(ctx context.Context, reportID string, headers map[string]string, expectedStatus string, timeout time.Duration) (*ReportStatus, error) {
+	deadline := time.Now().Add(timeout)
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			if time.Now().After(deadline) {
+				return nil, fmt.Errorf("timeout waiting for report %s to reach status %s", reportID, expectedStatus)
+			}
+
+			report, err := c.GetReportStatus(ctx, reportID, headers)
+			if err != nil {
+				continue
+			}
+
+			if report.Status == expectedStatus {
+				return report, nil
+			}
+		}
+	}
+}
+
+// ListReports retrieves a list of reports with optional filters
+func (c *HTTPClient) ListReports(ctx context.Context, headers map[string]string, queryParams string) ([]ReportStatus, error) {
+	path := "/v1/reports"
+	if queryParams != "" {
+		path += "?" + queryParams
+	}
+
+	code, body, err := c.Request(ctx, "GET", path, headers, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list reports: %w", err)
+	}
+
+	if code != 200 {
+		return nil, fmt.Errorf("unexpected status code %d: %s", code, string(body))
+	}
+
+	var response struct {
+		Items []ReportStatus `json:"items"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal reports list: %w", err)
+	}
+
+	return response.Items, nil
+}
+
+// WaitForSystemHealth waits for the system to be healthy by checking health endpoint
+func WaitForSystemHealth(ctx context.Context, cli *HTTPClient, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if time.Now().After(deadline) {
+				return fmt.Errorf("timeout waiting for system health after %v", timeout)
+			}
+
+			// Try to check health endpoint
+			code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+			if err == nil && code == 200 {
+				return nil
+			}
+
+			// Also try a simple API call to verify system is responsive
+			code, _, err = cli.Request(ctx, "GET", "/v1/templates?limit=1", nil, nil)
+			if err == nil && (code == 200 || code == 401) { // 401 is OK, means auth is working
+				return nil
+			}
+		}
+	}
+}

@@ -158,9 +158,18 @@ func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
 	}
 
+	t.Log("⏳ Waiting for system stability after previous chaos tests...")
+	time.Sleep(15 * time.Second) // Longer delay for this test
+
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
 	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+
+	t.Log("🔍 Verifying system health before queue chaos test...")
+	if err := h.WaitForSystemHealth(ctx, cli, 45*time.Second); err != nil {
+		t.Fatalf("❌ System not healthy before queue chaos test: %v", err)
+	}
+	t.Log("✅ System is healthy, proceeding with queue chaos test...")
 
 	t.Log("🔧 Starting RabbitMQ queue chaos test...")
 
@@ -238,6 +247,7 @@ func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 func getAnyTemplateIDWithRetry(ctx context.Context, t *testing.T, cli *h.HTTPClient, headers map[string]string, attempts int, delay time.Duration) (string, bool) {
 	for i := 1; i <= attempts; i++ {
 		code, body, err := cli.Request(ctx, "GET", "/v1/templates?limit=1", headers, nil)
+		t.Logf("retry %d/%d: waiting %s due to err/code: %v/%d", i, attempts, delay, err, code)
 		if err == nil && code == 200 {
 			var templates struct {
 				Items []struct {
