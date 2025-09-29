@@ -76,7 +76,7 @@ export class SmartReportMapper {
 
     return {
       templateId: entity.templateId,
-      filters: Object.keys(filters).length > 0 ? filters : undefined,
+      filters: Object.keys(filters).length > 0 ? filters : {},
       metadata: entity.metadata || undefined
     }
   }
