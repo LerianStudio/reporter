@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.1] - 2025-09-30
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.6...v3.0.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Template Structure Update**: The internal structure of templates has been redesigned. This change enhances future extensibility and streamlines template management. **Action Required**: Users must review and update their existing template configurations to ensure compatibility with the new structure. Please refer to the updated documentation for detailed migration steps.
+
+### ✨ Features
+- **Enhanced Template Management**: Experience a more dynamic and customizable template configuration system. This update empowers users to tailor templates to better fit their specific needs, improving adaptability and scalability. Explore the new possibilities with our updated user guide.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been thoroughly updated to reflect the latest changes and improvements, helping users track the evolution of the plugin and understand the impact of updates.
+
+### 🔧 Maintenance
+- **General Maintenance**: Various behind-the-scenes improvements have been made to ensure the plugin remains reliable and up-to-date. These changes do not directly affect user functionality but contribute to overall stability and performance.
+
+
 ## [v2.1.0-beta.6] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.5...v2.1.0-beta.6)
