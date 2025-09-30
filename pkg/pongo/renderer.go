@@ -73,6 +73,7 @@ func cleanNumericOutput(output string) string {
 	xmlDeclarations := xmlDeclarationRegex.FindAllString(output, -1)
 
 	protectedOutput := output
+
 	for i, declaration := range xmlDeclarations {
 		placeholder := fmt.Sprintf("__XML_DECLARATION_%d__", i)
 		protectedOutput = strings.Replace(protectedOutput, declaration, placeholder, 1)
