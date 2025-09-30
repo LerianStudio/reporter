@@ -2,19 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v2.1.0-beta.5] - 2025-09-29
+## [v2.1.0-beta.5] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.4...v2.1.0-beta.5)
 Contributors: Gabriel Castro, lerian-studio
 
+### ✨ Features
+- **Enhanced Validation Across Components**: Enjoy more detailed and specific error messages in the build, database, frontend, and test components. This improvement helps you quickly diagnose and resolve issues, enhancing overall user experience and system reliability.
+
+### 🔄 Changes
+- **Frontend Error Messaging**: We've refined error messages to be clearer and more specific. This change makes troubleshooting easier and reduces the time spent resolving issues.
+- **Database Integrity Checks**: Improved validation ensures stronger data integrity, reducing the likelihood of data-related errors and increasing system reliability.
+
 ### 📚 Documentation
-- **Changelog Update**: The changelog has been meticulously updated to reflect the latest changes, ensuring that all users have access to the most current information about software enhancements and project progress. This transparency aids users in staying informed about the software's development.
+- **Updated Changelog**: The changelog has been revised to accurately reflect recent changes and improvements, ensuring users have access to the latest updates and enhancements.
 
 ### 🔧 Maintenance
-- **Release Management**: Ongoing maintenance has been performed to streamline release management processes, ensuring that future updates continue to be communicated effectively and efficiently.
-
-### ✨ Improvements
-- **Enhanced Validation**: Users will now benefit from more detailed and precise error messages during validation processes in the build, database, frontend, and test components. This improvement allows for quicker identification and resolution of issues, significantly boosting usability and efficiency.
+- **Test Coverage Enhancements**: Test cases have been updated to cover new validation scenarios, ensuring the reliability of enhanced error messages.
 
 
 ## [v2.1.0-beta.4] - 2025-09-26
