@@ -1,12 +1,12 @@
 package in
 
 import (
-	"plugin-smart-templates/v2/components/manager/internal/services"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/model"
-	_ "plugin-smart-templates/v2/pkg/mongodb/template"
-	"plugin-smart-templates/v2/pkg/net/http"
+	"plugin-smart-templates/v3/components/manager/internal/services"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/model"
+	_ "plugin-smart-templates/v3/pkg/mongodb/template"
+	"plugin-smart-templates/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"

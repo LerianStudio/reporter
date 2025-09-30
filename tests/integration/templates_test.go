@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	h "plugin-smart-templates/v2/tests/helpers"
+	h "plugin-smart-templates/v3/tests/helpers"
 )
 
 // GET /v1/templates — filters and pagination

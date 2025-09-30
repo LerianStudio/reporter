@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v3/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 

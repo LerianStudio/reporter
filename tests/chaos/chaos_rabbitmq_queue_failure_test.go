@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v2/tests/helpers"
+	h "plugin-smart-templates/v3/tests/helpers"
 )
 
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation

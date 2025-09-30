@@ -1,10 +1,10 @@
 package services
 
 import (
-	pkgConfig "plugin-smart-templates/v2/pkg"
-	reportFile "plugin-smart-templates/v2/pkg/minio/report"
-	templateFile "plugin-smart-templates/v2/pkg/minio/template"
-	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
+	pkgConfig "plugin-smart-templates/v3/pkg"
+	reportFile "plugin-smart-templates/v3/pkg/minio/report"
+	templateFile "plugin-smart-templates/v3/pkg/minio/template"
+	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
 )
 
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v2/tests/helpers"
+	h "plugin-smart-templates/v3/tests/helpers"
 )
 
 // Restarts RabbitMQ container and validates recovery of the system
