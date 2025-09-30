@@ -4,7 +4,7 @@ info:
   description: This is a swagger documentation for plugin smart template
   termsOfService: http://swagger.io/terms/
   title: Plugin Smart Template
-  version: 1.0.0
+  version: 2.0.0
 servers:
 - url: //localhost:4005/
 paths:
@@ -129,7 +129,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/inline_response_200_1'
+                $ref: '#/components/schemas/inline_response_200'
           description: OK
       summary: Get all reports
       tags:
@@ -161,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
           description: Created
       summary: Create a Report
       tags:
@@ -194,7 +194,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
           description: OK
       summary: Get a Report
       tags:
@@ -275,7 +275,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/inline_response_200'
+                $ref: '#/components/schemas/inline_response_200_1'
           description: OK
       summary: Get all templates
       tags:
@@ -320,7 +320,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
           description: Created
       summary: Create a Template for reports
       tags:
@@ -400,7 +400,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
           description: OK
       summary: Get template
       tags:
@@ -451,7 +451,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
           description: OK
       summary: Update a template
       tags:
@@ -461,32 +461,44 @@ components:
     CreateReportInput:
       description: CreateReportInput is the input payload to create a report.
       example:
-        ledgerId:
-        - 00000000-0000-0000-0000-000000000000
         filters:
           key:
             key:
               key:
-              - filters
-              - filters
+                nin:
+                - '{}'
+                - '{}'
+                in:
+                - '{}'
+                - '{}'
+                lt:
+                - '{}'
+                - '{}'
+                gte:
+                - '{}'
+                - '{}'
+                eq:
+                - '{}'
+                - '{}'
+                lte:
+                - '{}'
+                - '{}'
+                gt:
+                - '{}'
+                - '{}'
+                between:
+                - '{}'
+                - '{}'
         templateId: 00000000-0000-0000-0000-000000000000
       properties:
         filters:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                items:
-                  type: string
-                type: array
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
-        ledgerId:
-          example:
-          - 00000000-0000-0000-0000-000000000000
-          items:
-            type: string
-          type: array
         templateId:
           example: 00000000-0000-0000-0000-000000000000
           type: string
@@ -581,11 +593,99 @@ components:
         title:
           type: string
       type: object
-    plugin-smart-templates_pkg_mongodb_report.Report:
+    plugin-smart-templates_v2_pkg_model.FilterCondition:
       example:
-        ledgerId:
-        - '[''00000000-0000-0000-0000-000000000000'''
-        - ' ''00000000-0000-0000-0000-000000000000'']'
+        nin:
+        - '{}'
+        - '{}'
+        in:
+        - '{}'
+        - '{}'
+        lt:
+        - '{}'
+        - '{}'
+        gte:
+        - '{}'
+        - '{}'
+        eq:
+        - '{}'
+        - '{}'
+        lte:
+        - '{}'
+        - '{}'
+        gt:
+        - '{}'
+        - '{}'
+        between:
+        - '{}'
+        - '{}'
+      properties:
+        between:
+          description: |-
+            Between specifies a range condition with exactly two values [min, max].
+            Matches records where min <= field <= max
+            Example: {"between": [100, 1000]} matches records where 100 <= field <= 1000
+          items:
+            type: object
+          type: array
+        eq:
+          description: |-
+            Equals specifies exact value matches. Multiple values treated as OR conditions.
+            Example: {"eq": ["active", "pending"]} matches records where field equals "active" OR "pending"
+          items:
+            type: object
+          type: array
+        gt:
+          description: |-
+            GreaterThan specifies values that must be greater than the provided value.
+            Should contain exactly one value for comparison.
+            Example: {"gt": [100]} matches records where field > 100
+          items:
+            type: object
+          type: array
+        gte:
+          description: |-
+            GreaterOrEqual specifies values that must be greater than or equal to the provided value.
+            Should contain exactly one value for comparison.
+            Example: {"gte": ["2025-06-01"]} matches records where field >= "2025-06-01"
+          items:
+            type: object
+          type: array
+        in:
+          description: |-
+            In specifies a list of values where the field must match any one of them.
+            Multiple values treated as OR conditions.
+            Example: {"in": ["active", "pending", "suspended"]} matches any of these statuses
+          items:
+            type: object
+          type: array
+        lt:
+          description: |-
+            LessThan specifies values that must be less than the provided value.
+            Should contain exactly one value for comparison.
+            Example: {"lt": [1000]} matches records where field < 1000
+          items:
+            type: object
+          type: array
+        lte:
+          description: |-
+            LessOrEqual specifies values that must be less than or equal to the provided value.
+            Should contain exactly one value for comparison.
+            Example: {"lte": ["2025-06-30"]} matches records where field <= "2025-06-30"
+          items:
+            type: object
+          type: array
+        nin:
+          description: |-
+            NotIn specifies a list of values where the field must NOT match any of them.
+            Multiple values treated as AND NOT conditions.
+            Example: {"nin": ["deleted", "archived"]} excludes these statuses
+          items:
+            type: object
+          type: array
+      type: object
+    plugin-smart-templates_v2_pkg_mongodb_report.Report:
+      example:
         createdAt: createdAt
         completedAt: completedAt
         deletedAt: deletedAt
@@ -595,8 +695,30 @@ components:
           key:
             key:
               key:
-              - filters
-              - filters
+                nin:
+                - '{}'
+                - '{}'
+                in:
+                - '{}'
+                - '{}'
+                lt:
+                - '{}'
+                - '{}'
+                gte:
+                - '{}'
+                - '{}'
+                eq:
+                - '{}'
+                - '{}'
+                lte:
+                - '{}'
+                - '{}'
+                gt:
+                - '{}'
+                - '{}'
+                between:
+                - '{}'
+                - '{}'
         id: 00000000-0000-0000-0000-000000000000
         templateId: 00000000-0000-0000-0000-000000000000
         status: processing
@@ -612,22 +734,13 @@ components:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                items:
-                  type: string
-                type: array
+                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
         id:
           example: 00000000-0000-0000-0000-000000000000
           type: string
-        ledgerId:
-          example:
-          - '[''00000000-0000-0000-0000-000000000000'''
-          - ' ''00000000-0000-0000-0000-000000000000'']'
-          items:
-            type: string
-          type: array
         metadata:
           additionalProperties:
             type: object
@@ -641,7 +754,7 @@ components:
         updatedAt:
           type: string
       type: object
-    plugin-smart-templates_pkg_mongodb_template.Template:
+    plugin-smart-templates_v2_pkg_mongodb_template.Template:
       example:
         createdAt: 2021-01-01T00:00:00Z
         fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
@@ -680,24 +793,86 @@ components:
         limit: 0
         page: 6
         items:
-        - createdAt: 2021-01-01T00:00:00Z
-          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
-          description: Template Financeiro
+        - createdAt: createdAt
+          completedAt: completedAt
+          deletedAt: deletedAt
+          metadata:
+            key: '{}'
+          filters:
+            key:
+              key:
+                key:
+                  nin:
+                  - '{}'
+                  - '{}'
+                  in:
+                  - '{}'
+                  - '{}'
+                  lt:
+                  - '{}'
+                  - '{}'
+                  gte:
+                  - '{}'
+                  - '{}'
+                  eq:
+                  - '{}'
+                  - '{}'
+                  lte:
+                  - '{}'
+                  - '{}'
+                  gt:
+                  - '{}'
+                  - '{}'
+                  between:
+                  - '{}'
+                  - '{}'
           id: 00000000-0000-0000-0000-000000000000
-          outputFormat: HTML
-          updatedAt: 2021-01-01T00:00:00Z
-        - createdAt: 2021-01-01T00:00:00Z
-          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
-          description: Template Financeiro
+          templateId: 00000000-0000-0000-0000-000000000000
+          status: processing
+          updatedAt: updatedAt
+        - createdAt: createdAt
+          completedAt: completedAt
+          deletedAt: deletedAt
+          metadata:
+            key: '{}'
+          filters:
+            key:
+              key:
+                key:
+                  nin:
+                  - '{}'
+                  - '{}'
+                  in:
+                  - '{}'
+                  - '{}'
+                  lt:
+                  - '{}'
+                  - '{}'
+                  gte:
+                  - '{}'
+                  - '{}'
+                  eq:
+                  - '{}'
+                  - '{}'
+                  lte:
+                  - '{}'
+                  - '{}'
+                  gt:
+                  - '{}'
+                  - '{}'
+                  between:
+                  - '{}'
+                  - '{}'
           id: 00000000-0000-0000-0000-000000000000
-          outputFormat: HTML
-          updatedAt: 2021-01-01T00:00:00Z
+          templateId: 00000000-0000-0000-0000-000000000000
+          status: processing
+          updatedAt: updatedAt
       properties:
         Pagination:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_template.Template'
+            $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
           type: array
         limit:
           type: integer
@@ -717,30 +892,24 @@ components:
         limit: 0
         page: 6
         items:
-        - ledgerId:
-          - '[''00000000-0000-0000-0000-000000000000'''
-          - ' ''00000000-0000-0000-0000-000000000000'']'
-          createdAt: createdAt
-          completedAt: completedAt
-          deletedAt: deletedAt
-          metadata:
-            key: '{}'
-          filters:
-            key:
-              key:
-                key:
-                - filters
-                - filters
+        - createdAt: 2021-01-01T00:00:00Z
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          description: Template Financeiro
           id: 00000000-0000-0000-0000-000000000000
-          templateId: 00000000-0000-0000-0000-000000000000
-          status: processing
-          updatedAt: updatedAt
+          outputFormat: HTML
+          updatedAt: 2021-01-01T00:00:00Z
+        - createdAt: 2021-01-01T00:00:00Z
+          fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
+          description: Template Financeiro
+          id: 00000000-0000-0000-0000-000000000000
+          outputFormat: HTML
+          updatedAt: 2021-01-01T00:00:00Z
       properties:
         Pagination:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/plugin-smart-templates_pkg_mongodb_report.Report'
+            $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
           type: array
         limit:
           type: integer

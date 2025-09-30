@@ -102,3 +102,12 @@ lint:
 		fi; \
 	done
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
+
+.PHONY: test
+test:
+	@echo "$(BLUE)Running tests...$(NC)"
+		@if ! command -v go >/dev/null 2>&1; then \
+		echo "$(RED)Error: go is not installed$(NC)"; \
+		exit 1; \
+	fi
+	go test -v ./... ./...
