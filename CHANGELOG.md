@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.2] - 2025-09-30
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.1...v3.0.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🔧 Maintenance
+- **Version Update**: The project has been updated to version 3.0. This update ensures that all components, including the backend, configuration, database, documentation, and testing, are synchronized with the latest versioning standards. This consistency is crucial for future development and user transparency.
+- **Changelog Update**: The CHANGELOG has been refreshed to accurately reflect recent changes and improvements. This update provides users and developers with the latest information, enhancing their understanding and tracking of the project's evolution.
+
+
 ## [v3.0.0-beta.1] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.6...v3.0.0-beta.1)
