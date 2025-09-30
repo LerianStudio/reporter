@@ -42,7 +42,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	dataSourceInfo := ds.Service.GetDataSourceInformation(ctx)
 
-	logger.Infof("Successfully get all data source information")
+	logger.Infof("Successfully get all data source information.")
 
 	return commonsHttp.OK(c, dataSourceInfo)
 }
