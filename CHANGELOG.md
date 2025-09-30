@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0-beta.6] - 2025-09-30
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.5...v2.1.0-beta.6)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Comprehensive Testing Framework**: We've introduced a robust suite of tests inspired by midaz standards, covering backend, frontend, and database components. This enhancement significantly boosts system reliability and ensures higher quality releases, giving users confidence in the software's performance.
+
+### 🐛 Bug Fixes
+- **Test Suite Accuracy**: Resolved multiple issues within the test suite, aligning with kodus recommendations and refining chaos test scenarios. These fixes enhance the accuracy of test outcomes, reducing false positives and ensuring that defects are caught early.
+- **Frontend and Backend Stability**: Addressed a scenario in chaos tests affecting both frontend and backend components, improving system stability and user experience by preventing unexpected behavior during edge cases.
+
+### 📚 Documentation
+- **XML Generation Clarity**: Enhanced documentation on XML generation processes, providing developers with clear guidance on new configurations. This ensures consistency and understanding across the development team, facilitating smoother integration and development workflows.
+
+### 🔧 Maintenance
+- **Configuration and Build Process**: Updated Makefile commands to streamline the testing process, making it easier for developers to run tests and verify changes. This reduces setup time and potential errors in the development workflow.
+- **Changelog Updates**: Regular updates to the CHANGELOG ensure transparency and clear communication with users about modifications in each release, maintaining an open line of communication regarding software evolution.
+
+
 ## [v2.1.0-beta.5] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.1.0-beta.4...v2.1.0-beta.5)
