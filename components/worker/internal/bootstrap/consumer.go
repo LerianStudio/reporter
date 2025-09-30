@@ -72,7 +72,7 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	err := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Error generating report", err)
+		opentelemetry.HandleSpanError(&span, "Error generating report.", err)
 
 		logger.Errorf("Error generating report: %v", err)
 
