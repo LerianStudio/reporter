@@ -68,11 +68,25 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 
 // cleanNumericOutput removes trailing zeros from numeric values in the output
 func cleanNumericOutput(output string) string {
-	re := regexp.MustCompile(`\b\d+\.\d*0+\b`)
+	// First, protect XML declarations from being modified
+	xmlDeclarationRegex := regexp.MustCompile(`<\?xml[^>]*version="[^"]*"[^>]*\?>`)
+	xmlDeclarations := xmlDeclarationRegex.FindAllString(output, -1)
 
-	cleaned := re.ReplaceAllStringFunc(output, func(match string) string {
+	protectedOutput := output
+	for i, declaration := range xmlDeclarations {
+		placeholder := fmt.Sprintf("__XML_DECLARATION_%d__", i)
+		protectedOutput = strings.Replace(protectedOutput, declaration, placeholder, 1)
+	}
+
+	re := regexp.MustCompile(`\b\d+\.\d*0+\b`)
+	cleaned := re.ReplaceAllStringFunc(protectedOutput, func(match string) string {
 		return cleanNumericString(match)
 	})
+
+	for i, declaration := range xmlDeclarations {
+		placeholder := fmt.Sprintf("__XML_DECLARATION_%d__", i)
+		cleaned = strings.Replace(cleaned, placeholder, declaration, 1)
+	}
 
 	return cleaned
 }
