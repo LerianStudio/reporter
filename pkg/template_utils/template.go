@@ -1,7 +1,7 @@
 package template_utils
 
 import (
-	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v3/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"

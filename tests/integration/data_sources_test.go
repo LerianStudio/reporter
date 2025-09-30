@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "plugin-smart-templates/v2/tests/helpers"
+	h "plugin-smart-templates/v3/tests/helpers"
 )
 
 // GET /v1/data-sources — deve respeitar cache e retornar 200

@@ -2,8 +2,8 @@ package report
 
 import (
 	"context"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/net/http"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/net/http"
 	"strings"
 	"time"
 

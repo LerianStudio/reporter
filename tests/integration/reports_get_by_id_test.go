@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v2/tests/helpers"
+	h "plugin-smart-templates/v3/tests/helpers"
 )
 
 // TestIntegration_Reports_GetByID_ValidID tests GET /v1/reports/{id} with a valid report ID

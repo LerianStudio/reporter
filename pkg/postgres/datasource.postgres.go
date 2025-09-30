@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v3/pkg/model"
 	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
