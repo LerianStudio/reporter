@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-beta.3] - 2025-10-01
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.2...v3.0.0-beta.3)
+Contributors: Gabriel Castro, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Data Retrieval and Display**: Resolved an issue with the manifest route affecting both backend and frontend components. This fix enhances the reliability and accuracy of data presentation, ensuring users receive correct and timely information without interruptions.
+
+### 🔄 Changes
+- **Consistent Naming Across Application**: The application formerly known as "Smart Templates" is now consistently referred to as "Reporter" throughout the backend, frontend, configuration files, and documentation. This change simplifies navigation and understanding, aligning all components under a unified brand identity.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been revised to include the latest updates and improvements, providing users with transparent and up-to-date information for better troubleshooting and feature discovery.
+
+### 🔧 Maintenance
+- **Code Quality Enhancements**: General refactoring and cleanup were performed to improve the maintainability and robustness of the codebase. This includes aligning component names and cleaning configuration files to match the new naming conventions, ensuring the application remains easy to update and reliable in the future.
+
+
 ## [v3.0.0-beta.2] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.1...v3.0.0-beta.2)
