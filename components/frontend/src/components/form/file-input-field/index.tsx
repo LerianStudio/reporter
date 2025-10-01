@@ -24,6 +24,7 @@ export type FileInputFieldProps = {
   required?: boolean
   maxSize?: number // in bytes
   onFileChange?: (file: File | null) => void
+  'data-testid'?: string
 }
 
 export const FileInputField = ({
@@ -36,7 +37,8 @@ export const FileInputField = ({
   disabled = false,
   required = false,
   maxSize = 5 * 1024 * 1024, // 5MB default
-  onFileChange
+  onFileChange,
+  'data-testid': dataTestId
 }: FileInputFieldProps) => {
   const intl = useIntl()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -106,12 +108,14 @@ export const FileInputField = ({
                 onChange={(e) => handleFileChange(e, onChange)}
                 className="hidden"
                 disabled={disabled}
+                data-testid={dataTestId ? `${dataTestId}-hidden` : undefined}
               />
 
               {/* Custom file input area */}
               <div
                 className={`relative flex min-h-[44px] w-full items-center rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-zinc-400'} transition-colors duration-200`}
                 onClick={!disabled ? handleFileSelect : undefined}
+                data-testid={dataTestId}
               >
                 <div className="flex flex-1 items-center gap-2">
                   {value ? (

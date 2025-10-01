@@ -34,6 +34,7 @@ export type DatePickerFieldProps = {
   disabled?: boolean
   required?: boolean
   className?: string
+  'data-testid'?: string
 }
 
 export const DatePickerField = ({
@@ -46,7 +47,8 @@ export const DatePickerField = ({
   control,
   disabled = false,
   required = false,
-  className
+  className,
+  'data-testid': dataTestId
 }: DatePickerFieldProps) => {
   const intl = useIntl()
   const { toast } = useToast()
@@ -154,6 +156,7 @@ export const DatePickerField = ({
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    data-testid={dataTestId}
                     variant="outline"
                     disabled={disabled}
                     className={cn(

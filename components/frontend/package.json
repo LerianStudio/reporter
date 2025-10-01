@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "next dev -p 8083",
     "build": "next build",
+    "build:test": "cross-env NODE_ENV=test next build",
     "start": "next start -p 8083",
     "lint": "next lint --fix",
     "storybook": "storybook dev -p 6007",
@@ -129,6 +130,7 @@
     "@types/react-color": "^3.0.13",
     "@types/react-dom": "^19",
     "conventional-changelog-conventionalcommits": "^9.0.0",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.25.5",
     "eslint": "^9",
     "eslint-config-next": "^15.3.3",

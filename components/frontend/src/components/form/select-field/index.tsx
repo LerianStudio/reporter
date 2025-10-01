@@ -38,6 +38,7 @@ export type SelectFieldProps = PropsWithChildren & {
   control: Control<any>
   multi?: boolean
   required?: boolean
+  'data-testid'?: string
   onChange?: (value: string | string[]) => void
 }
 
@@ -107,6 +108,7 @@ export const SelectField = ({
                   <SelectTrigger
                     className={cn(disabled && 'bg-shadcn-100', className)}
                     readOnly={readOnly}
+                    data-testid={others['data-testid']}
                   >
                     <SelectValue placeholder={placeholder} />
                   </SelectTrigger>
