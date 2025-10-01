@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-rc.1] - 2025-10-01
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0-rc.1)
+Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Backend Restructuring**: The core application architecture has been restructured to enhance modularity and scalability. Users must update their integrations and configurations to align with the new structure. Please refer to the migration guide for detailed steps.
+
+### ✨ Features
+- **PDF Output Format**: You can now generate documents in PDF format, offering more flexibility in how you share and store documents. This feature includes a refined user interface for a more consistent experience.
+- **Enhanced Testing**: Comprehensive test suites have been developed, improving the reliability of future releases and ensuring robust performance across all functionalities.
+- **Improved Error Feedback**: Validation processes now provide granular error messages, making it easier to correct data entry errors and enhancing user experience.
+
+### 🐛 Bug Fixes
+- **XML Generation**: Fixed issues with XML generation to ensure data integrity and accuracy in document outputs.
+- **Navigation Bug**: Resolved an issue preventing access to account settings, restoring full functionality and improving user navigation.
+
+### ⚡ Performance
+- **Session Management Logging**: Improved logging for session management, aiding in better monitoring and troubleshooting, which enhances overall system performance.
+
+### 🔄 Changes
+- **Internationalization**: Standardized internationalization keys across the application, ensuring consistent language support and simplifying future updates.
+- **Configuration Management**: Centralized the definition of OUTPUT_FORMATS, reducing configuration errors and streamlining setup processes.
+
+### 📚 Documentation
+- **Updated Guides**: Documentation has been revised to reflect recent changes, providing clearer guidance and support for users navigating new features and configurations.
+
+### 🔧 Maintenance
+- **Go Version Update**: Updated Go version and lib-commons to maintain compatibility with the latest features and security patches, ensuring a secure and up-to-date environment.
+- **Build Workflow Enhancements**: Configured e2e tests in build workflow to integrate with gitops updates, streamlining deployment processes and improving efficiency.
+
+
 ## [v3.0.0-beta.2] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.1...v3.0.0-beta.2)
