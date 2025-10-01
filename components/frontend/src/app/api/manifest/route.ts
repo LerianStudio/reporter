@@ -20,8 +20,7 @@ export async function GET() {
         'Reporter plugin for managing smart templates in the Midaz ecosystem.',
       version: '0.1.0',
       route:
-        process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH ||
-        '/plugin-reporter-ui',
+        process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH || '/plugin-reporter-ui',
       entry: '/',
       healthcheck: '/api/admin/health',
       host:
