@@ -106,13 +106,14 @@ export function OverviewTabContent() {
             "Need help or additional documentation? We're here to help."
         })}
         action={intl.formatMessage({
-          id: 'smartTemplates.cards.docs.action',
+          id: 'common.actions.readDocs',
           defaultMessage: 'Read the Docs'
         })}
         onClick={() => {
           window.open(
             'https://docs.lerian.studio/docs/smart-templates',
-            '_blank'
+            '_blank',
+            'noopener,noreferrer'
           )
         }}
       />

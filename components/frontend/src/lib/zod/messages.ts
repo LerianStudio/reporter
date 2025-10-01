@@ -3,7 +3,7 @@ import { defineMessages } from 'react-intl'
 const messages = defineMessages({
   invalid_type: {
     id: 'errors.invalid_type',
-    defaultMessage: ''
+    defaultMessage: 'Invalid type'
   },
   invalid_type_received_undefined: {
     id: 'errors.invalid_type_received_undefined',
@@ -122,6 +122,53 @@ const messages = defineMessages({
   template_file_empty: {
     id: 'errors.template.file.empty',
     defaultMessage: 'File cannot be empty'
+  },
+
+  // report validation messages
+  report_database_required: {
+    id: 'errors.report.database.required',
+    defaultMessage: 'Database is required'
+  },
+  report_table_required: {
+    id: 'errors.report.table.required',
+    defaultMessage: 'Table is required'
+  },
+  report_field_required: {
+    id: 'errors.report.field.required',
+    defaultMessage: 'Field is required'
+  },
+  report_operator_required: {
+    id: 'errors.report.operator.required',
+    defaultMessage: 'Operator is required'
+  },
+  report_operator_invalid: {
+    id: 'errors.report.operator.invalid',
+    defaultMessage: 'Invalid operator value'
+  },
+  report_values_invalid: {
+    id: 'errors.report.values.invalid',
+    defaultMessage: 'Please provide valid values for the selected operator'
+  },
+  report_values_required: {
+    id: 'errors.report.values.required',
+    defaultMessage: 'Values are required'
+  },
+  report_values_between_required: {
+    id: 'errors.report.values.between.required',
+    defaultMessage: 'Between operator requires exactly two values'
+  },
+  report_values_multiple_required: {
+    id: 'errors.report.values.multiple.required',
+    defaultMessage: 'This operator requires at least one value'
+  },
+  report_template_id_required: {
+    id: 'errors.report.templateId.required',
+    defaultMessage: 'Template is required'
+  },
+  report_filter_invalid: {
+    id: 'errors.report.filter.invalid',
+    defaultMessage:
+      'Please complete all required filter fields: database, table, field, and values'
   }
 })
 

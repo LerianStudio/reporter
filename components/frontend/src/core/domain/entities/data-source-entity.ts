@@ -1,4 +1,7 @@
-export type DataSourceField = string
+export type DataSourceField = {
+  name: string
+  type: string
+}
 
 export type DataSourceTable = {
   name: string

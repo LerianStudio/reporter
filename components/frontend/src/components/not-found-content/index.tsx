@@ -16,7 +16,7 @@ export const NotFoundContent = ({ title }: NotFoundContentProps) => {
         <h1 className="text-3xl">{title}</h1>
         <Button onClick={() => router.back()}>
           {intl.formatMessage({
-            id: 'notFoundContent.goBack',
+            id: 'common.actions.goBack',
             defaultMessage: 'Go Back'
           })}
         </Button>

@@ -2,13 +2,14 @@ package services
 
 import (
 	"context"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/mongodb/template"
+	httpUtils "plugin-smart-templates/v3/pkg/net/http"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/template"
-	httpUtils "plugin-smart-templates/v2/pkg/net/http"
-	"testing"
 )
 
 func Test_getAllTemplates(t *testing.T) {

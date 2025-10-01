@@ -5,8 +5,12 @@ import { useIntl } from 'react-intl'
 import { TemplatesDataTable } from '@/app/(routes)/templates/templates-data-table'
 import { TemplatesSheet } from './templates-sheet'
 import { Button } from '@/components/ui/button'
-import { useListTemplates, useDeleteTemplate } from '@/client/templates'
-import { TemplateDto } from '@/core/application/dto/template-dto'
+import { useDeleteTemplate } from '@/client/templates'
+import { useListTemplates } from '@/hooks/templates/use-list-templates'
+import {
+  TemplateDto,
+  TemplateFiltersDto
+} from '@/core/application/dto/template-dto'
 import { useQueryParams } from '@/hooks/use-query-params'
 import { useOrganization } from '@lerianstudio/console-layout'
 import { useCreateUpdateSheet } from '@/components/sheet/use-create-update-sheet'
@@ -15,23 +19,35 @@ import { useConfirmDialog } from '@/components/confirmation-dialog/use-confirm-d
 import ConfirmationDialog from '@/components/confirmation-dialog'
 import { InputField, SelectField } from '@/components/form'
 import { FormProvider } from 'react-hook-form'
-import { FunnelXIcon, Plus } from 'lucide-react'
+import {
+  FunnelXIcon,
+  Plus,
+  Loader2,
+  Calendar as CalendarIcon,
+  ChevronDown
+} from 'lucide-react'
+import { cn, validateDateString, formatDateForDisplay } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { PaginationLimitField } from '@/components/form/pagination-limit-field'
 import { SelectItem } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { OUTPUT_FORMAT_OPTIONS } from '@/schema/template'
+import { format } from 'date-fns'
 
 export function TemplatesTabContent() {
   const intl = useIntl()
   const { toast } = useToast()
-  const [total, setTotal] = useState(1000000)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const { currentOrganization } = useOrganization()
 
-  // Sheet state management
   const { handleCreate, handleEdit, sheetProps } =
     useCreateUpdateSheet<TemplateDto>()
 
-  // Confirmation dialog for delete operation
   const {
     handleDialogOpen,
     dialogProps,
@@ -45,7 +61,6 @@ export function TemplatesTabContent() {
     }
   })
 
-  // Delete template mutation
   const deleteTemplateMutation = useDeleteTemplate({
     organizationId: currentOrganization?.id || '',
     templateId: selectedTemplate?.id || '',
@@ -62,21 +77,40 @@ export function TemplatesTabContent() {
     }
   })
 
-  const { form, searchValues, pagination } = useQueryParams({
-    total
-  })
+  const { form, searchValues, pagination } = useQueryParams<TemplateFiltersDto>(
+    {
+      total: 0, // Will be updated after data loads
+      initialValues: {
+        name: '',
+        outputFormat: undefined,
+        createdAt: undefined
+      }
+    }
+  )
 
-  // Fetch templates data using searchValues from useQueryParams
   const {
     data: templatesData,
     isLoading,
+    isFetching,
     refetch
   } = useListTemplates({
     filters: searchValues,
     organizationId: currentOrganization?.id || ''
-  } as any)
+  })
 
-  // Create table data structure
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      form.setValue('createdAt', format(date, 'yyyy-MM-dd'))
+      setIsCalendarOpen(false)
+    } else {
+      form.setValue('createdAt', undefined)
+    }
+  }
+
+  const clearDateFilter = () => {
+    form.setValue('createdAt', undefined)
+  }
+
   const table = useMemo(
     () => ({
       getRowModel: () => ({
@@ -87,10 +121,9 @@ export function TemplatesTabContent() {
           })) || []
       })
     }),
-    [templatesData]
+    [templatesData?.items]
   )
 
-  // Event handlers with sheet integration
   const handleCreateTemplate = () => {
     handleCreate()
   }
@@ -103,17 +136,59 @@ export function TemplatesTabContent() {
     handleDialogOpen(id, template)
   }
 
-  // Success callback for sheet operations
   const handleSheetSuccess = () => {
     refetch()
   }
 
-  // Fallback data structure for empty state
   const templatesWithFallback = templatesData || { items: [] }
+
+  const selectedDate = useMemo(() => {
+    const dateString = form.watch('createdAt')
+    const validation = validateDateString(dateString)
+
+    if (!validation.isValid && validation.error) {
+      // Only show toast for actual validation errors, not for empty dates
+      if (dateString) {
+        const errorMessages = {
+          format: {
+            title: 'templates.filters.invalidDateFormat',
+            description: 'templates.filters.invalidDateDescription'
+          },
+          invalid: {
+            title: 'templates.filters.invalidDate',
+            description: 'templates.filters.invalidDateValue'
+          },
+          range: {
+            title: 'templates.filters.dateOutOfRange',
+            description: 'templates.filters.dateRangeDescription'
+          },
+          parsing: {
+            title: 'templates.filters.dateParsingError',
+            description: 'templates.filters.dateParsingErrorDescription'
+          }
+        }
+
+        const messages = errorMessages[validation.error.type]
+        toast({
+          title: intl.formatMessage({
+            id: messages.title,
+            defaultMessage: validation.error.message
+          }),
+          description: intl.formatMessage({
+            id: messages.description,
+            defaultMessage: validation.error.message
+          }),
+          variant: 'destructive'
+        })
+      }
+      return undefined
+    }
+
+    return validation.date
+  }, [form.watch('createdAt'), intl, toast])
 
   return (
     <>
-      {/* Confirmation Dialog for Delete */}
       <ConfirmationDialog
         title={intl.formatMessage({
           id: 'common.confirmDeletion',
@@ -153,6 +228,17 @@ export function TemplatesTabContent() {
             />
 
             <EntityBox.Actions>
+              {isFetching && (
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>
+                    {intl.formatMessage({
+                      id: 'common.loading.updating',
+                      defaultMessage: 'Updating...'
+                    })}
+                  </span>
+                </div>
+              )}
               <EntityBox.CollapsibleTrigger />
               <Button
                 icon={<Plus />}
@@ -160,14 +246,14 @@ export function TemplatesTabContent() {
                 onClick={handleCreateTemplate}
               >
                 {intl.formatMessage({
-                  id: 'templates.listingTemplate.addButton',
+                  id: 'common.new.template',
                   defaultMessage: 'New Template'
                 })}
               </Button>
             </EntityBox.Actions>
           </EntityBox.Banner>
           <EntityBox.CollapsibleContent>
-            <div className="col-span-2 flex grow flex-row gap-2">
+            <div className="col-span-2 flex grow flex-col gap-4 sm:flex-row">
               <InputField
                 name="name"
                 placeholder={intl.formatMessage({
@@ -176,8 +262,52 @@ export function TemplatesTabContent() {
                 })}
                 control={form.control}
               />
+
+              <div className="sm:w-auto sm:flex-none">
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'h-9 w-fit justify-between gap-3 rounded-md border border-[#C7C7C7] bg-white px-3 py-2 text-left text-sm font-normal hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-0',
+                        !selectedDate && 'placeholder:text-shadcn-400'
+                      )}
+                    >
+                      <div className="flex items-center">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? (
+                          formatDateForDisplay(selectedDate)
+                        ) : (
+                          <span>
+                            {intl.formatMessage({
+                              id: 'common.selectDate',
+                              defaultMessage: 'Select date'
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto overflow-hidden rounded-lg p-0"
+                    align="start"
+                    side="bottom"
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      fixedWeeks
+                      showOutsideDays={false}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <SelectField
-                className="min-w-50"
+                className="min-w-50 flex-1 sm:flex-none"
                 name="outputFormat"
                 placeholder={intl.formatMessage({
                   id: 'common.outputFormatPlaceholder',
@@ -198,11 +328,12 @@ export function TemplatesTabContent() {
             <div className="col-start-3 flex items-center justify-end gap-2">
               <PaginationLimitField control={form.control} />
               <Button
-                variant="secondary"
-                className="h-[34px] w-[34px] p-2"
+                variant="outline"
+                className="h-[34px] w-[34px] bg-white p-2 hover:bg-white"
                 onClick={() => {
-                  form.setValue('outputFormat', '')
+                  form.setValue('outputFormat', undefined)
                   form.setValue('name', '')
+                  clearDateFilter()
                 }}
               >
                 <FunnelXIcon size={16} />
@@ -218,13 +349,12 @@ export function TemplatesTabContent() {
           onDelete={handleDeleteTemplate}
           handleCreate={handleCreateTemplate}
           handleEdit={handleEditTemplate}
-          total={total}
+          total={templatesData?.total || templatesData?.items?.length || 0}
           pagination={pagination}
           form={form}
         />
       </FormProvider>
 
-      {/* Templates Sheet for Create/Edit */}
       <TemplatesSheet {...sheetProps} onSuccess={handleSheetSuccess} />
     </>
   )

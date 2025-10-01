@@ -2,14 +2,15 @@ package services
 
 import (
 	"context"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/mongodb/report"
+	"plugin-smart-templates/v3/pkg/net/http"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/report"
-	"plugin-smart-templates/v2/pkg/net/http"
-	"testing"
-	"time"
 )
 
 func Test_getAllReports(t *testing.T) {

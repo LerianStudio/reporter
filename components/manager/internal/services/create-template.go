@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/template"
-	templateUtils "plugin-smart-templates/v2/pkg/template_utils"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/mongodb/template"
+	templateUtils "plugin-smart-templates/v3/pkg/template_utils"
 	"strings"
 	"time"
 
@@ -18,9 +18,7 @@ import (
 
 // CreateTemplate creates a new template with specified parameters and stores it in the repository.
 func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, organizationID uuid.UUID) (*template.Template, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.create_template")
 	defer span.End()
@@ -45,13 +43,17 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
-	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, logger, mappedFields); errValidateFields != nil {
+	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, mappedFields); errValidateFields != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
 
 		return nil, errValidateFields
 	}
+
+	// Transform mapped fields for storage (append organizationID to plugin_crm table names)
+	transformedMappedFields := TransformMappedFieldsForStorage(mappedFields, organizationID.String())
+	logger.Infof("Transformed Mapped Fields for storage %v", transformedMappedFields)
 
 	templateId := commons.GenerateUUIDv7()
 	fileName := fmt.Sprintf("%s.tpl", templateId.String())
@@ -62,7 +64,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 		OrganizationID: organizationID,
 		FileName:       fileName,
 		Description:    description,
-		MappedFields:   mappedFields,
+		MappedFields:   transformedMappedFields,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		DeletedAt:      nil,

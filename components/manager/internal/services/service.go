@@ -1,13 +1,14 @@
 package services
 
 import (
-	"plugin-smart-templates/v2/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v2/components/manager/internal/adapters/redis"
-	pkgConfig "plugin-smart-templates/v2/pkg"
-	reportMinio "plugin-smart-templates/v2/pkg/minio/report"
-	templateMinio "plugin-smart-templates/v2/pkg/minio/template"
-	"plugin-smart-templates/v2/pkg/mongodb/report"
-	"plugin-smart-templates/v2/pkg/mongodb/template"
+	"plugin-smart-templates/v3/components/manager/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v3/components/manager/internal/adapters/redis"
+	pkgConfig "plugin-smart-templates/v3/pkg"
+	reportMinio "plugin-smart-templates/v3/pkg/minio/report"
+	templateMinio "plugin-smart-templates/v3/pkg/minio/template"
+	"plugin-smart-templates/v3/pkg/mongodb/report"
+	"plugin-smart-templates/v3/pkg/mongodb/template"
+	"plugin-smart-templates/v3/pkg/pdf"
 )
 
 // UseCase is a struct to implement the services methods
@@ -32,4 +33,7 @@ type UseCase struct {
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
+
+	// PdfPool provides an abstraction on top of the pdf pool
+	PdfPool *pdf.WorkerPool
 }

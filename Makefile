@@ -2,23 +2,11 @@
 # Coordinates all component Makefiles and provides centralized commands.
 
 # Define the root directory of the project
-SERVICE_NAME := plugin-smart-templates
-BIN_DIR := ./.bin
-ARTIFACTS_DIR := ./artifacts
-
-# Ensure artifacts directory exists
-$(shell mkdir -p $(ARTIFACTS_DIR))
-
-# Define the root directory of the project
 ROOT_DIR := $(shell pwd)
 
-# Include shared color definitions and utility functions
-include $(ROOT_DIR)/pkg/shell/makefile_colors.mk
-include $(ROOT_DIR)/pkg/shell/makefile_utils.mk
-
-#-------------------------------------------------------
-# Core Commands
-#-------------------------------------------------------
+# Define the root directory of the project
+SERVICE_NAME := plugin-smart-templates
+BIN_DIR := ./.bin
 
 # Component directories
 INFRA_DIR := ./components/infra
@@ -27,43 +15,121 @@ WORKER_DIR := ./components/worker
 FRONT_END_DIR := ./components/frontend
 
 # Define a list of all component directories for easier iteration
-WORKER_MANAGER_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
+BACKEND_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
 COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR) $(FRONT_END_DIR)
 
-# Include shared color definitions and utility functions
-#include $(PROJECT_ROOT)/pkg/shell/makefile_colors.mk
-#include $(PROJECT_ROOT)/pkg/shell/makefile_utils.mk
-#include $(PROJECT_ROOT)/pkg/shell/makefile_template.mk
+# Include shared utility functions
+# Define common utility functions
+define print_title
+	@echo ""
+	@echo "------------------------------------------"
+	@echo "   📝 $(1)  "
+	@echo "------------------------------------------"
+endef
 
-# Display available commands
-.PHONY: info
-info:
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
-	@echo "To run a specific command inside the audit container using make, you can execute:                                                     "
-	@echo "                                                                                                                                       "
-	@echo "make audit COMMAND=\"any\"                                                                                                            "
-	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the container. Replace \"any\" with the desired command you want to execute. "
-	@echo "                                                                                                                         "
-	@echo "## Docker commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"build\"                                Builds all Docker images defined in docker-compose.yml."
-	@echo "  COMMAND=\"up\"                                   Starts and runs all services defined in docker-compose.yml."
-	@echo "  COMMAND=\"start\"                                Starts existing containers defined in docker-compose.yml without creating them."
-	@echo "  COMMAND=\"stop\"                                 Stops running containers defined in docker-compose.yml without removing them."
-	@echo "  COMMAND=\"down\"                                 Stops and removes containers, networks, and volumes defined in docker-compose.yml."
-	@echo "  COMMAND=\"destroy\"                              Stops and removes containers, networks, and volumes (including named volumes) defined in docker-compose.yml."
-	@echo "  COMMAND=\"restart\"                              Stops and removes containers, networks, and volumes, then starts all services in detached mode."
-	@echo "  COMMAND=\"logs\"                                 Shows the last 100 lines of logs and follows live log output for services defined in docker-compose.yml."
-	@echo "  COMMAND=\"logs-api\"                             Shows the last 100 lines of logs and follows live log output for the audit service defined in docker-compose.yml."
-	@echo "  COMMAND=\"ps\"                                   Lists the status of containers defined in docker-compose.yml."
-	@echo "                                                                                                                         "
-	@echo "## App commands:"
-	@echo "                                                                                                                         "
-	@echo "  COMMAND=\"generate-docs\" 						  Generates Swagger API documentation and an OpenAPI Specification."
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
+# Check if a command is available
+define check_command
+	@which $(1) > /dev/null || (echo "Error: $(1) is required but not installed. $(2)" && exit 1)
+endef
+
+# Check if environment files exist
+define check_env_files
+	@missing=false; \
+	for dir in $(COMPONENTS); do \
+		if [ ! -f "$$dir/.env" ]; then \
+			missing=true; \
+			break; \
+		fi; \
+	done; \
+	if [ "$$missing" = "true" ]; then \
+		echo "Environment files are missing. Running set-env command first..."; \
+		$(MAKE) set-env; \
+	fi
+endef
+
+# ------------------------------------------------------
+# Test configuration
+# ------------------------------------------------------
+TEST_MANAGER_URL ?= http://localhost:4005
+TEST_HEALTH_WAIT ?= 60
+
+define wait_for_services
+	bash -c 'echo "Waiting for services to become healthy..."; \
+	sleep 40; \
+	for i in $$(seq 1 $(TEST_HEALTH_WAIT)); do \
+	  if curl -fsS $(TEST_MANAGER_URL)/health >/dev/null 2>&1; then \
+	    echo "Services are up"; exit 0; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "[error] Services not healthy after $(TEST_HEALTH_WAIT)s"; exit 1'
+endef
+
+MK_DIR := $(abspath mk)
+
+include $(MK_DIR)/tests.mk
+
+#-------------------------------------------------------
+# Help Command
+#-------------------------------------------------------
+
+help:
+	@echo ""
+	@echo ""
+	@echo "Plugin Smart Templates Commands"
+	@echo ""
+	@echo ""
+	@echo "Core Commands:"
+	@echo "  make help                        - Display this help message"
+	@echo "  make test                        - Run tests on all components"
+	@echo "  make build                       - Build all components"
+	@echo "  make clean                       - Clean all build artifacts"
+	@echo "  make cover                       - Run test coverage"
+	@echo ""
+	@echo ""
+	@echo "Code Quality Commands:"
+	@echo "  make lint                        - Run linting on all components"
+	@echo "  make format                      - Format code in all components"
+	@echo "  make tidy                        - Clean dependencies in root directory"
+	@echo "  make check-tests                 - Verify test coverage for components"
+	@echo "  make sec                         - Run security checks using gosec"
+	@echo ""
+	@echo ""
+	@echo "Git Hook Commands:"
+	@echo "  make setup-git-hooks             - Install and configure git hooks"
+	@echo "  make check-hooks                 - Verify git hooks installation status"
+	@echo "  make check-envs                  - Check if github hooks are installed and secret env files are not exposed"
+	@echo ""
+	@echo ""
+	@echo "Setup Commands:"
+	@echo "  make set-env                     - Copy .env.example to .env for all components"
+	@echo ""
+	@echo ""
+	@echo "Service Commands:"
+	@echo "  make up                           - Start all services with Docker Compose"
+	@echo "  make down                         - Stop all services with Docker Compose"
+	@echo "  make start                        - Start all containers"
+	@echo "  make stop                         - Stop all containers"
+	@echo "  make restart                      - Restart all containers"
+	@echo "  make rebuild-up                   - Rebuild and restart all services"
+	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
+	@echo "  make logs                         - Show logs for all services"
+	@echo ""
+	@echo ""
+	@echo "Documentation Commands:"
+	@echo "  make generate-docs               - Generate Swagger documentation for all services"
+	@echo ""
+	@echo ""
+	@echo "Test Suite Aliases:"
+	@echo "  make test-unit                   - Run Go unit tests (exclude ./tests/**)"
+	@echo "  make test-integration            - Run Go integration tests (brings up backend)"
+	@echo "  make test-e2e                    - Run Apidog E2E tests (brings up backend)"
+	@echo "  make test-fuzzy                  - Run fuzz/robustness tests (brings up backend)"
+	@echo "  make test-fuzz-engine            - Run go fuzz engine on fuzzy tests (brings up backend)"
+	@echo "  make test-chaos                  - Run chaos/resilience tests (brings up backend)"
+	@echo "  make test-property               - Run property-based tests"
+	@echo ""
+	@echo ""
 
 #-------------------------------------------------------
 # Git Hook Commands
@@ -129,16 +195,6 @@ set-env:
 build:
 	$(call title1,"Building component")
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Build completed successfully$(GREEN) ✔️$(NC)"
-
-#-------------------------------------------------------
-# Test Commands
-#-------------------------------------------------------
-
-.PHONY: test
-test:
-	$(call title1,"Running tests")
-	@go test -v ./...
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Tests completed successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: cover-html
 cover-html:
@@ -258,7 +314,7 @@ up:
 	@echo "Starting infrastructure services first..."
 	@cd $(INFRA_DIR) && $(MAKE) up
 	@echo "Starting backend components..."
-	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
 			echo "Starting services in $$dir..."; \
 			(cd $$dir && $(MAKE) up) || exit 1; \
@@ -276,7 +332,7 @@ start:
 down:
 	$(call print_title,"Stopping services")
 	@echo "Stopping components..."
-	@for dir in $(WORKER_MANAGER_COMPONENTS); do \
+	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
 			echo "Stopping services in $$dir..."; \
 			(cd $$dir && $(MAKE) down) || exit 1; \
@@ -305,9 +361,15 @@ restart:
 .PHONY: rebuild-up
 rebuild-up:
 	$(call title1,"Rebuilding and restarting services")
-	@$(DOCKER_CMD) -f docker-compose.yml down
-	@$(DOCKER_CMD) -f docker-compose.yml build
-	@$(DOCKER_CMD) -f docker-compose.yml up -d
+	@echo "Rebuilding infrastructure services..."
+	@cd $(INFRA_DIR) && ($(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate)
+	@echo "Rebuilding backend components..."
+	@for dir in $(BACKEND_COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "Rebuilding services in $$dir..."; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate) || exit 1; \
+		fi; \
+	done
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Services rebuilt and restarted successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: logs
@@ -357,8 +419,8 @@ verify-api-docs:
 	@sh ./scripts/verify-api-docs.sh
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) API documentation verification completed$(GREEN) ✔️$(NC)"
 
-.PHONY: validate-api-docs
-validate-api-docs:
+.PHONY: validate-api-docs-legacy
+validate-api-docs-legacy:
 	$(call title1,"Validating API documentation structure and implementation")
 	@if [ -f "./scripts/package.json" ]; then \
 		echo "$(CYAN)Using npm to run validation...$(NC)"; \

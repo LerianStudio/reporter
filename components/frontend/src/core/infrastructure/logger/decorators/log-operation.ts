@@ -1,4 +1,4 @@
-import { inject } from 'inversify'
+import { Inject } from '@lerianstudio/sindarian-server'
 import { LoggerAggregator } from '@lerianstudio/lib-logs'
 import { snakeCase } from 'lodash'
 
@@ -12,7 +12,7 @@ export function LogOperation(options: {
   }
 
   // Gets a function for injecting the service
-  const ServiceInjection = inject(LoggerAggregator)
+  const ServiceInjection = Inject(LoggerAggregator)
 
   return function (
     target,
@@ -36,7 +36,7 @@ export function LogOperation(options: {
     // Overrides the method
     descriptor.value = async function (...args: any[]) {
       const midazLogger: LoggerAggregator = (this as any).loggerAggregator
-      const isDebugEnabled = process.env.MIDAZ_CONSOLE_ENABLE_DEBUG === 'true'
+      const isDebugEnabled = process.env.ENABLE_DEBUG === 'true'
 
       try {
         midazLogger.info({

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @source '../../node_modules/@lerianstudio/console-layout';
+@source '../../node_modules/@lerianstudio/sindarian-ui';
 
 @custom-variant dark (&:is(.dark *));
 

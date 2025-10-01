@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"plugin-smart-templates/v2/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v2/components/worker/internal/services"
+	"plugin-smart-templates/v3/components/worker/internal/adapters/rabbitmq"
+	"plugin-smart-templates/v3/components/worker/internal/services"
 	"sync"
 	"syscall"
 
@@ -40,7 +40,6 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 
 	wg := &sync.WaitGroup{}
 
-	// Interrupt signals
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
@@ -60,9 +59,7 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 
 // handlerGenerateReport processes messages from the generate report queue.
 func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []byte) error {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "consumer.handler_generate_report")
 	defer span.End()
@@ -75,7 +72,7 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	err := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Error generating report", err)
+		opentelemetry.HandleSpanError(&span, "Error generating report.", err)
 
 		logger.Errorf("Error generating report: %v", err)
 

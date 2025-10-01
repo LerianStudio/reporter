@@ -3,18 +3,21 @@ package http
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
-	"github.com/gofiber/fiber/v2"
-	"gopkg.in/go-playground/validator.v9"
-	"plugin-smart-templates/v2/pkg"
+	"fmt"
+	"plugin-smart-templates/v3/pkg"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/gofiber/fiber/v2"
+	"gopkg.in/go-playground/validator.v9"
+
+	cn "plugin-smart-templates/v3/pkg/constant"
+
 	en2 "github.com/go-playground/validator/translations/en"
-	cn "plugin-smart-templates/v2/pkg/constant"
 )
 
 // DecodeHandlerFunc is a handler which works with withBody decorator.
@@ -65,7 +68,24 @@ func (d *decoderHandler) FiberHandlerFunc(c *fiber.Ctx) error {
 	bodyBytes := c.Body() // Get the body bytes
 
 	if err := json.Unmarshal(bodyBytes, s); err != nil {
+		// Convert JSON unmarshal errors to bad request errors
+		if strings.Contains(err.Error(), "cannot unmarshal") {
+			fieldName := extractFieldNameFromUnmarshalError(err.Error())
+			knownFields := make(map[string]string)
+
+			if fieldName != "" {
+				knownFields[fieldName] = "Invalid type for this field"
+			}
+
+			return BadRequest(c, pkg.ValidateBadRequestFieldsError(pkg.FieldValidations{}, knownFields, "", make(map[string]any)))
+		}
+
 		return err
+	}
+
+	// Validate type mismatches before proceeding
+	if err := validateTypeMismatches(bodyBytes, s); err != nil {
+		return BadRequest(c, err)
 	}
 
 	marshaled, err := json.Marshal(s)
@@ -253,6 +273,7 @@ func malformedRequestErr(err validator.ValidationErrors, trans ut.Translator) pk
 	requiredFields := fieldsRequired(invalidFieldsMap)
 
 	var vErr pkg.ValidationKnownFieldsError
+
 	_ = errors.As(pkg.ValidateBadRequestFieldsError(requiredFields, invalidFieldsMap, "", make(map[string]any)), &vErr)
 
 	return vErr
@@ -395,6 +416,127 @@ func formatErrorFieldName(text string) string {
 	} else {
 		return text
 	}
+}
+
+// validateTypeMismatches checks if the JSON payload has type mismatches with the struct definition
+func validateTypeMismatches(bodyBytes []byte, s any) error {
+	var originalMap map[string]any
+	if err := json.Unmarshal(bodyBytes, &originalMap); err != nil {
+		return err
+	}
+
+	val := reflect.ValueOf(s)
+	if val.Kind() != reflect.Ptr {
+		return nil
+	}
+
+	val = val.Elem()
+
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		// Get JSON tag name
+		jsonTag := fieldType.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		// Remove omitempty and other options
+		jsonName := strings.Split(jsonTag, ",")[0]
+
+		// Check if field exists in original JSON
+		if originalValue, exists := originalMap[jsonName]; exists {
+			// Check type compatibility
+			if err := validateFieldType(originalValue, field, fieldType); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateFieldType validates if the original JSON value is compatible with the struct field type
+func validateFieldType(originalValue any, field reflect.Value, fieldType reflect.StructField) error {
+	fieldKind := field.Kind()
+	jsonTag := fieldType.Tag.Get("json")
+	jsonName := strings.Split(jsonTag, ",")[0]
+
+	// Define type compatibility rules
+	typeMismatch := getTypeMismatch(originalValue, fieldKind)
+	if typeMismatch != nil {
+		return pkg.ValidateBusinessError(cn.ErrBadRequest, "", fmt.Sprintf("field '%s' expects %s but received %s", jsonName, fieldKind.String(), typeMismatch.receivedType))
+	}
+
+	return nil
+}
+
+// typeMismatchInfo holds information about a type mismatch
+type typeMismatchInfo struct {
+	receivedType string
+	value        any
+}
+
+// getTypeMismatch checks if there's a type mismatch and returns mismatch info
+func getTypeMismatch(originalValue any, fieldKind reflect.Kind) *typeMismatchInfo {
+	switch val := originalValue.(type) {
+	case string:
+		if fieldKind == reflect.Map || fieldKind == reflect.Slice {
+			return &typeMismatchInfo{receivedType: "string", value: val}
+		}
+	case map[string]any:
+		if isSimpleType(fieldKind) {
+			return &typeMismatchInfo{receivedType: "object", value: nil}
+		}
+	case []any:
+		if isSimpleType(fieldKind) {
+			return &typeMismatchInfo{receivedType: "array", value: nil}
+		}
+	case float64:
+		if fieldKind == reflect.String || fieldKind == reflect.Map || fieldKind == reflect.Slice {
+			return &typeMismatchInfo{receivedType: "number", value: val}
+		}
+	case bool:
+		if fieldKind == reflect.String || fieldKind == reflect.Map || fieldKind == reflect.Slice {
+			return &typeMismatchInfo{receivedType: "boolean", value: val}
+		}
+	}
+
+	return nil
+}
+
+// isSimpleType checks if the field kind is a simple type
+func isSimpleType(fieldKind reflect.Kind) bool {
+	return fieldKind == reflect.String || fieldKind == reflect.Int || fieldKind == reflect.Float64 || fieldKind == reflect.Bool
+}
+
+// extractFieldNameFromUnmarshalError extracts the field name from a JSON unmarshal error
+func extractFieldNameFromUnmarshalError(errorMsg string) string {
+	// Error format: "json: cannot unmarshal string into Go struct field CreateReportInput.filters of type map[string]map[string]map[string][]string"
+	// Look for the pattern "struct field PackageName.FieldName"
+	re := regexp.MustCompile(`struct field \w+\.(\w+)`)
+	matches := re.FindStringSubmatch(errorMsg)
+
+	if len(matches) > 1 {
+		return matches[1] // Return the field name (e.g., "filters")
+	}
+
+	// Fallback: try to extract just the field name if the pattern doesn't match
+	re2 := regexp.MustCompile(`field (\w+) of type`)
+	matches2 := re2.FindStringSubmatch(errorMsg)
+
+	if len(matches2) > 1 {
+		return matches2[1]
+	}
+
+	return ""
 }
 
 // parseMetadata For compliance with RFC7396 JSON Merge Patch

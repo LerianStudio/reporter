@@ -32,6 +32,7 @@ import { IdTableCell } from '@/components/table/id-table-cell'
 import { useDownloadReport } from '@/client/reports'
 import { useToast } from '@/hooks/use-toast'
 import { useOrganization } from '@lerianstudio/console-layout'
+import { ReportTableSkeleton } from '@/app/(routes)/reports/report-table-skeleton'
 
 type ReportsDataTableProps = {
   reports: PaginationDto<ReportDto> | undefined
@@ -146,16 +147,7 @@ export const ReportsDataTable = ({
   if (isLoading) {
     return (
       <FormProvider {...form}>
-        <EntityDataTable.Root>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground text-sm">
-              {intl.formatMessage({
-                id: 'reports.loading',
-                defaultMessage: 'Loading reports...'
-              })}
-            </div>
-          </div>
-        </EntityDataTable.Root>
+        <ReportTableSkeleton rowCount={5} />
       </FormProvider>
     )
   }
@@ -201,7 +193,7 @@ export const ReportsDataTable = ({
                 <TableRow className="border-b border-[#E5E7EB] hover:bg-transparent">
                   <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
                     {intl.formatMessage({
-                      id: 'reports.table.name',
+                      id: 'common.field.name',
                       defaultMessage: 'Name'
                     })}
                   </TableHead>
@@ -213,7 +205,7 @@ export const ReportsDataTable = ({
                   </TableHead>
                   <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
                     {intl.formatMessage({
-                      id: 'reports.table.status',
+                      id: 'common.status',
                       defaultMessage: 'Status'
                     })}
                   </TableHead>

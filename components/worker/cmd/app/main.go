@@ -1,8 +1,9 @@
 package main
 
 import (
+	"plugin-smart-templates/v3/components/worker/internal/bootstrap"
+
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"plugin-smart-templates/v2/components/worker/internal/bootstrap"
 )
 
 func main() {

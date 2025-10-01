@@ -4,16 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/google/uuid"
-	"go.uber.org/mock/gomock"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/minio/report"
-	"plugin-smart-templates/v2/pkg/minio/template"
-	reportData "plugin-smart-templates/v2/pkg/mongodb/report"
-	postgres2 "plugin-smart-templates/v2/pkg/postgres"
+	"os"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/minio/report"
+	"plugin-smart-templates/v3/pkg/minio/template"
+	"plugin-smart-templates/v3/pkg/model"
+	mongodb2 "plugin-smart-templates/v3/pkg/mongodb"
+	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
+	postgres2 "plugin-smart-templates/v3/pkg/postgres"
 	"strings"
 	"testing"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
+	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_getContentType(t *testing.T) {
@@ -68,10 +73,12 @@ func TestGenerateReport_Success(t *testing.T) {
 		DataQueries: map[string]map[string][]string{
 			"onboarding": {"organization": {"name"}},
 		},
-		Filters: map[string]map[string]map[string][]any{
+		Filters: map[string]map[string]map[string]model.FilterCondition{
 			"onboarding": {
 				"organization": {
-					"id": {1, 2, 3},
+					"id": {
+						Equals: []any{1, 2, 3},
+					},
 				},
 			},
 		},
@@ -98,7 +105,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockPostgresRepo.
 		EXPECT().
-		Query(
+		QueryWithAdvancedFilters(
 			gomock.Any(),
 			gomock.Any(),
 			"organization",
@@ -199,8 +206,7 @@ func TestSaveReport_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
 	if err != nil {
@@ -234,11 +240,187 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 
 	ctx := context.Background()
 
-	logger := libCommons.NewLoggerFromContext(ctx)
-	tracer := libCommons.NewTracerFromContext(ctx)
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, output, logger)
 	if err == nil || !strings.Contains(err.Error(), "failed to put file") {
 		t.Errorf("expected error on Put, got: %v", err)
+	}
+}
+
+func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
+	os.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", encryptKey)
+	defer func() {
+		os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+		os.Unsetenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
+	}()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockReportRepo := report.NewMockRepository(ctrl)
+	mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
+
+	templateID := uuid.New()
+	reportID := uuid.New()
+	organizationID := "01956b69-9102-75b7-8860-3e75c11d231c"
+
+	// Dados de teste - documento que será filtrado
+	testDocument := "12345678901"
+
+	// Criar instância de crypto para gerar hash do documento
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	// Inicializar o cipher para criptografia
+	err := crypto.InitializeCipher()
+	if err != nil {
+		t.Fatalf("Failed to initialize cipher: %v", err)
+	}
+
+	hashedDocument := crypto.GenerateHash(&testDocument)
+
+	templateContent := `Cliente: {{ plugin_crm.holders.0.name }}
+Documento: {{ plugin_crm.holders.0.document }}
+Email: {{ plugin_crm.holders.0.contact.primary_email }}
+Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
+
+	nameStr := "João Silva"
+	emailStr := "joao@example.com"
+	accountStr := "12345-6"
+
+	encryptedName, _ := crypto.Encrypt(&nameStr)
+	encryptedDocument, _ := crypto.Encrypt(&testDocument)
+	encryptedEmail, _ := crypto.Encrypt(&emailStr)
+	encryptedAccount, _ := crypto.Encrypt(&accountStr)
+
+	mockMongoData := []map[string]any{
+		{
+			"_id":      "holder-123",
+			"name":     *encryptedName,
+			"document": *encryptedDocument,
+			"search": map[string]any{
+				"document": hashedDocument,
+				"name":     crypto.GenerateHash(encryptedName),
+			},
+			"contact": map[string]any{
+				"primary_email": *encryptedEmail,
+			},
+			"banking_details": map[string]any{
+				"account": *encryptedAccount,
+			},
+		},
+	}
+
+	body := GenerateReportMessage{
+		TemplateID:   templateID,
+		ReportID:     reportID,
+		OutputFormat: "html",
+		DataQueries: map[string]map[string][]string{
+			"plugin_crm": {
+				"organization": {organizationID},
+				"holders":      {"name", "document", "contact.primary_email", "banking_details.account"},
+			},
+		},
+		Filters: map[string]map[string]map[string]model.FilterCondition{
+			"plugin_crm": {
+				"holders": {
+					"document": {
+						Equals: []any{testDocument},
+					},
+				},
+			},
+		},
+	}
+	bodyBytes, _ := json.Marshal(body)
+
+	mockTemplateRepo.
+		EXPECT().
+		Get(gomock.Any(), templateID.String()).
+		Return([]byte(templateContent), nil)
+
+	mockMongoRepo.
+		EXPECT().
+		Query(
+			gomock.Any(),
+			"organization",
+			[]string{organizationID},
+			nil,
+		).
+		Return([]map[string]any{{"id": organizationID}}, nil)
+
+	mockMongoRepo.
+		EXPECT().
+		QueryWithAdvancedFilters(
+			gomock.Any(),
+			"holders_"+organizationID,
+			[]string{"name", "document", "contact.primary_email", "banking_details.account"},
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx context.Context, collection string, fields []string, filters map[string]model.FilterCondition) ([]map[string]any, error) {
+			if searchDocFilter, exists := filters["search.document"]; exists {
+				if len(searchDocFilter.Equals) > 0 {
+					if searchDocFilter.Equals[0] != hashedDocument {
+						t.Errorf("Expected hashed document %s, got %s", hashedDocument, searchDocFilter.Equals[0])
+					}
+				}
+			} else {
+				t.Error("Expected search.document filter to be present")
+			}
+			return mockMongoData, nil
+		})
+
+	mockReportRepo.
+		EXPECT().
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte) error {
+			// Verificar se o conteúdo foi renderizado com dados descriptografados
+			content := string(data)
+			if !strings.Contains(content, "João Silva") {
+				t.Error("Expected decrypted name 'João Silva' in rendered content")
+			}
+			if !strings.Contains(content, testDocument) {
+				t.Error("Expected decrypted document in rendered content")
+			}
+			if !strings.Contains(content, "joao@example.com") {
+				t.Error("Expected decrypted email in rendered content")
+			}
+			if !strings.Contains(content, "12345-6") {
+				t.Error("Expected decrypted account in rendered content")
+			}
+			return nil
+		})
+
+	mockReportDataRepo.
+		EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
+		Return(nil)
+
+	useCase := &UseCase{
+		TemplateFileRepo: mockTemplateRepo,
+		ReportFileRepo:   mockReportRepo,
+		ReportDataRepo:   mockReportDataRepo,
+		ExternalDataSources: map[string]pkg.DataSource{
+			"plugin_crm": {
+				Initialized:       true,
+				DatabaseType:      "mongodb",
+				MongoDBRepository: mockMongoRepo,
+			},
+		},
+	}
+
+	err = useCase.GenerateReport(context.Background(), bodyBytes)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
