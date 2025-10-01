@@ -178,6 +178,7 @@ export function TemplatesSheet({
               control={form.control}
               required
               disabled={isLoading}
+              data-testid="template-name-input"
             />
 
             <SelectField
@@ -198,6 +199,7 @@ export function TemplatesSheet({
               control={form.control}
               required
               disabled={isLoading}
+              data-testid="template-output-format-select"
             >
               {OUTPUT_FORMAT_OPTIONS.map((option) => (
                 <SelectItem
@@ -230,6 +232,7 @@ export function TemplatesSheet({
               maxSize={5 * 1024 * 1024} // 5MB
               required
               disabled={isLoading}
+              data-testid="template-file-input"
             />
 
             <p className="text-muted-foreground text-sm">
@@ -246,6 +249,7 @@ export function TemplatesSheet({
               loading={isLoading}
               className="flex w-full items-center gap-2"
               onClick={form.handleSubmit(handleSubmit)}
+              data-testid="template-submit-button"
             >
               {intl.formatMessage({
                 id: 'templates.form.saveButton',

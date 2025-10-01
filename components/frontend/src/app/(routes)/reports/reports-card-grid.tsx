@@ -31,7 +31,7 @@ export const ReportsCardGrid = ({
   const reportsWithFallback = reports || { items: [] }
 
   return (
-    <div className="rounded-lg">
+    <div data-testid="reports-grid-container" className="rounded-lg">
       <div className="">
         {isLoading ? (
           <ReportGridSkeleton count={6} />

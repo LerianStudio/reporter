@@ -84,6 +84,7 @@ export function ReportCard({ report, className, ...props }: ReportCardProps) {
 
   return (
     <Card
+      data-testid={`report-card-${report.id}`}
       className={cn(
         'relative h-[214px] w-[396px] overflow-hidden rounded-lg border border-[#F4F4F5] bg-white p-0 shadow-sm',
         className
@@ -124,6 +125,7 @@ export function ReportCard({ report, className, ...props }: ReportCardProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
+                data-testid={`report-card-actions-${report.id}`}
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 rounded-md p-0"
@@ -137,6 +139,7 @@ export function ReportCard({ report, className, ...props }: ReportCardProps) {
             <DropdownMenuContent align="end">
               {isDownloadable && (
                 <DropdownMenuItem
+                  data-testid={`report-card-download-${report.id}`}
                   onClick={handleDownload}
                   disabled={downloadMutation.isPending}
                 >
@@ -148,7 +151,10 @@ export function ReportCard({ report, className, ...props }: ReportCardProps) {
                 </DropdownMenuItem>
               )}
               {!isDownloadable && (
-                <DropdownMenuItem disabled>
+                <DropdownMenuItem
+                  data-testid={`report-card-download-disabled-${report.id}`}
+                  disabled
+                >
                   <Download className="mr-2 h-4 w-4" />
                   {intl.formatMessage({
                     id: 'reports.actions.downloadNotAvailable',

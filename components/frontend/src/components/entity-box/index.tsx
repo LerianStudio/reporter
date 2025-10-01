@@ -49,7 +49,11 @@ function EntityBoxCollapsibleTrigger({
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
   return (
     <CollapsibleTrigger {...props} asChild>
-      <Button variant="secondary" className="h-[34px] w-[34px] p-2">
+      <Button
+        variant="secondary"
+        className="h-[34px] w-[34px] p-2"
+        data-testid="filters-expand-button"
+      >
         <Settings2 size={16} />
       </Button>
     </CollapsibleTrigger>

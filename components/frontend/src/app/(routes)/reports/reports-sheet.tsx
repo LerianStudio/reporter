@@ -117,7 +117,11 @@ export function ReportsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-[594px] flex-col">
+      <SheetContent
+        data-testid="reports-sheet"
+        side="right"
+        className="flex w-[594px] flex-col"
+      >
         <SheetHeader>
           <SheetTitle>
             {intl.formatMessage({
@@ -141,13 +145,13 @@ export function ReportsSheet({
             className="flex flex-1 flex-col"
           >
             <TabsList className="mb-6">
-              <TabsTrigger value="details">
+              <TabsTrigger data-testid="report-details-tab" value="details">
                 {intl.formatMessage({
                   id: 'reports.sheet.tab.details',
                   defaultMessage: 'Report Details'
                 })}
               </TabsTrigger>
-              <TabsTrigger value="filters">
+              <TabsTrigger data-testid="report-filters-tab" value="filters">
                 {intl.formatMessage({
                   id: 'reports.sheet.tab.filters',
                   defaultMessage: 'Filters'
@@ -157,6 +161,7 @@ export function ReportsSheet({
 
             <TabsContent value="details" className="flex-1 space-y-4 pb-8">
               <SelectField
+                data-testid="report-template-select"
                 name="templateId"
                 label={intl.formatMessage({
                   id: 'reports.form.template',
@@ -197,6 +202,7 @@ export function ReportsSheet({
                     </p>
                   </div>
                   <Button
+                    data-testid="report-add-filter-button"
                     size="sm"
                     variant="default"
                     type="button"
@@ -232,6 +238,7 @@ export function ReportsSheet({
 
           <SheetFooter className="mt-auto">
             <LoadingButton
+              data-testid="report-generate-button"
               type="submit"
               loading={isLoading}
               className="flex w-full items-center gap-2"

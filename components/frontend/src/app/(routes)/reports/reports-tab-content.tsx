@@ -97,6 +97,7 @@ export function ReportsTabContent() {
               )}
               <EntityBox.CollapsibleTrigger />
               <Button
+                data-testid="new-report-button"
                 icon={<Plus />}
                 iconPlacement="end"
                 onClick={handleCreateReport}
@@ -111,6 +112,7 @@ export function ReportsTabContent() {
           <EntityBox.CollapsibleContent>
             <div className="col-span-2 flex grow flex-col gap-4 sm:flex-row">
               <InputField
+                data-testid="reports-search-input"
                 name="search"
                 placeholder={intl.formatMessage({
                   id: 'common.searchPlaceholder',
@@ -121,6 +123,7 @@ export function ReportsTabContent() {
 
               <div className="sm:w-auto sm:flex-none">
                 <DatePickerField
+                  data-testid="date-filter-button"
                   name="createdAt"
                   placeholder={intl.formatMessage({
                     id: 'common.selectDate',
@@ -133,6 +136,7 @@ export function ReportsTabContent() {
             <div className="col-start-3 flex items-center justify-end gap-2">
               <PaginationLimitField control={form.control} />
               <Button
+                data-testid="clear-filters-button"
                 variant="outline"
                 className="h-[34px] w-[34px] bg-white p-2 hover:bg-white"
                 onClick={() => {
@@ -150,6 +154,7 @@ export function ReportsTabContent() {
                 <Tooltip delayDuration={500}>
                   <TooltipTrigger asChild>
                     <Button
+                      data-testid="reports-view-mode-toggle"
                       variant="secondary"
                       className="h-[34px] w-[34px] p-2"
                       onClick={() =>

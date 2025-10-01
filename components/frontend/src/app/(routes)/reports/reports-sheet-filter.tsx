@@ -107,9 +107,13 @@ export function ReportsSheetFilter({
   }, [field?.operator, intl])
 
   return (
-    <div className="space-y-4 rounded-lg border p-6">
+    <div
+      data-testid="report-filter-item"
+      className="space-y-4 rounded-lg border p-6"
+    >
       <div className="-mt-4 -mr-4 flex justify-end">
         <Button
+          data-testid="report-filter-remove-button"
           size="sm"
           variant="ghost"
           type="button"
@@ -122,6 +126,7 @@ export function ReportsSheetFilter({
 
       <div className="grid grid-cols-2 gap-4">
         <SelectField
+          data-testid="report-filter-database-select"
           name={`${name}.database`}
           label={intl.formatMessage({
             id: 'reports.filters.database',
@@ -148,6 +153,7 @@ export function ReportsSheetFilter({
         </SelectField>
 
         <SelectField
+          data-testid="report-filter-table-select"
           name={`${name}.table`}
           label={intl.formatMessage({
             id: 'reports.filters.table',
@@ -175,6 +181,7 @@ export function ReportsSheetFilter({
 
       <div className="grid grid-cols-2 gap-4">
         <SelectField
+          data-testid="report-filter-field-select"
           name={`${name}.field`}
           label={intl.formatMessage({
             id: 'reports.filters.field',
@@ -199,6 +206,7 @@ export function ReportsSheetFilter({
         </SelectField>
 
         <SelectField
+          data-testid="report-filter-operator-select"
           name={`${name}.operator`}
           label={intl.formatMessage({
             id: 'reports.filters.operator',
@@ -227,6 +235,7 @@ export function ReportsSheetFilter({
 
       {valuesRequired && (
         <InputField
+          data-testid="report-filter-values-input"
           name={`${name}.values`}
           label={intl.formatMessage({
             id: 'reports.filters.values',

@@ -54,7 +54,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         </DialogHeader>
 
         <DialogFooter>
-          <Button onClick={onCancel} variant="secondary">
+          <Button onClick={onCancel} variant="secondary" data-testid="cancel">
             {cancelLabel ??
               intl.formatMessage({
                 id: 'common.cancel',

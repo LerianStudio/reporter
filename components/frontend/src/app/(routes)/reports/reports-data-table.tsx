@@ -82,7 +82,7 @@ const ReportRow = ({ report }: ReportRowProps) => {
   }
 
   return (
-    <TableRow key={report.id}>
+    <TableRow key={report.id} data-testid={`report-row-${report.id}`}>
       <TableCell className="font-normal text-[#6B7280]">
         {report.template?.name ?? report.template?.fileName}
       </TableCell>
@@ -109,15 +109,20 @@ const ReportRow = ({ report }: ReportRowProps) => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              data-testid={`report-actions-button-${report.id}`}
               variant="secondary"
               className="h-8 w-8 border border-[#D4D4D8] bg-white p-2 shadow-sm hover:bg-[#F4F4F5]"
             >
               <MoreVertical className="h-4 w-4 text-[#52525B]" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent
+            data-testid={`report-actions-menu-${report.id}`}
+            align="end"
+          >
             {report.status === 'Finished' && (
               <DropdownMenuItem
+                data-testid={`report-download-${report.id}`}
                 disabled={downloadMutation.isPending}
                 onClick={handleDownloadReport}
               >
@@ -188,40 +193,58 @@ export const ReportsDataTable = ({
       ) : (
         <>
           <TableContainer>
-            <Table className="bg-white">
+            <Table data-testid="reports-table" className="bg-white">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E7EB] hover:bg-transparent">
-                  <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-name"
+                    className="px-6 py-4 text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'common.field.name',
                       defaultMessage: 'Name'
                     })}
                   </TableHead>
-                  <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-reportid"
+                    className="px-6 py-4 text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'reports.table.reportId',
                       defaultMessage: 'Report ID'
                     })}
                   </TableHead>
-                  <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-status"
+                    className="px-6 py-4 text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'common.status',
                       defaultMessage: 'Status'
                     })}
                   </TableHead>
-                  <TableHead className="px-6 py-4 text-center text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-format"
+                    className="px-6 py-4 text-center text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'reports.table.format',
                       defaultMessage: 'Format'
                     })}
                   </TableHead>
-                  <TableHead className="px-6 py-4 text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-completedat"
+                    className="px-6 py-4 text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'reports.table.completedAt',
                       defaultMessage: 'Completed At'
                     })}
                   </TableHead>
-                  <TableHead className="w-[90px] px-6 py-4 text-right text-sm font-medium text-[#52525B]">
+                  <TableHead
+                    data-testid="reports-table-header-actions"
+                    className="w-[90px] px-6 py-4 text-right text-sm font-medium text-[#52525B]"
+                  >
                     {intl.formatMessage({
                       id: 'common.actions',
                       defaultMessage: 'Actions'
@@ -229,7 +252,7 @@ export const ReportsDataTable = ({
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody data-testid="reports-table-body">
                 {reports.items.map((report) => (
                   <ReportRow key={report.id} report={report} />
                 ))}

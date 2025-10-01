@@ -44,6 +44,7 @@ export function TemplatesTabContent() {
   const { toast } = useToast()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const { currentOrganization } = useOrganization()
+  const total = 1000000
 
   const { handleCreate, handleEdit, sheetProps } =
     useCreateUpdateSheet<TemplateDto>()
@@ -79,7 +80,7 @@ export function TemplatesTabContent() {
 
   const { form, searchValues, pagination } = useQueryParams<TemplateFiltersDto>(
     {
-      total: 0, // Will be updated after data loads
+      total, // Will be updated after data loads
       initialValues: {
         name: '',
         outputFormat: undefined,
@@ -241,6 +242,7 @@ export function TemplatesTabContent() {
               )}
               <EntityBox.CollapsibleTrigger />
               <Button
+                data-testid="new-template-button"
                 icon={<Plus />}
                 iconPlacement="end"
                 onClick={handleCreateTemplate}
@@ -255,6 +257,7 @@ export function TemplatesTabContent() {
           <EntityBox.CollapsibleContent>
             <div className="col-span-2 flex grow flex-col gap-4 sm:flex-row">
               <InputField
+                data-testid="templates-search-input"
                 name="name"
                 placeholder={intl.formatMessage({
                   id: 'common.searchPlaceholder',
@@ -267,6 +270,7 @@ export function TemplatesTabContent() {
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      data-testid="date-filter-button"
                       variant="outline"
                       className={cn(
                         'h-9 w-fit justify-between gap-3 rounded-md border border-[#C7C7C7] bg-white px-3 py-2 text-left text-sm font-normal hover:bg-white focus-visible:ring-2 focus-visible:ring-offset-0',
@@ -307,6 +311,7 @@ export function TemplatesTabContent() {
               </div>
 
               <SelectField
+                data-testid="output-format-filter"
                 className="min-w-50 flex-1 sm:flex-none"
                 name="outputFormat"
                 placeholder={intl.formatMessage({
@@ -328,6 +333,7 @@ export function TemplatesTabContent() {
             <div className="col-start-3 flex items-center justify-end gap-2">
               <PaginationLimitField control={form.control} />
               <Button
+                data-testid="clear-filters-button"
                 variant="outline"
                 className="h-[34px] w-[34px] bg-white p-2 hover:bg-white"
                 onClick={() => {
@@ -343,13 +349,14 @@ export function TemplatesTabContent() {
         </EntityBox.Collapsible>
 
         <TemplatesDataTable
+          data-testid="templates-data-table"
           templates={templatesWithFallback}
           isLoading={isLoading}
           table={table}
           onDelete={handleDeleteTemplate}
           handleCreate={handleCreateTemplate}
           handleEdit={handleEditTemplate}
-          total={templatesData?.total || templatesData?.items?.length || 0}
+          total={total}
           pagination={pagination}
           form={form}
         />

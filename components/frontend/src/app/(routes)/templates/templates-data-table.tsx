@@ -58,22 +58,35 @@ const EmptyTemplates: React.FC<{ onCreateTemplate: () => void }> = ({
   const intl = useIntl()
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+    <div
+      data-testid="templates-empty-state"
+      className="flex flex-col items-center justify-center px-6 py-12 text-center"
+    >
       <Database className="mb-4 h-12 w-12 text-gray-400" />
-      <h3 className="mb-2 text-lg font-medium text-gray-900">
+      <h3
+        data-testid="empty-state-title"
+        className="mb-2 text-lg font-medium text-gray-900"
+      >
         {intl.formatMessage({
           id: 'templates.emptyState.title',
           defaultMessage: 'No templates found'
         })}
       </h3>
-      <p className="mb-6 max-w-sm text-gray-500">
+      <p
+        data-testid="empty-state-description"
+        className="mb-6 max-w-sm text-gray-500"
+      >
         {intl.formatMessage({
           id: 'templates.emptyState.description',
           defaultMessage:
             "You haven't created any templates yet. Create your first template to get started."
         })}
       </p>
-      <Button onClick={onCreateTemplate} icon={<Plus className="h-4 w-4" />}>
+      <Button
+        data-testid="empty-state-create-button"
+        onClick={onCreateTemplate}
+        icon={<Plus className="h-4 w-4" />}
+      >
         {intl.formatMessage({
           id: 'common.new.template',
           defaultMessage: 'New Template'
@@ -91,7 +104,7 @@ const TemplateRow: React.FC<TemplateRowProps> = ({
   const intl = useIntl()
 
   return (
-    <TableRow key={template.id}>
+    <TableRow key={template.id} data-testid={`template-row-${template.id}`}>
       <NameTableCell
         name={template.original.name || template.original.fileName}
         onClick={() => handleEdit(template.original)}
@@ -105,12 +118,22 @@ const TemplateRow: React.FC<TemplateRowProps> = ({
       <TableCell className="w-0" align="center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" className="h-auto w-max p-2">
+            <Button
+              data-testid={`template-actions-button-${template.id}`}
+              variant="secondary"
+              className="h-auto w-max p-2"
+            >
               <MoreVertical size={16} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleEdit(template.original)}>
+          <DropdownMenuContent
+            data-testid={`template-actions-menu-${template.id}`}
+            align="end"
+          >
+            <DropdownMenuItem
+              data-testid={`template-details-${template.id}`}
+              onClick={() => handleEdit(template.original)}
+            >
               {intl.formatMessage({
                 id: `common.details`,
                 defaultMessage: 'Details'
@@ -118,6 +141,7 @@ const TemplateRow: React.FC<TemplateRowProps> = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              data-testid={`template-delete-${template.id}`}
               onClick={() => {
                 onDelete(template.original.id!, template.original)
               }}
@@ -148,33 +172,36 @@ export const TemplatesDataTable: React.FC<TemplatesTableProps> = ({
 
   return (
     <>
-      <Paper>
+      <Paper data-testid="templates-table-container">
         {isNil(templates?.items) || templates?.items.length === 0 ? (
           <EmptyTemplates onCreateTemplate={handleCreate} />
         ) : (
           <TableContainer>
-            <Table>
+            <Table data-testid="templates-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>
+                  <TableHead data-testid="templates-table-header-name">
                     {intl.formatMessage({
                       id: 'common.field.name',
                       defaultMessage: 'Name'
                     })}
                   </TableHead>
-                  <TableHead>
+                  <TableHead data-testid="templates-table-header-type">
                     {intl.formatMessage({
                       id: 'common.field.type',
                       defaultMessage: 'Type'
                     })}
                   </TableHead>
-                  <TableHead>
+                  <TableHead data-testid="templates-table-header-modified">
                     {intl.formatMessage({
                       id: 'common.field.lastModified',
                       defaultMessage: 'Last Modified'
                     })}
                   </TableHead>
-                  <TableHead className="w-0">
+                  <TableHead
+                    data-testid="templates-table-header-actions"
+                    className="w-0"
+                  >
                     {intl.formatMessage({
                       id: 'common.actions',
                       defaultMessage: 'Actions'
@@ -182,7 +209,7 @@ export const TemplatesDataTable: React.FC<TemplatesTableProps> = ({
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody data-testid="templates-table-body">
                 {table.getRowModel().rows.map((template) => (
                   <TemplateRow
                     key={template.id}
