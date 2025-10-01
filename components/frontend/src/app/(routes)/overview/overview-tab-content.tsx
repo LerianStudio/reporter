@@ -98,7 +98,7 @@ export function OverviewTabContent() {
       <OverviewCard
         title={intl.formatMessage({
           id: 'smartTemplates.cards.docs.title',
-          defaultMessage: 'Smart Template Docs'
+          defaultMessage: 'Reporter Docs'
         })}
         description={intl.formatMessage({
           id: 'smartTemplates.cards.docs.description',
