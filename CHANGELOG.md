@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0] - 2025-10-02
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0)
+Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Application Structure Overhaul**: The internal structure of the application has been redefined to streamline workflows and improve maintainability. Users will need to adjust their configurations and integrations to align with the new setup. Please refer to the migration guide for detailed steps.
+
+### ✨ Features
+- **Enhanced Report Validation**: Reports now include more detailed error messages, making it easier to identify and troubleshoot issues, ensuring data integrity.
+- **PDF Export**: Users can now export documents in PDF format, expanding the range of output options and enhancing document sharing capabilities.
+
+### 🐛 Bug Fixes
+- **Navigation Reliability**: Fixed a manifest route issue that previously caused navigation errors, ensuring seamless access to application resources.
+- **XML Output Consistency**: Adjusted XML generation to meet expected standards, resolving data representation discrepancies.
+
+### ⚡ Performance
+- **Testing Framework Robustness**: New test suites based on midaz tests have been added, improving the reliability and accuracy of automated testing processes.
+
+### 🔄 Changes
+- **Internationalization Consistency**: Standardized internationalization keys across the frontend, improving multilingual support and maintainability.
+- **Backend Configuration Management**: Centralized the definition of OUTPUT_FORMATS, simplifying configuration management and reducing potential errors.
+
+### 📚 Documentation
+- **Updated Guides**: Documentation has been refined to reflect recent changes, providing users with up-to-date information and guidance for effective application use.
+
+### 🔧 Maintenance
+- **Build System Update**: Updated Go version and linting tools in the GitHub workflow to ensure compatibility with the latest development standards.
+- **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
+
+
 ## [v3.0.0-rc.3] - 2025-10-02
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.2...v3.0.0-rc.3)
