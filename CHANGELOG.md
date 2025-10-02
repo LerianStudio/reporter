@@ -19,7 +19,6 @@ Contributors: Gabriel Castro, lerian-studio
 ### 🔧 Maintenance
 - **Code Quality Enhancements**: General refactoring and cleanup were performed to improve the maintainability and robustness of the codebase. This includes aligning component names and cleaning configuration files to match the new naming conventions, ensuring the application remains easy to update and reliable in the future.
 
-
 ## [v3.0.0-beta.2] - 2025-09-30
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.1...v3.0.0-beta.2)
