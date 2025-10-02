@@ -1,9 +1,10 @@
 package http
 
 import (
+	"plugin-smart-templates/v3/pkg"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"plugin-smart-templates/v2/pkg"
 )
 
 // WithError returns an error with the given status code and message.
@@ -30,11 +31,13 @@ func WithError(c *fiber.Ctx, err error) error {
 		return BadRequest(c, e)
 	case pkg.ResponseError:
 		var rErr pkg.ResponseError
+
 		_ = errors.As(err, &rErr)
 
 		return JSONResponseError(c, rErr)
 	default:
 		var iErr pkg.InternalServerError
+
 		_ = errors.As(pkg.ValidateInternalError(err, ""), &iErr)
 
 		return InternalServerError(c, iErr.Code, iErr.Title, iErr.Message)

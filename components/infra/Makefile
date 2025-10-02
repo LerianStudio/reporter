@@ -6,7 +6,6 @@ NC := \033[0m
 
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
 DOCKER_MIN_VERSION := 20.10.13
-
 DOCKER_CMD := $(shell \
 	if [ "$(shell printf '%s\n' "$(DOCKER_MIN_VERSION)" "$(DOCKER_VERSION)" | sort -V | head -n1)" = "$(DOCKER_MIN_VERSION)" ]; then \
 		echo "docker compose"; \

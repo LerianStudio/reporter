@@ -3,11 +3,13 @@ package pongo
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/flosch/pongo2/v6"
+	"github.com/shopspring/decimal"
 )
 
 // aggregateTagNode represents a data structure to hold information for custom aggregation operations in templates.
@@ -17,13 +19,17 @@ type aggregateTagNode struct {
 	collectionExpr pongo2.IEvaluator // Expression representing the data collection
 	fieldExpr      pongo2.IEvaluator // Field expression for selecting specific fields (e.g., "by field")
 	filterExpr     pongo2.IEvaluator // Condition to filter items in the dataset (e.g., "if condition" in the template tag)
-	scaleExpr      pongo2.IEvaluator // Expression for scaling results (e.g., formatting decimals like "scale 2")
 }
 
 // dateNowNode represents a data structure to hold information for the dateNow template tag.
 // It includes the expression representing the date format (e.g., "YYYY-MM-dd").
 type dateNowNode struct {
 	formatExpr pongo2.IEvaluator // Expression representing the date format (e.g., "YYYY-MM-dd")
+}
+
+// calcTagNode represents a calc tag that evaluates arithmetic expressions
+type calcTagNode struct {
+	expression string
 }
 
 // makeAggregateTag returns a pongo2.TagParser for creating custom aggregate template tags based on the specified operation.
@@ -55,20 +61,11 @@ func makeAggregateTag(op string) pongo2.TagParser {
 			}
 		}
 
-		var scaleExpr pongo2.IEvaluator
-		if t := args.Match(pongo2.TokenIdentifier, "scale"); t != nil {
-			scaleExpr, err = args.ParseExpression()
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		return &aggregateTagNode{
 			op:             op,
 			collectionExpr: collectionExpr,
 			fieldExpr:      fieldExpr,
 			filterExpr:     filterExpr,
-			scaleExpr:      scaleExpr,
 		}, nil
 	}
 }
@@ -144,51 +141,108 @@ func evaluateCollection(ctx *pongo2.ExecutionContext, expr pongo2.IEvaluator) ([
 
 // aggregateResult performs aggregation operations (sum, avg, min, max, count) on a filtered list within a template context.
 func aggregateResult(ctx *pongo2.ExecutionContext, list []map[string]any, node *aggregateTagNode) (string, *pongo2.Error) {
-	var total int64
-
-	var count int
-
-	var minVal *int64
-
-	var maxVal *int64
+	accumulator := newAggregator(node.op)
 
 	for _, item := range list {
 		if !passesFilter(ctx, item, node.filterExpr) {
 			continue
 		}
 
-		if node.op == "count" {
-			count++
-			continue
-		}
-
-		vInt, skip, err := extractIntValue(ctx, item, node.fieldExpr)
-		if err != nil {
+		if err := accumulator.processItem(ctx, item, node); err != nil {
 			return "", err
-		}
-
-		if skip {
-			continue
-		}
-
-		switch node.op {
-		case "sum", "avg":
-			total += vInt
-			count++
-		case "min":
-			if minVal == nil || vInt < *minVal {
-				minVal = &vInt
-			}
-		case "max":
-			if maxVal == nil || vInt > *maxVal {
-				maxVal = &vInt
-			}
 		}
 	}
 
-	scale := getScale(ctx, node.scaleExpr)
+	return accumulator.result(), nil
+}
 
-	return formatOutput(node.op, total, count, minVal, maxVal, scale), nil
+// aggregator holds state for different aggregation operations
+type aggregator struct {
+	op     string
+	total  decimal.Decimal
+	count  int
+	minVal *decimal.Decimal
+	maxVal *decimal.Decimal
+}
+
+// newAggregator creates a new aggregator for the specified operation
+func newAggregator(op string) *aggregator {
+	return &aggregator{
+		op:    op,
+		total: decimal.Zero,
+	}
+}
+
+// processItem processes a single item for aggregation
+func (a *aggregator) processItem(ctx *pongo2.ExecutionContext, item map[string]any, node *aggregateTagNode) *pongo2.Error {
+	if a.op == "count" {
+		a.count++
+		return nil
+	}
+
+	vDec, skip, err := extractDecimalValue(ctx, item, node.fieldExpr)
+	if err != nil {
+		return err
+	}
+
+	if skip {
+		return nil
+	}
+
+	return a.accumulate(vDec)
+}
+
+// accumulate adds a value to the appropriate accumulator
+func (a *aggregator) accumulate(vDec decimal.Decimal) *pongo2.Error {
+	switch a.op {
+	case "sum", "avg":
+		a.total = a.total.Add(vDec)
+		a.count++
+	case "min":
+		if a.minVal == nil || vDec.LessThan(*a.minVal) {
+			tmp := vDec
+			a.minVal = &tmp
+		}
+	case "max":
+		if a.maxVal == nil || vDec.GreaterThan(*a.maxVal) {
+			tmp := vDec
+			a.maxVal = &tmp
+		}
+	}
+
+	return nil
+}
+
+// result returns the final aggregation result
+func (a *aggregator) result() string {
+	switch a.op {
+	case "count":
+		return fmt.Sprintf("%d", a.count)
+	case "sum":
+		return a.total.String()
+	case "avg":
+		if a.count == 0 {
+			return "0"
+		}
+
+		avg := a.total.Div(decimal.NewFromInt(int64(a.count)))
+
+		return avg.String()
+	case "min":
+		if a.minVal == nil {
+			return "0"
+		}
+
+		return a.minVal.String()
+	case "max":
+		if a.maxVal == nil {
+			return "0"
+		}
+
+		return a.maxVal.String()
+	default:
+		return "NaN"
+	}
 }
 
 // passesFilter evaluates a filter expression on an item within a given execution context and returns true if the condition is met.
@@ -210,79 +264,33 @@ func passesFilter(ctx *pongo2.ExecutionContext, item map[string]any, filterExpr 
 // extractIntValue retrieves an integer value from a nested map field specified by a field expression in the given context.
 // It evaluates the field expression, extracts the field value, and converts it into int64 if possible.
 // Returns the integer value, a boolean indicating if the field should be skipped, and an optional error.
-func extractIntValue(ctx *pongo2.ExecutionContext, item map[string]any, fieldExpr pongo2.IEvaluator) (int64, bool, *pongo2.Error) {
+func extractDecimalValue(ctx *pongo2.ExecutionContext, item map[string]any, fieldExpr pongo2.IEvaluator) (decimal.Decimal, bool, *pongo2.Error) {
 	fieldNameVal, err := fieldExpr.Evaluate(ctx)
 	if err != nil {
-		return 0, false, err
+		return decimal.Zero, false, err
 	}
 
 	fieldName := fieldNameVal.String()
 
 	value, ok := getNestedField(item, fieldName)
 	if !ok {
-		return 0, true, nil
+		return decimal.Zero, true, nil
 	}
 
 	switch v := value.(type) {
 	case int:
-		return int64(v), false, nil
+		return decimal.NewFromInt(int64(v)), false, nil
 	case int64:
-		return v, false, nil
+		return decimal.NewFromInt(v), false, nil
 	case float64:
-		return int64(v), false, nil
+		return decimal.NewFromFloat(v), false, nil
 	case string:
-		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+		if parsed, err := decimal.NewFromString(v); err == nil {
 			return parsed, false, nil
 		}
 	}
 
-	return 0, true, nil
-}
-
-// getScale determines the scale (number of decimal places) for numerical formatting based on the evaluated expression.
-// Returns the scale as an integer, or 0 if the expression is nil or evaluation fails.
-func getScale(ctx *pongo2.ExecutionContext, expr pongo2.IEvaluator) int {
-	if expr == nil {
-		return 0
-	}
-
-	if scaleVal, err := expr.Evaluate(ctx); err == nil {
-		return scaleVal.Integer()
-	}
-
-	return 0
-}
-
-// formatOutput formats the result of an aggregation operation (count, sum, avg, min, max) as a scaled string output.
-func formatOutput(op string, total int64, count int, minVal, maxVal *int64, scale int) string {
-	factor := math.Pow10(scale)
-
-	switch op {
-	case "count":
-		return fmt.Sprintf("%d", count)
-	case "sum":
-		return fmt.Sprintf("%.*f", scale, float64(total)/factor)
-	case "avg":
-		if count > 0 {
-			return fmt.Sprintf("%.*f", scale, (float64(total)/float64(count))/factor)
-		}
-
-		return fmt.Sprintf("%.*f", scale, 0.0)
-	case "min":
-		if minVal != nil {
-			return fmt.Sprintf("%.*f", scale, float64(*minVal)/factor)
-		}
-
-		return fmt.Sprintf("%.*f", scale, 0.0)
-	case "max":
-		if maxVal != nil {
-			return fmt.Sprintf("%.*f", scale, float64(*maxVal)/factor)
-		}
-
-		return fmt.Sprintf("%.*f", scale, 0.0)
-	default:
-		return "NaN"
-	}
+	return decimal.Zero, true, nil
 }
 
 // convertToGoDateLayout converts a date format string from a custom format (e.g., "YYYY-MM-dd") to Go's date layout format.
@@ -297,4 +305,125 @@ func convertToGoDateLayout(layout string) string {
 	)
 
 	return replacer.Replace(layout)
+}
+
+func makeCalcTag(_ *pongo2.Parser, _ *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+	calcNode := &calcTagNode{}
+
+	// Get the raw expression as string
+	// We need to collect all remaining tokens to build the full expression
+	var tokens []string
+
+	for arguments.Remaining() > 0 {
+		token := arguments.Current()
+		tokens = append(tokens, token.Val)
+
+		arguments.Consume()
+	}
+
+	expression := strings.Join(tokens, " ")
+
+	// Remove spaces around dots to fix variable paths
+	expression = strings.ReplaceAll(expression, " . ", ".")
+	calcNode.expression = expression
+
+	return calcNode, nil
+}
+
+func (node *calcTagNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+	context := ctx.Public
+
+	expression := node.replaceVariables(node.expression, context, ctx.Private)
+
+	result, err := evaluateArithmeticExpression(expression)
+	if err != nil {
+		return &pongo2.Error{
+			Sender:    "calc",
+			OrigError: err,
+		}
+	}
+
+	// Round to 10 decimal places to avoid artifacts (e.g., ...0000000001)
+	rounded := math.Round(result*1e10) / 1e10
+	out := formatNumber(rounded)
+	out = strings.TrimRight(out, "0")
+	out = strings.TrimRight(out, ".")
+
+	if _, err := writer.WriteString(out); err != nil {
+		return ctx.Error("Error writing output", nil)
+	}
+
+	return nil
+}
+
+// shouldSkipMatch determines if a match should be skipped (operators, parentheses, numbers)
+func shouldSkipMatch(match string) bool {
+	// Skip operators and parentheses
+	operators := []string{"+", "-", "*", "/", "**", "(", ")", "[", "]", "{", "}"}
+	for _, op := range operators {
+		if match == op {
+			return true
+		}
+	}
+
+	// Skip if it's a number (but only if it doesn't contain dots)
+	if !strings.Contains(match, ".") {
+		if _, err := strconv.ParseFloat(match, 64); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// resolveVariableFromContext attempts to resolve a variable from a given context
+func resolveVariableFromContext(match string, context pongo2.Context) (string, bool) {
+	templateStr := fmt.Sprintf("{{ %s }}", match)
+
+	template, err := pongo2.FromString(templateStr)
+	if err != nil {
+		return "", false
+	}
+
+	result, err := template.ExecuteBytes(context)
+	if err != nil {
+		return "", false
+	}
+
+	value := strings.TrimSpace(string(result))
+	if value == "" {
+		return "", false
+	}
+
+	// Try to parse as number to validate it's a valid numeric value
+	if _, err := strconv.ParseFloat(value, 64); err != nil {
+		return "", false
+	}
+
+	return value, true
+}
+
+// replaceVariables replaces variables in the expression with their values
+func (node *calcTagNode) replaceVariables(expression string, context pongo2.Context, privateContext pongo2.Context) string {
+	// Find all variable patterns in the expression (words with dots)
+	// This regex matches patterns like: balance.available, midaz_transaction.balance.0.initial_balance, etc.
+	re := regexp.MustCompile(`\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)*\b`)
+
+	expression = re.ReplaceAllStringFunc(expression, func(match string) string {
+		if shouldSkipMatch(match) {
+			return match
+		}
+
+		if value, ok := resolveVariableFromContext(match, privateContext); ok {
+			return value
+		}
+
+		if value, ok := resolveVariableFromContext(match, context); ok {
+			return value
+		}
+
+		return "0"
+	})
+
+	return expression
 }

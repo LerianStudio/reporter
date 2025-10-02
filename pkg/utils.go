@@ -3,7 +3,7 @@ package pkg
 import (
 	"math"
 	"os/exec"
-	"plugin-smart-templates/v2/pkg/constant"
+	"plugin-smart-templates/v3/pkg/constant"
 	"reflect"
 	"regexp"
 	"strings"
@@ -69,7 +69,7 @@ func ValidateFormDataFields(outFormat, description *string) error {
 // IsOutputFormatValuesValid returns a boolean indicating if the output format value is valid
 func IsOutputFormatValuesValid(outFormat *string) bool {
 	outFormatUpper := strings.ToUpper(*outFormat)
-	return outFormatUpper == "HTML" || outFormatUpper == "CSV" || outFormatUpper == "XML" || outFormatUpper == "TXT"
+	return outFormatUpper == "HTML" || outFormatUpper == "PDF" || outFormatUpper == "CSV" || outFormatUpper == "XML" || outFormatUpper == "TXT"
 }
 
 // ValidateFileFormat returns error if the templateFile content is not the same of outputFormat
@@ -78,6 +78,10 @@ func ValidateFileFormat(outFormat, templateFile string) error {
 
 	switch format {
 	case "HTML":
+		if !strings.Contains(templateFile, "<html") && !strings.Contains(templateFile, "<!DOCTYPE html") {
+			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
+		}
+	case "PDF":
 		if !strings.Contains(templateFile, "<html") && !strings.Contains(templateFile, "<!DOCTYPE html") {
 			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
 		}

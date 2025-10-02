@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - develop
+      - release-candidate
       - main
-      - hotfix/v*
     paths-ignore:
       - '.gitignore'
       - '**/*.env'
@@ -21,6 +21,7 @@ permissions:
   id-token: write
   contents: write
   pull-requests: write
+  packages: read
 
 jobs:
   # Publish release using the lerian-studio/github-actions-go-pipeline-template
@@ -33,7 +34,7 @@ jobs:
       lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
       lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
       lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
-          
+
   # Generate changelog with gptchangelog custom module
   generate_changelog:
     name: 📝 Generate AI-powered Changelog

@@ -1,6 +1,7 @@
 {% for package in plugin_fees.package %}
 Description: {{ package.description }}
-Chart Of Accounts: {{ package.chart_of_account }}
+Max Amount: {{ package.maximum_amount }}
+Min Amount: {{ package.minimum_amount }}
 Ledger: {{ package.ledger_id }}
 ---------------------------------------------------
 {% endfor %}

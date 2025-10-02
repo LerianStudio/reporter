@@ -2,21 +2,22 @@ package pongo
 
 import (
 	"fmt"
+
 	"github.com/flosch/pongo2/v6"
 )
 
 // init initializes custom filters and tags for the Pongo2 template engine. It registers filters and aggregation tags.
 func init() {
-	if err := pongo2.RegisterFilter("scale", scaleFilter); err != nil {
-		panic("Failed to register scale filter: " + err.Error())
-	}
-
 	if err := pongo2.RegisterFilter("percent_of", percentOfFilter); err != nil {
 		panic("Failed to register percent_of filter: " + err.Error())
 	}
 
 	if err := pongo2.RegisterFilter("slice_str", sliceFilter); err != nil {
 		panic("Failed to register slice filter: " + err.Error())
+	}
+
+	if err := pongo2.RegisterFilter("strip_zeros", stripZerosFilter); err != nil {
+		panic("Failed to register strip_zeros filter: " + err.Error())
 	}
 
 	tags := []struct {
@@ -43,5 +44,9 @@ func init() {
 		if err != nil {
 			panic(fmt.Sprintf("Failed to register tag '%s': %s", tag.name, err.Error()))
 		}
+	}
+
+	if err := pongo2.RegisterTag("calc", makeCalcTag); err != nil {
+		panic("Failed to register calc tag: " + err.Error())
 	}
 }

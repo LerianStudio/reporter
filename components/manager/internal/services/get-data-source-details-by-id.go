@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/model"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/model"
+	"plugin-smart-templates/v3/pkg/mongodb"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -13,11 +15,44 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+var (
+	// Define encrypted fields that should be excluded
+	encryptedFields = map[string]bool{
+		"document": true,
+		"name":     true,
+	}
+
+	// Define search fields that should be included (these are hashes, not encrypted)
+	searchFields = map[string]bool{
+		"search.document":                true,
+		"search.banking_details_account": true,
+		"search.banking_details_iban":    true,
+		"search.contact_primary_email":   true,
+		"search.contact_secondary_email": true,
+		"search.contact_mobile_phone":    true,
+		"search.contact_other_phone":     true,
+		"search":                         true, // Include the search object itself
+	}
+
+	// Define nested encrypted fields that should be excluded
+	nestedEncryptedFields = map[string]bool{
+		"contact.primary_email":                true,
+		"contact.secondary_email":              true,
+		"contact.mobile_phone":                 true,
+		"contact.other_phone":                  true,
+		"banking_details.account":              true,
+		"banking_details.iban":                 true,
+		"legal_person.representative.name":     true,
+		"legal_person.representative.document": true,
+		"legal_person.representative.email":    true,
+		"natural_person.mother_name":           true,
+		"natural_person.father_name":           true,
+	}
+)
+
 // GetDataSourceDetailsByID retrieves the data source information by data source id
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
 	defer span.End()
@@ -141,25 +176,10 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
 	if err != nil {
 		logger.Errorf("Error get schemas of mongo db: %s", err.Error())
-
 		return nil, err
 	}
 
-	tableDetails := make([]model.TableDetails, 0)
-
-	for _, collection := range schema {
-		fields := make([]string, 0)
-		for _, collectionField := range collection.Fields {
-			fields = append(fields, collectionField.Name)
-		}
-
-		tableSchema := model.TableDetails{
-			Name:   collection.CollectionName,
-			Fields: fields,
-		}
-
-		tableDetails = append(tableDetails, tableSchema)
-	}
+	tableDetails := uc.processCollectionsForDataSource(schema, dataSourceID)
 
 	result := &model.DataSourceDetails{
 		Id:           dataSourceID,
@@ -169,6 +189,168 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	}
 
 	return result, nil
+}
+
+// processCollectionsForDataSource processes collections and returns table details
+func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSchema, dataSourceID string) []model.TableDetails {
+	tableDetails := make([]model.TableDetails, 0)
+
+	for _, collection := range schema {
+		fields := uc.getFieldsForCollection(collection, dataSourceID)
+		displayName := uc.getDisplayNameForCollection(collection.CollectionName, dataSourceID)
+
+		tableSchema := model.TableDetails{
+			Name:   displayName,
+			Fields: fields,
+		}
+
+		tableDetails = append(tableDetails, tableSchema)
+	}
+
+	return tableDetails
+}
+
+// getFieldsForCollection determines which fields to include for a collection
+func (uc *UseCase) getFieldsForCollection(collection mongodb.CollectionSchema, dataSourceID string) []string {
+	if dataSourceID == "plugin_crm" {
+		return uc.getFieldsForPluginCRM(collection)
+	}
+
+	// For other databases, include all fields
+	fields := make([]string, 0, len(collection.Fields))
+	for _, collectionField := range collection.Fields {
+		fields = append(fields, collectionField.Name)
+	}
+
+	return fields
+}
+
+// getFieldsForPluginCRM gets fields for plugin_crm collections with special handling
+func (uc *UseCase) getFieldsForPluginCRM(collection mongodb.CollectionSchema) []string {
+	baseCollectionName := uc.getBaseCollectionName(collection.CollectionName)
+
+	expandedFields := uc.getExpandedFieldsForPluginCRM(baseCollectionName)
+	if expandedFields != nil {
+		return expandedFields
+	}
+
+	// Fallback to filtering raw schema fields
+	fields := make([]string, 0)
+
+	for _, collectionField := range collection.Fields {
+		if uc.shouldIncludeFieldForPluginCRM(collectionField.Name, baseCollectionName) {
+			fields = append(fields, collectionField.Name)
+		}
+	}
+
+	return fields
+}
+
+// getBaseCollectionName extracts the base collection name by removing organization suffix
+func (uc *UseCase) getBaseCollectionName(collectionName string) string {
+	if !strings.Contains(collectionName, "_") {
+		return collectionName
+	}
+
+	parts := strings.Split(collectionName, "_")
+	if len(parts) > 1 {
+		return strings.Join(parts[:len(parts)-1], "_")
+	}
+
+	return collectionName
+}
+
+// getDisplayNameForCollection gets the display name for a collection
+func (uc *UseCase) getDisplayNameForCollection(collectionName, dataSourceID string) string {
+	if dataSourceID == "plugin_crm" {
+		return uc.getBaseCollectionName(collectionName)
+	}
+
+	return collectionName
+}
+
+// shouldIncludeFieldForPluginCRM determines if a field should be included for plugin_crm based on encryption status
+func (uc *UseCase) shouldIncludeFieldForPluginCRM(fieldName, collectionName string) bool {
+	// Check if it's a search field (include these)
+	if searchFields[fieldName] {
+		return true
+	}
+
+	// Check if it's a top-level encrypted field (exclude these)
+	if encryptedFields[fieldName] {
+		return false
+	}
+
+	// Check if it's a nested encrypted field (exclude these)
+	if nestedEncryptedFields[fieldName] {
+		return false
+	}
+
+	// For holders and aliases collections, be more specific about what to include
+	if collectionName == "holders" || collectionName == "aliases" {
+		// Include all non-encrypted fields
+		return true
+	}
+
+	// For other collections, include all fields
+	return true
+}
+
+// getExpandedFieldsForPluginCRM returns the expanded field list for plugin_crm collections
+func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string {
+	switch collectionName {
+	case "holders":
+		return []string{
+			"_id",
+			"external_id",
+			"type",
+			"addresses",
+			"created_at",
+			"updated_at",
+			"deleted_at",
+			"metadata",
+			"search.document",
+			// Natural person fields (non-encrypted)
+			"natural_person.favorite_name",
+			"natural_person.social_name",
+			"natural_person.gender",
+			"natural_person.birth_date",
+			"natural_person.civil_status",
+			"natural_person.nationality",
+			"natural_person.status",
+			// Legal person fields (non-encrypted)
+			"legal_person.trade_name",
+			"legal_person.activity",
+			"legal_person.type",
+			"legal_person.founding_date",
+			"legal_person.size",
+			"legal_person.status",
+			"legal_person.representative.role",
+		}
+	case "aliases":
+		return []string{
+			"_id",
+			"account_id",
+			"holder_id",
+			"ledger_id",
+			"type",
+			"created_at",
+			"updated_at",
+			"deleted_at",
+			"metadata",
+			"search.document",
+			"search.banking_details_account",
+			"search.banking_details_iban",
+			// Banking details fields (non-encrypted)
+			"banking_details.branch",
+			"banking_details.type",
+			"banking_details.opening_date",
+			"banking_details.country_code",
+			"banking_details.bank_id",
+		}
+	default:
+		return nil
+	}
 }
 
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database

@@ -3,16 +3,17 @@ package services
 import (
 	"context"
 	"fmt"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/mongodb"
+	"plugin-smart-templates/v3/pkg/postgres"
+
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb"
-	"plugin-smart-templates/v2/pkg/postgres"
 )
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
-func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, logger log.Logger, mappedFields map[string]map[string][]string) error {
-	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields)
+func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizationID string, logger log.Logger, mappedFields map[string]map[string][]string) error {
+	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, organizationID)
 
 	for databaseName := range mappedFields {
 		dataSource, exists := uc.ExternalDataSources[databaseName]
@@ -139,7 +140,8 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 }
 
 // generateCopyOfMappedFields generate a copy of mapped fields to make a deep copy of the original
-func generateCopyOfMappedFields(orig map[string]map[string][]string) map[string]map[string][]string {
+// For plugin_crm database, table names are appended with organizationID
+func generateCopyOfMappedFields(orig map[string]map[string][]string, organizationID string) map[string]map[string][]string {
 	copyMappedFields := make(map[string]map[string][]string)
 
 	for k, v := range orig {
@@ -148,11 +150,47 @@ func generateCopyOfMappedFields(orig map[string]map[string][]string) map[string]
 		for subK, subV := range v {
 			newSlice := make([]string, len(subV))
 			copy(newSlice, subV)
-			sub[subK] = newSlice
+
+			// For plugin_crm database, append organizationID to table names
+			if k == "plugin_crm" {
+				newTableName := subK + "_" + organizationID
+				sub[newTableName] = newSlice
+			} else {
+				sub[subK] = newSlice
+			}
 		}
 
 		copyMappedFields[k] = sub
 	}
 
 	return copyMappedFields
+}
+
+// TransformMappedFieldsForStorage transforms mapped fields for storage in the database
+// For plugin_crm database, table names are appended with organizationID and organization mapping is added
+func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string, organizationID string) map[string]map[string][]string {
+	transformedFields := make(map[string]map[string][]string)
+
+	for databaseName, tables := range mappedFields {
+		transformedTables := make(map[string][]string)
+
+		for tableName, fields := range tables {
+			// For plugin_crm database, append organizationID to table names
+			if databaseName == "plugin_crm" {
+				newTableName := tableName
+				transformedTables[newTableName] = fields
+			} else {
+				transformedTables[tableName] = fields
+			}
+		}
+
+		// For plugin_crm database, always add organization mapping
+		if databaseName == "plugin_crm" {
+			transformedTables["organization"] = []string{organizationID}
+		}
+
+		transformedFields[databaseName] = transformedTables
+	}
+
+	return transformedFields
 }

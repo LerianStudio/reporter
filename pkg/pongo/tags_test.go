@@ -8,7 +8,7 @@ import (
 )
 
 func TestSumByTag(t *testing.T) {
-	tplStr := `{% sum_by data by "amount" scale 2 %}`
+	tplStr := `{% sum_by data by "amount" %}`
 	tpl, err := pongo2.FromString(tplStr)
 	assert.NoError(t, err)
 
@@ -22,7 +22,7 @@ func TestSumByTag(t *testing.T) {
 
 	out, err := tpl.Execute(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "50.00", out)
+	assert.Equal(t, "5000", out)
 }
 
 func TestCountByTagWithFilter(t *testing.T) {
@@ -44,7 +44,7 @@ func TestCountByTagWithFilter(t *testing.T) {
 }
 
 func TestAvgByTag(t *testing.T) {
-	tplStr := `{% avg_by data by "amount" scale 1 %}`
+	tplStr := `{% avg_by data by "amount" %}`
 	tpl, err := pongo2.FromString(tplStr)
 	assert.NoError(t, err)
 
@@ -58,11 +58,11 @@ func TestAvgByTag(t *testing.T) {
 
 	out, err := tpl.Execute(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "200.0", out)
+	assert.Equal(t, "2000", out)
 }
 
 func TestMinByTag(t *testing.T) {
-	tplStr := `{% min_by data by "amount" scale 2 %}`
+	tplStr := `{% min_by data by "amount" %}`
 	tpl, err := pongo2.FromString(tplStr)
 	assert.NoError(t, err)
 
@@ -76,11 +76,11 @@ func TestMinByTag(t *testing.T) {
 
 	out, err := tpl.Execute(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "15.00", out)
+	assert.Equal(t, "1500", out)
 }
 
 func TestMaxByTag(t *testing.T) {
-	tplStr := `{% max_by data by "amount" scale 2 %}`
+	tplStr := `{% max_by data by "amount" %}`
 	tpl, err := pongo2.FromString(tplStr)
 	assert.NoError(t, err)
 
@@ -94,5 +94,5 @@ func TestMaxByTag(t *testing.T) {
 
 	out, err := tpl.Execute(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "80.00", out)
+	assert.Equal(t, "8000", out)
 }

@@ -3,10 +3,9 @@ package services
 import (
 	"context"
 	"errors"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/mongodb/report"
-	"reflect"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/mongodb/report"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -17,9 +16,7 @@ import (
 
 // GetReportByID recover a report by ID
 func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UUID) (*report.Report, error) {
-	logger := commons.NewLoggerFromContext(ctx)
-	tracer := commons.NewTracerFromContext(ctx)
-	reqId := commons.NewHeaderIDFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_report_by_id")
 	defer span.End()
@@ -39,7 +36,7 @@ func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UU
 		logger.Errorf("Error getting report on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", reflect.TypeOf(report.Report{}).Name())
+			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionReport)
 		}
 
 		return nil, err

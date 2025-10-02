@@ -48,12 +48,14 @@ export class SmartTemplateRepository implements TemplateRepository {
       page: query.page
     }
 
-    // Add filters to query params
     if (query.outputFormat) {
       queryParams.outputFormat = query.outputFormat
     }
     if (query.name) {
       queryParams.description = query.name
+    }
+    if (query.createdAt) {
+      queryParams.createdAt = query.createdAt
     }
 
     const response = await this.httpService.get<
@@ -90,7 +92,6 @@ export class SmartTemplateRepository implements TemplateRepository {
   ): Promise<TemplateEntity> {
     let response: SmartTemplateDto
 
-    // If templateFile is provided, use the new patchFormData method
     if (template.templateFile) {
       const data = SmartTemplateMapper.toUpdateDto(template)
 
@@ -104,7 +105,6 @@ export class SmartTemplateRepository implements TemplateRepository {
         }
       )
     } else {
-      // Use JSON for updates without file
       const dto = SmartTemplateMapper.toUpdateDto(template)
 
       response = await this.httpService.patch<SmartTemplateDto>(

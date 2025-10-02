@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useIntl } from 'react-intl'
-import { LayoutGridIcon, Plus, TableIcon } from 'lucide-react'
+import { LayoutGridIcon, Plus, TableIcon, FunnelX, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useListReports } from '@/client/reports'
 import { useQueryParams } from '@/hooks/use-query-params'
@@ -19,30 +19,46 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { InputField, DatePickerField } from '@/components/form'
+import { ReportFiltersDto } from '@/core/application/dto/report-dto'
+
+const DEFAULT_TOTAL_COUNT = 100000
 
 export function ReportsTabContent() {
   const intl = useIntl()
-  const [total, setTotal] = useState(1000000)
+  const [total, setTotal] = useState(DEFAULT_TOTAL_COUNT)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const { currentOrganization } = useOrganization()
 
   const [mode, setMode] = useState<'grid' | 'table'>('grid')
 
-  const { form, searchValues, pagination } = useQueryParams({
-    total
+  const { form, searchValues, pagination } = useQueryParams<ReportFiltersDto>({
+    total,
+    initialValues: {
+      search: '',
+      status: undefined,
+      templateId: undefined,
+      createdAt: undefined
+    }
   })
 
-  // Fetch reports data using searchValues from useQueryParams
   const {
     data: reportsData,
     isLoading,
+    isFetching,
     refetch
   } = useListReports({
-    ...searchValues,
+    filters: {
+      ...searchValues,
+      page: parseInt(searchValues.page) || 1,
+      limit: parseInt(searchValues.limit) || 10
+    },
     organizationId: currentOrganization?.id || ''
-  } as any)
+  })
 
-  const handleCreateReport = () => setIsSheetOpen(true)
+  const handleCreateReport = useCallback(() => {
+    setIsSheetOpen(true)
+  }, [setIsSheetOpen])
 
   return (
     <FormProvider {...form}>
@@ -68,6 +84,17 @@ export function ReportsTabContent() {
             />
 
             <EntityBox.Actions>
+              {isFetching && (
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>
+                    {intl.formatMessage({
+                      id: 'common.loading.updating',
+                      defaultMessage: 'Updating...'
+                    })}
+                  </span>
+                </div>
+              )}
               <EntityBox.CollapsibleTrigger />
               <Button
                 icon={<Plus />}
@@ -82,8 +109,43 @@ export function ReportsTabContent() {
             </EntityBox.Actions>
           </EntityBox.Banner>
           <EntityBox.CollapsibleContent>
+            <div className="col-span-2 flex grow flex-col gap-4 sm:flex-row">
+              <InputField
+                name="search"
+                placeholder={intl.formatMessage({
+                  id: 'common.searchPlaceholder',
+                  defaultMessage: 'Search...'
+                })}
+                control={form.control}
+              />
+
+              <div className="sm:w-auto sm:flex-none">
+                <DatePickerField
+                  name="createdAt"
+                  placeholder={intl.formatMessage({
+                    id: 'common.selectDate',
+                    defaultMessage: 'Select date'
+                  })}
+                  control={form.control}
+                />
+              </div>
+            </div>
             <div className="col-start-3 flex items-center justify-end gap-2">
               <PaginationLimitField control={form.control} />
+              <Button
+                variant="outline"
+                className="h-[34px] w-[34px] bg-white p-2 hover:bg-white"
+                onClick={() => {
+                  form.reset({
+                    search: '',
+                    status: undefined,
+                    templateId: undefined,
+                    createdAt: undefined
+                  })
+                }}
+              >
+                <FunnelX size={16} />
+              </Button>
               <TooltipProvider>
                 <Tooltip delayDuration={500}>
                   <TooltipTrigger asChild>
@@ -135,7 +197,6 @@ export function ReportsTabContent() {
           />
         )}
 
-        {/* Reports Sheet for New Report */}
         <ReportsSheet
           open={isSheetOpen}
           onOpenChange={setIsSheetOpen}

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"plugin-smart-templates/v3/pkg"
 	"sync"
 	"time"
 
@@ -130,14 +131,14 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
 
-	tracer := commons.NewTracerFromContext(ctx)
+	tracer := pkg.NewTracerFromContext(ctx)
 	ctx, spanConsumer := tracer.Start(ctx, "rabbitmq.consumer.process_message")
 
 	spanConsumer.SetAttributes(
 		attribute.String("app.request.rabbitmq.consumer.request_id", requestIDStr),
 	)
 
-	err := opentelemetry.SetSpanAttributesFromStructWithObfuscation(&spanConsumer, "app.request.rabbitmq.consumer.message", message)
+	err := opentelemetry.SetSpanAttributesFromStruct(&spanConsumer, "app.request.rabbitmq.consumer.message", message)
 	if err != nil {
 		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}

@@ -1,8 +1,8 @@
 package in
 
 import (
-	"plugin-smart-templates/v2/pkg/model"
-	"plugin-smart-templates/v2/pkg/net/http"
+	"plugin-smart-templates/v3/pkg/model"
+	"plugin-smart-templates/v3/pkg/net/http"
 
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 

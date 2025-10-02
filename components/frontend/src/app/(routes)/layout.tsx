@@ -5,7 +5,7 @@ import { AuthRedirect, ConsoleLayout } from '@lerianstudio/console-layout'
 import { nextAuthOptions } from '@/core/infrastructure/next-auth/next-auth-provider'
 
 export const metadata: Metadata = {
-  title: 'Smart Templates | Midaz Console',
+  title: 'Reporter | Midaz Console',
   description: 'Manage smart templates in your system.'
 }
 
