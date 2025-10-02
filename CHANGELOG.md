@@ -2,37 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v3.0.0-rc.1] - 2025-10-01
+## [v3.0.0-beta.3] - 2025-10-01
 
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0-rc.1)
-Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
-
-### ⚠️ Breaking Changes
-- **Backend Restructuring**: The core application architecture has been restructured to enhance modularity and scalability. Users must update their integrations and configurations to align with the new structure. Please refer to the migration guide for detailed steps.
-
-### ✨ Features
-- **PDF Output Format**: You can now generate documents in PDF format, offering more flexibility in how you share and store documents. This feature includes a refined user interface for a more consistent experience.
-- **Enhanced Testing**: Comprehensive test suites have been developed, improving the reliability of future releases and ensuring robust performance across all functionalities.
-- **Improved Error Feedback**: Validation processes now provide granular error messages, making it easier to correct data entry errors and enhancing user experience.
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.2...v3.0.0-beta.3)
+Contributors: Gabriel Castro, lerian-studio
 
 ### 🐛 Bug Fixes
-- **XML Generation**: Fixed issues with XML generation to ensure data integrity and accuracy in document outputs.
-- **Navigation Bug**: Resolved an issue preventing access to account settings, restoring full functionality and improving user navigation.
-
-### ⚡ Performance
-- **Session Management Logging**: Improved logging for session management, aiding in better monitoring and troubleshooting, which enhances overall system performance.
+- **Improved Data Retrieval and Display**: Resolved an issue with the manifest route affecting both backend and frontend components. This fix enhances the reliability and accuracy of data presentation, ensuring users receive correct and timely information without interruptions.
 
 ### 🔄 Changes
-- **Internationalization**: Standardized internationalization keys across the application, ensuring consistent language support and simplifying future updates.
-- **Configuration Management**: Centralized the definition of OUTPUT_FORMATS, reducing configuration errors and streamlining setup processes.
+- **Consistent Naming Across Application**: The application formerly known as "Smart Templates" is now consistently referred to as "Reporter" throughout the backend, frontend, configuration files, and documentation. This change simplifies navigation and understanding, aligning all components under a unified brand identity.
 
 ### 📚 Documentation
-- **Updated Guides**: Documentation has been revised to reflect recent changes, providing clearer guidance and support for users navigating new features and configurations.
+- **Updated Changelog**: The changelog has been revised to include the latest updates and improvements, providing users with transparent and up-to-date information for better troubleshooting and feature discovery.
 
 ### 🔧 Maintenance
-- **Go Version Update**: Updated Go version and lib-commons to maintain compatibility with the latest features and security patches, ensuring a secure and up-to-date environment.
-- **Build Workflow Enhancements**: Configured e2e tests in build workflow to integrate with gitops updates, streamlining deployment processes and improving efficiency.
-
+- **Code Quality Enhancements**: General refactoring and cleanup were performed to improve the maintainability and robustness of the codebase. This includes aligning component names and cleaning configuration files to match the new naming conventions, ensuring the application remains easy to update and reliable in the future.
 
 ## [v3.0.0-beta.2] - 2025-09-30
 

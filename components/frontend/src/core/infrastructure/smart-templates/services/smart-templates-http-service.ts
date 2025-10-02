@@ -127,7 +127,7 @@ export class SmartTemplatesHttpService extends HttpService {
         throw new SmartTemplatesApiException(
           intl.formatMessage({
             id: 'error.smartTemplates.unknownError',
-            defaultMessage: 'Unknown error occurred in Smart Templates service.'
+            defaultMessage: 'Unknown error occurred in Reporter service.'
           }),
           error.code,
           response.status
@@ -144,7 +144,7 @@ export class SmartTemplatesHttpService extends HttpService {
     throw new SmartTemplatesApiException(
       intl.formatMessage({
         id: 'error.smartTemplates.unknownError',
-        defaultMessage: 'Unknown error occurred in Smart Templates service.'
+        defaultMessage: 'Unknown error occurred in Reporter service.'
       }),
       'SMART_TEMPLATES_UNKNOWN_ERROR',
       response.status || 500

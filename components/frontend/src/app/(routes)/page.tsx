@@ -44,7 +44,7 @@ export default function Page() {
           {
             name: intl.formatMessage({
               id: 'smartTemplates.breadcrumb.smartTemplates',
-              defaultMessage: 'Smart Templates'
+              defaultMessage: 'Reporter'
             }),
             href: `/`
           },
@@ -77,7 +77,7 @@ export default function Page() {
           <PageHeaderInfoTitle
             title={intl.formatMessage({
               id: 'smartTemplates.title',
-              defaultMessage: 'Smart Templates'
+              defaultMessage: 'Reporter'
             })}
           />
         </PageHeaderWrapper>
@@ -92,14 +92,14 @@ export default function Page() {
               <AlertTitle className="text-sm font-medium text-zinc-600">
                 {intl.formatMessage({
                   id: 'smartTemplates.about.title',
-                  defaultMessage: 'About Smart Template'
+                  defaultMessage: 'About Reporter'
                 })}
               </AlertTitle>
               <AlertDescription className="text-sm leading-relaxed font-medium text-zinc-500">
                 {intl.formatMessage({
                   id: 'smartTemplates.about.description',
                   defaultMessage:
-                    'Generate dynamic, data-driven reports using plain-text templates (.tpl). Smart Templates use simple placeholders to pull data directly from the database and renders reports in CSV, XML, HTML, or TXT, always matching the structure defined in the original file.'
+                    'Generate dynamic, data-driven reports using plain-text templates (.tpl). Reporter use simple placeholders to pull data directly from the database and renders reports in CSV, XML, HTML, or TXT, always matching the structure defined in the original file.'
                 })}
               </AlertDescription>
             </div>
