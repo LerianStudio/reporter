@@ -79,7 +79,7 @@ describe('SmartReportMapper', () => {
 
       expect(result).toEqual({
         templateId: '01992b60-c374-7656-9ed4-a60a36b3b1cd',
-        filters: undefined,
+        filters: {},
         metadata: undefined
       })
     })

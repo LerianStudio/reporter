@@ -1,12 +1,13 @@
 package in
 
 import (
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/net/http"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/net/http"
 )
 
 var (

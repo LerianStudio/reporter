@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"plugin-smart-templates/v2/pkg"
-	"plugin-smart-templates/v2/pkg/constant"
-	"plugin-smart-templates/v2/pkg/model"
-	"plugin-smart-templates/v2/pkg/mongodb"
+	"plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg/constant"
+	"plugin-smart-templates/v3/pkg/model"
+	"plugin-smart-templates/v3/pkg/mongodb"
 	"strings"
 	"time"
 

@@ -7,9 +7,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              items:
-                type: string
-              type: array
+              $ref: '#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -79,7 +77,65 @@ definitions:
       title:
         type: string
     type: object
-  plugin-smart-templates_pkg_mongodb_report.Report:
+  plugin-smart-templates_v2_pkg_model.FilterCondition:
+    properties:
+      between:
+        description: |-
+          Between specifies a range condition with exactly two values [min, max].
+          Matches records where min <= field <= max
+          Example: {"between": [100, 1000]} matches records where 100 <= field <= 1000
+        items: {}
+        type: array
+      eq:
+        description: |-
+          Equals specifies exact value matches. Multiple values treated as OR conditions.
+          Example: {"eq": ["active", "pending"]} matches records where field equals "active" OR "pending"
+        items: {}
+        type: array
+      gt:
+        description: |-
+          GreaterThan specifies values that must be greater than the provided value.
+          Should contain exactly one value for comparison.
+          Example: {"gt": [100]} matches records where field > 100
+        items: {}
+        type: array
+      gte:
+        description: |-
+          GreaterOrEqual specifies values that must be greater than or equal to the provided value.
+          Should contain exactly one value for comparison.
+          Example: {"gte": ["2025-06-01"]} matches records where field >= "2025-06-01"
+        items: {}
+        type: array
+      in:
+        description: |-
+          In specifies a list of values where the field must match any one of them.
+          Multiple values treated as OR conditions.
+          Example: {"in": ["active", "pending", "suspended"]} matches any of these statuses
+        items: {}
+        type: array
+      lt:
+        description: |-
+          LessThan specifies values that must be less than the provided value.
+          Should contain exactly one value for comparison.
+          Example: {"lt": [1000]} matches records where field < 1000
+        items: {}
+        type: array
+      lte:
+        description: |-
+          LessOrEqual specifies values that must be less than or equal to the provided value.
+          Should contain exactly one value for comparison.
+          Example: {"lte": ["2025-06-30"]} matches records where field <= "2025-06-30"
+        items: {}
+        type: array
+      nin:
+        description: |-
+          NotIn specifies a list of values where the field must NOT match any of them.
+          Multiple values treated as AND NOT conditions.
+          Example: {"nin": ["deleted", "archived"]} excludes these statuses
+        items: {}
+        type: array
+    type: object
+  plugin-smart-templates_v2_pkg_mongodb_report.Report:
     properties:
       completedAt:
         type: string
@@ -91,9 +147,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              items:
-                type: string
-              type: array
+              $ref: '#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -112,7 +166,7 @@ definitions:
       updatedAt:
         type: string
     type: object
-  plugin-smart-templates_pkg_mongodb_template.Template:
+  plugin-smart-templates_v2_pkg_mongodb_template.Template:
     properties:
       createdAt:
         example: "2021-01-01T00:00:00Z"
@@ -139,7 +193,7 @@ info:
   description: This is a swagger documentation for plugin smart template
   termsOfService: http://swagger.io/terms/
   title: Plugin Smart Template
-  version: 1.0.0
+  version: 2.0.0
 paths:
   /v1/data-sources:
     get:
@@ -250,7 +304,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+                    $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report'
                   type: array
                 limit:
                   type: integer
@@ -289,7 +343,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+            $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report'
       summary: Create a Report
       tags:
       - Reports
@@ -320,7 +374,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_report.Report'
+            $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report'
       summary: Get a Report
       tags:
       - Reports
@@ -398,7 +452,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+                    $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
@@ -446,7 +500,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template'
       summary: Create a Template for reports
       tags:
       - Templates
@@ -516,7 +570,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template'
       summary: Get template
       tags:
       - Templates
@@ -561,7 +615,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_pkg_mongodb_template.Template'
+            $ref: '#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template'
       summary: Update a template
       tags:
       - Templates

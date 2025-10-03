@@ -11,7 +11,7 @@ package report
 
 import (
 	context "context"
-	http "plugin-smart-templates/v2/pkg/net/http"
+	http "plugin-smart-templates/v3/pkg/net/http"
 	reflect "reflect"
 	time "time"
 

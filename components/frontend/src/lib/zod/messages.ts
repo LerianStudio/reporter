@@ -137,17 +137,38 @@ const messages = defineMessages({
     id: 'errors.report.field.required',
     defaultMessage: 'Field is required'
   },
+  report_operator_required: {
+    id: 'errors.report.operator.required',
+    defaultMessage: 'Operator is required'
+  },
   report_operator_invalid: {
     id: 'errors.report.operator.invalid',
-    defaultMessage: 'Operator is required'
+    defaultMessage: 'Invalid operator value'
   },
   report_values_invalid: {
     id: 'errors.report.values.invalid',
     defaultMessage: 'Please provide valid values for the selected operator'
   },
+  report_values_required: {
+    id: 'errors.report.values.required',
+    defaultMessage: 'Values are required'
+  },
+  report_values_between_required: {
+    id: 'errors.report.values.between.required',
+    defaultMessage: 'Between operator requires exactly two values'
+  },
+  report_values_multiple_required: {
+    id: 'errors.report.values.multiple.required',
+    defaultMessage: 'This operator requires at least one value'
+  },
   report_template_id_required: {
     id: 'errors.report.templateId.required',
-    defaultMessage: 'Template ID is required'
+    defaultMessage: 'Template is required'
+  },
+  report_filter_invalid: {
+    id: 'errors.report.filter.invalid',
+    defaultMessage:
+      'Please complete all required filter fields: database, table, field, and values'
   }
 })
 

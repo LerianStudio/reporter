@@ -40,3 +40,8 @@ scripts/node_modules
 .vscode
 .windsurf
 .claude
+
+# ----------------------------------------
+# Reports packages
+# ----------------------------------------
+./reports

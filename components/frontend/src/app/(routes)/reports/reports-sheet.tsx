@@ -95,9 +95,22 @@ export function ReportsSheet({
   })
 
   const handleSubmit = async (values: ReportFormData) => {
+    const validFields = values.fields.filter((field) => {
+      return (
+        field.database &&
+        field.table &&
+        field.field &&
+        field.values &&
+        (Array.isArray(field.values)
+          ? field.values.length > 0 &&
+            field.values.some((value) => value?.trim())
+          : field.values.trim())
+      )
+    })
+
     const payload = {
       templateId: values.templateId,
-      ...(values.fields.length > 0 && { fields: values.fields })
+      ...(validFields.length > 0 && { fields: validFields })
     }
 
     await createReportMutation.mutateAsync(payload)

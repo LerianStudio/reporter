@@ -2,7 +2,7 @@ package rabbitmq
 
 import (
 	"context"
-	"plugin-smart-templates/v2/pkg"
+	"plugin-smart-templates/v3/pkg"
 	"sync"
 	"time"
 

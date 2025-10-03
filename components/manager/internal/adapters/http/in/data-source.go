@@ -1,9 +1,9 @@
 package in
 
 import (
-	"plugin-smart-templates/v2/components/manager/internal/services"
-	_ "plugin-smart-templates/v2/pkg/model"
-	"plugin-smart-templates/v2/pkg/net/http"
+	"plugin-smart-templates/v3/components/manager/internal/services"
+	_ "plugin-smart-templates/v3/pkg/model"
+	"plugin-smart-templates/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -42,7 +42,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	dataSourceInfo := ds.Service.GetDataSourceInformation(ctx)
 
-	logger.Infof("Successfully get all data source information")
+	logger.Infof("Successfully get all data source information.")
 
 	return commonsHttp.OK(c, dataSourceInfo)
 }
