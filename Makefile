@@ -107,6 +107,7 @@ help:
 	@echo ""
 	@echo "Service Commands:"
 	@echo "  make up                           - Start all services with Docker Compose"
+	@echo "  make up-test                      - Start all test services with Docker Compose"
 	@echo "  make down                         - Stop all services with Docker Compose"
 	@echo "  make start                        - Start all containers"
 	@echo "  make stop                         - Stop all containers"
@@ -321,6 +322,21 @@ up:
 		fi \
 	done
 	@echo "[ok] Services started successfully ✔️"
+
+.PHONY: up-test
+up-test:
+	$(call print_title,"Starting test services")
+	$(call check_env_files)
+	@echo "Starting test infrastructure services first..."
+	@cd $(INFRA_DIR) && $(MAKE) up-test
+	@echo "Starting test backend components..."
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.test.yml" ]; then \
+			echo "Starting test services in $$dir..."; \
+			(cd $$dir && $(MAKE) up-test) || exit 1; \
+		fi \
+	done
+	@echo "[ok] Test services started successfully ✔️"
 
 .PHONY: start
 start:

@@ -2,8 +2,7 @@
 // These reports will be seeded into the database for testing
 
 export interface ReportEntity {
-  _id: string
-  organizationId: string
+  id?: string
   templateId: string
   status: 'completed' | 'processing' | 'failed' | 'pending'
   createdAt: Date
@@ -14,13 +13,11 @@ export interface ReportEntity {
     processingTime?: number
     requestedBy?: string
   }
-  parameters?: Record<string, any>
+  filters?: any
 }
 
 export const E2E_REPORTS: ReportEntity[] = [
   {
-    _id: '550e8400-e29b-41d4-a716-446655440200',
-    organizationId: '019885e0-c544-74d4-b87c-83f89bd1be30',
     templateId: '550e8400-e29b-41d4-a716-446655440100',
     status: 'completed',
     createdAt: new Date('2024-01-15T11:00:00Z'),
@@ -31,15 +28,9 @@ export const E2E_REPORTS: ReportEntity[] = [
       processingTime: 300000, // 5 minutes in ms
       requestedBy: 'e2e-test-user'
     },
-    parameters: {
-      reportDate: '2024-01-15',
-      department: 'Finance',
-      includeCharts: true
-    }
+    filters: {}
   },
   {
-    _id: '550e8400-e29b-41d4-a716-446655440201',
-    organizationId: '019885e0-c544-74d4-b87c-83f89bd1be30',
     templateId: '550e8400-e29b-41d4-a716-446655440101',
     status: 'processing',
     createdAt: new Date('2024-01-16T15:00:00Z'),
@@ -48,32 +39,18 @@ export const E2E_REPORTS: ReportEntity[] = [
       fileName: 'sales_dashboard_2024_01_16.html',
       requestedBy: 'e2e-test-user'
     },
-    parameters: {
-      reportDate: '2024-01-16',
-      department: 'Sales',
-      includeMetrics: true,
-      timeRange: 'monthly'
-    }
+    filters: {}
   }
 ]
 
 // Helper function to get report by ID
 export const getReportById = (id: string): ReportEntity | undefined => {
-  return E2E_REPORTS.find((report) => report._id === id)
+  return E2E_REPORTS.find((report) => report.id === id)
 }
 
 // Helper function to get reports by template ID
 export const getReportsByTemplateId = (templateId: string): ReportEntity[] => {
   return E2E_REPORTS.filter((report) => report.templateId === templateId)
-}
-
-// Helper function to get reports by organization
-export const getReportsByOrganization = (
-  organizationId: string
-): ReportEntity[] => {
-  return E2E_REPORTS.filter(
-    (report) => report.organizationId === organizationId
-  )
 }
 
 // Helper function to get reports by status
@@ -138,8 +115,7 @@ export const REPORT_SELECTORS = {
 // Helper functions for report selectors
 export const REPORT_SELECTOR_HELPERS = {
   // Get test data by ID
-  getReportById: (id: string) =>
-    E2E_REPORTS.find((report) => report._id === id),
+  getReportById: (id: string) => E2E_REPORTS.find((report) => report.id === id),
 
   // Selector builders
   getReportActionSelector: (reportId: string) =>

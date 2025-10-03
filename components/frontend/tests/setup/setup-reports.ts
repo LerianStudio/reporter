@@ -3,9 +3,8 @@ import { postRequest } from '../utils/fetcher'
 import { BASE_API_URL, ORGANIZATION_ID } from '../fixtures/config'
 
 interface CreateReportRequest {
-  organizationId: string
   templateId: string
-  parameters?: Record<string, any>
+  filters?: any
 }
 
 /**
@@ -15,9 +14,8 @@ export async function setupReports(): Promise<void> {
   for (const report of E2E_REPORTS) {
     try {
       const reportData: CreateReportRequest = {
-        organizationId: report.organizationId,
         templateId: report.templateId,
-        parameters: report.parameters
+        filters: report.filters
       }
 
       const response = await postRequest(

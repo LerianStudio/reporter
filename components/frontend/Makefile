@@ -11,6 +11,17 @@ $(shell mkdir -p $(ARTIFACTS_DIR))
 # Define the root directory of the project
 MIDAZ_ROOT ?= $(shell cd ../.. && pwd)
 
+# Docker command detection for compatibility
+DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
+DOCKER_MIN_VERSION := 20.10.13
+DOCKER_CMD := $(shell \
+	if [ "$(shell printf '%s\n' "$(DOCKER_MIN_VERSION)" "$(DOCKER_VERSION)" | sort -V | head -n1)" = "$(DOCKER_MIN_VERSION)" ]; then \
+		echo "docker compose"; \
+	else \
+		echo "docker-compose"; \
+	fi \
+)
+
 # Define local utility functions
 define title1
 	@echo ""
@@ -40,6 +51,7 @@ help:
 	@echo ""
 	@echo "$(BOLD)Docker Commands:$(NC)"
 	@echo "  make up                 - Start Docker container"
+	@echo "  make up-test            - Start test Docker container"
 	@echo "  make down               - Stop Docker container"
 	@echo "  make restart            - Restart Docker container"
 	@echo "  make rebuild-up         - Rebuild and restart services"
@@ -109,6 +121,12 @@ up:
 	$(call title1,"Starting all services in detached mode")
 	@$(DOCKER_CMD) -f docker-compose.yml up $(c) -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Services started successfully$(GREEN) ✔️$(NC)"
+
+.PHONY: up-test
+up-test:
+	$(call title1,"Starting test services in detached mode")
+	@$(DOCKER_CMD) -f docker-compose.test.yml up $(c) -d
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Test services started successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: down
 down:

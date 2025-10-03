@@ -1,0 +1,178 @@
+name: plugin-reporter-test
+
+services:
+  midaz-mongodb-test:
+    container_name: midaz-mongodb-test
+    image: mongo:8
+    env_file:
+      - .env.infra
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    user: root
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    command:
+      [
+        'sh',
+        '-c',
+        'cp /tmp/mongo-keyfile /data/mongo-keyfile && chmod 400 /data/mongo-keyfile && chown mongodb:mongodb /data/mongo-keyfile && mongod --replSet rs0 --bind_ip_all --port ${MONGO_PORT}'
+      ]
+    volumes:
+      - ./configs/mongodb/mongo-keyfile:/tmp/mongo-keyfile:ro
+      - mongodb-test-data:/data/db
+    networks:
+      - plugin-reporter-test-network
+
+  midaz-mongodb-test-init:
+    container_name: midaz-mongodb-test-init
+    env_file:
+      - .env.infra
+    image: mongo:8
+    depends_on:
+      - midaz-mongodb-test
+    volumes:
+      - ./configs/mongodb/mongo.sh:/data/mongo.sh
+    entrypoint: ['sh', '-c', 'chmod +x /data/mongo.sh && sh /data/mongo.sh']
+    networks:
+      - plugin-reporter-test-network
+
+  midaz-valkey-test:
+    container_name: midaz-valkey-test
+    image: valkey/valkey:8
+    env_file:
+      - .env.infra
+    environment:
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command:
+      [
+        'redis-server',
+        '--requirepass',
+        '${REDIS_PASSWORD}',
+        '--port',
+        '${REDIS_PORT}',
+        '--lua-time-limit',
+        '3000',
+        '--stop-writes-on-bgsave-error',
+        'no',
+        '--appendonly',
+        'yes',
+        '--appendfsync',
+        'everysec'
+      ]
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - redis-test-data:/data
+    networks:
+      - plugin-reporter-test-network
+
+  midaz-postgres-primary-test:
+    container_name: midaz-postgres-primary-test
+    image: postgres:17
+    user: ${USER_EXECUTE_COMMAND}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -p ${DB_PORT}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    environment:
+      PGPORT: ${DB_PORT}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication all 0.0.0.0/0 md5"
+      POSTGRES_INITDB_ARGS: '--auth-host=scram-sha-256'
+    command: |
+      postgres
+      -c wal_level=logical
+      -c hot_standby=on
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby_feedback=on
+      -c max_connections=${MAX_CONNECTIONS}
+      -c shared_buffers=${SHARED_BUFFERS}
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./configs/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - plugin-reporter-test-network
+
+  midaz-postgres-replica-test:
+    container_name: midaz-postgres-replica-test
+    image: postgres:17
+    user: ${USER_EXECUTE_COMMAND}
+    ports:
+      - ${DB_REPLICA_PORT}:${DB_REPLICA_PORT}
+    environment:
+      PGPORT: ${DB_REPLICA_PORT}
+      PGUSER: ${REPLICATION_USER}
+      PGPASSWORD: ${REPLICATION_PASSWORD}
+    command: |
+      bash -c "
+      if [ ! -d \"/var/lib/postgresql/data\" ] || [ ! -f \"/var/lib/postgresql/data/postgresql.conf\" ]; then
+        until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=midaz-postgres-primary-test --port=${DB_PORT}
+        do
+          echo 'Waiting for midaz-postgres-primary-test to connect...'
+          sleep 1s
+        done
+
+        echo 'Backup done..., starting midaz-postgres-replica-test...'
+        chmod 0700 /var/lib/postgresql/data
+
+        sed -i 's/^#port.*/port = ${DB_REPLICA_PORT}/' /var/lib/postgresql/data/postgresql.conf
+        sed -i 's/^#*max_connections.*/max_connections = ${MAX_CONNECTIONS}/' /var/lib/postgresql/data/postgresql.conf      
+        sed -i 's/^#*shared_buffers.*/shared_buffers = ${SHARED_BUFFERS}/' /var/lib/postgresql/data/postgresql.conf      
+      fi
+      exec postgres -c config_file=/var/lib/postgresql/data/postgresql.conf
+      "
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${DB_REPLICA_USER} -p ${DB_REPLICA_PORT}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      midaz-postgres-primary-test:
+        condition: service_healthy
+    volumes:
+      - postgres-replica-test-data:/var/lib/postgresql/data
+    networks:
+      - plugin-reporter-test-network
+
+  midaz-rabbitmq-test:
+    image: rabbitmq:4.1.3-management-alpine
+    container_name: midaz-rabbitmq-test
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - ${RABBITMQ_PORT_HOST}:${RABBITMQ_PORT_HOST}
+      - ${RABBITMQ_PORT_AMQP}:${RABBITMQ_PORT_AMQP}
+    volumes:
+      - ./configs/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+      - ./configs/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - rabbitmq-test-data:/var/lib/rabbitmq/
+      - rabbitmq-test-logs:/var/log/rabbitmq
+    networks:
+      - plugin-reporter-test-network
+
+volumes:
+  postgres-test-data:
+  postgres-replica-test-data:
+  redis-test-data:
+  mongodb-test-data:
+  rabbitmq-test-data:
+  rabbitmq-test-logs:
+
+networks:
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
+    driver: bridge

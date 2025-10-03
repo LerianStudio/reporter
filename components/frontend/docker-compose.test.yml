@@ -1,11 +1,11 @@
-name: plugin-reporter-ui
+name: plugin-reporter-test
 
 services:
-  plugin-reporter-ui:
-    container_name: plugin-reporter-ui
+  plugin-reporter-ui-test:
+    container_name: plugin-reporter-ui-test
     build:
       context: ../..
-      dockerfile: components/frontend/Dockerfile
+      dockerfile: components/frontend/Dockerfile.test
     restart: always
     ports:
       - 8083:8083
@@ -46,7 +46,6 @@ networks:
   plugin-smart-templates-manager-network:
     name: plugin-smart-templates-manager-network
     driver: bridge
-    external: true
   proxy-network:
     name: proxy-network
     driver: bridge

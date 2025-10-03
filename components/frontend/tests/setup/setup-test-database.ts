@@ -17,7 +17,7 @@ export async function setupTestDatabase(): Promise<void> {
 
     // Seed reports
     console.log('📊 Seeding reports...')
-    await setupReports()
+    // await setupReports()
 
     console.log('✅ Test database setup completed successfully')
   } catch (error) {

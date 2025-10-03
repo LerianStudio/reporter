@@ -1,52 +1,53 @@
-name: plugin-reporter-ui
-
 services:
-  plugin-reporter-ui:
-    container_name: plugin-reporter-ui
-    build:
-      context: ../..
-      dockerfile: components/frontend/Dockerfile
+  crm-test-nginx:
+    container_name: crm-test-nginx
+    image: nginx:latest
     restart: always
     ports:
-      - 8083:8083
-
-    env_file:
-      - .env
+      - ${NGINX_PORT:-80}:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     healthcheck:
-      test:
-        ['CMD', 'curl', '-f', 'http://localhost:8083/api/admin/health/ready']
+      test: ['CMD', 'nginx', '-t']
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 3
+      start_period: 10s
     networks:
+      - crm-test-network
       - console-network
       - transaction-network
       - plugin-auth-network
-      - plugin-smart-templates-manager-network
       - infra-network
       - ledger-network
       - proxy-network
 
 networks:
+  crm-test-network:
+    name: crm-test-network
+    driver: bridge
+    external: true
   console-network:
     name: console-network
     driver: bridge
+    external: true
   transaction-network:
     name: transaction-network
     driver: bridge
-  ledger-network:
-    name: ledger-network
-    driver: bridge
+    external: true
   plugin-auth-network:
     name: plugin-auth-network
     driver: bridge
+    external: true
   infra-network:
     name: infra-network
     driver: bridge
-  plugin-smart-templates-manager-network:
-    name: plugin-smart-templates-manager-network
+    external: true
+  ledger-network:
+    name: ledger-network
     driver: bridge
     external: true
   proxy-network:
     name: proxy-network
     driver: bridge
+    external: true

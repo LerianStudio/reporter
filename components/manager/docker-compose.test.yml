@@ -1,0 +1,29 @@
+name: plugin-reporter-test
+
+services:
+  plugin-smart-templates-manager-test:
+    container_name: plugin-smart-templates-manager-test
+    restart: always
+    build:
+      context: ../../
+      dockerfile: ./components/manager/Dockerfile.test
+      secrets:
+        - github_token
+    env_file:
+      - .env
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    volumes:
+      - .:/usr/src/manager
+    networks:
+      - plugin-reporter-test-network
+
+networks:
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
+    driver: bridge
+    external: true
+
+secrets:
+  github_token:
+    file: ../../.secrets/github_token.txt

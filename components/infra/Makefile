@@ -51,6 +51,12 @@ up:
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
 	@echo "$(BLUE)All services started successfully$(NC)"
 
+.PHONY: up-test
+up-test:
+	@echo "$(BLUE)Starting test services...$(NC)"
+	@$(DOCKER_CMD) -f docker-compose.test.yml up --build -d
+	@echo "$(BLUE)Test services started successfully$(NC)"
+
 .PHONY: start
 start:
 	@docker compose -f docker-compose.yml start $(c)

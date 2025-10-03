@@ -1,0 +1,32 @@
+name: plugin-reporter-test
+
+services:
+  midaz-onboarding-test:
+    container_name: midaz-onboarding-test
+    image: lerianstudio/midaz-onboarding:latest
+    env_file:
+      - .env.onboarding
+    ports:
+      - 3100:3100
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3100/health'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - plugin-reporter-test-network
+
+networks:
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
+    driver: bridge
+    external: true
