@@ -6,12 +6,11 @@ services:
     build:
       context: ../..
       dockerfile: components/frontend/Dockerfile.test
-    restart: always
     ports:
       - 8083:8083
 
     env_file:
-      - .env
+      - .env.test
     healthcheck:
       test:
         ['CMD', 'curl', '-f', 'http://localhost:8083/api/admin/health/ready']
@@ -19,33 +18,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - console-network
-      - transaction-network
-      - plugin-auth-network
-      - plugin-smart-templates-manager-network
-      - infra-network
-      - ledger-network
-      - proxy-network
+      - plugin-reporter-test-network
 
 networks:
-  console-network:
-    name: console-network
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
     driver: bridge
-  transaction-network:
-    name: transaction-network
-    driver: bridge
-  ledger-network:
-    name: ledger-network
-    driver: bridge
-  plugin-auth-network:
-    name: plugin-auth-network
-    driver: bridge
-  infra-network:
-    name: infra-network
-    driver: bridge
-  plugin-smart-templates-manager-network:
-    name: plugin-smart-templates-manager-network
-    driver: bridge
-  proxy-network:
-    name: proxy-network
-    driver: bridge
+    external: true

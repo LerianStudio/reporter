@@ -1,8 +1,8 @@
-# CRM Test Infrastructure Makefile
+# Midaz Test Infrastructure Makefile
 
-SERVICE_NAME := crm-test-infra
-DOCKER_COMPOSE_FILE := docker-compose.yml
-ENV_FILE := .env.test
+SERVICE_NAME := midaz-test-infra
+DOCKER_COMPOSE_FILE := docker-compose.infra.yml
+ENV_FILE := .env.infra
 
 # Colors for output
 GREEN := \033[0;32m
@@ -29,11 +29,12 @@ endef
 .PHONY: help
 help:
 	@echo ""
-	@echo "$(BOLD)CRM E2E Test Infrastructure Commands$(NC)"
+	@echo "$(BOLD)Midaz E2E Test Infrastructure Commands$(NC)"
 	@echo ""
 	@echo "$(BOLD)Main Commands:$(NC)"
 	@echo "  make first-run           - 🌟 First time setup (does everything)"
-	@echo "  make up                  - Start all test infrastructure services"
+	@echo "  make up-infra            - Start infrastructure services (postgres, mongo, redis, rabbitmq)"
+	@echo "  make up                  - Alias for up-infra"
 	@echo "  make up-all              - Start infrastructure + Midaz services"
 	@echo "  make down                - Stop and remove all containers and networks"
 	@echo "  make down-all            - Stop infrastructure + Midaz services"
@@ -51,8 +52,6 @@ help:
 	@echo "  make up-onboarding       - Start only Onboarding service"
 	@echo "  make up-transaction      - Start only Transaction service"
 	@echo "  make up-console          - Start only Console service"
-	@echo "  make up-crm              - Start only CRM Plugin service (backend)"
-	@echo "  make up-crm-ui           - Start CRM UI (uses project's docker-compose)"
 	@echo "  make up-nginx            - Start Nginx reverse proxy"
 	@echo ""
 	@echo "$(BOLD)Onboarding Commands:$(NC)"
@@ -72,20 +71,6 @@ help:
 	@echo "  make stop-console        - Stop console service"
 	@echo "  make logs-console        - Show console service logs"
 	@echo "  make restart-console     - Restart console service"
-	@echo ""
-	@echo "$(BOLD)CRM Plugin Commands:$(NC)"
-	@echo "  make build-crm           - Build CRM backend Docker image"
-	@echo "  make start-crm           - Start CRM backend service"
-	@echo "  make stop-crm            - Stop CRM backend service"
-	@echo "  make logs-crm            - Show CRM backend service logs"
-	@echo "  make restart-crm         - Restart CRM backend service"
-	@echo ""
-	@echo "$(BOLD)CRM UI Commands:$(NC)"
-	@echo "  make build-crm-ui        - Build CRM UI Docker image"
-	@echo "  make start-crm-ui        - Start CRM UI service"
-	@echo "  make stop-crm-ui         - Stop CRM UI service"
-	@echo "  make logs-crm-ui         - Show CRM UI logs (project's container)"
-	@echo "  make restart-crm-ui      - Restart CRM UI service"
 	@echo ""
 	@echo "$(BOLD)Nginx Commands:$(NC)"
 	@echo "  make up-nginx            - Start Nginx reverse proxy"
@@ -128,14 +113,17 @@ help:
 # Main Docker Commands
 #-------------------------------------------------------
 
-.PHONY: up
-up:
-	$(call title1,"Starting CRM E2E Test Infrastructure")
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) --env-file $(ENV_FILE) up -d
+.PHONY: up-infra
+up-infra:
+	$(call title1,"Starting Midaz E2E Test Infrastructure")
+	@$(DOCKER_CMD) --env-file $(ENV_FILE) -f $(DOCKER_COMPOSE_FILE) up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Infrastructure started successfully$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for services to be healthy...$(NC)"
 	@sleep 5
 	@make health
+
+.PHONY: up
+up: up-infra
 
 .PHONY: up-all
 up-all:
@@ -149,31 +137,27 @@ up-all:
 	@sleep 5
 	@make up-console
 	@sleep 5
-	@make up-crm
-	@sleep 5
-	@make up-crm-ui
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services started successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: down
 down:
-	$(call title1,"Stopping CRM E2E Test Infrastructure")
+	$(call title1,"Stopping Midaz E2E Test Infrastructure")
 	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) down
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Infrastructure stopped successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: down-all
 down-all:
 	$(call title1,"Stopping Complete E2E Stack")
-	@$(DOCKER_CMD) -f docker-compose.crm-ui.yml down 2>/dev/null || true
-	@$(DOCKER_CMD) -f docker-compose.crm.yml down 2>/dev/null || true
-	@$(DOCKER_CMD) -f docker-compose.console.yml down 2>/dev/null || true
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml down 2>/dev/null || true
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml down 2>/dev/null || true
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) down
+	@$(DOCKER_CMD) --env-file .env.infra -f docker-compose.infra.yml down 2>/dev/null || true
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml down 2>/dev/null || true
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml down 2>/dev/null || true
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml down 2>/dev/null || true
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml down 2>/dev/null || true
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services stopped successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: restart
 restart:
-	$(call title1,"Restarting CRM E2E Test Infrastructure")
+	$(call title1,"Restarting Midaz E2E Test Infrastructure")
 	@make down
 	@make up
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Infrastructure restarted successfully$(GREEN) ✔️$(NC)"
@@ -216,31 +200,31 @@ start:
 .PHONY: up-postgres
 up-postgres:
 	$(call title1,"Starting PostgreSQL services")
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d crm-postgres-primary crm-postgres-replica
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d midaz-postgres-primary-test midaz-postgres-replica-test
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) PostgreSQL services started$(GREEN) ✔️$(NC)"
 
 .PHONY: up-mongo
 up-mongo:
 	$(call title1,"Starting MongoDB services")
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d crm-mongodb crm-mongodb-init
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d midaz-mongodb-test midaz-mongodb-test-init
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) MongoDB services started$(GREEN) ✔️$(NC)"
 
 .PHONY: up-redis
 up-redis:
 	$(call title1,"Starting Redis service")
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d crm-valkey
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d midaz-valkey-test
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Redis service started$(GREEN) ✔️$(NC)"
 
 .PHONY: up-rabbitmq
 up-rabbitmq:
 	$(call title1,"Starting RabbitMQ service")
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d crm-rabbitmq
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) up -d midaz-rabbitmq-test
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) RabbitMQ service started$(GREEN) ✔️$(NC)"
 
 .PHONY: up-onboarding
 up-onboarding:
 	$(call title1,"Starting Onboarding service")
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml --env-file .env.onboarding up -d
+	@$(DOCKER_CMD) -f docker-compose.onboarding.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Onboarding service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for onboarding to be healthy...$(NC)"
 	@sleep 5
@@ -248,7 +232,7 @@ up-onboarding:
 .PHONY: up-transaction
 up-transaction:
 	$(call title1,"Starting Transaction service")
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml --env-file .env.transaction up -d
+	@$(DOCKER_CMD) -f docker-compose.transaction.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Transaction service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for transaction to be healthy...$(NC)"
 	@sleep 5
@@ -256,17 +240,9 @@ up-transaction:
 .PHONY: up-console
 up-console:
 	$(call title1,"Starting Console service")
-	@$(DOCKER_CMD) -f docker-compose.console.yml --env-file .env.console up -d
+	@$(DOCKER_CMD) -f docker-compose.console.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for console to be healthy...$(NC)"
-	@sleep 5
-
-.PHONY: up-crm
-up-crm:
-	$(call title1,"Starting CRM Plugin service")
-	@$(DOCKER_CMD) -f docker-compose.crm.yml --env-file .env.crm up -d
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM service started$(GREEN) ✔️$(NC)"
-	@echo "$(CYAN)Waiting for CRM to be healthy...$(NC)"
 	@sleep 5
 
 #-------------------------------------------------------
@@ -280,36 +256,31 @@ logs:
 
 .PHONY: logs-postgres
 logs-postgres:
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f crm-postgres-primary crm-postgres-replica
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f midaz-postgres-primary-test midaz-postgres-replica-test
 
 .PHONY: logs-mongo
 logs-mongo:
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f crm-mongodb crm-mongodb-init
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f midaz-mongodb-test midaz-mongodb-test-init
 
 .PHONY: logs-redis
 logs-redis:
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f crm-valkey
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f midaz-valkey-test
 
 .PHONY: logs-rabbitmq
 logs-rabbitmq:
-	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f crm-rabbitmq
+	@$(DOCKER_CMD) -f $(DOCKER_COMPOSE_FILE) logs --tail=50 -f midaz-rabbitmq-test
 
 .PHONY: logs-onboarding
 logs-onboarding:
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml logs --tail=100 -f crm-test-onboarding
+	@$(DOCKER_CMD) -f docker-compose.onboarding.yml logs --tail=100 -f midaz-onboarding-test
 
 .PHONY: logs-transaction
 logs-transaction:
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml logs --tail=100 -f crm-test-transaction
+	@$(DOCKER_CMD) -f docker-compose.transaction.yml logs --tail=100 -f midaz-transaction-test
 
 .PHONY: logs-console
 logs-console:
-	@$(DOCKER_CMD) -f docker-compose.console.yml logs --tail=100 -f crm-test-console
-
-.PHONY: logs-crm
-logs-crm:
-	@$(DOCKER_CMD) -f docker-compose.crm.yml logs --tail=100 -f crm-test-plugin
-
+	@$(DOCKER_CMD) -f docker-compose.console.yml logs --tail=100 -f midaz-console-test
 
 #-------------------------------------------------------
 # Status Commands
@@ -324,34 +295,29 @@ ps:
 status:
 	$(call title1,"Quick Status Check")
 	@echo "$(BOLD)Infrastructure:$(NC)"
-	@docker ps --filter "name=crm-test" --filter "name=postgres\|mongo\|valkey\|rabbit\|otel" --format "  {{.Names}}: {{.Status}}" | head -6
+	@docker ps --filter "name=midaz" --filter "name=postgres\|mongo\|valkey\|rabbit\|otel" --format "  {{.Names}}: {{.Status}}" | head -6
 	@echo ""
 	@echo "$(BOLD)Midaz Services:$(NC)"
-	@docker ps --filter "name=crm-test-onboarding\|crm-test-transaction\|crm-test-console" --format "  {{.Names}}: {{.Status}}"
-	@echo ""
-	@echo "$(BOLD)CRM Services:$(NC)"
-	@docker ps --filter "name=crm-test-plugin\|plugin-crm-ui" --format "  {{.Names}}: {{.Status}}"
+	@docker ps --filter "name=midaz-onboarding-test\|midaz-transaction-test\|midaz-console-test" --format "  {{.Names}}: {{.Status}}"
 	@echo ""
 	@echo "$(BOLD)Health Status:$(NC)"
 	@echo -n "  Onboarding:  " && (curl -sf http://localhost:3100/health >/dev/null 2>&1 && echo "$(GREEN)✅ UP$(NC)" || echo "$(YELLOW)❌ DOWN$(NC)")
 	@echo -n "  Transaction: " && (curl -sf http://localhost:3101/health >/dev/null 2>&1 && echo "$(GREEN)✅ UP$(NC)" || echo "$(YELLOW)❌ DOWN$(NC)")
 	@echo -n "  Console:     " && (curl -sf http://localhost:8081/api/admin/health/ready >/dev/null 2>&1 && echo "$(GREEN)✅ UP$(NC)" || echo "$(YELLOW)❌ DOWN$(NC)")
-	@echo -n "  CRM Backend: " && (curl -sf http://localhost:4003/health >/dev/null 2>&1 && echo "$(GREEN)✅ UP$(NC)" || echo "$(YELLOW)❌ DOWN$(NC)")
-	@echo -n "  CRM UI:      " && (curl -sf http://localhost:8082/api/admin/health/ready >/dev/null 2>&1 && echo "$(GREEN)✅ UP$(NC)" || echo "$(YELLOW)❌ DOWN$(NC)")
 
 .PHONY: health
 health:
 	$(call title1,"Checking service health")
 	@echo "$(CYAN)PostgreSQL Primary:$(NC)"
-	@docker exec crm-test-postgres-primary pg_isready -U crm_test -p 5801 2>/dev/null && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
+	@docker exec midaz-postgres-primary-test pg_isready -U crm_test -p 5801 2>/dev/null && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 	@echo "$(CYAN)PostgreSQL Replica:$(NC)"
-	@docker exec crm-test-postgres-replica pg_isready -U crm_test -p 5802 2>/dev/null && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
+	@docker exec midaz-postgres-replica-test pg_isready -U crm_test -p 5802 2>/dev/null && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 	@echo "$(CYAN)MongoDB:$(NC)"
-	@docker exec crm-test-mongodb mongosh --host crm-test-mongodb --port 5803 --eval "db.adminCommand('ping')" >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
+	@docker exec midaz-mongodb-test mongosh --host midaz-mongodb-test --port 5803 --eval "db.adminCommand('ping')" >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 	@echo "$(CYAN)Redis:$(NC)"
-	@docker exec crm-test-valkey redis-cli -p 5804 -a crm_test_password ping >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
+	@docker exec midaz-valkey-test redis-cli -p 5804 -a crm_test_password ping >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 	@echo "$(CYAN)RabbitMQ:$(NC)"
-	@docker exec crm-test-rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
+	@docker exec midaz-rabbitmq-test rabbitmq-diagnostics -q ping >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 
 .PHONY: health-onboarding
 health-onboarding:
@@ -368,24 +334,12 @@ health-console:
 	@echo "$(CYAN)Console Service:$(NC)"
 	@curl -sf http://localhost:8081/api/admin/health/ready >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
 
-.PHONY: health-crm
-health-crm:
-	@echo "$(CYAN)CRM Plugin Service:$(NC)"
-	@curl -sf http://localhost:4003/health >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
-
-.PHONY: health-crm-ui
-health-crm-ui:
-	@echo "$(CYAN)CRM UI Service:$(NC)"
-	@curl -sf http://localhost:8082/api/admin/health/ready >/dev/null 2>&1 && echo "$(GREEN)✔️ Healthy$(NC)" || echo "$(YELLOW)⚠️  Not ready$(NC)"
-
 .PHONY: health-all
 health-all:
 	@make health
 	@make health-onboarding
 	@make health-transaction
 	@make health-console
-	@make health-crm
-	@make health-crm-ui
 
 .PHONY: wait-ready
 wait-ready:
@@ -395,13 +349,13 @@ wait-ready:
 		timeout=90; \
 		elapsed=0; \
 		while [ $$elapsed -lt $$timeout ]; do \
-			if docker exec crm-test-postgres-primary pg_isready -U crm_test -p 5801 >/dev/null 2>&1 && \
-			   docker exec crm-test-mongodb mongosh --host crm-test-mongodb --port 5803 --eval "db.adminCommand(\"ping\")" >/dev/null 2>&1 && \
-			   docker exec crm-test-valkey redis-cli -p 5804 -a crm_test_password ping >/dev/null 2>&1 && \
-			   docker exec crm-test-rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then \
+			if docker exec midaz-postgres-primary-test pg_isready -U crm_test -p 5801 >/dev/null 2>&1 && \
+			   docker exec midaz-mongodb-test mongosh --host midaz-mongodb-test --port 5803 --eval "db.adminCommand(\"ping\")" >/dev/null 2>&1 && \
+			   docker exec midaz-valkey-test redis-cli -p 5804 -a crm_test_password ping >/dev/null 2>&1 && \
+			   docker exec midaz-rabbitmq-test rabbitmq-diagnostics -q ping >/dev/null 2>&1; then \
 				echo "$(GREEN)$(BOLD)[ok]$(NC) Infrastructure is ready$(GREEN) ✔️$(NC)"; \
 				echo "$(CYAN)Checking if PostgreSQL is HEALTHY (not just ready)...$(NC)"; \
-				if docker inspect crm-test-postgres-primary | grep -q "\"Status\": \"healthy\""; then \
+				if docker inspect midaz-postgres-primary-test | grep -q "\"Status\": \"healthy\""; then \
 					echo "$(GREEN)$(BOLD)[ok]$(NC) PostgreSQL is healthy$(GREEN) ✔️$(NC)"; \
 					exit 0; \
 				else \
@@ -471,7 +425,7 @@ first-run:
 	@echo "$(CYAN)Waiting for PostgreSQL to be fully healthy (30s)...$(NC)"
 	@sleep 30
 	@echo "$(CYAN)Verifying PostgreSQL health...$(NC)"
-	@docker exec crm-test-postgres-primary pg_isready -U crm_test -p 5801 || (echo "$(YELLOW)PostgreSQL not ready, waiting more...$(NC)" && sleep 10)
+	@docker exec midaz-postgres-primary-test pg_isready -U crm_test -p 5801 || (echo "$(YELLOW)PostgreSQL not ready, waiting more...$(NC)" && sleep 10)
 	@echo "$(CYAN)Setting up database schemas...$(NC)"
 	@make setup-databases
 	@echo "$(CYAN)Starting Midaz services...$(NC)"
@@ -481,13 +435,6 @@ first-run:
 	@sleep 8
 	@make up-console
 	@sleep 8
-	@echo "$(CYAN)Building and starting CRM Services...$(NC)"
-	@make build-crm
-	@make up-crm
-	@sleep 8
-	@make build-crm-ui
-	@make up-crm-ui
-	@sleep 10
 	@echo "$(CYAN)Verifying health...$(NC)"
 	@make health-all
 	@echo ""
@@ -508,7 +455,7 @@ rebuild-all:
 	@make up
 	@echo "$(CYAN)Waiting for PostgreSQL to be fully healthy (30s)...$(NC)"
 	@sleep 30
-	@docker exec crm-test-postgres-primary pg_isready -U crm_test -p 5801 || (echo "$(YELLOW)PostgreSQL not ready, waiting more...$(NC)" && sleep 10)
+	@docker exec midaz-postgres-primary-test pg_isready -U crm_test -p 5801 || (echo "$(YELLOW)PostgreSQL not ready, waiting more...$(NC)" && sleep 10)
 	@echo "$(CYAN)Setting up database schemas...$(NC)"
 	@make setup-databases
 	@echo "$(CYAN)Starting all Midaz services...$(NC)"
@@ -518,13 +465,6 @@ rebuild-all:
 	@sleep 8
 	@make up-console
 	@sleep 8
-	@echo "$(CYAN)Building and starting CRM Services...$(NC)"
-	@make build-crm
-	@make up-crm
-	@sleep 8
-	@make build-crm-ui
-	@make up-crm-ui
-	@sleep 10
 	@echo "$(CYAN)Verifying health of all services...$(NC)"
 	@make health-all
 	@echo ""
@@ -547,15 +487,15 @@ rebuild-all:
 
 .PHONY: shell-postgres
 shell-postgres:
-	@docker exec -it crm-test-postgres-primary psql -U crm_test -d crm_test
+	@docker exec -it midaz-postgres-primary-test psql -U crm_test -d crm_test
 
 .PHONY: shell-mongo
 shell-mongo:
-	@docker exec -it crm-test-mongodb mongosh --host crm-test-mongodb --port 5803 -u crm_test -p crm_test_password
+	@docker exec -it midaz-mongodb-test mongosh --host midaz-mongodb-test --port 5803 -u crm_test -p crm_test_password
 
 .PHONY: shell-redis
 shell-redis:
-	@docker exec -it crm-test-valkey redis-cli -p 5804 -a crm_test_password
+	@docker exec -it midaz-valkey-test redis-cli -p 5804 -a crm_test_password
 
 .PHONY: shell-rabbitmq
 shell-rabbitmq:
@@ -633,90 +573,16 @@ restart-console:
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service restarted$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
-# CRM Plugin Service Commands
-#-------------------------------------------------------
-
-.PHONY: build-crm
-build-crm:
-	$(call title1,"Building CRM Plugin Docker image")
-	@$(DOCKER_CMD) -f docker-compose.crm.yml --env-file .env.crm build
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM image built successfully$(GREEN) ✔️$(NC)"
-
-.PHONY: start-crm
-start-crm:
-	$(call title1,"Starting CRM Plugin service")
-	@$(DOCKER_CMD) -f docker-compose.crm.yml start
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM service started$(GREEN) ✔️$(NC)"
-
-.PHONY: stop-crm
-stop-crm:
-	$(call title1,"Stopping CRM Plugin service")
-	@$(DOCKER_CMD) -f docker-compose.crm.yml stop
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM service stopped$(GREEN) ✔️$(NC)"
-
-.PHONY: restart-crm
-restart-crm:
-	$(call title1,"Restarting CRM Plugin service")
-	@make stop-crm
-	@make start-crm
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM service restarted$(GREEN) ✔️$(NC)"
-
-#-------------------------------------------------------
-# CRM UI Service Commands (using project's docker-compose)
-#-------------------------------------------------------
-
-CRM_UI_COMPOSE_DIR := ../../..
-CRM_UI_FRONTEND_DIR := $(CRM_UI_COMPOSE_DIR)/frontend
-
-.PHONY: up-crm-ui
-up-crm-ui:
-	$(call title1,"Starting CRM UI - project docker-compose")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose up -d
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM UI service started$(GREEN) ✔️$(NC)"
-	@echo "$(CYAN)Waiting for CRM UI to be healthy...$(NC)"
-	@sleep 5
-
-.PHONY: build-crm-ui
-build-crm-ui:
-	$(call title1,"Building CRM UI - project docker-compose")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose build
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM UI image built successfully$(GREEN) ✔️$(NC)"
-
-.PHONY: stop-crm-ui
-stop-crm-ui:
-	$(call title1,"Stopping CRM UI service")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose stop
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM UI service stopped$(GREEN) ✔️$(NC)"
-
-.PHONY: down-crm-ui
-down-crm-ui:
-	$(call title1,"Stopping and removing CRM UI service")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose down
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM UI service removed$(GREEN) ✔️$(NC)"
-
-.PHONY: logs-crm-ui
-logs-crm-ui:
-	$(call title1,"CRM UI Logs")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose logs -f
-
-.PHONY: restart-crm-ui
-restart-crm-ui:
-	$(call title1,"Restarting CRM UI service")
-	@cd $(CRM_UI_FRONTEND_DIR) && docker compose restart
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) CRM UI service restarted$(GREEN) ✔️$(NC)"
-
-#-------------------------------------------------------
 # Nginx Service Commands
 #-------------------------------------------------------
 
 .PHONY: up-nginx
 up-nginx:
 	$(call title1,"Starting Nginx Reverse Proxy")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml --env-file .env.nginx up -d
+	@$(DOCKER_CMD) -f docker-compose.nginx.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Nginx is now routing:$(NC)"
 	@echo "  / → Console (http://localhost:8080)"
-	@echo "  /plugin-crm-ui → CRM UI (http://localhost:8080/plugin-crm-ui)"
 
 .PHONY: stop-nginx
 stop-nginx:
@@ -744,7 +610,7 @@ restart-nginx:
 .PHONY: reload-nginx
 reload-nginx:
 	$(call title1,"Reloading Nginx configuration")
-	@docker exec crm-test-nginx nginx -s reload
+	@docker exec midaz-nginx-test nginx -s reload
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx configuration reloaded$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
@@ -795,7 +661,7 @@ test-e2e:
 test-e2e-phase1:
 	$(call title1,"Running Phase 1 E2E Tests")
 	@echo "$(CYAN)Ensuring Nginx is running...$(NC)"
-	@docker ps | grep crm-test-nginx > /dev/null || (echo "$(YELLOW)Starting Nginx...$(NC)" && make up-nginx)
+	@docker ps | grep midaz-nginx-test > /dev/null || (echo "$(YELLOW)Starting Nginx...$(NC)" && make up-nginx)
 	@echo "$(CYAN)Running E2E tests (holders + alias accounts)...$(NC)"
 	@cd ../../ && npx playwright test holders-list holders-create-natural-person holders-create-legal-person holders-edit holders-delete alias-create alias-create-from-tab alias-create-scenarios alias-edit
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) E2E tests completed$(GREEN) ✔️$(NC)"
@@ -855,7 +721,7 @@ test-e2e-full:
 .PHONY: info
 info:
 	@echo ""
-	@echo "$(BOLD)CRM E2E Test Infrastructure$(NC)"
+	@echo "$(BOLD)Midaz E2E Test Infrastructure$(NC)"
 	@echo ""
 	@echo "$(BOLD)Services:$(NC)"
 	@echo "  PostgreSQL Primary:  localhost:5801 (user: crm_test)"
@@ -873,14 +739,8 @@ info:
 	@echo "  Transaction Swagger: http://localhost:3101/swagger/index.html"
 	@echo "  Console UI:          http://localhost:8081"
 	@echo ""
-	@echo "$(BOLD)CRM Services:$(NC)"
-	@echo "  CRM Backend API:     http://localhost:4003"
-	@echo "  CRM Swagger:         http://localhost:4003/swagger/index.html"
-	@echo "  CRM Frontend UI:     http://localhost:8082"
-	@echo ""
 	@echo "$(BOLD)Nginx Reverse Proxy (Optional):$(NC)"
 	@echo "  Nginx:               http://localhost:8080 (if started)"
 	@echo "  Console via Nginx:   http://localhost:8080/"
-	@echo "  CRM UI via Nginx:    http://localhost:8080/plugin-crm-ui/"
 	@echo ""
 

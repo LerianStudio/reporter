@@ -74,3 +74,5 @@ CLAUDE.md
 .protocol-assets/
 .protocol-backups/
 .mcp.json
+
+!Dockerfile.test

@@ -1,10 +1,11 @@
+name: plugin-reporter-test
+
 services:
-  crm-test-nginx:
-    container_name: crm-test-nginx
+  nginx-test:
+    container_name: nginx-test
     image: nginx:latest
-    restart: always
     ports:
-      - ${NGINX_PORT:-80}:80
+      - 80:80
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     healthcheck:
@@ -14,40 +15,10 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - crm-test-network
-      - console-network
-      - transaction-network
-      - plugin-auth-network
-      - infra-network
-      - ledger-network
-      - proxy-network
+      - plugin-reporter-test-network
 
 networks:
-  crm-test-network:
-    name: crm-test-network
-    driver: bridge
-    external: true
-  console-network:
-    name: console-network
-    driver: bridge
-    external: true
-  transaction-network:
-    name: transaction-network
-    driver: bridge
-    external: true
-  plugin-auth-network:
-    name: plugin-auth-network
-    driver: bridge
-    external: true
-  infra-network:
-    name: infra-network
-    driver: bridge
-    external: true
-  ledger-network:
-    name: ledger-network
-    driver: bridge
-    external: true
-  proxy-network:
-    name: proxy-network
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
     driver: bridge
     external: true

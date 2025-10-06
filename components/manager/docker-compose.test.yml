@@ -3,14 +3,13 @@ name: plugin-reporter-test
 services:
   plugin-smart-templates-manager-test:
     container_name: plugin-smart-templates-manager-test
-    restart: always
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile.test
       secrets:
         - github_token
     env_file:
-      - .env
+      - .env.test
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:

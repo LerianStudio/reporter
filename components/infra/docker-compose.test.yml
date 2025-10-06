@@ -6,7 +6,6 @@ services:
     image: mongo:latest
     env_file:
       - .env
-    restart: always
     healthcheck:
       test: echo 'db.runCommand("ping").ok'
       interval: 10s
@@ -22,12 +21,11 @@ services:
     volumes:
       - plugin-smart-templates-mongodb-data-test:/data/db
     networks:
-      - plugin-smart-templates-infra-network
+      - plugin-reporter-test-network
 
   plugin-smart-templates-rabbitmq-test:
     image: rabbitmq:4.0-management-alpine
     container_name: plugin-smart-templates-rabbitmq-test
-    restart: always
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -40,7 +38,7 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - plugin-smart-templates-infra-network
+      - plugin-reporter-test-network
 
   plugin-smart-templates-minio-test:
     image: minio/minio:latest
@@ -57,7 +55,7 @@ services:
       - plugin-smart-templates-minio-data-test:/data
     command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
     networks:
-      - plugin-smart-templates-infra-network
+      - plugin-reporter-test-network
 
   plugin-smart-templates-minio-mc-test:
     image: minio/mc
@@ -78,7 +76,7 @@ services:
     volumes:
       - ./minio/policies:/policies
     networks:
-      - plugin-smart-templates-infra-network
+      - plugin-reporter-test-network
 
   plugin-smart-templates-keda-test:
     image: ghcr.io/kedacore/keda:2.16.0
@@ -100,7 +98,6 @@ services:
   plugin-smart-templates-valkey-test:
     container_name: plugin-smart-templates-valkey-test
     image: valkey/valkey:latest
-    restart: always
     env_file:
       - .env
     environment:

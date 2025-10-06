@@ -1,31 +1,30 @@
 name: plugin-reporter-test
 
 services:
-  crm-test-console:
-    container_name: crm-test-console
+  midaz-console-test:
+    container_name: midaz-console-test
     image: lerianstudio/midaz-console:3.3.1
-    restart: always
     env_file:
       - .env.console
     ports:
-      - ${CONSOLE_PORT}:${CONSOLE_PORT}
+      - 8081:8081
     healthcheck:
       test:
         [
           'CMD',
           'curl',
           '-f',
-          'http://localhost:${CONSOLE_PORT}/api/admin/health/ready'
+          'http://localhost:8081/api/admin/health/ready'
         ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     networks:
-      - crm-test-network
+      - plugin-reporter-test-network
 
 networks:
-  crm-test-network:
-    name: crm-test-network
+  plugin-reporter-test-network:
+    name: plugin-reporter-test-network
     driver: bridge
     external: true
