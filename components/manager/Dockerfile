@@ -77,3 +77,4 @@ EXPOSE 4004
 # Set the entrypoint to the manager binary
 ENTRYPOINT ["/app/manager"]
 
+
