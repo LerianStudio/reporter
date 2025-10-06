@@ -37,4 +37,3 @@ ENTRYPOINT ["/scripts/entrypoint.sh"]
 
 CMD ["npm", "run", "start"]
 
-
