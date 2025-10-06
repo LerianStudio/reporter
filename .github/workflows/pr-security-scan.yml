@@ -25,3 +25,5 @@ jobs:
         components/worker
       path_level: "2"
       dockerhub_org: "lerianstudio"
+    secrets:
+      manage_token: ${{ secrets.MANAGE_TOKEN }}

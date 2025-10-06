@@ -40,4 +40,3 @@ EXPOSE 4005
 
 # Set the entrypoint to the worker binary
 ENTRYPOINT ["/worker"]
-
