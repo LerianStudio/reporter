@@ -18,7 +18,7 @@ jobs:
   security-scan:
     uses: LerianStudio/github-actions-shared-workflows/.github/workflows/pr-security-scan.yml@main
     with:
-      runner_type: "ubuntu-latest"
+      runner_type: "firmino-lxc-runners"
       filter_paths: |-
         components/frontend
         components/manager
