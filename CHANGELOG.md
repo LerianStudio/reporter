@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-rc.4] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-rc.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Dependencies**: Updated to secure versions to resolve vulnerabilities, enhancing application stability and security.
+- **Pipeline Execution**: Fixed issues with security scan execution, ensuring consistent and reliable vulnerability detection during builds.
+
+### 📚 Documentation
+- **Security Scanning**: Updated documentation to guide users on interpreting and responding to new security scan results, making it easier to maintain a secure environment.
+
+### 🔧 Maintenance
+- **Security Scans**: Integrated Trivy security scans into the CI/CD pipeline, automatically detecting vulnerabilities to improve system reliability.
+- **Testing Enhancements**: Conducted extensive testing of security scans across key components to validate effectiveness, ensuring robust security measures are in place.
+- **Changelog Updates**: Regularly updated the CHANGELOG file for transparency and easy reference, helping users and developers stay informed about changes.
+
+
 ## [v3.0.0-beta.4] - 2025-10-07
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
