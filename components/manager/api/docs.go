@@ -639,6 +639,9 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "SoftDelete a Template with the input ID",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Templates"
                 ],

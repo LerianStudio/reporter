@@ -455,19 +455,19 @@ paths:
           description: No Content
         "400":
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/pkg.HTTPError'
           description: Bad Request
         "404":
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/pkg.HTTPError'
           description: Not Found
         "500":
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/pkg.HTTPError'
           description: Internal Server Error

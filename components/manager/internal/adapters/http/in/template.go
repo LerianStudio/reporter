@@ -348,6 +348,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Summary		SoftDelete a Template by ID
 //	@Description	SoftDelete a Template with the input ID
 //	@Tags			Templates
+//	@Produce		json
 //	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
