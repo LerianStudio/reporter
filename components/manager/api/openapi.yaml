@@ -4,7 +4,7 @@ info:
   description: This is a swagger documentation for plugin smart template
   termsOfService: http://swagger.io/terms/
   title: Plugin Smart Template
-  version: 2.0.0
+  version: 3.0.0
 servers:
 - url: //localhost:4005/
 paths:
@@ -17,6 +17,12 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
         schema:
           type: string
       responses:
@@ -45,6 +51,12 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
+        schema:
+          type: string
+      - description: Organization ID
+        in: header
+        name: X-Organization-Id
+        required: true
         schema:
           type: string
       - description: Data source ID
@@ -131,6 +143,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/inline_response_200'
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Get all reports
       tags:
       - Reports
@@ -161,8 +185,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_report.Report'
           description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Create a Report
       tags:
       - Reports
@@ -194,8 +236,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_report.Report'
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Get a Report
       tags:
       - Reports
@@ -229,6 +289,24 @@ paths:
                 format: binary
                 type: string
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Download a Report
       tags:
       - Reports
@@ -277,6 +355,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/inline_response_200_1'
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Get all templates
       tags:
       - Templates
@@ -320,8 +410,20 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_template.Template'
           description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Create a Template for reports
       tags:
       - Templates
@@ -351,6 +453,24 @@ paths:
         "204":
           content: {}
           description: No Content
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: SoftDelete a Template by ID
       tags:
       - Templates
@@ -375,33 +495,31 @@ paths:
         required: true
         schema:
           type: string
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                templateFile:
-                  description: Template file (.tpl)
-                  format: binary
-                  type: string
-                outputFormat:
-                  description: Output format (e.g., pdf, html)
-                  type: string
-                description:
-                  description: Description of the template
-                  type: string
-              required:
-              - description
-              - outputFormat
-              - templateFile
-        required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_template.Template'
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Get template
       tags:
       - Templates
@@ -451,8 +569,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_template.Template'
           description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pkg.HTTPError'
+          description: Internal Server Error
       summary: Update a template
       tags:
       - Templates
@@ -495,7 +631,7 @@ components:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_model.FilterCondition'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
@@ -593,7 +729,7 @@ components:
         title:
           type: string
       type: object
-    plugin-smart-templates_v2_pkg_model.FilterCondition:
+    plugin-smart-templates_v3_pkg_model.FilterCondition:
       example:
         nin:
         - '{}'
@@ -684,7 +820,7 @@ components:
             type: object
           type: array
       type: object
-    plugin-smart-templates_v2_pkg_mongodb_report.Report:
+    plugin-smart-templates_v3_pkg_mongodb_report.Report:
       example:
         createdAt: createdAt
         completedAt: completedAt
@@ -734,7 +870,7 @@ components:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_model.FilterCondition'
+                $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
@@ -754,7 +890,7 @@ components:
         updatedAt:
           type: string
       type: object
-    plugin-smart-templates_v2_pkg_mongodb_template.Template:
+    plugin-smart-templates_v3_pkg_mongodb_template.Template:
       example:
         createdAt: 2021-01-01T00:00:00Z
         fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
@@ -872,7 +1008,7 @@ components:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_report.Report'
+            $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_report.Report'
           type: array
         limit:
           type: integer
@@ -909,7 +1045,7 @@ components:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/plugin-smart-templates_v2_pkg_mongodb_template.Template'
+            $ref: '#/components/schemas/plugin-smart-templates_v3_pkg_mongodb_template.Template'
           type: array
         limit:
           type: integer

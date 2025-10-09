@@ -35,6 +35,8 @@ type TemplateHandler struct {
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
 //	@Success		201					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -141,6 +143,9 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Param			description			formData	string	true	"Description of the template"
 //	@Param			id					path		string	true	"Template ID"
 //	@Success		200					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -226,15 +231,15 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Summary		Get template
 //	@Description	Get a template by id
 //	@Tags			Templates
-//	@Accept			mpfd
 //	@Produce		json
 //	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
 //	@Param			id					path		string	true	"Template ID"
 //	@Success		200					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
+//
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -282,6 +287,8 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Param			limit				query		int		false	"Limit"	default(10)
 //	@Param			page				query		int		false	"Page"	default(1)
 //	@Success		200					{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [get]
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -345,6 +352,9 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
 //	@Success		204
+//	@Failure		400	{object}	pkg.HTTPError
+//	@Failure		404	{object}	pkg.HTTPError
+//	@Failure		500	{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()

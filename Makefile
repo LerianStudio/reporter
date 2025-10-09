@@ -7,6 +7,27 @@ ROOT_DIR := $(shell pwd)
 # Define the root directory of the project
 SERVICE_NAME := plugin-smart-templates
 BIN_DIR := ./.bin
+ARTIFACTS_DIR := ./artifacts
+
+# Color definitions for terminal output
+GREEN := \033[32m
+RED := \033[31m
+YELLOW := \033[33m
+CYAN := \033[36m
+BLUE := \033[34m
+BOLD := \033[1m
+NC := \033[0m
+
+# Docker command detection (supports both docker compose and docker-compose)
+DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}' 2>/dev/null || echo "0")
+DOCKER_MIN_VERSION := 20.10.13
+DOCKER_CMD := $(shell \
+	if [ "$(shell printf '%s\n' "$(DOCKER_MIN_VERSION)" "$(DOCKER_VERSION)" | sort -V | head -n1)" = "$(DOCKER_MIN_VERSION)" ]; then \
+		echo "docker compose"; \
+	else \
+		echo "docker-compose"; \
+	fi \
+)
 
 # Component directories
 INFRA_DIR := ./components/infra
@@ -25,6 +46,13 @@ define print_title
 	@echo "------------------------------------------"
 	@echo "   📝 $(1)  "
 	@echo "------------------------------------------"
+endef
+
+define title1
+	@echo ""
+	@echo "$(CYAN)------------------------------------------$(NC)"
+	@echo "$(CYAN)   📝 $(1)$(NC)"
+	@echo "$(CYAN)------------------------------------------$(NC)"
 endef
 
 # Check if a command is available
@@ -451,7 +479,7 @@ generate-docs:
 	fi
 	@swag init -g ./components/manager/cmd/app/main.go -d ./ -o ./components/manager/api --parseDependency --parseInternal
 	@docker run --rm -v $(ROOT_DIR):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
-	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/openapi.yaml
+	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/api/openapi.yaml
 	@rm -rf ./components/manager/api/README.md ./components/manager/api/.openapi-generator* ./components/manager/api/openapi
 	@if [ -f "$(ROOT_DIR)/scripts/package.json" ]; then \
 		echo "$(YELLOW)Installing npm dependencies for validation...$(NC)"; \
