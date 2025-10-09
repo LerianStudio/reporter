@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.1-beta.1] - 2025-10-09
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0...v3.0.1-beta.1)
+Contributors: arthurkz
+
+### ⚠️ Breaking Changes
+- **Backend Error Response Update**: The format of error responses for the delete endpoint has changed. This may impact existing integrations that rely on the previous format. Users should review and update their error handling logic to ensure compatibility. [Migration steps: Update your error handling code to accommodate the new response structure.]
+
+### 🐛 Bug Fixes
+- **Corrected API Response Descriptions**: Fixed inaccuracies in the API documentation that previously misrepresented certain response behaviors. This correction helps developers by providing reliable information, minimizing integration errors.
+
+### 📚 Documentation
+- **API Documentation Enhancements**: Comprehensive updates have been made to the API documentation, providing clearer and more accurate guidance for developers. This ensures better integration experiences by reducing misunderstandings and potential errors.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Several dependencies have been updated to address known vulnerabilities, significantly enhancing the security and stability of the application. This proactive measure protects users from potential security threats.
+- **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
+
+
 ## [v3.0.0-beta.4] - 2025-10-07
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
