@@ -32,6 +32,13 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -69,6 +76,13 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -177,7 +191,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -192,6 +206,18 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -236,7 +262,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -281,7 +325,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -327,6 +389,24 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -397,7 +477,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -412,6 +492,18 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -468,7 +560,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -477,9 +581,6 @@ const docTemplate = `{
         "/v1/templates/{id}": {
             "get": {
                 "description": "Get a template by id",
-                "consumes": [
-                    "multipart/form-data"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -502,27 +603,6 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Template file (.tpl)",
-                        "name": "templateFile",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Output format (e.g., pdf, html)",
-                        "name": "outputFormat",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Description of the template",
-                        "name": "description",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
                         "type": "string",
                         "description": "Template ID",
                         "name": "id",
@@ -534,13 +614,34 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "SoftDelete a Template with the input ID",
+                "description": "SoftDelete a Template with the input ID. Returns 204 with no content on success.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Templates"
                 ],
@@ -569,7 +670,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "No content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
                     }
                 }
             },
@@ -632,7 +751,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -655,7 +792,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -748,7 +885,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_v2_pkg_model.FilterCondition": {
+        "plugin-smart-templates_v3_pkg_model.FilterCondition": {
             "type": "object",
             "properties": {
                 "between": {
@@ -793,7 +930,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_v2_pkg_mongodb_report.Report": {
+        "plugin-smart-templates_v3_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -812,7 +949,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -838,7 +975,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_v2_pkg_mongodb_template.Template": {
+        "plugin-smart-templates_v3_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -872,7 +1009,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "2.0.0",
+	Version:          "3.0.0",
 	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},
