@@ -346,13 +346,13 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 // DeleteTemplateByID is a method that removes template information by a given id.
 //
 //	@Summary		SoftDelete a Template by ID
-//	@Description	SoftDelete a Template with the input ID
+//	@Description	SoftDelete a Template with the input ID. Returns 204 with no content on success.
 //	@Tags			Templates
 //	@Produce		json
 //	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
-//	@Success		204
+//	@Success		204	"No content"
 //	@Failure		400	{object}	pkg.HTTPError
 //	@Failure		404	{object}	pkg.HTTPError
 //	@Failure		500	{object}	pkg.HTTPError

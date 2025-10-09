@@ -429,7 +429,8 @@ paths:
       - Templates
   /v1/templates/{id}:
     delete:
-      description: SoftDelete a Template with the input ID
+      description: SoftDelete a Template with the input ID. Returns 204 with no content
+        on success.
       parameters:
       - description: "The authorization token in the 'Bearer\taccess_token' format.\
           \ Only required when auth plugin is enabled."
@@ -452,7 +453,7 @@ paths:
       responses:
         "204":
           content: {}
-          description: No Content
+          description: No content
         "400":
           content:
             application/json:

@@ -638,7 +638,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "SoftDelete a Template with the input ID",
+                "description": "SoftDelete a Template with the input ID. Returns 204 with no content on success.",
                 "produces": [
                     "application/json"
                 ],
@@ -670,7 +670,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "No content"
                     },
                     "400": {
                         "description": "Bad Request",
