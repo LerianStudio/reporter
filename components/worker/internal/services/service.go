@@ -1,7 +1,7 @@
 package services
 
 import (
-	pkgConfig "plugin-smart-templates/v3/pkg"
+	"plugin-smart-templates/v3/pkg"
 	reportFile "plugin-smart-templates/v3/pkg/minio/report"
 	templateFile "plugin-smart-templates/v3/pkg/minio/template"
 	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
@@ -16,8 +16,14 @@ type UseCase struct {
 	ReportFileRepo reportFile.Repository
 
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
-	ExternalDataSources map[string]pkgConfig.DataSource
+	ExternalDataSources map[string]pkg.DataSource
 
 	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case
 	ReportDataRepo reportData.Repository
+
+	// CircuitBreakerManager manages circuit breakers for external datasources
+	CircuitBreakerManager *pkg.CircuitBreakerManager
+
+	// HealthChecker performs periodic health checks and reconnection attempts
+	HealthChecker *pkg.HealthChecker
 }

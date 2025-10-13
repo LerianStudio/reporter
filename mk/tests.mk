@@ -18,7 +18,7 @@ endif
 
 define wait_for_services
 	bash -c 'echo "Waiting for services to become healthy..."; \
-	sleep 40; \
+	sleep 60; \
 	for i in $$(seq 1 $(TEST_HEALTH_WAIT)); do \
 	  if curl -fsS $(TEST_MANAGER_URL)/health >/dev/null 2>&1; then \
 	    echo "Services are up"; exit 0; \
@@ -122,7 +122,6 @@ test-e2e:
 	$(call wait_for_services); \
 	mkdir -p ./reports/e2e; \
 	echo "Running Apidog CLI via npx against tests/e2e/local.apidog-cli.json"; \
-	npx --yes @apidog/cli@latest run ./tests/e2e/local.apidog-cli.json -r html,cli --out-dir ./reports/e2e || \
 	npx --yes apidog-cli@latest run ./tests/e2e/local.apidog-cli.json -r html,cli --out-dir ./reports/e2e
 
 # Fuzzy/robustness tests

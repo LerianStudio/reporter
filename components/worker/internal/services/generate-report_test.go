@@ -124,10 +124,14 @@ func TestGenerateReport_Success(t *testing.T) {
 		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateFileRepo:      mockTemplateRepo,
+		ReportFileRepo:        mockReportRepo,
+		ReportDataRepo:        mockReportDataRepo,
+		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
@@ -406,10 +410,13 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateFileRepo:      mockTemplateRepo,
+		ReportFileRepo:        mockReportRepo,
+		ReportDataRepo:        mockReportDataRepo,
+		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"plugin_crm": {
 				Initialized:       true,

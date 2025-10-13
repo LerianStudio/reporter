@@ -22,7 +22,7 @@ type Environment struct {
 }
 
 func LoadEnvironment() Environment {
-	mgr := getenvDefault("MANAGER_URL", "http://localhost:4005")
+	mgr := getenvDefault("MANAGER_URL", "http://127.0.0.1:4005")
 	timeoutStr := getenvDefault("HTTP_TIMEOUT_SECS", "30")
 
 	secs, _ := strconv.Atoi(timeoutStr)

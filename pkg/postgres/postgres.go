@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"database/sql"
+	"plugin-smart-templates/v3/pkg/constant"
+
+	"strings"
+
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	_ "github.com/jackc/pgx/v5/stdlib" // Registers the "pgx" driver with database/sql via init() – required for sql.Open("pgx", ...)
-	"strings"
-	"time"
 )
 
 // Connection is a hub which deals with postgres connections.
@@ -42,12 +44,14 @@ func (c *Connection) Connect() error {
 
 	db.SetMaxOpenConns(c.MaxOpenConnections)
 	db.SetMaxIdleConns(c.MaxIdleConnections)
-	db.SetConnMaxLifetime(10 * time.Minute)
+	db.SetConnMaxLifetime(constant.PostgresConnMaxLifetime)
+	db.SetConnMaxIdleTime(constant.PostgresConnMaxIdleTime)
 
 	c.ConnectionDB = db
 	c.Connected = true
 
-	c.Logger.Infof("Connected to PostgreSQL [%s]", c.DBName)
+	c.Logger.Infof("Connected to PostgreSQL [%s] with pool settings (maxOpen: %d, maxIdle: %d, maxLifetime: %v, maxIdleTime: %v)",
+		c.DBName, c.MaxOpenConnections, c.MaxIdleConnections, constant.PostgresConnMaxLifetime, constant.PostgresConnMaxIdleTime)
 
 	return nil
 }
