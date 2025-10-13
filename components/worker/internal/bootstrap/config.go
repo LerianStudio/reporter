@@ -122,12 +122,22 @@ func InitWorker() *Service {
 		MaxPoolSize:            uint64(cfg.MaxPoolSize),
 	}
 
+	// Initialize circuit breaker manager for datasource resilience
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+	externalDataSources := pkg.ExternalDatasourceConnections(logger)
+	healthChecker := pkg.NewHealthChecker(&externalDataSources, circuitBreakerManager, logger)
+
 	service := &services.UseCase{
-		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
-		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
+		TemplateFileRepo:      templateFile.NewMinioRepository(minioClient, "templates"),
+		ReportFileRepo:        reportFile.NewMinioRepository(minioClient, "reports"),
+		ExternalDataSources:   externalDataSources,
+		ReportDataRepo:        reportData.NewReportMongoDBRepository(mongoConnection),
+		CircuitBreakerManager: circuitBreakerManager,
+		HealthChecker:         healthChecker,
 	}
+
+	// Start health checker in background
+	healthChecker.Start()
 
 	licenseClient := libLicense.NewLicenseClient(
 		constant.ApplicationName,
@@ -141,5 +151,6 @@ func InitWorker() *Service {
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		licenseShutdown:    licenseClient.GetLicenseManagerShutdown(),
+		healthChecker:      healthChecker,
 	}
 }
