@@ -74,7 +74,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 	}
 
 	// Ensure connection is established before publishing
-	if prmq.conn.Channel == nil {
+	if prmq.conn.Channel == nil || prmq.conn.Channel.IsClosed() {
 		logger.Warn("RabbitMQ channel not initialized - attempting to connect...")
 
 		_, err := prmq.conn.GetNewConnect()

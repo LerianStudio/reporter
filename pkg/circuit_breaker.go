@@ -131,17 +131,41 @@ func (cbm *CircuitBreakerManager) GetCounts(datasourceName string) gobreaker.Cou
 	return breaker.Counts()
 }
 
-// Reset resets a circuit breaker to closed state
+// Reset resets a circuit breaker to closed state by creating a new instance
 func (cbm *CircuitBreakerManager) Reset(datasourceName string) {
-	cbm.mu.RLock()
-	_, exists := cbm.breakers[datasourceName]
-	cbm.mu.RUnlock()
+	cbm.mu.Lock()
+	defer cbm.mu.Unlock()
 
-	if exists {
+	if _, exists := cbm.breakers[datasourceName]; exists {
 		cbm.logger.Infof("Manually resetting circuit breaker for datasource: %s", datasourceName)
-		cbm.mu.Lock()
-		cbm.breakers[datasourceName] = cbm.GetOrCreate(datasourceName)
-		cbm.mu.Unlock()
+
+		settings := gobreaker.Settings{
+			Name:        fmt.Sprintf("datasource-%s", datasourceName),
+			MaxRequests: constant.CircuitBreakerMaxRequests,
+			Interval:    constant.CircuitBreakerInterval,
+			Timeout:     constant.CircuitBreakerTimeout,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+				return counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold ||
+					(counts.Requests >= 10 && failureRatio >= 0.5)
+			},
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
+
+				switch to {
+				case gobreaker.StateOpen:
+					cbm.logger.Errorf("Circuit Breaker [%s] OPENED - datasource is unhealthy, requests will fast-fail", name)
+				case gobreaker.StateHalfOpen:
+					cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
+				case gobreaker.StateClosed:
+					cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
+				}
+			},
+		}
+
+		breaker := gobreaker.NewCircuitBreaker(settings)
+		cbm.breakers[datasourceName] = breaker
+		cbm.logger.Infof("Circuit breaker reset completed for datasource: %s", datasourceName)
 	}
 }
 
