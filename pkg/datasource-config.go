@@ -326,7 +326,10 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 			dataSource.ConfigName, constant.MongoDBMaxPoolSize, constant.MongoDBMinPoolSize)
 	}
 
-	_ = client.Disconnect(ctx)
+	// Only disconnect if client was successfully created
+	if client != nil {
+		_ = client.Disconnect(ctx)
+	}
 
 	return DataSource{
 		DatabaseType: MongoDBType,

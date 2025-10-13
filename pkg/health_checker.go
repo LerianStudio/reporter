@@ -73,7 +73,12 @@ func (hc *HealthChecker) healthCheckLoop() {
 // performHealthChecks checks all datasources and attempts reconnection if needed
 func (hc *HealthChecker) performHealthChecks() {
 	hc.mu.RLock()
-	dataSources := *hc.dataSources
+	// Create a shallow copy of the map to iterate over, preventing a concurrent map write panic.
+	dataSourcesSnapshot := make(map[string]DataSource, len(*hc.dataSources))
+	for name, ds := range *hc.dataSources {
+		dataSourcesSnapshot[name] = ds
+	}
+
 	hc.mu.RUnlock()
 
 	hc.logger.Info("🔍 Performing health checks on all datasources...")
@@ -81,7 +86,7 @@ func (hc *HealthChecker) performHealthChecks() {
 	unavailableCount := 0
 	reconnectedCount := 0
 
-	for name, ds := range dataSources {
+	for name, ds := range dataSourcesSnapshot {
 		// Check if datasource needs healing
 		if hc.needsHealing(name, ds) {
 			unavailableCount++
