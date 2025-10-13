@@ -19,6 +19,51 @@ Contributors: Gabriel Castro, lerian-studio
 ### 🔧 Maintenance
 - **Release Management**: Routine updates to the CHANGELOG were made to maintain accurate records of releases and changes, supporting better version tracking and user awareness.
 
+## [v3.0.0-beta.4] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
+- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
+
+### 🔧 Maintenance
+- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
+- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
+- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
+
+
+## [v3.0.0] - 2025-10-02
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0)
+Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Application Structure Overhaul**: The internal structure of the application has been redefined to streamline workflows and improve maintainability. Users will need to adjust their configurations and integrations to align with the new setup. Please refer to the migration guide for detailed steps.
+
+### ✨ Features
+- **Enhanced Report Validation**: Reports now include more detailed error messages, making it easier to identify and troubleshoot issues, ensuring data integrity.
+- **PDF Export**: Users can now export documents in PDF format, expanding the range of output options and enhancing document sharing capabilities.
+
+### 🐛 Bug Fixes
+- **Navigation Reliability**: Fixed a manifest route issue that previously caused navigation errors, ensuring seamless access to application resources.
+- **XML Output Consistency**: Adjusted XML generation to meet expected standards, resolving data representation discrepancies.
+
+### ⚡ Performance
+- **Testing Framework Robustness**: New test suites based on midaz tests have been added, improving the reliability and accuracy of automated testing processes.
+
+### 🔄 Changes
+- **Internationalization Consistency**: Standardized internationalization keys across the frontend, improving multilingual support and maintainability.
+- **Backend Configuration Management**: Centralized the definition of OUTPUT_FORMATS, simplifying configuration management and reducing potential errors.
+
+### 📚 Documentation
+- **Updated Guides**: Documentation has been refined to reflect recent changes, providing users with up-to-date information and guidance for effective application use.
+
+### 🔧 Maintenance
+- **Build System Update**: Updated Go version and linting tools in the GitHub workflow to ensure compatibility with the latest development standards.
+- **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
+
 
 ## [v3.0.0-beta.3] - 2025-10-01
 
