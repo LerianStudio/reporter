@@ -76,12 +76,15 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 	// Ensure connection is established before publishing
 	if prmq.conn.Channel == nil {
 		logger.Warn("RabbitMQ channel not initialized - attempting to connect...")
+
 		_, err := prmq.conn.GetNewConnect()
 		if err != nil {
 			libOpentelemetry.HandleSpanError(&spanProducer, "Failed to establish RabbitMQ connection", err)
 			logger.Errorf("Failed to establish RabbitMQ connection: %v", err)
+
 			return nil, err
 		}
+
 		logger.Info("✅ RabbitMQ connection established on-demand")
 	}
 
