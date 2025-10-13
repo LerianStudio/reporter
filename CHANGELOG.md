@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0-rc.2] - 2025-10-02
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.1...v3.0.0-rc.2)
+Contributors: Gabriel Castro, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Data Handling**: Resolved an issue in the manifest route that caused incorrect data processing between the backend and frontend. This fix enhances reliability and ensures that data is displayed correctly, improving the overall user experience.
+
+### 🔄 Changes
+- **Consistent Naming**: The application now consistently uses the name "Reporter" instead of "Smart Templates" across all components, including backend, frontend, configuration files, and documentation. This change improves clarity and strengthens brand identity for users.
+
+### 📚 Documentation
+- **Updated Changelog**: The CHANGELOG has been updated to reflect the latest changes and improvements, ensuring users have access to current information about the application's updates.
+
+### 🔧 Maintenance
+- **Release Management**: Routine updates to the CHANGELOG were made to maintain accurate records of releases and changes, supporting better version tracking and user awareness.
+
 ## [v3.0.0-beta.4] - 2025-10-07
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
@@ -46,15 +63,6 @@ Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, ler
 ### 🔧 Maintenance
 - **Build System Update**: Updated Go version and linting tools in the GitHub workflow to ensure compatibility with the latest development standards.
 - **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
-
-
-## [v3.0.0-rc.3] - 2025-10-02
-
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.2...v3.0.0-rc.3)
-Contributors: arthurkz
-
-### 🐛 Bug Fixes
-- Improved Branch Management: We've added a condition to the release-candidate branch handling process. This fix ensures that only the correct code changes are included in release candidates, preventing potential deployment issues. As a result, users can expect a more stable and reliable deployment pipeline, reducing the risk of unintended code merges.
 
 
 ## [v3.0.0-beta.3] - 2025-10-01
