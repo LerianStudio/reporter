@@ -66,15 +66,6 @@ Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, ler
 - **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
 
 
-## [v3.0.0-rc.3] - 2025-10-02
-
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.2...v3.0.0-rc.3)
-Contributors: arthurkz
-
-### 🐛 Bug Fixes
-- Improved Branch Management: We've added a condition to the release-candidate branch handling process. This fix ensures that only the correct code changes are included in release candidates, preventing potential deployment issues. As a result, users can expect a more stable and reliable deployment pipeline, reducing the risk of unintended code merges.
-
-
 ## [v3.0.0-beta.3] - 2025-10-01
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-beta.2...v3.0.0-beta.3)
