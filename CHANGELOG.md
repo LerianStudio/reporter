@@ -2,22 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v3.0.0-rc.2] - 2025-10-02
+## [v3.0.0-rc.4] - 2025-10-07
 
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.1...v3.0.0-rc.2)
-Contributors: Gabriel Castro, lerian-studio
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-rc.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
 
 ### 🐛 Bug Fixes
-- **Improved Data Handling**: Resolved an issue in the manifest route that caused incorrect data processing between the backend and frontend. This fix enhances reliability and ensures that data is displayed correctly, improving the overall user experience.
-
-### 🔄 Changes
-- **Consistent Naming**: The application now consistently uses the name "Reporter" instead of "Smart Templates" across all components, including backend, frontend, configuration files, and documentation. This change improves clarity and strengthens brand identity for users.
+- **Dependencies**: Updated to secure versions to resolve vulnerabilities, enhancing application stability and security.
+- **Pipeline Execution**: Fixed issues with security scan execution, ensuring consistent and reliable vulnerability detection during builds.
 
 ### 📚 Documentation
-- **Updated Changelog**: The CHANGELOG has been updated to reflect the latest changes and improvements, ensuring users have access to current information about the application's updates.
+- **Security Scanning**: Updated documentation to guide users on interpreting and responding to new security scan results, making it easier to maintain a secure environment.
 
 ### 🔧 Maintenance
-- **Release Management**: Routine updates to the CHANGELOG were made to maintain accurate records of releases and changes, supporting better version tracking and user awareness.
+- **Security Scans**: Integrated Trivy security scans into the CI/CD pipeline, automatically detecting vulnerabilities to improve system reliability.
+- **Testing Enhancements**: Conducted extensive testing of security scans across key components to validate effectiveness, ensuring robust security measures are in place.
+- **Changelog Updates**: Regularly updated the CHANGELOG file for transparency and easy reference, helping users and developers stay informed about changes.
+
 
 ## [v3.0.0-beta.4] - 2025-10-07
 
