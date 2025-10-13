@@ -200,8 +200,38 @@ func ConnectToDataSourceWithRetry(databaseName string, dataSource *DataSource, l
 	return fmt.Errorf("failed to connect to datasource %s after %d attempts", databaseName, constant.DataSourceMaxRetries+1)
 }
 
+// ExternalDatasourceConnectionsLazy initializes datasource configurations WITHOUT attempting connections.
+// Useful for components that connect on-demand (like Manager).
+func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource {
+	externalDataSources := make(map[string]DataSource)
+
+	dataSourceConfigs := getDataSourceConfigs(logger)
+	for _, dataSource := range dataSourceConfigs {
+		var ds DataSource
+
+		switch strings.ToLower(dataSource.Type) {
+		case MongoDBType:
+			ds = initMongoDataSource(dataSource, logger)
+		case PostgreSQLType:
+			ds = initPostgresDataSource(dataSource, logger)
+		default:
+			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
+			continue
+		}
+
+		// Add datasource WITHOUT attempting connection
+		externalDataSources[dataSource.ConfigName] = ds
+		logger.Infof("📦 Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
+	}
+
+	logger.Infof("Datasource lazy initialization complete: %d configured", len(externalDataSources))
+
+	return externalDataSources
+}
+
 // ExternalDatasourceConnections initializes and returns a map of external data source connections.
 // Uses graceful degradation - continues initialization even if some datasources fail.
+// Attempts connection with retry for each datasource (use for Worker).
 func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	externalDataSources := make(map[string]DataSource)
 

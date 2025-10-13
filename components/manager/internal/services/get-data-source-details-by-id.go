@@ -75,8 +75,8 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
 	}
 
-	if err := uc.ensureDataSourceConnected(logger, &dataSource); err != nil {
-		logger.Errorf("Error initializing database connection, Err: %s", err)
+	if err := uc.ensureDataSourceConnected(logger, dataSourceID, &dataSource); err != nil {
+		logger.Errorf("Error initializing database connection for '%s', Err: %s", dataSourceID, err)
 		return nil, err
 	}
 
@@ -156,15 +156,22 @@ func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey str
 }
 
 // ensureDataSourceConnected ensures the data source is initialized/connected
-func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSource *pkg.DataSource) error {
+func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID string, dataSource *pkg.DataSource) error {
+	// Check if datasource is marked as unavailable
+	if dataSource.Status == constant.DataSourceStatusUnavailable {
+		logger.Warnf("Datasource '%s' is marked as unavailable - attempting to connect anyway", dataSourceID)
+	}
+
 	switch dataSource.DatabaseType {
 	case pkg.PostgreSQLType:
 		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
-			return pkg.ConnectToDataSource(dataSource.MongoDBName, dataSource, logger, uc.ExternalDataSources)
+			logger.Infof("Connecting to PostgreSQL datasource '%s' on-demand...", dataSourceID)
+			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
 		}
 	case pkg.MongoDBType:
 		if !dataSource.Initialized {
-			return pkg.ConnectToDataSource(dataSource.MongoDBName, dataSource, logger, uc.ExternalDataSources)
+			logger.Infof("Connecting to MongoDB datasource '%s' on-demand...", dataSourceID)
+			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
 		}
 	}
 

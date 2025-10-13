@@ -23,3 +23,34 @@ func RestartWithWait(container string, delay time.Duration) error {
 
 	return nil
 }
+
+// StopContainer stops a container by name.
+func StopContainer(container string) error {
+	if container == "" {
+		return fmt.Errorf("empty container name")
+	}
+
+	cmd := exec.Command("docker", "stop", container)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("docker stop %s: %v, out=%s", container, err, string(out))
+	}
+
+	return nil
+}
+
+// StartContainer starts a stopped container by name.
+func StartContainer(container string) error {
+	if container == "" {
+		return fmt.Errorf("empty container name")
+	}
+
+	cmd := exec.Command("docker", "start", container)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("docker start %s: %v, out=%s", container, err, string(out))
+	}
+
+	// Give container time to initialize
+	time.Sleep(5 * time.Second)
+
+	return nil
+}

@@ -25,6 +25,7 @@ networks:
   plugin-fees-network:
     driver: bridge
   plugin-crm-network:
+    name: plugin-crm-network
     driver: bridge
 
 secrets:

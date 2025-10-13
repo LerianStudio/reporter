@@ -189,12 +189,15 @@ func InitServers() *Service {
 	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
 	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
 
+	// Initialize datasources in lazy mode (connect on-demand for faster startup)
+	externalDataSources := pkg.ExternalDatasourceConnectionsLazy(logger)
+
 	reportService := &services.UseCase{
 		ReportRepo:          reportMongoDBRepository,
 		RabbitMQRepo:        producerRabbitMQRepository,
 		TemplateRepo:        templateMongoDBRepository,
 		ReportMinio:         reportMinio.NewMinioRepository(minioClient, ReportBucketName),
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		ExternalDataSources: externalDataSources,
 		PdfPool:             pdfPool,
 	}
 
@@ -203,7 +206,7 @@ func InitServers() *Service {
 	}
 
 	dataSourceService := &services.UseCase{
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		ExternalDataSources: externalDataSources,
 		RedisRepo:           redisConsumerRepository,
 	}
 
