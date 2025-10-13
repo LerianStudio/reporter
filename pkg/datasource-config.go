@@ -90,10 +90,12 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 			dataSource.Status = constant.DataSourceStatusUnavailable
 			dataSource.LastError = err
 			logger.Errorf("Failed to establish PostgreSQL connection to %s: %v", databaseName, err)
+
 			return fmt.Errorf("failed to establish PostgreSQL connection to %s: %w", databaseName, err)
 		}
 
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
+
 		dataSource.Status = constant.DataSourceStatusAvailable
 
 	case MongoDBType:
@@ -102,15 +104,18 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 			dataSource.Status = constant.DataSourceStatusUnavailable
 			dataSource.LastError = err
 			logger.Errorf("Failed to establish MongoDB connection to %s: %v", databaseName, err)
+
 			return fmt.Errorf("failed to establish MongoDB connection to %s: %w", databaseName, err)
 		}
 
 		logger.Infof("Established MongoDB connection to %s database", databaseName)
+
 		dataSource.Status = constant.DataSourceStatusAvailable
 
 	default:
 		dataSource.Status = constant.DataSourceStatusUnavailable
 		dataSource.LastError = fmt.Errorf("unsupported database type: %s", dataSource.DatabaseType)
+
 		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 	}
 
@@ -188,6 +193,7 @@ func ConnectToDataSourceWithRetry(databaseName string, dataSource *DataSource, l
 	}
 
 	logger.Errorf("Exhausted all retry attempts for datasource %s - marking as unavailable", databaseName)
+
 	dataSource.Status = constant.DataSourceStatusUnavailable
 	externalDataSources[databaseName] = *dataSource
 
@@ -228,11 +234,13 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 
 	available := 0
 	unavailable := 0
+
 	for name, ds := range externalDataSources {
 		if ds.Status == constant.DataSourceStatusAvailable {
 			available++
 		} else {
 			unavailable++
+
 			logger.Warnf("Datasource '%s' status: %s", name, ds.Status)
 		}
 	}

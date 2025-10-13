@@ -132,6 +132,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		if queryCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("query execution timeout after %v: %w", constant.QueryTimeoutMedium, err)
 		}
+
 		return nil, fmt.Errorf("error executing query: %w", err)
 	}
 	defer rows.Close()
@@ -200,6 +201,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		if schemaCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("schema discovery timeout after %v while querying primary keys: %w", constant.SchemaDiscoveryTimeout, err)
 		}
+
 		return nil, fmt.Errorf("error querying primary keys: %w", err)
 	}
 	defer pkRows.Close()
@@ -233,6 +235,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 			if schemaCtx.Err() == context.DeadlineExceeded {
 				return nil, fmt.Errorf("schema discovery timeout after %v while querying columns for table %s: %w", constant.SchemaDiscoveryTimeout, tableName, err)
 			}
+
 			return nil, fmt.Errorf("error querying columns for table %s: %w", tableName, err)
 		}
 
@@ -520,6 +523,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		if queryCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("advanced filter query timeout after %v: %w", constant.QueryTimeoutSlow, err)
 		}
+
 		return nil, fmt.Errorf("error executing query: %w", err)
 	}
 	defer rows.Close()

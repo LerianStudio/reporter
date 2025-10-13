@@ -85,6 +85,7 @@ func (cbm *CircuitBreakerManager) Execute(datasourceName string, fn func() (any,
 			cbm.logger.Warnf("Circuit breaker [%s] is OPEN - request rejected immediately", datasourceName)
 			return nil, fmt.Errorf("datasource %s is currently unavailable (circuit breaker open): %w", datasourceName, err)
 		}
+
 		if err == gobreaker.ErrTooManyRequests {
 			cbm.logger.Warnf("Circuit breaker [%s] is HALF-OPEN - too many test requests", datasourceName)
 			return nil, fmt.Errorf("datasource %s is recovering (too many requests): %w", datasourceName, err)

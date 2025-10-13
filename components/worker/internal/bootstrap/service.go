@@ -25,11 +25,11 @@ func (app *Service) Run() {
 	).Run()
 
 	// Graceful shutdown
-	app.Logger.Info("Starting graceful shutdown...")
+	app.Info("Starting graceful shutdown...")
 
 	// Stop health checker
 	if app.healthChecker != nil {
-		app.Logger.Info("Stopping health checker...")
+		app.Info("Stopping health checker...")
 		app.healthChecker.Stop()
 	}
 
@@ -38,5 +38,5 @@ func (app *Service) Run() {
 		app.licenseShutdown.Terminate("Consumers are done.")
 	}
 
-	app.Logger.Info("Graceful shutdown complete")
+	app.Info("Graceful shutdown complete")
 }

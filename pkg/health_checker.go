@@ -36,7 +36,9 @@ func NewHealthChecker(
 // Start begins the health check loop in a separate goroutine
 func (hc *HealthChecker) Start() {
 	hc.wg.Add(1)
+
 	go hc.healthCheckLoop()
+
 	hc.logger.Info("🏥 Health checker started - checking datasources every 30s")
 }
 
@@ -83,6 +85,7 @@ func (hc *HealthChecker) performHealthChecks() {
 		// Check if datasource needs healing
 		if hc.needsHealing(name, ds) {
 			unavailableCount++
+
 			hc.logger.Infof("🔧 Attempting to heal datasource '%s' (status: %s)", name, ds.Status)
 
 			if hc.attemptReconnection(name, &ds) {
@@ -151,15 +154,19 @@ func (hc *HealthChecker) attemptReconnection(name string, ds *DataSource) bool {
 	err := ConnectToDataSource(name, ds, hc.logger, tempMap)
 	if err != nil {
 		hc.logger.Errorf("Failed to reconnect datasource '%s': %v", name, err)
+
 		ds.Status = constant.DataSourceStatusUnavailable
 		ds.LastError = err
+
 		return false
 	}
 
 	// Check if connection is actually working with a ping
 	if !hc.pingDataSource(ctx, name, ds) {
 		hc.logger.Errorf("Reconnection to '%s' succeeded but ping failed", name)
+
 		ds.Status = constant.DataSourceStatusDegraded
+
 		return false
 	}
 
@@ -180,6 +187,7 @@ func (hc *HealthChecker) pingDataSource(ctx context.Context, name string, ds *Da
 		}
 		// Try to get schema as a ping (lightweight operation)
 		_, err := ds.PostgresRepository.GetDatabaseSchema(ctx)
+
 		return err == nil
 
 	case MongoDBType:
@@ -188,6 +196,7 @@ func (hc *HealthChecker) pingDataSource(ctx context.Context, name string, ds *Da
 		}
 		// Try to get schema as a ping (lightweight operation)
 		_, err := ds.MongoDBRepository.GetDatabaseSchema(ctx)
+
 		return err == nil
 
 	default:
@@ -202,6 +211,7 @@ func (hc *HealthChecker) GetHealthStatus() map[string]string {
 	defer hc.mu.RUnlock()
 
 	status := make(map[string]string)
+
 	for name, ds := range *hc.dataSources {
 		cbState := hc.circuitBreakerManager.GetState(name)
 		status[name] = ds.Status + " (CB: " + cbState + ")"

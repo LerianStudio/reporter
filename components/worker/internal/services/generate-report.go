@@ -255,6 +255,7 @@ func (uc *UseCase) queryDatabase(
 		err := fmt.Errorf("datasource %s is unhealthy - circuit breaker state: %s", databaseName, cbState)
 		libOtel.HandleSpanError(&dbSpan, "Circuit breaker blocking request", err)
 		logger.Errorf("⚠️  Circuit breaker blocking request to datasource %s (state: %s)", databaseName, cbState)
+
 		return err
 	}
 
@@ -265,6 +266,7 @@ func (uc *UseCase) queryDatabase(
 			err := fmt.Errorf("datasource %s is unavailable (initialization failed)", databaseName)
 			libOtel.HandleSpanError(&dbSpan, "Datasource unavailable", err)
 			logger.Errorf("⚠️  Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)
+
 			return err
 		}
 
@@ -319,13 +321,14 @@ func (uc *UseCase) queryPostgresDatabase(
 
 		// Execute query with circuit breaker protection
 		var tableResult []map[string]any
+
 		queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
 			if len(tableFilters) > 0 {
 				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
 			}
+
 			return dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
 		})
-
 		if err != nil {
 			logger.Errorf("Error querying table %s in %s (circuit breaker): %s", table, databaseName, err.Error())
 			return err
@@ -494,7 +497,6 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 		// No filters, use legacy method
 		return dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
 	})
-
 	if err != nil {
 		logger.Errorf("Error querying collection %s in %s (circuit breaker): %s", collection, databaseName, err.Error())
 		return nil, err

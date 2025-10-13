@@ -152,6 +152,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		if queryCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("mongodb query timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
 		}
+
 		return nil, err
 	}
 
@@ -174,6 +175,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		if queryCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("mongodb query result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
 		}
+
 		return nil, err
 	}
 
@@ -275,6 +277,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		if schemaCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("mongodb schema discovery timeout after %v while listing collections: %w", constant.SchemaDiscoveryTimeout, err)
 		}
+
 		return nil, err
 	}
 
@@ -585,7 +588,25 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		return nil, err
 	}
 
-	// Convert FilterCondition to MongoDB format
+	mongoFilter, err := ds.buildMongoFilter(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	findOptions := ds.buildFindOptions(fields)
+
+	cursor, queryCtx, cancel, err := ds.executeFindQuery(ctx, client, collection, mongoFilter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	defer cursor.Close(queryCtx)
+
+	return ds.processQueryResults(queryCtx, cursor, collection, logger)
+}
+
+// buildMongoFilter converts FilterCondition map to MongoDB filter format
+func (ds *ExternalDataSource) buildMongoFilter(filter map[string]model.FilterCondition) (bson.M, error) {
 	mongoFilter := bson.M{}
 
 	for field, condition := range filter {
@@ -603,7 +624,11 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		}
 	}
 
-	// Create projection for specified fields
+	return mongoFilter, nil
+}
+
+// buildFindOptions creates MongoDB find options with field projection
+func (ds *ExternalDataSource) buildFindOptions(fields []string) *options.FindOptions {
 	projection := bson.M{}
 
 	if len(fields) > 0 && fields[0] != "*" {
@@ -617,22 +642,42 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		findOptions.SetProjection(projection)
 	}
 
-	// Create timeout context for query execution (slower timeout for advanced filters)
+	return findOptions
+}
+
+// executeFindQuery executes the MongoDB find query with timeout
+func (ds *ExternalDataSource) executeFindQuery(
+	ctx context.Context,
+	client *mongo.Client,
+	collection string,
+	mongoFilter bson.M,
+	findOptions *options.FindOptions,
+) (*mongo.Cursor, context.Context, context.CancelFunc, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutSlow)
-	defer cancel()
 
 	database := client.Database(ds.Database)
 
 	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
 	if err != nil {
+		cancel()
+
 		if queryCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("mongodb advanced filter query timeout after %v for collection %s: %w", constant.QueryTimeoutSlow, collection, err)
+			return nil, nil, nil, fmt.Errorf("mongodb advanced filter query timeout after %v for collection %s: %w", constant.QueryTimeoutSlow, collection, err)
 		}
-		return nil, err
+
+		return nil, nil, nil, err
 	}
 
-	defer cursor.Close(queryCtx)
+	return cursor, queryCtx, cancel, nil
+}
 
+// processQueryResults iterates through cursor and converts results
+func (ds *ExternalDataSource) processQueryResults(
+	queryCtx context.Context,
+	cursor *mongo.Cursor,
+	collection string,
+	logger log.Logger,
+) ([]map[string]any, error) {
 	var results []map[string]any
 
 	for cursor.Next(queryCtx) {
@@ -650,6 +695,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		if queryCtx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("mongodb advanced filter result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutSlow, collection, err)
 		}
+
 		return nil, err
 	}
 
