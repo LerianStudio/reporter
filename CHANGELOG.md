@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.1] - 2025-10-13
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.1-beta.1...v3.1.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Resilience with Retry Mechanism**: We've introduced a robust retry mechanism with a circuit breaker for message handling and external database connections. This feature minimizes downtime by ensuring more reliable service connections, significantly improving user experience during transient network issues.
+
+### 🐛 Bug Fixes
+- **Datasource Configuration Initialization**: Fixed an issue that could cause incorrect setup of datasource configurations, ensuring seamless service operation without manual intervention.
+- **Improved Code Quality**: Applied comprehensive code linting across multiple components, enhancing readability and reducing the likelihood of future bugs.
+
+### 🔧 Maintenance
+- **Library Updates**: Updated all library dependencies to their latest versions, ensuring compatibility and leveraging new security and performance enhancements.
+- **Documentation Refresh**: The changelog and other documentation have been updated to provide a clear and concise history of recent updates, helping users stay informed about changes and improvements.
+
+
 ## [v3.0.1-beta.1] - 2025-10-09
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0...v3.0.1-beta.1)
