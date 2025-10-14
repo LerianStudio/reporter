@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Dependency Security**: Resolved vulnerabilities in dependencies affecting the `build`, `deps`, and `frontend` components, enhancing overall application security and stability.
+- **Pipeline Reliability**: Fixed issues with pipeline scan execution to ensure consistent security checks across `deps`, `docs`, and `frontend`, improving the reliability of the CI/CD process.
+
+### 📚 Documentation
+- **Changelog Updates**: Updated the CHANGELOG to provide users with the latest information on software changes and improvements, ensuring transparency and ease of access to release details.
+
+### 🔧 Maintenance
+- **Security Scans**: Integrated Trivy security scans into the CI pipeline, enabling continuous security assessment across `frontend`, `docs`, `test`, `auth`, and `deps` components. This proactive measure ensures early detection of vulnerabilities, contributing to a more secure software environment.
+- **Dockerfile Enhancements**: Added comments to Dockerfiles to facilitate easier maintenance and understanding of the build process, aiding developers in managing and updating the build configuration efficiently.
+
+
 ## [v3.0.0-beta.4] - 2025-10-07
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
