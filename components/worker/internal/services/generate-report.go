@@ -14,6 +14,7 @@ import (
 	"time"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -80,7 +81,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
 
-	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
+	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -198,7 +199,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out))
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 
@@ -262,7 +263,7 @@ func (uc *UseCase) queryDatabase(
 	// Check datasource initialization status
 	if !dataSource.Initialized {
 		// Check if datasource is marked as unavailable from initialization
-		if dataSource.Status == constant.DataSourceStatusUnavailable {
+		if dataSource.Status == libConstants.DataSourceStatusUnavailable {
 			err := fmt.Errorf("datasource %s is unavailable (initialization failed)", databaseName)
 			libOtel.HandleSpanError(&dbSpan, "Datasource unavailable", err)
 			logger.Errorf("⚠️  Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)

@@ -40,43 +40,48 @@ services:
     networks:
       - plugin-smart-templates-infra-network
 
-  plugin-smart-templates-minio:
-    image: minio/minio:latest
-    container_name: plugin-smart-templates-minio
+  plugin-smart-templates-seaweedfs-master:
+    image: chrislusf/seaweedfs:3.97
+    container_name: plugin-smart-templates-seaweedfs-master
     ports:
-      - ${MINIO_API_PORT}:${MINIO_API_PORT}
-      - ${MINIO_ADMIN_PORT}:${MINIO_ADMIN_PORT}
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_APP_USER: ${MINIO_APP_USER}
-      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD}
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+      - "${SEAWEEDFS_MASTER_UI_PORT:-9334}:9334"
+    command: "master -ip=plugin-smart-templates-seaweedfs-master -port=9333 -mdir=/data"
     volumes:
-      - plugin-smart-templates-minio-data:/data
-    command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+      - plugin-smart-templates-seaweedfs-master-data:/data
     networks:
       - plugin-smart-templates-infra-network
+    restart: always
 
-  plugin-smart-templates-minio-mc:
-    image: minio/mc
-    container_name: plugin-smart-templates-minio-mc
-    depends_on:
-      - plugin-smart-templates-minio
-    entrypoint: >
-      sh -c "
-        sleep 5 && \
-        mc alias set local http://plugin-smart-templates-minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
-        mc mb local/templates || true && \
-        mc mb local/reports || true && \
-        mc admin user add local $MINIO_APP_USER $MINIO_APP_PASSWORD && \
-        mc admin policy create local app-policy /policies/app-policy.json && \
-        mc admin policy attach local app-policy --user $MINIO_APP_USER && \
-        echo 'User and buckets created.'
-      "
+  plugin-smart-templates-seaweedfs-volume:
+    image: chrislusf/seaweedfs:3.97
+    container_name: plugin-smart-templates-seaweedfs-volume
+    ports:
+      - "${SEAWEEDFS_VOLUME_PORT:-9080}:9080"
+    command: "volume -ip=plugin-smart-templates-seaweedfs-volume -port=9080 -mserver=plugin-smart-templates-seaweedfs-master:9333 -dir=/data -max=0"
     volumes:
-      - ./minio/policies:/policies
+      - plugin-smart-templates-seaweedfs-volume-data:/data
     networks:
       - plugin-smart-templates-infra-network
+    depends_on:
+      - plugin-smart-templates-seaweedfs-master
+    restart: always
+
+  plugin-smart-templates-seaweedfs-filer:
+    image: chrislusf/seaweedfs:3.97
+    container_name: plugin-smart-templates-seaweedfs-filer
+    ports:
+      - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
+      - "${SEAWEEDFS_FILER_S3_PORT:-8333}:8333"
+    command: "filer -ip=plugin-smart-templates-seaweedfs-filer -port=8888 -master=plugin-smart-templates-seaweedfs-master:9333"
+    volumes:
+      - plugin-smart-templates-seaweedfs-filer-data:/data
+    networks:
+      - plugin-smart-templates-infra-network
+    depends_on:
+      - plugin-smart-templates-seaweedfs-master
+      - plugin-smart-templates-seaweedfs-volume
+    restart: always
 
   plugin-smart-templates-keda:
     image: ghcr.io/kedacore/keda:2.16.0
@@ -114,7 +119,9 @@ services:
 
 volumes:
   plugin-smart-templates-mongodb-data:
-  plugin-smart-templates-minio-data:
+  plugin-smart-templates-seaweedfs-master-data:
+  plugin-smart-templates-seaweedfs-volume-data:
+  plugin-smart-templates-seaweedfs-filer-data:
   plugin-smart-templates-redis-data:
 
 networks:

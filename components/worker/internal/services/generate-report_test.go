@@ -6,12 +6,12 @@ import (
 	"errors"
 	"os"
 	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/minio/report"
-	"plugin-smart-templates/v3/pkg/minio/template"
 	"plugin-smart-templates/v3/pkg/model"
 	mongodb2 "plugin-smart-templates/v3/pkg/mongodb"
 	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
 	postgres2 "plugin-smart-templates/v3/pkg/postgres"
+	"plugin-smart-templates/v3/pkg/seaweedfs/report"
+	"plugin-smart-templates/v3/pkg/seaweedfs/template"
 	"strings"
 	"testing"
 
@@ -128,8 +128,8 @@ func TestGenerateReport_Success(t *testing.T) {
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		TemplateFileRepo:      mockTemplateRepo,
-		ReportFileRepo:        mockReportRepo,
+		TemplateSeaweedFS:     mockTemplateRepo,
+		ReportSeaweedFS:       mockReportRepo,
 		ReportDataRepo:        mockReportDataRepo,
 		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
@@ -175,7 +175,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateFileRepo:    mockTemplateRepo,
+		TemplateSeaweedFS:   mockTemplateRepo,
 		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
@@ -193,7 +193,7 @@ func TestSaveReport_Success(t *testing.T) {
 	mockReportRepo := report.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
+		ReportSeaweedFS: mockReportRepo,
 	}
 
 	reportID := uuid.New()
@@ -226,8 +226,8 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
-		ReportDataRepo: mockReportDataRepo,
+		ReportSeaweedFS: mockReportRepo,
+		ReportDataRepo:  mockReportDataRepo,
 	}
 
 	reportID := uuid.New()
@@ -413,8 +413,8 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		TemplateFileRepo:      mockTemplateRepo,
-		ReportFileRepo:        mockReportRepo,
+		TemplateSeaweedFS:     mockTemplateRepo,
+		ReportSeaweedFS:       mockReportRepo,
 		ReportDataRepo:        mockReportDataRepo,
 		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{

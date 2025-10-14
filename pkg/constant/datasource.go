@@ -4,7 +4,6 @@ import "time"
 
 // Database Query Timeouts
 const (
-	QueryTimeoutFast       = 5 * time.Second
 	QueryTimeoutMedium     = 10 * time.Second
 	QueryTimeoutSlow       = 15 * time.Second
 	SchemaDiscoveryTimeout = 30 * time.Second
@@ -47,14 +46,6 @@ const (
 	DataSourceInitialBackoff    = 1 * time.Second
 	DataSourceMaxBackoff        = 10 * time.Second
 	DataSourceBackoffMultiplier = 2.0
-)
-
-// DataSource Status
-const (
-	DataSourceStatusUnknown     = "unknown"
-	DataSourceStatusAvailable   = "available"
-	DataSourceStatusUnavailable = "unavailable"
-	DataSourceStatusDegraded    = "degraded"
 )
 
 // Health Check Configuration
