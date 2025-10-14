@@ -12,7 +12,7 @@ import (
 //
 //go:generate mockgen --destination=report.mock.go --package=report . Repository
 type Repository interface {
-	Put(ctx context.Context, objectName string, contentType string, data []byte) error
+	Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error
 	Get(ctx context.Context, objectName string) ([]byte, error)
 }
 
@@ -30,11 +30,13 @@ func NewSimpleRepository(client *seaweedfs.SeaweedFSClient, bucket string) *Simp
 	}
 }
 
-// Put uploads data to the SeaweedFS storage with the given object name and content type.
-func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
+// Put uploads data to the SeaweedFS storage with the given object name, content type, and optional TTL.
+// TTL format: 3m (3 minutes), 4h (4 hours), 5d (5 days), 6w (6 weeks), 7M (7 months), 8y (8 years)
+// If ttl is empty string, no TTL is applied and the file will be stored permanently
+func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error {
 	path := fmt.Sprintf("/%s/%s", repo.bucket, objectName)
 
-	err := repo.client.UploadFile(ctx, path, data)
+	err := repo.client.UploadFileWithTTL(ctx, path, data, ttl)
 	if err != nil {
 		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}

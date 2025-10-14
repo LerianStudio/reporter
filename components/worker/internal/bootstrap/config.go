@@ -42,6 +42,7 @@ type Config struct {
 	// SeaweedFS configuration envs
 	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
 	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
+	SeaweedFSTTL       string `env:"SEAWEEDFS_TTL"`
 	// MongoDB
 	MongoURI        string `env:"MONGO_URI"`
 	MongoDBHost     string `env:"MONGO_HOST"`
@@ -127,6 +128,13 @@ func InitWorker() *Service {
 		ReportDataRepo:        reportData.NewReportMongoDBRepository(mongoConnection),
 		CircuitBreakerManager: circuitBreakerManager,
 		HealthChecker:         healthChecker,
+		ReportTTL:             cfg.SeaweedFSTTL,
+	}
+
+	if cfg.SeaweedFSTTL != "" {
+		logger.Infof("Reports will expire after: %s", cfg.SeaweedFSTTL)
+	} else {
+		logger.Infof("Reports will be stored permanently (no TTL)")
 	}
 
 	// Start health checker in background

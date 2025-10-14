@@ -26,4 +26,7 @@ type UseCase struct {
 
 	// HealthChecker performs periodic health checks and reconnection attempts
 	HealthChecker *pkg.HealthChecker
+
+	// ReportTTL defines the Time To Live for reports (e.g., "1m", "1h", "7d", "30d"). Empty means no TTL.
+	ReportTTL string
 }

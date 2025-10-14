@@ -56,15 +56,15 @@ func (mr *MockRepositoryMockRecorder) Get(ctx, objectName any) *gomock.Call {
 }
 
 // Put mocks base method.
-func (m *MockRepository) Put(ctx context.Context, objectName, contentType string, data []byte) error {
+func (m *MockRepository) Put(ctx context.Context, objectName, contentType string, data []byte, ttl string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Put", ctx, objectName, contentType, data)
+	ret := m.ctrl.Call(m, "Put", ctx, objectName, contentType, data, ttl)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Put indicates an expected call of Put.
-func (mr *MockRepositoryMockRecorder) Put(ctx, objectName, contentType, data any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Put(ctx, objectName, contentType, data, ttl any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockRepository)(nil).Put), ctx, objectName, contentType, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockRepository)(nil).Put), ctx, objectName, contentType, data, ttl)
 }

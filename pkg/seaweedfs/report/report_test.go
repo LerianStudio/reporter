@@ -24,7 +24,7 @@ func TestSimpleRepository_Put_Success(t *testing.T) {
 	client := seaweedfs.NewSeaweedFSClient(srv.URL)
 	repo := NewSimpleRepository(client, "reports")
 
-	err := repo.Put(context.Background(), "obj.txt", "text/plain", []byte("hello"))
+	err := repo.Put(context.Background(), "obj.txt", "text/plain", []byte("hello"), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -48,9 +48,43 @@ func TestSimpleRepository_Put_Error(t *testing.T) {
 	client := seaweedfs.NewSeaweedFSClient(srv.URL)
 	repo := NewSimpleRepository(client, "reports")
 
-	err := repo.Put(context.Background(), "obj.txt", "text/plain", []byte("hello"))
+	err := repo.Put(context.Background(), "obj.txt", "text/plain", []byte("hello"), "")
 	if err == nil {
 		t.Fatalf("expected put error, got nil")
+	}
+}
+
+func TestSimpleRepository_Put_WithTTL_Success(t *testing.T) {
+	var gotMethod, gotPath, gotQuery string
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotQuery = r.URL.RawQuery
+		data, _ := io.ReadAll(r.Body)
+		gotBody = data
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer srv.Close()
+
+	client := seaweedfs.NewSeaweedFSClient(srv.URL)
+	repo := NewSimpleRepository(client, "reports")
+
+	err := repo.Put(context.Background(), "temp.txt", "text/plain", []byte("temporary"), "1m")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != http.MethodPut {
+		t.Fatalf("expected PUT, got %s", gotMethod)
+	}
+	if gotPath != "/reports/temp.txt" {
+		t.Fatalf("expected path /reports/temp.txt, got %s", gotPath)
+	}
+	if gotQuery != "ttl=1m" {
+		t.Fatalf("expected query ttl=1m, got %s", gotQuery)
+	}
+	if string(gotBody) != "temporary" {
+		t.Fatalf("unexpected body: %q", string(gotBody))
 	}
 }
 

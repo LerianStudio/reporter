@@ -27,7 +27,15 @@ func NewSeaweedFSClient(baseURL string) *SeaweedFSClient {
 
 // UploadFile uploads a file to SeaweedFS
 func (c *SeaweedFSClient) UploadFile(ctx context.Context, path string, data []byte) error {
+	return c.UploadFileWithTTL(ctx, path, data, "")
+}
+
+// UploadFileWithTTL uploads a file to SeaweedFS with optional TTL
+func (c *SeaweedFSClient) UploadFileWithTTL(ctx context.Context, path string, data []byte, ttl string) error {
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
+	if ttl != "" {
+		url = fmt.Sprintf("%s?ttl=%s", url, ttl)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
 	if err != nil {

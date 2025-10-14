@@ -116,7 +116,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any()).
+		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any(), "").
 		Return(nil)
 
 	mockReportDataRepo.
@@ -205,7 +205,7 @@ func TestSaveReport_Success(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/csv", []byte(renderedOutput)).
+		Put(gomock.Any(), gomock.Any(), "text/csv", []byte(renderedOutput), "").
 		Return(nil)
 
 	ctx := context.Background()
@@ -239,7 +239,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any(), "").
 		Return(errors.New("failed to put file"))
 
 	ctx := context.Background()
@@ -386,8 +386,8 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte) error {
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any(), "").
+		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte, ttl string) error {
 			// Verificar se o conteúdo foi renderizado com dados descriptografados
 			content := string(data)
 			if !strings.Contains(content, "João Silva") {

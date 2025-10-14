@@ -189,7 +189,8 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
-// It determines the object name, content type, and stores the file using the ReportFileRepo interface.
+// It determines the object name, content type, and stores the file using the ReportSeaweedFS interface.
+// If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
@@ -199,7 +200,11 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out))
+	if uc.ReportTTL != "" {
+		logger.Infof("Saving report with TTL: %s", uc.ReportTTL)
+	}
+
+	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out), uc.ReportTTL)
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 
