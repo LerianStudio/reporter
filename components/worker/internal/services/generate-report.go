@@ -200,10 +200,6 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	if uc.ReportTTL != "" {
-		logger.Infof("Saving report with TTL: %s", uc.ReportTTL)
-	}
-
 	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out), uc.ReportTTL)
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
@@ -211,6 +207,10 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 		logger.Errorf("Error putting report file: %s", err.Error())
 
 		return err
+	}
+
+	if uc.ReportTTL != "" {
+		logger.Infof("Saving report with TTL: %s", uc.ReportTTL)
 	}
 
 	return nil
