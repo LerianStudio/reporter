@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
@@ -120,7 +121,7 @@ func (hc *HealthChecker) performHealthChecks() {
 // needsHealing determines if a datasource needs reconnection attempt
 func (hc *HealthChecker) needsHealing(name string, ds DataSource) bool {
 	// Datasource is unavailable
-	if ds.Status == constant.DataSourceStatusUnavailable {
+	if ds.Status == libConstants.DataSourceStatusUnavailable {
 		return true
 	}
 
@@ -160,7 +161,7 @@ func (hc *HealthChecker) attemptReconnection(name string, ds *DataSource) bool {
 	if err != nil {
 		hc.logger.Errorf("Failed to reconnect datasource '%s': %v", name, err)
 
-		ds.Status = constant.DataSourceStatusUnavailable
+		ds.Status = libConstants.DataSourceStatusUnavailable
 		ds.LastError = err
 
 		return false
@@ -170,13 +171,13 @@ func (hc *HealthChecker) attemptReconnection(name string, ds *DataSource) bool {
 	if !hc.pingDataSource(ctx, name, ds) {
 		hc.logger.Errorf("Reconnection to '%s' succeeded but ping failed", name)
 
-		ds.Status = constant.DataSourceStatusDegraded
+		ds.Status = libConstants.DataSourceStatusDegraded
 
 		return false
 	}
 
 	// Update datasource status
-	ds.Status = constant.DataSourceStatusAvailable
+	ds.Status = libConstants.DataSourceStatusAvailable
 	ds.Initialized = true
 	ds.LastError = nil
 

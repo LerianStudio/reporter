@@ -21,7 +21,7 @@ The Smart Templates Plugin is a service designed to manage and generate customiz
     ```bash
    make up
     ```
-   
+
 4. **Access the API:**
    Visit `http://localhost:4005` to interact with the API.
 
@@ -29,7 +29,7 @@ The Smart Templates Plugin is a service designed to manage and generate customiz
 
 ### Manager
 
-Responsible for managing templates and reports, the Service provides a complete CRUD for creating, listing, updating, and deleting templates as well as generating and retrieving reports. 
+Responsible for managing templates and reports, the Service provides a complete CRUD for creating, listing, updating, and deleting templates as well as generating and retrieving reports.
 It exposes a RESTful API with full documentation available via Swagger at:
 
 📄 http://localhost:4005/swagger/index.html
@@ -47,37 +47,46 @@ Based on the fields requested in the report, it connects to the respective datab
 
 ```json
 {
-   "templateId": "019538ee-deee-769c-8859-cbe84fce9af7",
-   "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
-   "outputFormat": "html",
-   "mappedFields": {
-      "onboarding": {
-         "organization": ["legal_name"],
-         "ledger": ["name", "status"]
-      }
-   }
+  "templateId": "019538ee-deee-769c-8859-cbe84fce9af7",
+  "reportId": "019615d3-c1f6-7b1d-add4-6912b76cc4f2",
+  "outputFormat": "html",
+  "mappedFields": {
+    "onboarding": {
+      "organization": ["legal_name"],
+      "ledger": ["name", "status"]
+    }
+  }
 }
 ```
 
 The field mapping should be:
 ```json
 {
-   "mappedFields": [
-      {
-         "<database-name>": {
-            "<table-name>": ["<field-name>, <field-name>"]
-         }
+  "mappedFields": [
+    {
+      "<database-name>": {
+        "<table-name>": ["<field-name>, <field-name>"]
       }
-   ]
+    }
+  ]
 }
 ```
 
-## File storage with MinIO
+## File storage with SeaweedFS
 
-We use MinIO to store both the template files and the generated reports in their final format.
+We use SeaweedFS (Filer + Volume + Master) to store both template files and generated reports. Access is done via Filer HTTP API.
+### Configuration
 
-When starting the MinIO container using the project’s docker-compose, it uses the minio/mc image, which is the official image of the MinIO Client. This is a CLI utility similar to awscli, used to interact with MinIO servers.
-The CLI image is used to create a user with upload and read permissions, which will be used by the service and the worker. It also creates two buckets: one for templates and another for the generated reports.
+Configure the following environment variables:
+
+- `SEAWEEDFS_HOST`: SeaweedFS Filer hostname
+- `SEAWEEDFS_FILER_PORT`: SeaweedFS Filer port (default: 8888)
+
+### Accessing SeaweedFS
+
+**Development**: Access the Filer web interface directly at `http://localhost:8888/`
+
+**Production**: Filer should be accessible only from Manager/Worker services within the private network.
 
 ## Swagger Documentation
 

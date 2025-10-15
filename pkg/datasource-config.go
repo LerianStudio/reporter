@@ -12,6 +12,7 @@ import (
 
 	"context"
 
+	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -87,7 +88,7 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 	case PostgreSQLType:
 		dataSource.PostgresRepository, err = pg.NewDataSourceRepository(dataSource.DatabaseConfig)
 		if err != nil {
-			dataSource.Status = constant.DataSourceStatusUnavailable
+			dataSource.Status = libConstant.DataSourceStatusUnavailable
 			dataSource.LastError = err
 			logger.Errorf("Failed to establish PostgreSQL connection to %s: %v", databaseName, err)
 
@@ -96,12 +97,12 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 
-		dataSource.Status = constant.DataSourceStatusAvailable
+		dataSource.Status = libConstant.DataSourceStatusAvailable
 
 	case MongoDBType:
 		dataSource.MongoDBRepository, err = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName, logger)
 		if err != nil {
-			dataSource.Status = constant.DataSourceStatusUnavailable
+			dataSource.Status = libConstant.DataSourceStatusUnavailable
 			dataSource.LastError = err
 			logger.Errorf("Failed to establish MongoDB connection to %s: %v", databaseName, err)
 
@@ -110,10 +111,10 @@ func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log
 
 		logger.Infof("Established MongoDB connection to %s database", databaseName)
 
-		dataSource.Status = constant.DataSourceStatusAvailable
+		dataSource.Status = libConstant.DataSourceStatusAvailable
 
 	default:
-		dataSource.Status = constant.DataSourceStatusUnavailable
+		dataSource.Status = libConstant.DataSourceStatusUnavailable
 		dataSource.LastError = fmt.Errorf("unsupported database type: %s", dataSource.DatabaseType)
 
 		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
@@ -194,7 +195,7 @@ func ConnectToDataSourceWithRetry(databaseName string, dataSource *DataSource, l
 
 	logger.Errorf("Exhausted all retry attempts for datasource %s - marking as unavailable", databaseName)
 
-	dataSource.Status = constant.DataSourceStatusUnavailable
+	dataSource.Status = libConstant.DataSourceStatusUnavailable
 	externalDataSources[databaseName] = *dataSource
 
 	return fmt.Errorf("failed to connect to datasource %s after %d attempts", databaseName, constant.DataSourceMaxRetries+1)
@@ -266,7 +267,7 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	unavailable := 0
 
 	for name, ds := range externalDataSources {
-		if ds.Status == constant.DataSourceStatusAvailable {
+		if ds.Status == libConstant.DataSourceStatusAvailable {
 			available++
 		} else {
 			unavailable++
@@ -336,7 +337,7 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 		MongoURI:     mongoURI,
 		MongoDBName:  dataSource.Database,
 		Initialized:  false,
-		Status:       constant.DataSourceStatusUnknown,
+		Status:       libConstant.DataSourceStatusUnknown,
 		LastAttempt:  time.Time{},
 		RetryCount:   0,
 	}
@@ -367,7 +368,7 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		DatabaseType:   dataSource.Type,
 		DatabaseConfig: connection,
 		Initialized:    false,
-		Status:         constant.DataSourceStatusUnknown,
+		Status:         libConstant.DataSourceStatusUnknown,
 		LastAttempt:    time.Time{},
 		RetryCount:     0,
 	}

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -80,7 +81,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
 
-	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
+	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -188,7 +189,8 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
-// It determines the object name, content type, and stores the file using the ReportFileRepo interface.
+// It determines the object name, content type, and stores the file using the ReportSeaweedFS interface.
+// If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
@@ -198,13 +200,17 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out), uc.ReportTTL)
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 
 		logger.Errorf("Error putting report file: %s", err.Error())
 
 		return err
+	}
+
+	if uc.ReportTTL != "" {
+		logger.Infof("Saving report with TTL: %s", uc.ReportTTL)
 	}
 
 	return nil
@@ -262,7 +268,7 @@ func (uc *UseCase) queryDatabase(
 	// Check datasource initialization status
 	if !dataSource.Initialized {
 		// Check if datasource is marked as unavailable from initialization
-		if dataSource.Status == constant.DataSourceStatusUnavailable {
+		if dataSource.Status == libConstants.DataSourceStatusUnavailable {
 			err := fmt.Errorf("datasource %s is unavailable (initialization failed)", databaseName)
 			libOtel.HandleSpanError(&dbSpan, "Datasource unavailable", err)
 			logger.Errorf("⚠️  Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)

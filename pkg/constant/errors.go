@@ -41,4 +41,5 @@ var (
 	ErrMissingDataSource               = errors.New("TPL-0031")
 	ErrScriptTagDetected               = errors.New("TPL-0032")
 	ErrDecryptionData                  = errors.New("TPL-0033")
+	ErrCommunicateSeaweedFS            = errors.New("TPL-0034")
 )

@@ -9,6 +9,9 @@ services:
         - github_token
     env_file:
       - .env
+    environment:
+      - SEAWEEDFS_HOST=${SEAWEEDFS_HOST}
+      - SEAWEEDFS_FILER_PORT=${SEAWEEDFS_FILER_PORT}
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:

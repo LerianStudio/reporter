@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -158,7 +159,7 @@ func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey str
 // ensureDataSourceConnected ensures the data source is initialized/connected
 func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID string, dataSource *pkg.DataSource) error {
 	// Check if datasource is marked as unavailable
-	if dataSource.Status == constant.DataSourceStatusUnavailable {
+	if dataSource.Status == libConstants.DataSourceStatusUnavailable {
 		logger.Warnf("Datasource '%s' is marked as unavailable - attempting to connect anyway", dataSourceID)
 	}
 

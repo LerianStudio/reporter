@@ -12,10 +12,10 @@ type Environment struct {
 	ManageStack bool
 
 	// Optional infra identifiers for chaos
-	RabbitContainer string
-	MongoContainer  string
-	RedisContainer  string
-	MinioContainer  string
+	RabbitContainer    string
+	MongoContainer     string
+	RedisContainer     string
+	SeaweedFSContainer string
 
 	// Domain/testing context
 	DefaultOrgID string
@@ -37,10 +37,10 @@ func LoadEnvironment() Environment {
 		HTTPTimeout: time.Duration(secs) * time.Second,
 		ManageStack: manage,
 
-		RabbitContainer: getenvDefault("RABBIT_CONTAINER", "plugin-smart-templates-rabbitmq"),
-		MongoContainer:  getenvDefault("MONGO_CONTAINER", "plugin-smart-templates-mongodb"),
-		RedisContainer:  getenvDefault("REDIS_CONTAINER", "plugin-smart-templates-valkey"),
-		MinioContainer:  getenvDefault("MINIO_CONTAINER", "plugin-smart-templates-minio"),
+		RabbitContainer:    getenvDefault("RABBIT_CONTAINER", "plugin-smart-templates-rabbitmq"),
+		MongoContainer:     getenvDefault("MONGO_CONTAINER", "plugin-smart-templates-mongodb"),
+		RedisContainer:     getenvDefault("REDIS_CONTAINER", "plugin-smart-templates-valkey"),
+		SeaweedFSContainer: getenvDefault("SEAWEEDFS_CONTAINER", "plugin-smart-templates-seaweedfs-filer"),
 
 		DefaultOrgID: firstNonEmpty(
 			os.Getenv("X_ORGANIZATION_ID"),
