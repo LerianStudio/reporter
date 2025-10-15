@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   security-scan:
-    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/pr-security-scan.yml@main
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/pr-security-scan.yml@chore/monorepo_types_for_scan
     with:
       runner_type: "firmino-lxc-runners"
       filter_paths: |-
@@ -33,3 +33,5 @@ jobs:
       dockerhub_org: "lerianstudio"
     secrets:
       manage_token: ${{ secrets.MANAGE_TOKEN }}
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_password: ${{ secrets.DOCKER_PASSWORD }}
