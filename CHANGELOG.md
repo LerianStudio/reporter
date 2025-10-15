@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.2] - 2025-10-15
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.1...v3.1.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Storage System Migration**: We've transitioned our file storage from Minio to SeaweedFS. This upgrade boosts scalability and reliability, ensuring a more robust file management system for all users.
+- **File Expiry Management**: Introduced Time-To-Live (TTL) for report files on SeaweedFS, which automatically manages file lifecycle. This feature helps you maintain storage efficiency and reduce costs by automatically deleting outdated files.
+
+### 🐛 Bug Fixes
+- **Database Stability**: Fixed an issue with span deletion that could cause data inconsistencies. This enhancement ensures smoother and more reliable database operations.
+- **Logging Accuracy**: Corrected the order of TTL log information, providing clearer and more accurate logs for better system monitoring and debugging.
+
+### 🔧 Maintenance
+- **Error Handling and Rollback**: Implemented a hard delete mechanism for failed file uploads. This improvement prevents incomplete uploads from cluttering the system, enhancing data integrity and user experience.
+- **Changelog Update**: Updated the project changelog to reflect recent changes and improvements, ensuring users have access to the latest information about system updates and enhancements.
+
+
 ## [v3.1.0-beta.1] - 2025-10-13
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.1-beta.1...v3.1.0-beta.1)
