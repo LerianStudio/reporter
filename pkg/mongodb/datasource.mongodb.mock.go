@@ -21,6 +21,7 @@ import (
 type MockRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockRepositoryMockRecorder
+	isgomock struct{}
 }
 
 // MockRepositoryMockRecorder is the mock recorder for MockRepository.
@@ -41,60 +42,60 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // CloseConnection mocks base method.
-func (m *MockRepository) CloseConnection(arg0 context.Context) error {
+func (m *MockRepository) CloseConnection(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloseConnection", arg0)
+	ret := m.ctrl.Call(m, "CloseConnection", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CloseConnection indicates an expected call of CloseConnection.
-func (mr *MockRepositoryMockRecorder) CloseConnection(arg0 any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) CloseConnection(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseConnection", reflect.TypeOf((*MockRepository)(nil).CloseConnection), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseConnection", reflect.TypeOf((*MockRepository)(nil).CloseConnection), ctx)
 }
 
 // GetDatabaseSchema mocks base method.
-func (m *MockRepository) GetDatabaseSchema(arg0 context.Context) ([]CollectionSchema, error) {
+func (m *MockRepository) GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDatabaseSchema", arg0)
+	ret := m.ctrl.Call(m, "GetDatabaseSchema", ctx)
 	ret0, _ := ret[0].([]CollectionSchema)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetDatabaseSchema indicates an expected call of GetDatabaseSchema.
-func (mr *MockRepositoryMockRecorder) GetDatabaseSchema(arg0 any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetDatabaseSchema(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatabaseSchema", reflect.TypeOf((*MockRepository)(nil).GetDatabaseSchema), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatabaseSchema", reflect.TypeOf((*MockRepository)(nil).GetDatabaseSchema), ctx)
 }
 
 // Query mocks base method.
-func (m *MockRepository) Query(arg0 context.Context, arg1 string, arg2 []string, arg3 map[string][]any) ([]map[string]any, error) {
+func (m *MockRepository) Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "Query", ctx, collection, fields, filter)
 	ret0, _ := ret[0].([]map[string]any)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Query indicates an expected call of Query.
-func (mr *MockRepositoryMockRecorder) Query(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Query(ctx, collection, fields, filter any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockRepository)(nil).Query), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockRepository)(nil).Query), ctx, collection, fields, filter)
 }
 
 // QueryWithAdvancedFilters mocks base method.
-func (m *MockRepository) QueryWithAdvancedFilters(arg0 context.Context, arg1 string, arg2 []string, arg3 map[string]model.FilterCondition) ([]map[string]any, error) {
+func (m *MockRepository) QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryWithAdvancedFilters", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "QueryWithAdvancedFilters", ctx, collection, fields, filter)
 	ret0, _ := ret[0].([]map[string]any)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // QueryWithAdvancedFilters indicates an expected call of QueryWithAdvancedFilters.
-func (mr *MockRepositoryMockRecorder) QueryWithAdvancedFilters(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) QueryWithAdvancedFilters(ctx, collection, fields, filter any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryWithAdvancedFilters", reflect.TypeOf((*MockRepository)(nil).QueryWithAdvancedFilters), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryWithAdvancedFilters", reflect.TypeOf((*MockRepository)(nil).QueryWithAdvancedFilters), ctx, collection, fields, filter)
 }

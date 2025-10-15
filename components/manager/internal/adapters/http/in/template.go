@@ -119,6 +119,11 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	if errPutSeaweedFS != nil {
 		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 
+		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
+		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, organizationID, true); errDelete != nil {
+			logger.Errorf("Failed to roll back template creation for ID %s after SeaweedFS failure. Error: %s", templateOut.ID.String(), errDelete.Error())
+		}
+
 		logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
 
 		return http.WithError(c, errPutSeaweedFS)
@@ -376,7 +381,7 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID); err != nil {
+	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID, false); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())
