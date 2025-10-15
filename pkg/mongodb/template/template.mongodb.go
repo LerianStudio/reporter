@@ -406,6 +406,8 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id, organizatio
 		}
 	}
 
+	spanDelete.End()
+
 	logger.Infoln("Deleted a template with id: ", id.String(), " (hard delete: ", hardDelete, ")")
 
 	return nil
