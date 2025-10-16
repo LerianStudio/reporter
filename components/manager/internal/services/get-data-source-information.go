@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 	"strings"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// GetDataSourceInformation getting all data sources information connected on plugin smart templates
+// GetDataSourceInformation getting all data sources information connected on reporter
 func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSourceInformation {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 

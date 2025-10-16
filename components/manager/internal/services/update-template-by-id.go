@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
+	templateUtils "github.com/LerianStudio/reporter/v3/pkg/template_utils"
 	"mime/multipart"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/net/http"
-	templateUtils "plugin-smart-templates/v3/pkg/template_utils"
 	"strings"
 	"time"
 

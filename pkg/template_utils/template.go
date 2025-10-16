@@ -1,7 +1,7 @@
 package template_utils
 
 import (
-	"plugin-smart-templates/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"

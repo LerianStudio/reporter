@@ -1,7 +1,7 @@
 package main
 
 import (
-	"plugin-smart-templates/v3/components/worker/internal/bootstrap"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/bootstrap"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 )

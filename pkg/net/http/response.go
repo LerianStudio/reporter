@@ -1,8 +1,8 @@
 package http
 
 import (
+	"github.com/LerianStudio/reporter/v3/pkg"
 	"net/http"
-	"plugin-smart-templates/v3/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

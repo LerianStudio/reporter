@@ -1,6 +1,6 @@
 services:
-  plugin-smart-templates-manager:
-    container_name: plugin-smart-templates-manager
+  reporter-manager:
+    container_name: reporter-manager
     restart: always
     build:
       context: ../../
@@ -17,21 +17,21 @@ services:
     volumes:
       - .:/usr/src/manager
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
       - infra-network
       - plugin-fees-network
-      - plugin-smart-templates-manager-network
+      - reporter-manager-network
       - plugin-auth-network
       - plugin-crm-network
 
 networks:
-  plugin-smart-templates-infra-network:
+  reporter-infra-network:
     external: true
   infra-network:
     external: true
   plugin-fees-network:
     driver: bridge
-  plugin-smart-templates-manager-network:
+  reporter-manager-network:
     driver: bridge
   plugin-auth-network:
     driver: bridge

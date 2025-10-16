@@ -1,14 +1,14 @@
 package services
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/manager/internal/adapters/redis"
-	pkgConfig "plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/pdf"
-	reportSeaweedFS "plugin-smart-templates/v3/pkg/seaweedfs/report"
-	templateSeaweedFS "plugin-smart-templates/v3/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/redis"
+	pkgConfig "github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/pdf"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
 )
 
 // UseCase is a struct to implement the services methods

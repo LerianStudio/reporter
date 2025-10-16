@@ -5,7 +5,7 @@
 ROOT_DIR := $(shell pwd)
 
 # Define the root directory of the project
-SERVICE_NAME := plugin-smart-templates
+SERVICE_NAME := reporter
 BIN_DIR := ./.bin
 ARTIFACTS_DIR := ./artifacts
 
@@ -104,7 +104,7 @@ include $(MK_DIR)/tests.mk
 help:
 	@echo ""
 	@echo ""
-	@echo "Plugin Smart Templates Commands"
+	@echo "Reporter Commands"
 	@echo ""
 	@echo ""
 	@echo "Core Commands:"
@@ -414,8 +414,8 @@ logs:
 
 .PHONY: logs-api
 logs-api:
-	$(call title1,"Showing logs for plugin-smart-templates service")
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f golang-plugin-boilerplate
+	$(call title1,"Showing logs for reporter service")
+	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter
 
 .PHONY: ps
 ps:

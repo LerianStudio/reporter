@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
 	"testing"
 
 	"github.com/google/uuid"

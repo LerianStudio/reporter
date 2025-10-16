@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v3/tests/helpers"
 )
 
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
@@ -170,7 +170,7 @@ func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 	t.Log("")
 	t.Log("🎯 Circuit Breaker chaos test completed!")
 	t.Log("💡 Check worker logs for circuit breaker state changes:")
-	t.Log("   docker logs plugin-smart-templates-worker 2>&1 | grep -E 'Circuit|breaker'")
+	t.Log("   docker logs plugin-reporter-worker 2>&1 | grep -E 'Circuit|breaker'")
 }
 
 // getTemplateIDForCRM tries to get any template that uses plugin_crm

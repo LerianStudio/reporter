@@ -2,15 +2,15 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/services"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	reportData "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	simpleClient "github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
 	"net/url"
-	"plugin-smart-templates/v3/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/worker/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
-	simpleClient "plugin-smart-templates/v3/pkg/seaweedfs"
-	reportSeaweedFS "plugin-smart-templates/v3/pkg/seaweedfs/report"
-	templateSeaweedFS "plugin-smart-templates/v3/pkg/seaweedfs/template"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"

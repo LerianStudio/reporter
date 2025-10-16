@@ -19,7 +19,7 @@ jobs:
       - name: Build And Publish Manager Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
-          app_name: 'plugin-smart-templates-manager'
+          app_name: 'reporter-manager'
           context: .
           working_dir: components/manager
           token: ${{ secrets.MANAGE_TOKEN }}
@@ -27,7 +27,7 @@ jobs:
       - name: Build And Publish Worker Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
-          app_name: 'plugin-smart-templates-worker'
+          app_name: 'reporter-worker'
           context: .
           working_dir: components/worker
           token: ${{ secrets.MANAGE_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
         with:
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          app_name: 'plugin-smart-templates-worker'
+          app_name: 'reporter-worker'
           working_dir: 'components/worker'
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
 
@@ -50,7 +50,7 @@ jobs:
         with:
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          app_name: 'plugin-smart-templates-manager'
+          app_name: 'reporter-manager'
           working_dir: 'components/manager'
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
 
@@ -61,7 +61,7 @@ jobs:
       - name: Build And Publish Frontend Docker Image to GHCR
         uses: LerianStudio/github-actions-ghcr-private-pipeline@main
         with:
-          app_name: 'plugin-smart-templates-frontend'
+          app_name: 'reporter-frontend'
           context: .
           working_dir: components/frontend
           token: ${{ secrets.MANAGE_TOKEN }}
@@ -76,6 +76,6 @@ jobs:
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
           docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-          app_name: 'plugin-smart-templates-frontend'
+          app_name: 'reporter-frontend'
           context: .
           working_dir: 'components/frontend'

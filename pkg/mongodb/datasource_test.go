@@ -3,7 +3,7 @@ package mongodb
 import (
 	"testing"
 
-	"plugin-smart-templates/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

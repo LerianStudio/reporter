@@ -2,10 +2,10 @@ package http
 
 import (
 	"bytes"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"io"
 	"mime/multipart"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
 	"strconv"
 	"strings"
 	"time"

@@ -23,14 +23,14 @@
   ],
   "queues": [
     {
-      "name": "smart-templates.generate-report.queue",
+      "name": "reporter.generate-report.queue",
       "vhost": "/",
       "durable": true
     }
   ],
   "exchanges": [
     {
-      "name": "smart-templates.generate-report.exchange",
+      "name": "reporter.generate-report.exchange",
       "vhost": "/",
       "type": "direct",
       "durable": true
@@ -38,11 +38,11 @@
   ],
   "bindings": [
     {
-      "source": "smart-templates.generate-report.exchange",
+      "source": "reporter.generate-report.exchange",
       "vhost": "/",
-      "destination": "smart-templates.generate-report.queue",
+      "destination": "reporter.generate-report.queue",
       "destination_type": "queue",
-      "routing_key": "smart-templates.generate-report.key"
+      "routing_key": "reporter.generate-report.key"
     }
   ]
 }

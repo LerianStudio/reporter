@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"database/sql"
-	"plugin-smart-templates/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 
 	"strings"
 

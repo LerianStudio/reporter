@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
-	"plugin-smart-templates/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"

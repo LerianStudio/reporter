@@ -2,10 +2,10 @@ package report
 
 import (
 	"context"
+	"github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"plugin-smart-templates/v3/pkg/seaweedfs"
 	"testing"
 )
 

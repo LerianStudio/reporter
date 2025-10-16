@@ -1,9 +1,9 @@
 package pkg
 
 import (
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"math"
 	"os/exec"
-	"plugin-smart-templates/v3/pkg/constant"
 	"reflect"
 	"regexp"
 	"strings"

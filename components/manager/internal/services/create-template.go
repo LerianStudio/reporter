@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	templateUtils "plugin-smart-templates/v3/pkg/template_utils"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
+	templateUtils "github.com/LerianStudio/reporter/v3/pkg/template_utils"
 	"strings"
 	"time"
 

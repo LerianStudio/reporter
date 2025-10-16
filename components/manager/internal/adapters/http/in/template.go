@@ -1,12 +1,12 @@
 package in
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	_ "plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	_ "github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"

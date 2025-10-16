@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
 	"testing"
 
 	"github.com/google/uuid"

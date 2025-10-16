@@ -2,10 +2,10 @@ package bootstrap
 
 import (
 	"context"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/services"
 	"os"
 	"os/signal"
-	"plugin-smart-templates/v3/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/worker/internal/services"
 	"sync"
 	"syscall"
 

@@ -9,7 +9,7 @@ RUN apk add --no-cache git
 RUN go install mvdan.cc/garble@latest
 
 # Set the working directory for the build
-WORKDIR /plugin-smart-templates
+WORKDIR /reporter
 
 # Copy only go.mod and go.sum first to cache dependencies
 COPY go.mod go.sum ./
