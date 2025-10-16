@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.3] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.2...v3.1.0-beta.3)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 📚 Documentation
+- **Updated Documentation**: Minor updates have been made to the documentation to align with the new Trivy scan configuration. These changes ensure all team members are informed about the updated security practices.
+
+### 🔧 Maintenance
+- **Enhanced Security Scanning**: We have updated the Trivy scan version, which enhances our security scanning capabilities. This ensures that our application benefits from the latest vulnerability checks, improving our overall security posture.
+- **Automated Security Checks**: The Trivy scan configuration is now integrated into the pull request process. This automates vulnerability checks during code review stages, streamlining the security review process and enhancing development workflow efficiency.
+
+
 ## [v3.1.0-beta.2] - 2025-10-15
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.1...v3.1.0-beta.2)
