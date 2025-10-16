@@ -3,8 +3,9 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"plugin-smart-templates/v3/pkg/constant"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 )
 
 // EntityNotFoundError records an error indicating an entity was not found in any case that caused it.

@@ -1,10 +1,10 @@
 package in
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	_ "plugin-smart-templates/v3/pkg"
-	_ "plugin-smart-templates/v3/pkg/model"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
+	_ "github.com/LerianStudio/reporter/v3/pkg"
+	_ "github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -17,9 +17,9 @@ type DataSourceHandler struct {
 	Service *services.UseCase
 }
 
-// GetDataSourceInformation retrieves all data sources connected on plugin smart templates.
+// GetDataSourceInformation retrieves all data sources connected on reporter.
 //
-//	@Summary		Get all data sources connected on plugin smart templates
+//	@Summary		Get all data sources connected on reporter
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
 //	@Tags			Data source
 //	@Produce		json

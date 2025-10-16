@@ -1,6 +1,6 @@
 services:
-  plugin-smart-templates-mongodb:
-    container_name: plugin-smart-templates-mongodb
+  reporter-mongodb:
+    container_name: reporter-mongodb
     image: mongo:latest
     env_file:
       - .env
@@ -18,13 +18,13 @@ services:
       - ${MONGO_PORT}:${MONGO_PORT}
     command: mongod --port ${MONGO_PORT}
     volumes:
-      - plugin-smart-templates-mongodb-data:/data/db
+      - reporter-mongodb-data:/data/db
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
 
-  plugin-smart-templates-rabbitmq:
+  reporter-rabbitmq:
     image: rabbitmq:4.0-management-alpine
-    container_name: plugin-smart-templates-rabbitmq
+    container_name: reporter-rabbitmq
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
@@ -38,70 +38,70 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
 
-  plugin-smart-templates-seaweedfs-master:
+  reporter-seaweedfs-master:
     image: chrislusf/seaweedfs:3.97
-    container_name: plugin-smart-templates-seaweedfs-master
+    container_name: reporter-seaweedfs-master
     ports:
       - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
       - "${SEAWEEDFS_MASTER_UI_PORT:-9334}:9334"
-    command: "master -ip=plugin-smart-templates-seaweedfs-master -port=9333 -mdir=/data"
+    command: "master -ip=reporter-seaweedfs-master -port=9333 -mdir=/data"
     volumes:
-      - plugin-smart-templates-seaweedfs-master-data:/data
+      - reporter-seaweedfs-master-data:/data
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
     restart: always
 
-  plugin-smart-templates-seaweedfs-volume:
+  reporter-seaweedfs-volume:
     image: chrislusf/seaweedfs:3.97
-    container_name: plugin-smart-templates-seaweedfs-volume
+    container_name: reporter-seaweedfs-volume
     ports:
       - "${SEAWEEDFS_VOLUME_PORT:-9080}:9080"
-    command: "volume -ip=plugin-smart-templates-seaweedfs-volume -port=9080 -mserver=plugin-smart-templates-seaweedfs-master:9333 -dir=/data -max=0"
+    command: "volume -ip=reporter-seaweedfs-volume -port=9080 -mserver=reporter-seaweedfs-master:9333 -dir=/data -max=0"
     volumes:
-      - plugin-smart-templates-seaweedfs-volume-data:/data
+      - reporter-seaweedfs-volume-data:/data
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
     depends_on:
-      - plugin-smart-templates-seaweedfs-master
+      - reporter-seaweedfs-master
     restart: always
 
-  plugin-smart-templates-seaweedfs-filer:
+  reporter-seaweedfs-filer:
     image: chrislusf/seaweedfs:3.97
-    container_name: plugin-smart-templates-seaweedfs-filer
+    container_name: reporter-seaweedfs-filer
     ports:
       - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
       - "${SEAWEEDFS_FILER_S3_PORT:-8333}:8333"
-    command: "filer -ip=plugin-smart-templates-seaweedfs-filer -port=8888 -master=plugin-smart-templates-seaweedfs-master:9333"
+    command: "filer -ip=reporter-seaweedfs-filer -port=8888 -master=reporter-seaweedfs-master:9333"
     volumes:
-      - plugin-smart-templates-seaweedfs-filer-data:/data
+      - reporter-seaweedfs-filer-data:/data
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
     depends_on:
-      - plugin-smart-templates-seaweedfs-master
-      - plugin-smart-templates-seaweedfs-volume
+      - reporter-seaweedfs-master
+      - reporter-seaweedfs-volume
     restart: always
 
-  plugin-smart-templates-keda:
+  reporter-keda:
     image: ghcr.io/kedacore/keda:2.16.0
-    container_name: plugin-smart-templates-keda
+    container_name: reporter-keda
     environment:
       - KEDA_OPERATOR_LOG_LEVEL=info
-      - KEDA_OPERATOR_RABBITMQ_HOST=plugin-smart-templates-rabbitmq
+      - KEDA_OPERATOR_RABBITMQ_HOST=reporter-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
       - KEDA_OPERATOR_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - KEDA_OPERATOR_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
-      - KEDA_OPERATOR_RABBITMQ_QUEUE=smart-templates-queue
+      - KEDA_OPERATOR_RABBITMQ_QUEUE=reporter-queue
     ports:
       - "8000:8000"
     depends_on:
-      - plugin-smart-templates-rabbitmq
+      - reporter-rabbitmq
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
 
-  plugin-smart-templates-valkey:
-    container_name: plugin-smart-templates-valkey
+  reporter-valkey:
+    container_name: reporter-valkey
     image: valkey/valkey:latest
     restart: always
     env_file:
@@ -113,18 +113,18 @@ services:
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
     volumes:
-      - plugin-smart-templates-redis-data:/data
+      - reporter-redis-data:/data
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
 
 volumes:
-  plugin-smart-templates-mongodb-data:
-  plugin-smart-templates-seaweedfs-master-data:
-  plugin-smart-templates-seaweedfs-volume-data:
-  plugin-smart-templates-seaweedfs-filer-data:
-  plugin-smart-templates-redis-data:
+  reporter-mongodb-data:
+  reporter-seaweedfs-master-data:
+  reporter-seaweedfs-volume-data:
+  reporter-seaweedfs-filer-data:
+  reporter-redis-data:
 
 networks:
-  plugin-smart-templates-infra-network:
-    name: plugin-smart-templates-infra-network
+  reporter-infra-network:
+    name: reporter-infra-network
     driver: bridge

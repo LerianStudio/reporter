@@ -4,10 +4,11 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"plugin-smart-templates/v3/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/worker/internal/services"
 	"sync"
 	"syscall"
+
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/components/worker/internal/services"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

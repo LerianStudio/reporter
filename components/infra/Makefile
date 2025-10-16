@@ -1,4 +1,4 @@
-service_name := plugin-smart-templates-infra
+service_name := reporter-infra
 bin_dir := ./.bin
 
 BLUE := \033[36m
@@ -15,8 +15,8 @@ DOCKER_CMD := $(shell \
 )
 
 # Display available commands
-.PHONY: info
-info:
+.PHONY: help
+help:
 	@echo "                                                                                                                                       "
 	@echo "                                                                                                                                       "
 	@echo "To run a specific command inside the audit container using make, you can execute:                                                     "

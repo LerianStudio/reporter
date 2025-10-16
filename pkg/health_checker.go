@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/constant"
 	"sync"
 	"time"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

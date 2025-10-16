@@ -25,7 +25,7 @@ const docTemplate = `{
                 "tags": [
                     "Data source"
                 ],
-                "summary": "Get all data sources connected on plugin smart templates",
+                "summary": "Get all data sources connected on reporter",
                 "parameters": [
                     {
                         "type": "string",
@@ -191,7 +191,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -262,7 +262,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -325,7 +325,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -477,7 +477,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -560,7 +560,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -614,7 +614,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -751,7 +751,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -792,7 +792,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -867,25 +867,7 @@ const docTemplate = `{
                 }
             }
         },
-        "pkg.HTTPError": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "entityType": {
-                    "type": "string"
-                },
-                "err": {},
-                "message": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "plugin-smart-templates_v3_pkg_model.FilterCondition": {
+        "github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition": {
             "type": "object",
             "properties": {
                 "between": {
@@ -930,7 +912,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_v3_pkg_mongodb_report.Report": {
+        "github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -949,7 +931,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -975,7 +957,7 @@ const docTemplate = `{
                 }
             }
         },
-        "plugin-smart-templates_v3_pkg_mongodb_template.Template": {
+        "github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -1003,6 +985,24 @@ const docTemplate = `{
                     "example": "2021-01-01T00:00:00Z"
                 }
             }
+        },
+        "pkg.HTTPError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
+                },
+                "err": {},
+                "message": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`
@@ -1013,8 +1013,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Plugin Smart Template",
-	Description:      "This is a swagger documentation for plugin smart template",
+	Title:            "Reporter",
+	Description:      "This is a swagger documentation for Reporter",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

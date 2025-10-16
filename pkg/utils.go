@@ -3,10 +3,11 @@ package pkg
 import (
 	"math"
 	"os/exec"
-	"plugin-smart-templates/v3/pkg/constant"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 )
 
 // GetMapNumKinds get the map of numeric kinds to use in validations and conversions.

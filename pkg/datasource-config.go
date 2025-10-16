@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb"
-	pg "plugin-smart-templates/v3/pkg/postgres"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/v3/pkg/postgres"
 
 	"context"
 

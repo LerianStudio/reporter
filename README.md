@@ -1,19 +1,19 @@
-# Plugin Smart Templates
+# Reporter
 
 ## Overview
 
-The Smart Templates Plugin is a service designed to manage and generate customizable reports using predefined templates.
+The Reporter is a service designed to manage and generate customizable reports using predefined templates.
 
 ## Quick Start
 
 1. **Clone the Repository:**
     ```bash
-    git clone https://github.com/LerianStudio/plugin-smart-templates.git
+    git clone https://github.com/LerianStudio/reporter.git
     ```
 
 2. **Install Dependencies:**
     ```bash
-    cd plugin-smart-templates
+    cd reporter
     go mod tidy
     ```
 
@@ -41,9 +41,9 @@ Based on the fields requested in the report, it connects to the respective datab
 
 ## Generate report RabbitMQ message
 
-- Exchange: `smart-templates.generate-report.exchange`
-- Queue: `smart-templates.generate-report.queue`
-- Key: `smart-templates.generate-report.key`
+- Exchange: `reporter.generate-report.exchange`
+- Queue: `reporter.generate-report.queue`
+- Key: `reporter.generate-report.key`
 
 ```json
 {

@@ -1,12 +1,12 @@
 package in
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	_ "plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	_ "github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -357,10 +357,10 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
-//	@Success		204	"No content"
-//	@Failure		400	{object}	pkg.HTTPError
-//	@Failure		404	{object}	pkg.HTTPError
-//	@Failure		500	{object}	pkg.HTTPError
+//	@Success		204					"No content"
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()

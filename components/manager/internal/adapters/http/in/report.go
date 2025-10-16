@@ -3,14 +3,15 @@ package in
 import (
 	"bytes"
 	"os"
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	_ "plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/net/http"
-	templateUtils "plugin-smart-templates/v3/pkg/template_utils"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	_ "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
+	templateUtils "github.com/LerianStudio/reporter/v3/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -206,7 +207,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Failure		400					{object}	pkg.HTTPError
 //	@Failure		404					{object}	pkg.HTTPError
 //	@Failure		500					{object}	pkg.HTTPError
-//	@Router			/v1/reports/{id}															 [get]
+//	@Router			/v1/reports/{id}																	 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
