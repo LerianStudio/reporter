@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.4] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.3...v3.1.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Code Quality**: A comprehensive linting process has been applied to the codebase, addressing various formatting and style issues. This improvement enhances code readability and maintainability, making it easier for developers to work with the code without affecting its functionality.
+
+### 🔧 Maintenance
+- **Testing**: Introduced end-to-end (e2e) local test collection for backend and frontend components. This addition improves testing coverage, ensuring critical user flows are automatically validated, which enhances overall system reliability.
+- **Documentation**: Updated the CHANGELOG to reflect recent changes and improvements, ensuring users and developers have access to the latest information about project updates.
+
+### ✨ Improvements
+- **Project Naming**: The project is now consistently named "reporter" across all components, including backend, frontend, and documentation. This change ensures clarity and uniformity in project references, making it easier for users to identify and interact with the project.
+
+
 ## [v3.1.0-beta.3] - 2025-10-16
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.2...v3.1.0-beta.3)
