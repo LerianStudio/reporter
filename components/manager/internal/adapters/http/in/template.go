@@ -357,10 +357,10 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
-//	@Success		204	"No content"
-//	@Failure		400	{object}	pkg.HTTPError
-//	@Failure		404	{object}	pkg.HTTPError
-//	@Failure		500	{object}	pkg.HTTPError
+//	@Success		204					"No content"
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()

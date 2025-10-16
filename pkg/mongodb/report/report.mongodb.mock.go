@@ -11,9 +11,10 @@ package report
 
 import (
 	context "context"
-	http "github.com/LerianStudio/reporter/v3/pkg/net/http"
 	reflect "reflect"
 	time "time"
+
+	http "github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"

@@ -1,10 +1,11 @@
 package template_utils
 
 import (
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 )
 
 // GetMimeType return a MIME type correctly based with outputFormat

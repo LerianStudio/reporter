@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"github.com/LerianStudio/reporter/v3/pkg/model"
 

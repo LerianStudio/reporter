@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/LerianStudio/reporter/v3/pkg"
 	"net/http"
+
+	"github.com/LerianStudio/reporter/v3/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

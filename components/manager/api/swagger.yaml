@@ -7,7 +7,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              $ref: '#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition'
+              $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -65,19 +65,7 @@ definitions:
         example: account
         type: string
     type: object
-  pkg.HTTPError:
-    properties:
-      code:
-        type: string
-      entityType:
-        type: string
-      err: {}
-      message:
-        type: string
-      title:
-        type: string
-    type: object
-  plugin-smart-templates_v3_pkg_model.FilterCondition:
+  github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition:
     properties:
       between:
         description: |-
@@ -135,7 +123,7 @@ definitions:
         items: {}
         type: array
     type: object
-  plugin-smart-templates_v3_pkg_mongodb_report.Report:
+  github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report:
     properties:
       completedAt:
         type: string
@@ -147,7 +135,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              $ref: '#/definitions/plugin-smart-templates_v3_pkg_model.FilterCondition'
+              $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -166,7 +154,7 @@ definitions:
       updatedAt:
         type: string
     type: object
-  plugin-smart-templates_v3_pkg_mongodb_template.Template:
+  github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template:
     properties:
       createdAt:
         example: "2021-01-01T00:00:00Z"
@@ -187,12 +175,24 @@ definitions:
         example: "2021-01-01T00:00:00Z"
         type: string
     type: object
+  pkg.HTTPError:
+    properties:
+      code:
+        type: string
+      entityType:
+        type: string
+      err: {}
+      message:
+        type: string
+      title:
+        type: string
+    type: object
 host: localhost:4005
 info:
   contact: {}
-  description: This is a swagger documentation for plugin smart template
+  description: This is a swagger documentation for Reporter
   termsOfService: http://swagger.io/terms/
-  title: Plugin Smart Template
+  title: Reporter
   version: 3.0.0
 paths:
   /v1/data-sources:
@@ -223,7 +223,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
-      summary: Get all data sources connected on plugin smart templates
+      summary: Get all data sources connected on reporter
       tags:
       - Data source
   /v1/data-sources/{dataSourceId}:
@@ -314,7 +314,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report'
+                    $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report'
                   type: array
                 limit:
                   type: integer
@@ -361,7 +361,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report'
         "400":
           description: Bad Request
           schema:
@@ -404,7 +404,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_report.Report'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report'
         "400":
           description: Bad Request
           schema:
@@ -506,7 +506,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template'
+                    $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
@@ -562,7 +562,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:
@@ -638,7 +638,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:
@@ -695,7 +695,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/plugin-smart-templates_v3_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:

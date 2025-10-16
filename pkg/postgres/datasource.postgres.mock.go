@@ -11,8 +11,9 @@ package postgres
 
 import (
 	context "context"
-	model "github.com/LerianStudio/reporter/v3/pkg/model"
 	reflect "reflect"
+
+	model "github.com/LerianStudio/reporter/v3/pkg/model"
 
 	gomock "go.uber.org/mock/gomock"
 )

@@ -2,6 +2,8 @@ package bootstrap
 
 import (
 	"fmt"
+	"net/url"
+
 	"github.com/LerianStudio/reporter/v3/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/v3/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/v3/pkg"
@@ -10,7 +12,6 @@ import (
 	simpleClient "github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
-	"net/url"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"

@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"github.com/LerianStudio/reporter/v3/pkg/model"
-	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

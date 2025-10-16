@@ -2,8 +2,9 @@ package services
 
 import (
 	"context"
-	"github.com/LerianStudio/reporter/v3/pkg/model"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

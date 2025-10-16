@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+
 	"github.com/LerianStudio/reporter/v3/pkg/constant"
 
 	"strings"

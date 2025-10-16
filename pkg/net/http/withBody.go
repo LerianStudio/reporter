@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/LerianStudio/reporter/v3/pkg"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"

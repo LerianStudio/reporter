@@ -3,12 +3,13 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/LerianStudio/reporter/v3/pkg"
 	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
 	templateUtils "github.com/LerianStudio/reporter/v3/pkg/template_utils"
-	"strings"
-	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

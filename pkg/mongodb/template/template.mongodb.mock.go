@@ -11,8 +11,9 @@ package template
 
 import (
 	context "context"
-	http "github.com/LerianStudio/reporter/v3/pkg/net/http"
 	reflect "reflect"
+
+	http "github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	uuid "github.com/google/uuid"
 	bson "go.mongodb.org/mongo-driver/bson"

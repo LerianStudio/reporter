@@ -2,13 +2,14 @@ package http
 
 import (
 	"bytes"
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
 	"io"
 	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
