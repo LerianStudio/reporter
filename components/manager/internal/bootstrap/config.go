@@ -3,19 +3,21 @@ package bootstrap
 import (
 	"fmt"
 	"net/url"
-	in2 "plugin-smart-templates/v3/components/manager/internal/adapters/http/in"
-	"plugin-smart-templates/v3/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/manager/internal/adapters/redis"
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	reportMinio "plugin-smart-templates/v3/pkg/minio/report"
-	templateMinio "plugin-smart-templates/v3/pkg/minio/template"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/pdf"
 	"strings"
 	"time"
+
+	in2 "github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/http/in"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/pdf"
+	simpleClient "github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -24,13 +26,6 @@ import (
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-)
-
-const (
-	TemplateBucketName = "templates"
-	ReportBucketName   = "reports"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -53,12 +48,9 @@ type Config struct {
 	MongoDBUser     string `env:"MONGO_USER"`
 	MongoDBPassword string `env:"MONGO_PASSWORD"`
 	MongoDBPort     string `env:"MONGO_PORT"`
-	// Minio configuration envs
-	MinioAPIHost     string `env:"MINIO_API_HOST"`
-	MinioAPIPort     string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername string `env:"MINIO_APP_USER"`
-	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	// SeaweedFS configuration envs
+	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
+	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
@@ -112,16 +104,9 @@ func InitServers() *Service {
 		Logger:                    logger,
 	})
 
-	// Config minio connection
-	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
-
-	minioClient, err := minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
-		Secure: cfg.MinioSSLEnabled,
-	})
-	if err != nil {
-		logger.Fatalf("Error creating minio client: %v", err)
-	}
+	// Config SeaweedFS connection
+	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
+	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -152,6 +137,9 @@ func InitServers() *Service {
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
 
+	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
+	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
+
 	// Init Redis/Valkey connection
 	redisConnection := &libRedis.RedisConnection{
 		Address:                      strings.Split(cfg.RedisHost, ","),
@@ -173,7 +161,7 @@ func InitServers() *Service {
 
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
-		TemplateMinio:       templateMinio.NewMinioRepository(minioClient, TemplateBucketName),
+		TemplateSeaweedFS:   templateSeaweedFSRepository,
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
@@ -189,12 +177,15 @@ func InitServers() *Service {
 	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
 	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
 
+	// Initialize datasources in lazy mode (connect on-demand for faster startup)
+	externalDataSources := pkg.ExternalDatasourceConnectionsLazy(logger)
+
 	reportService := &services.UseCase{
 		ReportRepo:          reportMongoDBRepository,
 		RabbitMQRepo:        producerRabbitMQRepository,
 		TemplateRepo:        templateMongoDBRepository,
-		ReportMinio:         reportMinio.NewMinioRepository(minioClient, ReportBucketName),
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		ReportSeaweedFS:     reportSeaweedFSRepository,
+		ExternalDataSources: externalDataSources,
 		PdfPool:             pdfPool,
 	}
 
@@ -203,7 +194,7 @@ func InitServers() *Service {
 	}
 
 	dataSourceService := &services.UseCase{
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		ExternalDataSources: externalDataSources,
 		RedisRepo:           redisConsumerRepository,
 	}
 

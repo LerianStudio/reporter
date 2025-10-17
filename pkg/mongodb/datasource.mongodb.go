@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"plugin-smart-templates/v3/pkg/model"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 
@@ -48,7 +50,8 @@ type ExternalDataSource struct {
 }
 
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided MongoDB connection string and database name.
-func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) *ExternalDataSource {
+// Returns nil and error if connection fails.
+func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) (*ExternalDataSource, error) {
 	mongoConnection := &libMongo.MongoConnection{
 		ConnectionStringSource: mongoURI,
 		Database:               dbName,
@@ -57,13 +60,14 @@ func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) 
 	}
 
 	if _, err := mongoConnection.GetDB(context.Background()); err != nil {
-		panic(err)
+		logger.Errorf("Failed to establish MongoDB connection: %v", err)
+		return nil, fmt.Errorf("failed to establish MongoDB connection: %w", err)
 	}
 
 	return &ExternalDataSource{
 		connection: mongoConnection,
 		Database:   dbName,
-	}
+	}, nil
 }
 
 // CloseConnection close the connection with MongoDB.
@@ -138,18 +142,26 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		findOptions.SetProjection(projection)
 	}
 
+	// Create timeout context for query execution
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
+	defer cancel()
+
 	database := client.Database(ds.Database)
 
-	cursor, err := database.Collection(collection).Find(ctx, mongoFilter, findOptions)
+	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
 	if err != nil {
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("mongodb query timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
+		}
+
 		return nil, err
 	}
 
-	defer cursor.Close(ctx)
+	defer cursor.Close(queryCtx)
 
 	var results []map[string]any
 
-	for cursor.Next(ctx) {
+	for cursor.Next(queryCtx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
 			logger.Warnf("Error decoding document: %v", err)
@@ -161,6 +173,10 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 	}
 
 	if err := cursor.Err(); err != nil {
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("mongodb query result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
+		}
+
 		return nil, err
 	}
 
@@ -246,6 +262,10 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 
 	logger.Info("Retrieving MongoDB schema information using hybrid approach")
 
+	// Create timeout context for schema discovery (longer timeout for this operation)
+	schemaCtx, cancel := context.WithTimeout(ctx, constant.SchemaDiscoveryTimeout)
+	defer cancel()
+
 	client, err := ds.connection.GetDB(ctx)
 	if err != nil {
 		return nil, err
@@ -253,8 +273,12 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 
 	database := client.Database(ds.Database)
 
-	collections, err := database.ListCollectionNames(ctx, bson.M{})
+	collections, err := database.ListCollectionNames(schemaCtx, bson.M{})
 	if err != nil {
+		if schemaCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("mongodb schema discovery timeout after %v while listing collections: %w", constant.SchemaDiscoveryTimeout, err)
+		}
+
 		return nil, err
 	}
 
@@ -265,14 +289,14 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 
 		logger.Infof("Analyzing collection: %s", collName)
 
-		allFields, err := ds.discoverAllFieldsWithAggregation(ctx, coll)
+		allFields, err := ds.discoverAllFieldsWithAggregation(schemaCtx, coll)
 		if err != nil {
 			logger.Warnf("Aggregation failed for collection %s, falling back to sampling: %v", collName, err)
 
 			allFields = make(map[string]bool)
 		}
 
-		fieldTypes, additionalFields, err := ds.sampleMultipleDocuments(ctx, coll)
+		fieldTypes, additionalFields, err := ds.sampleMultipleDocuments(schemaCtx, coll)
 		if err != nil {
 			logger.Warnf("Document sampling failed for collection %s: %v", collName, err)
 
@@ -565,7 +589,25 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		return nil, err
 	}
 
-	// Convert FilterCondition to MongoDB format
+	mongoFilter, err := ds.buildMongoFilter(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	findOptions := ds.buildFindOptions(fields)
+
+	cursor, queryCtx, cancel, err := ds.executeFindQuery(ctx, client, collection, mongoFilter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	defer cursor.Close(queryCtx)
+
+	return ds.processQueryResults(queryCtx, cursor, collection, logger)
+}
+
+// buildMongoFilter converts FilterCondition map to MongoDB filter format
+func (ds *ExternalDataSource) buildMongoFilter(filter map[string]model.FilterCondition) (bson.M, error) {
 	mongoFilter := bson.M{}
 
 	for field, condition := range filter {
@@ -583,7 +625,11 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		}
 	}
 
-	// Create projection for specified fields
+	return mongoFilter, nil
+}
+
+// buildFindOptions creates MongoDB find options with field projection
+func (ds *ExternalDataSource) buildFindOptions(fields []string) *options.FindOptions {
 	projection := bson.M{}
 
 	if len(fields) > 0 && fields[0] != "*" {
@@ -597,18 +643,45 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 		findOptions.SetProjection(projection)
 	}
 
+	return findOptions
+}
+
+// executeFindQuery executes the MongoDB find query with timeout
+func (ds *ExternalDataSource) executeFindQuery(
+	ctx context.Context,
+	client *mongo.Client,
+	collection string,
+	mongoFilter bson.M,
+	findOptions *options.FindOptions,
+) (*mongo.Cursor, context.Context, context.CancelFunc, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutSlow)
+
 	database := client.Database(ds.Database)
 
-	cursor, err := database.Collection(collection).Find(ctx, mongoFilter, findOptions)
+	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
 	if err != nil {
-		return nil, err
+		cancel()
+
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, nil, nil, fmt.Errorf("mongodb advanced filter query timeout after %v for collection %s: %w", constant.QueryTimeoutSlow, collection, err)
+		}
+
+		return nil, nil, nil, err
 	}
 
-	defer cursor.Close(ctx)
+	return cursor, queryCtx, cancel, nil
+}
 
+// processQueryResults iterates through cursor and converts results
+func (ds *ExternalDataSource) processQueryResults(
+	queryCtx context.Context,
+	cursor *mongo.Cursor,
+	collection string,
+	logger log.Logger,
+) ([]map[string]any, error) {
 	var results []map[string]any
 
-	for cursor.Next(ctx) {
+	for cursor.Next(queryCtx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
 			logger.Warnf("Error decoding document: %v", err)
@@ -620,6 +693,10 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 	}
 
 	if err := cursor.Err(); err != nil {
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("mongodb advanced filter result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutSlow, collection, err)
+		}
+
 		return nil, err
 	}
 

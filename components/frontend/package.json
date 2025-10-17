@@ -1,10 +1,10 @@
 {
-  "name": "plugin-smart-templates-ui",
+  "name": "reporter-ui",
   "version": "0.1.0",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LerianStudio/plugin-smart-templates-ui.git"
+    "url": "git+https://github.com/LerianStudio/reporter-ui.git"
   },
   "resolutions": {
     "react": "^19.1.0",

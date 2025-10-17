@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"plugin-smart-templates/v3/pkg/model"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -46,17 +48,19 @@ type ExternalDataSource struct {
 }
 
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided postgres.Connection, initializing the database connection.
-func NewDataSourceRepository(pc *Connection) *ExternalDataSource {
+// Returns nil and error if connection fails.
+func NewDataSourceRepository(pc *Connection) (*ExternalDataSource, error) {
 	c := &ExternalDataSource{
 		connection: pc,
 	}
 
 	_, err := c.connection.GetDB()
 	if err != nil {
-		panic(err)
+		pc.Logger.Errorf("Failed to establish PostgreSQL connection: %v", err)
+		return nil, fmt.Errorf("failed to establish PostgreSQL connection: %w", err)
 	}
 
-	return c
+	return c, nil
 }
 
 // CloseConnection closing the connection with PostgreSQL.
@@ -120,8 +124,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 
 	logger.Infof("Executing SQL: %s with args: %v", query, args)
 
-	rows, err := ds.connection.ConnectionDB.Query(query, args...)
+	// Create timeout context for query execution
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
+	defer cancel()
+
+	rows, err := ds.connection.ConnectionDB.QueryContext(queryCtx, query, args...)
 	if err != nil {
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("query execution timeout after %v: %w", constant.QueryTimeoutMedium, err)
+		}
+
 		return nil, fmt.Errorf("error executing query: %w", err)
 	}
 	defer rows.Close()
@@ -143,6 +155,10 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 
 	logger.Info("Retrieving database schema information")
 
+	// Create timeout context for schema discovery (longer timeout for this operation)
+	schemaCtx, cancel := context.WithTimeout(ctx, constant.SchemaDiscoveryTimeout)
+	defer cancel()
+
 	// Query to get all user tables in the database
 	tableQuery := `
 		SELECT table_name 
@@ -152,7 +168,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		ORDER BY table_name
 	`
 
-	rows, err := ds.connection.ConnectionDB.Query(tableQuery)
+	rows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, tableQuery)
 	if err != nil {
 		return nil, fmt.Errorf("error querying tables: %w", err)
 	}
@@ -181,8 +197,12 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		AND tc.table_schema = 'public'
 	`
 
-	pkRows, err := ds.connection.ConnectionDB.Query(pkQuery)
+	pkRows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, pkQuery)
 	if err != nil {
+		if schemaCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("schema discovery timeout after %v while querying primary keys: %w", constant.SchemaDiscoveryTimeout, err)
+		}
+
 		return nil, fmt.Errorf("error querying primary keys: %w", err)
 	}
 	defer pkRows.Close()
@@ -211,8 +231,12 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 			ORDER BY ordinal_position
 		`
 
-		colRows, err := ds.connection.ConnectionDB.Query(columnQuery, tableName)
+		colRows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, columnQuery, tableName)
 		if err != nil {
+			if schemaCtx.Err() == context.DeadlineExceeded {
+				return nil, fmt.Errorf("schema discovery timeout after %v while querying columns for table %s: %w", constant.SchemaDiscoveryTimeout, tableName, err)
+			}
+
 			return nil, fmt.Errorf("error querying columns for table %s: %w", tableName, err)
 		}
 
@@ -491,8 +515,16 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 	logger.Infof("[DEBUG] SQL args: %v", args)
 	logger.Infof("[DEBUG] Original filter conditions: %+v", filter)
 
-	rows, err := ds.connection.ConnectionDB.Query(query, args...)
+	// Create timeout context for query execution (slower timeout for advanced filters)
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutSlow)
+	defer cancel()
+
+	rows, err := ds.connection.ConnectionDB.QueryContext(queryCtx, query, args...)
 	if err != nil {
+		if queryCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("advanced filter query timeout after %v: %w", constant.QueryTimeoutSlow, err)
+		}
+
 		return nil, fmt.Errorf("error executing query: %w", err)
 	}
 	defer rows.Close()

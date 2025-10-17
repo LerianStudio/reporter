@@ -2,6 +2,104 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.4] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.3...v3.1.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Code Quality**: A comprehensive linting process has been applied to the codebase, addressing various formatting and style issues. This improvement enhances code readability and maintainability, making it easier for developers to work with the code without affecting its functionality.
+
+### 🔧 Maintenance
+- **Testing**: Introduced end-to-end (e2e) local test collection for backend and frontend components. This addition improves testing coverage, ensuring critical user flows are automatically validated, which enhances overall system reliability.
+- **Documentation**: Updated the CHANGELOG to reflect recent changes and improvements, ensuring users and developers have access to the latest information about project updates.
+
+### ✨ Improvements
+- **Project Naming**: The project is now consistently named "reporter" across all components, including backend, frontend, and documentation. This change ensures clarity and uniformity in project references, making it easier for users to identify and interact with the project.
+
+
+## [v3.1.0-beta.3] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.2...v3.1.0-beta.3)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 📚 Documentation
+- **Updated Documentation**: Minor updates have been made to the documentation to align with the new Trivy scan configuration. These changes ensure all team members are informed about the updated security practices.
+
+### 🔧 Maintenance
+- **Enhanced Security Scanning**: We have updated the Trivy scan version, which enhances our security scanning capabilities. This ensures that our application benefits from the latest vulnerability checks, improving our overall security posture.
+- **Automated Security Checks**: The Trivy scan configuration is now integrated into the pull request process. This automates vulnerability checks during code review stages, streamlining the security review process and enhancing development workflow efficiency.
+
+
+## [v3.1.0-beta.2] - 2025-10-15
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.1...v3.1.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Storage System Migration**: We've transitioned our file storage from Minio to SeaweedFS. This upgrade boosts scalability and reliability, ensuring a more robust file management system for all users.
+- **File Expiry Management**: Introduced Time-To-Live (TTL) for report files on SeaweedFS, which automatically manages file lifecycle. This feature helps you maintain storage efficiency and reduce costs by automatically deleting outdated files.
+
+### 🐛 Bug Fixes
+- **Database Stability**: Fixed an issue with span deletion that could cause data inconsistencies. This enhancement ensures smoother and more reliable database operations.
+- **Logging Accuracy**: Corrected the order of TTL log information, providing clearer and more accurate logs for better system monitoring and debugging.
+
+### 🔧 Maintenance
+- **Error Handling and Rollback**: Implemented a hard delete mechanism for failed file uploads. This improvement prevents incomplete uploads from cluttering the system, enhancing data integrity and user experience.
+- **Changelog Update**: Updated the project changelog to reflect recent changes and improvements, ensuring users have access to the latest information about system updates and enhancements.
+
+
+## [v3.1.0-beta.1] - 2025-10-13
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.1-beta.1...v3.1.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Resilience with Retry Mechanism**: We've introduced a robust retry mechanism with a circuit breaker for message handling and external database connections. This feature minimizes downtime by ensuring more reliable service connections, significantly improving user experience during transient network issues.
+
+### 🐛 Bug Fixes
+- **Datasource Configuration Initialization**: Fixed an issue that could cause incorrect setup of datasource configurations, ensuring seamless service operation without manual intervention.
+- **Improved Code Quality**: Applied comprehensive code linting across multiple components, enhancing readability and reducing the likelihood of future bugs.
+
+### 🔧 Maintenance
+- **Library Updates**: Updated all library dependencies to their latest versions, ensuring compatibility and leveraging new security and performance enhancements.
+- **Documentation Refresh**: The changelog and other documentation have been updated to provide a clear and concise history of recent updates, helping users stay informed about changes and improvements.
+
+
+## [v3.0.1-beta.1] - 2025-10-09
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0...v3.0.1-beta.1)
+Contributors: arthurkz
+
+### ⚠️ Breaking Changes
+- **Backend Error Response Update**: The format of error responses for the delete endpoint has changed. This may impact existing integrations that rely on the previous format. Users should review and update their error handling logic to ensure compatibility. [Migration steps: Update your error handling code to accommodate the new response structure.]
+
+### 🐛 Bug Fixes
+- **Corrected API Response Descriptions**: Fixed inaccuracies in the API documentation that previously misrepresented certain response behaviors. This correction helps developers by providing reliable information, minimizing integration errors.
+
+### 📚 Documentation
+- **API Documentation Enhancements**: Comprehensive updates have been made to the API documentation, providing clearer and more accurate guidance for developers. This ensures better integration experiences by reducing misunderstandings and potential errors.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Several dependencies have been updated to address known vulnerabilities, significantly enhancing the security and stability of the application. This proactive measure protects users from potential security threats.
+- **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
+
+
+## [v3.0.0-beta.4] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
+- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
+
+### 🔧 Maintenance
+- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
+- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
+- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
+
+
 ## [v3.0.0] - 2025-10-02
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0)

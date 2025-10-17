@@ -1,8 +1,8 @@
 package in
 
 import (
-	"plugin-smart-templates/v3/pkg/model"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 
@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	applicationName    = "plugin-smart-templates"
+	applicationName    = "reporter"
 	templateResource   = "templates"
 	reportResource     = "reports"
 	dataSourceResource = "data-source"

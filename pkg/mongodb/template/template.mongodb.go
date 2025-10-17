@@ -2,11 +2,12 @@ package template
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/net/http"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -26,7 +27,7 @@ type Repository interface {
 	FindList(ctx context.Context, filters http.QueryHeader) ([]*Template, error)
 	Create(ctx context.Context, record *TemplateMongoDBModel) (*Template, error)
 	Update(ctx context.Context, id, organizationID uuid.UUID, updateFields *bson.M) error
-	SoftDelete(ctx context.Context, id, organizationID uuid.UUID) error
+	Delete(ctx context.Context, id, organizationID uuid.UUID, hardDelete bool) error
 	FindOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, error)
 	FindMappedFieldsAndOutputFormatByID(ctx context.Context, id, organizationID uuid.UUID) (*string, map[string]map[string][]string, error)
 }
@@ -338,8 +339,8 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id, organizatio
 	return nil
 }
 
-// SoftDelete a template entity into mongodb.
-func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organizationID uuid.UUID) error {
+// Delete a template entity into mongodb with soft delete or not.
+func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id, organizationID uuid.UUID, hardDelete bool) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
@@ -360,29 +361,55 @@ func (tm *TemplateMongoDBRepository) SoftDelete(ctx context.Context, id, organiz
 		return err
 	}
 
+	opts := options.Delete()
+
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
 
 	spanDelete.SetAttributes(attributes...)
 
-	filter := bson.D{{Key: "_id", Value: id}, {Key: "organization_id", Value: organizationID}}
-	deletedAt := bson.D{{Key: "$set", Value: bson.D{{Key: "deleted_at", Value: time.Now()}}}}
-
-	deleted, err := coll.UpdateOne(ctx, filter, deletedAt)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
-
-		return err
+	filter := bson.D{
+		{Key: "_id", Value: id},
+		{Key: "organization_id", Value: organizationID},
+		{Key: "deleted_at", Value: nil},
 	}
 
-	if deleted.MatchedCount == 0 {
-		libOpentelemetry.HandleSpanError(&spanDelete, "No template found to delete", mongo.ErrNoDocuments)
-		return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+	if hardDelete {
+		deleted, err := coll.DeleteOne(ctx, filter, opts)
+		if err != nil {
+			libOpentelemetry.HandleSpanError(&spanDelete, "Failed to delete template", err)
+
+			return err
+		}
+
+		spanDelete.End()
+
+		if deleted.DeletedCount == 0 {
+			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+		}
+	} else {
+		update := bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "deleted_at", Value: time.Now()},
+			}},
+		}
+
+		updateResult, err := coll.UpdateOne(ctx, filter, update)
+		if err != nil {
+			libOpentelemetry.HandleSpanError(&spanDelete, "Failed to soft delete template", err)
+
+			return err
+		}
+
+		if updateResult.MatchedCount == 0 {
+			return pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+		}
 	}
 
-	logger.Infof("Return from delete one: %v", deleted)
 	spanDelete.End()
+
+	logger.Infoln("Deleted a template with id: ", id.String(), " (hard delete: ", hardDelete, ")")
 
 	return nil
 }

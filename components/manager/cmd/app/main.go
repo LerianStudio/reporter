@@ -1,13 +1,13 @@
 package main
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/bootstrap"
-	"plugin-smart-templates/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/components/manager/internal/bootstrap"
+	"github.com/LerianStudio/reporter/v3/pkg"
 )
 
-// @title			Plugin Smart Template
-// @version		2.0.0
-// @description	This is a swagger documentation for plugin smart template
+// @title			Reporter
+// @version		3.0.0
+// @description	This is a swagger documentation for Reporter
 // @termsOfService	http://swagger.io/terms/
 // @host			localhost:4005
 // @BasePath		/

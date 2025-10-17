@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v3/pkg/net/http"
 	"testing"
 	"time"
 

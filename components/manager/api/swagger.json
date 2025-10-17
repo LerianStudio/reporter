@@ -1,11 +1,11 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a swagger documentation for plugin smart template",
-        "title": "Plugin Smart Template",
+        "description": "This is a swagger documentation for Reporter",
+        "title": "Reporter",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {},
-        "version": "2.0.0"
+        "version": "3.0.0"
     },
     "host": "localhost:4005",
     "basePath": "/",
@@ -19,13 +19,20 @@
                 "tags": [
                     "Data source"
                 ],
-                "summary": "Get all data sources connected on plugin smart templates",
+                "summary": "Get all data sources connected on reporter",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -63,6 +70,13 @@
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Organization ID",
+                        "name": "X-Organization-Id",
+                        "in": "header",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -171,7 +185,7 @@
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -186,6 +200,18 @@
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -230,7 +256,25 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -275,7 +319,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -321,6 +383,24 @@
                         "description": "OK",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -391,7 +471,7 @@
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -406,6 +486,18 @@
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -462,7 +554,19 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -471,9 +575,6 @@
         "/v1/templates/{id}": {
             "get": {
                 "description": "Get a template by id",
-                "consumes": [
-                    "multipart/form-data"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -496,27 +597,6 @@
                         "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Template file (.tpl)",
-                        "name": "templateFile",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Output format (e.g., pdf, html)",
-                        "name": "outputFormat",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Description of the template",
-                        "name": "description",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
                         "type": "string",
                         "description": "Template ID",
                         "name": "id",
@@ -528,13 +608,34 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "SoftDelete a Template with the input ID",
+                "description": "SoftDelete a Template with the input ID. Returns 204 with no content on success.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Templates"
                 ],
@@ -563,7 +664,25 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "No content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
                     }
                 }
             },
@@ -626,7 +745,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/plugin-smart-templates_v2_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     }
                 }
@@ -649,7 +786,7 @@
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -724,25 +861,7 @@
                 }
             }
         },
-        "pkg.HTTPError": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "entityType": {
-                    "type": "string"
-                },
-                "err": {},
-                "message": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "plugin-smart-templates_v2_pkg_model.FilterCondition": {
+        "github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition": {
             "type": "object",
             "properties": {
                 "between": {
@@ -787,7 +906,7 @@
                 }
             }
         },
-        "plugin-smart-templates_v2_pkg_mongodb_report.Report": {
+        "github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -806,7 +925,7 @@
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/plugin-smart-templates_v2_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -832,7 +951,7 @@
                 }
             }
         },
-        "plugin-smart-templates_v2_pkg_mongodb_template.Template": {
+        "github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -858,6 +977,24 @@
                 "updatedAt": {
                     "type": "string",
                     "example": "2021-01-01T00:00:00Z"
+                }
+            }
+        },
+        "pkg.HTTPError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
+                },
+                "err": {},
+                "message": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         }

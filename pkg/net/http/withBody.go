@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"plugin-smart-templates/v3/pkg"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v3/pkg"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/gofiber/fiber/v2"
 	"gopkg.in/go-playground/validator.v9"
 
-	cn "plugin-smart-templates/v3/pkg/constant"
+	cn "github.com/LerianStudio/reporter/v3/pkg/constant"
 
 	en2 "github.com/go-playground/validator/translations/en"
 )

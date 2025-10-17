@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v3/tests/helpers"
 )
 
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation
@@ -87,7 +87,7 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 	t.Log("💥 CHAOS: Restarting RabbitMQ container...")
 	rabbitContainer := env.RabbitContainer
 	if rabbitContainer == "" {
-		rabbitContainer = "smart-templates-rabbitmq"
+		rabbitContainer = "reporter-rabbitmq"
 	}
 
 	if err := h.RestartWithWait(rabbitContainer, 10*time.Second); err != nil {
@@ -180,7 +180,7 @@ func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 	t.Log("💥 Restarting RabbitMQ during processing...")
 	rabbitContainer := env.RabbitContainer
 	if rabbitContainer == "" {
-		rabbitContainer = "smart-templates-rabbitmq"
+		rabbitContainer = "reporter-rabbitmq"
 	}
 
 	if err := h.RestartWithWait(rabbitContainer, 5*time.Second); err != nil {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	h "plugin-smart-templates/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v3/tests/helpers"
 )
 
 // FuzzCreateReportInput — Fuzz test for create report input

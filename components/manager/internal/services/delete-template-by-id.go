@@ -10,7 +10,7 @@ import (
 )
 
 // DeleteTemplateByID delete a template from the repository
-func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id, organizationID uuid.UUID) error {
+func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id, organizationID uuid.UUID, hardDelete bool) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.delete_template_by_id")
@@ -24,7 +24,7 @@ func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id, organizationID uu
 
 	logger.Infof("Remove template for id: %s", id)
 
-	if err := uc.TemplateRepo.SoftDelete(ctx, id, organizationID); err != nil {
+	if err := uc.TemplateRepo.Delete(ctx, id, organizationID, hardDelete); err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to delete template on repo by id", err)
 		logger.Errorf("Error deleting template on repo by id: %v", err)
 

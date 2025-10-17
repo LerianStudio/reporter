@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	mongodb2 "github.com/LerianStudio/reporter/v3/pkg/mongodb"
+	reportData "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
+	postgres2 "github.com/LerianStudio/reporter/v3/pkg/postgres"
+	"github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
+	"github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
 	"os"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/minio/report"
-	"plugin-smart-templates/v3/pkg/minio/template"
-	"plugin-smart-templates/v3/pkg/model"
-	mongodb2 "plugin-smart-templates/v3/pkg/mongodb"
-	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
-	postgres2 "plugin-smart-templates/v3/pkg/postgres"
 	"strings"
 	"testing"
 
@@ -116,7 +116,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any()).
+		Put(gomock.Any(), gomock.Any(), "text/plain", gomock.Any(), "").
 		Return(nil)
 
 	mockReportDataRepo.
@@ -124,10 +124,14 @@ func TestGenerateReport_Success(t *testing.T) {
 		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateSeaweedFS:     mockTemplateRepo,
+		ReportSeaweedFS:       mockReportRepo,
+		ReportDataRepo:        mockReportDataRepo,
+		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
@@ -171,7 +175,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateFileRepo:    mockTemplateRepo,
+		TemplateSeaweedFS:   mockTemplateRepo,
 		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
@@ -189,7 +193,7 @@ func TestSaveReport_Success(t *testing.T) {
 	mockReportRepo := report.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
+		ReportSeaweedFS: mockReportRepo,
 	}
 
 	reportID := uuid.New()
@@ -201,7 +205,7 @@ func TestSaveReport_Success(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/csv", []byte(renderedOutput)).
+		Put(gomock.Any(), gomock.Any(), "text/csv", []byte(renderedOutput), "").
 		Return(nil)
 
 	ctx := context.Background()
@@ -222,8 +226,8 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportFileRepo: mockReportRepo,
-		ReportDataRepo: mockReportDataRepo,
+		ReportSeaweedFS: mockReportRepo,
+		ReportDataRepo:  mockReportDataRepo,
 	}
 
 	reportID := uuid.New()
@@ -235,7 +239,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any(), "").
 		Return(errors.New("failed to put file"))
 
 	ctx := context.Background()
@@ -382,8 +386,8 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 
 	mockReportRepo.
 		EXPECT().
-		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte) error {
+		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any(), "").
+		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte, ttl string) error {
 			// Verificar se o conteúdo foi renderizado com dados descriptografados
 			content := string(data)
 			if !strings.Contains(content, "João Silva") {
@@ -406,10 +410,13 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), nil).
 		Return(nil)
 
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+
 	useCase := &UseCase{
-		TemplateFileRepo: mockTemplateRepo,
-		ReportFileRepo:   mockReportRepo,
-		ReportDataRepo:   mockReportDataRepo,
+		TemplateSeaweedFS:     mockTemplateRepo,
+		ReportSeaweedFS:       mockReportRepo,
+		ReportDataRepo:        mockReportDataRepo,
+		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"plugin_crm": {
 				Initialized:       true,

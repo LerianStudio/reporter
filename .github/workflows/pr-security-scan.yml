@@ -1,0 +1,37 @@
+name: "PR Security Scan"
+
+# This workflow runs security scans on pull requests
+# targeting develop, release-candidate, and main branches
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - release-candidate
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  id-token: write        # Required for OIDC authentication
+  contents: read         # Required to checkout the repository
+  pull-requests: write   # Allows commenting on PRs
+  security-events: write # Required for security scanning
+
+jobs:
+  security-scan:
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/pr-security-scan.yml@main
+    with:
+      runner_type: "firmino-lxc-runners"
+      filter_paths: |-
+        components/frontend
+        components/manager
+        components/worker
+      path_level: "2"
+      dockerhub_org: "lerianstudio"
+    secrets:
+      manage_token: ${{ secrets.MANAGE_TOKEN }}
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_password: ${{ secrets.DOCKER_PASSWORD }}

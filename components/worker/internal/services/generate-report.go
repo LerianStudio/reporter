@@ -5,14 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	"plugin-smart-templates/v3/pkg/pongo"
 	"strings"
 	"time"
 
+	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v3/pkg/pongo"
+	"github.com/LerianStudio/reporter/v3/pkg/postgres"
+
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -79,7 +82,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
 
-	fileBytes, err := uc.TemplateFileRepo.Get(ctx, message.TemplateID.String())
+	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
 			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
@@ -187,7 +190,8 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 }
 
 // saveReport handles saving the generated report file to the report repository and logs any encountered errors.
-// It determines the object name, content type, and stores the file using the ReportFileRepo interface.
+// It determines the object name, content type, and stores the file using the ReportSeaweedFS interface.
+// If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
 	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
@@ -197,13 +201,17 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 	contentType := getContentType(outputFormat)
 	objectName := message.TemplateID.String() + "/" + message.ReportID.String() + "." + outputFormat
 
-	err := uc.ReportFileRepo.Put(ctx, objectName, contentType, []byte(out))
+	err := uc.ReportSeaweedFS.Put(ctx, objectName, contentType, []byte(out), uc.ReportTTL)
 	if err != nil {
 		libOtel.HandleSpanError(&spanSaveReport, "Error putting report file.", err)
 
 		logger.Errorf("Error putting report file: %s", err.Error())
 
 		return err
+	}
+
+	if uc.ReportTTL != "" {
+		logger.Infof("Saving report with TTL: %s", uc.ReportTTL)
 	}
 
 	return nil
@@ -248,7 +256,28 @@ func (uc *UseCase) queryDatabase(
 		return nil // Continue with the next database
 	}
 
+	// Check circuit breaker state before attempting query
+	if !uc.CircuitBreakerManager.IsHealthy(databaseName) {
+		cbState := uc.CircuitBreakerManager.GetState(databaseName)
+		err := fmt.Errorf("datasource %s is unhealthy - circuit breaker state: %s", databaseName, cbState)
+		libOtel.HandleSpanError(&dbSpan, "Circuit breaker blocking request", err)
+		logger.Errorf("⚠️  Circuit breaker blocking request to datasource %s (state: %s)", databaseName, cbState)
+
+		return err
+	}
+
+	// Check datasource initialization status
 	if !dataSource.Initialized {
+		// Check if datasource is marked as unavailable from initialization
+		if dataSource.Status == libConstants.DataSourceStatusUnavailable {
+			err := fmt.Errorf("datasource %s is unavailable (initialization failed)", databaseName)
+			libOtel.HandleSpanError(&dbSpan, "Datasource unavailable", err)
+			logger.Errorf("⚠️  Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)
+
+			return err
+		}
+
+		// Attempt to connect
 		if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
 			libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
 			return err
@@ -283,36 +312,46 @@ func (uc *UseCase) queryPostgresDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	// Execute schema query with circuit breaker protection
+	schemaResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
+		return dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	})
 	if err != nil {
-		logger.Errorf("Error getting database schema: %s", err.Error())
+		logger.Errorf("Error getting database schema for %s (circuit breaker): %s", databaseName, err.Error())
 		return err
 	}
+
+	schema := schemaResult.([]postgres.TableSchema)
 
 	for table, fields := range tables {
 		tableFilters := getTableFilters(databaseFilters, table)
 
-		// Use advanced filters
-		if len(tableFilters) > 0 {
-			tableResult, err := dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
-			if err != nil {
-				logger.Errorf("Error querying table %s with advanced filters: %s", table, err.Error())
-				return err
+		// Execute query with circuit breaker protection
+		var tableResult []map[string]any
+
+		queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
+			if len(tableFilters) > 0 {
+				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
 			}
 
-			logger.Infof("Successfully queried table %s with advanced filters", table)
-
-			result[databaseName][table] = tableResult
-		} else {
-			// No filters, use legacy method for now
-			tableResult, err := dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
-			if err != nil {
-				logger.Errorf("Error querying table %s: %s", table, err.Error())
-				return err
-			}
-
-			result[databaseName][table] = tableResult
+			return dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
+		})
+		if err != nil {
+			logger.Errorf("Error querying table %s in %s (circuit breaker): %s", table, databaseName, err.Error())
+			return err
 		}
+
+		tableResult = queryResult.([]map[string]any)
+
+		if len(tableFilters) > 0 {
+			logger.Infof("Successfully queried table %s with advanced filters (circuit breaker: %s)",
+				table, uc.CircuitBreakerManager.GetState(databaseName))
+		} else {
+			logger.Infof("Successfully queried table %s (circuit breaker: %s)",
+				table, uc.CircuitBreakerManager.GetState(databaseName))
+		}
+
+		result[databaseName][table] = tableResult
 	}
 
 	return nil
@@ -390,7 +429,7 @@ func (uc *UseCase) processPluginCRMCollection(
 	newCollection := collection + "_" + orgFields[0]
 
 	// Query the collection
-	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger)
+	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger, "plugin_crm")
 	if err != nil {
 		return err
 	}
@@ -419,16 +458,16 @@ func (uc *UseCase) processRegularMongoCollection(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, collection, fields, collectionFilters, logger)
-	if err != nil {
-		return err
-	}
-
 	// Determine database name from context (assuming it's available in the result map)
 	var databaseName string
 	for dbName := range result {
 		databaseName = dbName
 		break
+	}
+
+	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, collection, fields, collectionFilters, logger, databaseName)
+	if err != nil {
+		return err
 	}
 
 	result[databaseName][collection] = collectionResult
@@ -444,35 +483,40 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
 	logger log.Logger,
+	databaseName string,
 ) ([]map[string]any, error) {
-	if len(collectionFilters) > 0 {
-		// Check if this is plugin_crm and needs filter transformation
-		if strings.Contains(collection, "_") && !strings.Contains(collection, "organization") {
-			transformedFilter, err := uc.transformPluginCRMAdvancedFilters(collectionFilters, logger)
-			if err != nil {
-				logger.Errorf("Error transforming advanced filters for collection %s: %s", collection, err.Error())
-				return nil, err
+	// Execute query with circuit breaker protection
+	queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
+		if len(collectionFilters) > 0 {
+			// Check if this is plugin_crm and needs filter transformation
+			if strings.Contains(collection, "_") && !strings.Contains(collection, "organization") {
+				transformedFilter, err := uc.transformPluginCRMAdvancedFilters(collectionFilters, logger)
+				if err != nil {
+					return nil, fmt.Errorf("error transforming advanced filters for collection %s: %w", collection, err)
+				}
+
+				collectionFilters = transformedFilter
 			}
 
-			collectionFilters = transformedFilter
+			return dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
 		}
 
-		collectionResult, err := dataSource.MongoDBRepository.QueryWithAdvancedFilters(ctx, collection, fields, collectionFilters)
-		if err != nil {
-			logger.Errorf("Error querying collection %s with advanced filters: %s", collection, err.Error())
-			return nil, err
-		}
-
-		logger.Infof("Successfully queried collection %s with advanced filters", collection)
-
-		return collectionResult, nil
+		// No filters, use legacy method
+		return dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
+	})
+	if err != nil {
+		logger.Errorf("Error querying collection %s in %s (circuit breaker): %s", collection, databaseName, err.Error())
+		return nil, err
 	}
 
-	// No filters, use legacy method
-	collectionResult, err := dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
-	if err != nil {
-		logger.Errorf("Error querying collection %s: %s", collection, err.Error())
-		return nil, err
+	collectionResult := queryResult.([]map[string]any)
+
+	if len(collectionFilters) > 0 {
+		logger.Infof("Successfully queried collection %s with advanced filters (circuit breaker: %s)",
+			collection, uc.CircuitBreakerManager.GetState(databaseName))
+	} else {
+		logger.Infof("Successfully queried collection %s (circuit breaker: %s)",
+			collection, uc.CircuitBreakerManager.GetState(databaseName))
 	}
 
 	return collectionResult, nil

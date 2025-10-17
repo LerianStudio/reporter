@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
 	"testing"
 	"time"
 
