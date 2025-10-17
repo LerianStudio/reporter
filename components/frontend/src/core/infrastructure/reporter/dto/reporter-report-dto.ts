@@ -1,15 +1,15 @@
 import { ReportStatus } from '@/core/domain/entities/report-entity'
-import { SmartMetadataDto } from './smart-metadata-dto'
+import { ReporterMetadataDto } from './reporter-metadata-dto'
 
 /**
- * DTO representing a report response from the Smart Templates API
+ * DTO representing a report response from the Reporter API
  */
-export type SmartReportDto = {
+export type ReporterReportDto = {
   id: string
   templateId: string
   status: ReportStatus
   filters?: Record<string, any>
-  metadata?: SmartMetadataDto
+  metadata?: ReporterMetadataDto
   error?: string
   createdAt: Date
   updatedAt?: Date
@@ -17,11 +17,11 @@ export type SmartReportDto = {
 }
 
 /**
- * DTO for creating a new report generation request via Smart Templates API
+ * DTO for creating a new report generation request via Reporter API
  * Matches the External API format: database -> table -> field -> values[]
  */
-export type SmartCreateReportDto = {
+export type ReporterCreateReportDto = {
   templateId: string
   filters: Record<string, Record<string, Record<string, string[]>>>
-  metadata?: SmartMetadataDto
+  metadata?: ReporterMetadataDto
 }

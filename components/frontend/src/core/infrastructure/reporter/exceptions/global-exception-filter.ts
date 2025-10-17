@@ -8,7 +8,7 @@ import {
 } from '@lerianstudio/sindarian-server'
 import { getIntl } from '@/lib/intl'
 import { LoggerAggregator } from '@lerianstudio/lib-logs'
-import { SmartTemplatesApiException } from './smart-templates-api-exceptions'
+import { ReporterApiException } from './reporter-api-exceptions'
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -19,7 +19,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   async catch(exception: any, host: ArgumentsHost) {
     const intl = await getIntl()
 
-    if (exception instanceof SmartTemplatesApiException) {
+    if (exception instanceof ReporterApiException) {
       this.logger.error(exception.message, exception.getResponse())
       return NextResponse.json(exception.getResponse(), {
         status: exception.getStatus()

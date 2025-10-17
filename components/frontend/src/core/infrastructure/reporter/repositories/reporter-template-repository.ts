@@ -5,25 +5,25 @@ import {
 } from '@/core/domain/entities/template-entity'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
 import { TemplateRepository } from '@/core/domain/repositories/template-repository'
-import { SmartTemplatesHttpService } from '../services/smart-templates-http-service'
-import { SmartTemplateMapper } from '../mappers/smart-template-mapper'
-import { SmartTemplateDto } from '../dto/smart-template-dto'
+import { ReporterHttpService } from '../services/reporter-http-service'
+import { ReporterTemplateMapper } from '../mappers/reporter-template-mapper'
+import { ReporterTemplateDto } from '../dto/reporter-template-dto'
 import { createQueryString } from '@/lib/search'
-import { SmartPaginationDto } from '../dto/smart-pagination-dto'
+import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
 
 @injectable()
-export class SmartTemplateRepository implements TemplateRepository {
+export class ReporterTemplateRepository implements TemplateRepository {
   constructor(
-    @inject(SmartTemplatesHttpService)
-    private readonly httpService: SmartTemplatesHttpService
+    @inject(ReporterHttpService)
+    private readonly httpService: ReporterHttpService
   ) {}
 
   private baseUrl: string = '/v1/templates'
 
   async create(template: TemplateEntity): Promise<TemplateEntity> {
-    const data = SmartTemplateMapper.toCreateDto(template)
+    const data = ReporterTemplateMapper.toCreateDto(template)
 
-    const response = await this.httpService.postFormData<SmartTemplateDto>(
+    const response = await this.httpService.postFormData<ReporterTemplateDto>(
       this.baseUrl,
       data,
       {
@@ -34,7 +34,7 @@ export class SmartTemplateRepository implements TemplateRepository {
     )
 
     return {
-      ...SmartTemplateMapper.toEntity(response),
+      ...ReporterTemplateMapper.toEntity(response),
       organizationId: template.organizationId
     }
   }
@@ -59,18 +59,18 @@ export class SmartTemplateRepository implements TemplateRepository {
     }
 
     const response = await this.httpService.get<
-      SmartPaginationDto<SmartTemplateDto>
+      ReporterPaginationDto<ReporterTemplateDto>
     >(`${this.baseUrl}${createQueryString(queryParams)}`, {
       headers: {
         'X-Organization-Id': organizationId
       }
     })
 
-    return SmartTemplateMapper.toPaginationEntity(response)
+    return ReporterTemplateMapper.toPaginationEntity(response)
   }
 
   async fetchById(id: string, organizationId: string): Promise<TemplateEntity> {
-    const response = await this.httpService.get<SmartTemplateDto>(
+    const response = await this.httpService.get<ReporterTemplateDto>(
       `${this.baseUrl}/${id}`,
       {
         headers: {
@@ -80,7 +80,7 @@ export class SmartTemplateRepository implements TemplateRepository {
     )
 
     return {
-      ...SmartTemplateMapper.toEntity(response),
+      ...ReporterTemplateMapper.toEntity(response),
       organizationId
     }
   }
@@ -90,12 +90,12 @@ export class SmartTemplateRepository implements TemplateRepository {
     organizationId: string,
     template: Partial<TemplateEntity>
   ): Promise<TemplateEntity> {
-    let response: SmartTemplateDto
+    let response: ReporterTemplateDto
 
     if (template.templateFile) {
-      const data = SmartTemplateMapper.toUpdateDto(template)
+      const data = ReporterTemplateMapper.toUpdateDto(template)
 
-      response = await this.httpService.patchFormData<SmartTemplateDto>(
+      response = await this.httpService.patchFormData<ReporterTemplateDto>(
         `${this.baseUrl}/${id}`,
         data,
         {
@@ -105,9 +105,9 @@ export class SmartTemplateRepository implements TemplateRepository {
         }
       )
     } else {
-      const dto = SmartTemplateMapper.toUpdateDto(template)
+      const dto = ReporterTemplateMapper.toUpdateDto(template)
 
-      response = await this.httpService.patch<SmartTemplateDto>(
+      response = await this.httpService.patch<ReporterTemplateDto>(
         `${this.baseUrl}/${id}`,
         {
           body: JSON.stringify(dto),
@@ -120,7 +120,7 @@ export class SmartTemplateRepository implements TemplateRepository {
     }
 
     return {
-      ...SmartTemplateMapper.toEntity(response),
+      ...ReporterTemplateMapper.toEntity(response),
       organizationId
     }
   }
