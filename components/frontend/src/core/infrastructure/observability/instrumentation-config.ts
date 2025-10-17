@@ -14,7 +14,7 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'plugin-smart-templates-ui'
+    [ATTR_SERVICE_NAME]: 'reporter-ui'
   }),
   spanProcessors: [
     new SimpleSpanProcessor(

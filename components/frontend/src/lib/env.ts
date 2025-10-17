@@ -39,20 +39,20 @@ const getValidatedURL = (
  */
 export const env = {
   /**
-   * Documentation URL for Smart Templates
+   * Documentation URL for Reporter
    */
   DOCS_URL: getValidatedURL(
     getRuntimeEnv('NEXT_PUBLIC_DOCS_URL'),
     process.env.NEXT_PUBLIC_DOCS_URL,
-    'https://docs.lerian.studio/docs/smart-templates'
+    'https://docs.lerian.studio/en/reporter'
   ),
 
   /**
-   * Plugin UI Base Path (can be relative or absolute URL)
+   * Reporter UI Base Path (can be relative or absolute URL)
    */
-  PLUGIN_UI_BASE_PATH: (() => {
-    const primary = getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH')
-    const secondary = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+  REPORTER_UI_BASE_PATH: (() => {
+    const primary = getRuntimeEnv('NEXT_PUBLIC_REPORTER_UI_BASE_PATH')
+    const secondary = process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH
 
     // Allow relative paths for base paths
     if (primary && (primary.startsWith('/') || isValidURL(primary))) {

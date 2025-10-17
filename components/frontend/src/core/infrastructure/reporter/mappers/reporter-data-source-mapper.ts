@@ -1,8 +1,8 @@
-import { SmartDataSourceDto } from '../dto/smart-data-source-dto'
+import { ReporterDataSourceDto } from '../dto/reporter-data-source-dto'
 import { DataSource } from '@/core/domain/entities/data-source-entity'
 
-export class SmartDataSourceMapper {
-  static toEntity(dto: SmartDataSourceDto): DataSource {
+export class ReporterDataSourceMapper {
+  static toEntity(dto: ReporterDataSourceDto): DataSource {
     return {
       id: dto.id,
       externalName: dto.externalName,
@@ -16,11 +16,11 @@ export class SmartDataSourceMapper {
     }
   }
 
-  static toListEntity(dto: SmartDataSourceDto[]): DataSource[] {
+  static toListEntity(dto: ReporterDataSourceDto[]): DataSource[] {
     return (
       dto
         .filter((item) => item.id !== '')
-        .map(SmartDataSourceMapper.toEntity) ?? []
+        .map(ReporterDataSourceMapper.toEntity) ?? []
     )
   }
 }

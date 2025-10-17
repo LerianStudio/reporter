@@ -1,9 +1,9 @@
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
-import { SmartPaginationDto } from '../dto/smart-pagination-dto'
+import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
 
-export class SmartPaginationMapper {
+export class ReporterPaginationMapper {
   static toResponseDto<T, R = T>(
-    dto: SmartPaginationDto<T>,
+    dto: ReporterPaginationDto<T>,
     mapper: (item: T) => R
   ): PaginationEntity<R> {
     const items = dto.items ? dto.items.map(mapper) : []

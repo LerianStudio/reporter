@@ -32,7 +32,7 @@ Follow these steps:
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/LerianStudio/nextjs-boilerplate.git
+git clone https://github.com/LerianStudio/reporter.git
 ```
 
 2. Run the following commands to configure and start the local console stack:

@@ -1,7 +1,7 @@
-import { SmartReportMapper } from './smart-report-mapper'
+import { ReporterReportMapper } from './reporter-report-mapper'
 import { ReportEntity } from '@/core/domain/entities/report-entity'
 
-describe('SmartReportMapper', () => {
+describe('ReporterReportMapper', () => {
   describe('toCreateDto', () => {
     it('should handle AdvancedReportFilters format directly', () => {
       const entity: ReportEntity = {
@@ -18,7 +18,7 @@ describe('SmartReportMapper', () => {
         } as any
       }
 
-      const result = SmartReportMapper.toCreateDto(entity)
+      const result = ReporterReportMapper.toCreateDto(entity)
 
       expect(result).toEqual({
         templateId: '01992b60-c374-7656-9ed4-a60a36b3b1cd',
@@ -52,7 +52,7 @@ describe('SmartReportMapper', () => {
         } as any
       }
 
-      const result = SmartReportMapper.toCreateDto(entity)
+      const result = ReporterReportMapper.toCreateDto(entity)
 
       expect(result).toEqual({
         templateId: '01992b60-c374-7656-9ed4-a60a36b3b1cd',
@@ -75,7 +75,7 @@ describe('SmartReportMapper', () => {
         organizationId: '019905b6-6793-7a4e-b568-291924bbf3ff'
       }
 
-      const result = SmartReportMapper.toCreateDto(entity)
+      const result = ReporterReportMapper.toCreateDto(entity)
 
       expect(result).toEqual({
         templateId: '01992b60-c374-7656-9ed4-a60a36b3b1cd',
