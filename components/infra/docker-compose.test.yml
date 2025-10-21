@@ -1,8 +1,8 @@
-name: plugin-reporter-test
+name: reporter-test
 
 services:
-  plugin-smart-templates-mongodb-test:
-    container_name: plugin-smart-templates-mongodb-test
+  reporter-mongodb:
+    container_name: reporter-mongodb-test
     image: mongo:latest
     env_file:
       - .env
@@ -19,13 +19,13 @@ services:
       - ${MONGO_PORT}:${MONGO_PORT}
     command: mongod --port ${MONGO_PORT}
     volumes:
-      - plugin-smart-templates-mongodb-data-test:/data/db
+      - reporter-mongodb-data-test:/data/db
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
-  plugin-smart-templates-rabbitmq-test:
+  reporter-rabbitmq:
     image: rabbitmq:4.0-management-alpine
-    container_name: plugin-smart-templates-rabbitmq-test
+    container_name: reporter-rabbitmq-test
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -38,52 +38,57 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
-  plugin-smart-templates-minio-test:
-    image: minio/minio:latest
-    container_name: plugin-smart-templates-minio-test
+  reporter-seaweedfs-master:
+    image: chrislusf/seaweedfs:3.97
+    container_name: reporter-seaweedfs-master-test
     ports:
-      - ${MINIO_API_PORT}:${MINIO_API_PORT}
-      - ${MINIO_ADMIN_PORT}:${MINIO_ADMIN_PORT}
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_APP_USER: ${MINIO_APP_USER}
-      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD}
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+      - "${SEAWEEDFS_MASTER_UI_PORT:-9334}:9334"
+    command: "master -ip=reporter-seaweedfs-master -port=9333 -mdir=/data"
     volumes:
-      - plugin-smart-templates-minio-data-test:/data
-    command: server /data --console-address ":${MINIO_ADMIN_PORT:-9001}"
+      - reporter-seaweedfs-master-data-test:/data
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
+    restart: always
 
-  plugin-smart-templates-minio-mc-test:
-    image: minio/mc
-    container_name: plugin-smart-templates-minio-mc-test
+  reporter-seaweedfs-volume:
+    image: chrislusf/seaweedfs:3.97
+    container_name: reporter-seaweedfs-volume-test
+    ports:
+      - "${SEAWEEDFS_VOLUME_PORT:-9080}:9080"
+    command: "volume -ip=reporter-seaweedfs-volume -port=9080 -mserver=reporter-seaweedfs-master-test:9333 -dir=/data -max=0"
+    volumes:
+      - reporter-seaweedfs-volume-data-test:/data
+    networks:
+      - reporter-test-network
     depends_on:
-      - plugin-smart-templates-minio-test
-    entrypoint: >
-      sh -c "
-        sleep 5 && \
-        mc alias set local http://plugin-smart-templates-minio-test:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD && \
-        mc mb local/templates || true && \
-        mc mb local/reports || true && \
-        mc admin user add local $MINIO_APP_USER $MINIO_APP_PASSWORD && \
-        mc admin policy create local app-policy /policies/app-policy.json && \
-        mc admin policy attach local app-policy --user $MINIO_APP_USER && \
-        echo 'User and buckets created.'
-      "
-    volumes:
-      - ./minio/policies:/policies
-    networks:
-      - plugin-reporter-test-network
+      - reporter-seaweedfs-master
+    restart: always
 
-  plugin-smart-templates-keda-test:
+  reporter-seaweedfs-filer:
+    image: chrislusf/seaweedfs:3.97
+    container_name: reporter-seaweedfs-filer-test
+    ports:
+      - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
+      - "${SEAWEEDFS_FILER_S3_PORT:-8333}:8333"
+    command: "filer -ip=reporter-seaweedfs-filer -port=8888 -master=reporter-seaweedfs-master-test:9333"
+    volumes:
+      - reporter-seaweedfs-filer-data-test:/data
+    networks:
+      - reporter-test-network
+    depends_on:
+      - reporter-seaweedfs-master
+      - reporter-seaweedfs-volume
+    restart: always
+
+  reporter-keda:
     image: ghcr.io/kedacore/keda:2.16.0
-    container_name: plugin-smart-templates-keda-test
+    container_name: reporter-keda-test
     environment:
       - KEDA_OPERATOR_LOG_LEVEL=info
-      - KEDA_OPERATOR_RABBITMQ_HOST=plugin-smart-templates-rabbitmq-test
+      - KEDA_OPERATOR_RABBITMQ_HOST=reporter-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
       - KEDA_OPERATOR_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER}
       - KEDA_OPERATOR_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS}
@@ -91,12 +96,12 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - plugin-smart-templates-rabbitmq-test
+      - reporter-rabbitmq
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
-  plugin-smart-templates-valkey-test:
-    container_name: plugin-smart-templates-valkey-test
+  reporter-valkey:
+    container_name: reporter-valkey-test
     image: valkey/valkey:latest
     env_file:
       - .env
@@ -107,16 +112,18 @@ services:
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
     volumes:
-      - plugin-smart-templates-redis-data-test:/data
+      - reporter-redis-data-test:/data
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
 volumes:
-  plugin-smart-templates-mongodb-data-test:
-  plugin-smart-templates-minio-data-test:
-  plugin-smart-templates-redis-data-test:
+  reporter-mongodb-data-test:
+  reporter-seaweedfs-master-data-test:
+  reporter-seaweedfs-volume-data-test:
+  reporter-seaweedfs-filer-data-test:
+  reporter-redis-data-test:
 
 networks:
-  plugin-reporter-test-network:
-    name: plugin-reporter-test-network
+  reporter-test-network:
+    name: reporter-test-network
     driver: bridge

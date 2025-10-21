@@ -26,8 +26,10 @@ go.work.sum
 # Component-specific env files
 components/manager/.env
 components/manager/.env.local
+!components/manager/.env.test
 components/worker/.env
 components/worker/.env.local
+!components/worker/.env.test
 components/infra/.env
 
 scripts/node_modules

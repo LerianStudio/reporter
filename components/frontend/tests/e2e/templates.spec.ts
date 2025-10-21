@@ -359,7 +359,6 @@ test.describe('Templates Feature', () => {
       const hiddenFileInput = page.getByTestId(
         TEMPLATE_SELECTORS.form.fileInputHidden
       )
-      await expect(hiddenFileInput).toBeVisible()
       await hiddenFileInput.setInputFiles(template.filePath)
 
       await click(page, TEMPLATE_SELECTORS.form.submitButton)

@@ -11,6 +11,7 @@ import {
 } from '../utils/report'
 import { inputType, selectOption } from '../utils/form'
 import { click } from '../utils/element'
+import { ORGANIZATION_ID } from '../fixtures/config'
 
 test.describe.configure({ mode: 'parallel' })
 test.describe('Reports Feature', () => {
@@ -630,14 +631,14 @@ test.describe('Reports Feature', () => {
               table: 'ledger',
               field: 'name',
               operator: 'equal',
-              values: 'test-value'
+              values: ORGANIZATION_ID
             },
             {
               database: 'midaz_transaction',
               table: 'transaction',
               field: 'id',
               operator: 'equal',
-              values: 'another-value'
+              values: ORGANIZATION_ID
             }
           ])
 

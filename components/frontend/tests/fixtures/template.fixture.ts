@@ -1,6 +1,8 @@
 // Template entity definitions for E2E testing
 // These templates will be seeded into the database for testing
 
+import { ORGANIZATION_ID } from './config'
+
 export type TemplateEntity = {
   id?: string
   organizationId: string
@@ -16,9 +18,9 @@ export type TemplateEntity = {
   }
 }
 
-export const E2E_TEMPLATES: TemplateEntity[] = [
+export const TEMPLATES: TemplateEntity[] = [
   {
-    organizationId: '019885e0-c544-74d4-b87c-83f89bd1be30',
+    organizationId: ORGANIZATION_ID!,
     description: 'E2E Test Financial Report Template',
     outputFormat: 'TXT',
     fileName: 'receipt.tpl',
@@ -31,7 +33,7 @@ export const E2E_TEMPLATES: TemplateEntity[] = [
     }
   },
   {
-    organizationId: '019885e0-c544-74d4-b87c-83f89bd1be30',
+    organizationId: ORGANIZATION_ID!,
     description: 'E2E Test Sales Dashboard Template',
     outputFormat: 'TXT',
     fileName: 'receipt.tpl',
@@ -47,14 +49,14 @@ export const E2E_TEMPLATES: TemplateEntity[] = [
 
 // Helper function to get template by ID
 export const getTemplateById = (id: string): TemplateEntity | undefined => {
-  return E2E_TEMPLATES.find((template) => template.id === id)
+  return TEMPLATES.find((template) => template.id === id)
 }
 
 // Helper function to get templates by organization
 export const getTemplatesByOrganization = (
   organizationId: string
 ): TemplateEntity[] => {
-  return E2E_TEMPLATES.filter(
+  return TEMPLATES.filter(
     (template) => template.organizationId === organizationId
   )
 }
@@ -100,7 +102,7 @@ export const TEMPLATE_SELECTORS = {
 export const TEMPLATE_SELECTOR_HELPERS = {
   // Get test data by ID
   getTemplateById: (id: string) =>
-    E2E_TEMPLATES.find((template) => template.id === id),
+    TEMPLATES.find((template) => template.id === id),
 
   // Selector builders
   getTemplateActionSelector: (templateId: string) =>
@@ -127,5 +129,3 @@ export const TEMPLATE_SELECTOR_HELPERS = {
   getConfirmButtonSelector: () => TEMPLATE_SELECTORS.dialog.confirmButton,
   getCancelButtonSelector: () => TEMPLATE_SELECTORS.dialog.cancelButton
 }
-
-export default E2E_TEMPLATES

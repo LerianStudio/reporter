@@ -125,6 +125,9 @@ up:
 .PHONY: up-test
 up-test:
 	$(call title1,"Starting test services in detached mode")
+	@echo "$(CYAN)Starting test infrastructure...$(NC)"
+	@cd tests/infra && $(MAKE) up-all
+	@echo "$(CYAN)Starting frontend test service...$(NC)"
 	@$(DOCKER_CMD) -f docker-compose.test.yml up $(c) -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Test services started successfully$(GREEN) ✔️$(NC)"
 

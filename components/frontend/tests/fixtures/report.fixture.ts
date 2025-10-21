@@ -1,63 +1,71 @@
 // Report entity definitions for E2E testing
 // These reports will be seeded into the database for testing
 
+import { LEDGER_ID } from './config'
+
 export interface ReportEntity {
   id?: string
-  templateId: string
-  status: 'completed' | 'processing' | 'failed' | 'pending'
-  createdAt: Date
-  updatedAt: Date
-  metadata?: {
-    fileName?: string
-    fileSize?: number
-    processingTime?: number
-    requestedBy?: string
-  }
+  templateId?: string
+  status?: 'completed' | 'processing' | 'failed' | 'pending'
+  createdAt?: Date
+  updatedAt?: Date
   filters?: any
 }
 
-export const E2E_REPORTS: ReportEntity[] = [
+export const REPORTS: ReportEntity[] = [
   {
-    templateId: '550e8400-e29b-41d4-a716-446655440100',
-    status: 'completed',
-    createdAt: new Date('2024-01-15T11:00:00Z'),
-    updatedAt: new Date('2024-01-15T11:05:00Z'),
-    metadata: {
-      fileName: 'financial_report_2024_01_15.pdf',
-      fileSize: 2048576, // 2MB
-      processingTime: 300000, // 5 minutes in ms
-      requestedBy: 'e2e-test-user'
-    },
-    filters: {}
+    filters: {
+      midaz_onboarding: {
+        ledger: {
+          id: {
+            eq: [LEDGER_ID]
+          }
+        }
+      },
+      midaz_transaction: {
+        transaction: {
+          id: {
+            eq: [LEDGER_ID]
+          }
+        }
+      }
+    }
   },
   {
-    templateId: '550e8400-e29b-41d4-a716-446655440101',
-    status: 'processing',
-    createdAt: new Date('2024-01-16T15:00:00Z'),
-    updatedAt: new Date('2024-01-16T15:02:00Z'),
-    metadata: {
-      fileName: 'sales_dashboard_2024_01_16.html',
-      requestedBy: 'e2e-test-user'
-    },
-    filters: {}
+    filters: {
+      midaz_onboarding: {
+        ledger: {
+          id: {
+            eq: [LEDGER_ID]
+          }
+        }
+      },
+      midaz_transaction: {
+        transaction: {
+          id: {
+            eq: [LEDGER_ID]
+          }
+        }
+      }
+    }
   }
 ]
 
 // Helper function to get report by ID
 export const getReportById = (id: string): ReportEntity | undefined => {
-  return E2E_REPORTS.find((report) => report.id === id)
+  return REPORTS.find((report) => report.id === id)
 }
 
 // Helper function to get reports by template ID
 export const getReportsByTemplateId = (templateId: string): ReportEntity[] => {
-  return E2E_REPORTS.filter((report) => report.templateId === templateId)
+  return REPORTS.filter((report) => report.templateId === templateId)
 }
 
 // Helper function to get reports by status
 export const getReportsByStatus = (
   status: ReportEntity['status']
 ): ReportEntity[] => {
-  return E2E_REPORTS.filter((report) => report.status === status)
+  return REPORTS.filter((report) => report.status === status)
 }
 
 // Report selectors for E2E testing
@@ -115,7 +123,7 @@ export const REPORT_SELECTORS = {
 // Helper functions for report selectors
 export const REPORT_SELECTOR_HELPERS = {
   // Get test data by ID
-  getReportById: (id: string) => E2E_REPORTS.find((report) => report.id === id),
+  getReportById: (id: string) => REPORTS.find((report) => report.id === id),
 
   // Selector builders
   getReportActionSelector: (reportId: string) =>
@@ -140,4 +148,4 @@ export const REPORT_SELECTOR_HELPERS = {
   getCancelButtonSelector: () => REPORT_SELECTORS.dialog.cancelButton
 }
 
-export default E2E_REPORTS
+export default REPORTS

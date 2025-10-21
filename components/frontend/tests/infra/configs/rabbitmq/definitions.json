@@ -1,28 +1,28 @@
 {
   "users": [
     {
-      "name": "crm_test",
-      "password_hash": "/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": "administrator"
+      "name":"midaz",
+      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "hashing_algorithm":"rabbit_password_hashing_sha256",
+      "tags":"administrator"
     },
     {
-      "name": "onboarding",
-      "password_hash": "/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": "administrator"
+      "name":"onboarding",
+      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "hashing_algorithm":"rabbit_password_hashing_sha256",
+      "tags":"administrator"
     },
     {
-      "name": "transaction",
-      "password_hash": "/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": "administrator"
+      "name":"transaction",
+      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "hashing_algorithm":"rabbit_password_hashing_sha256",
+      "tags":"administrator"
     },
     {
-      "name": "consumer",
-      "password_hash": "/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": "administrator"
+      "name":"consumer",
+      "password_hash":"/xSX/E+2TzPfqRPYnPIdviUpNiXnoQWnAdQR7TS47cJc6GuM",
+      "hashing_algorithm":"rabbit_password_hashing_sha256",
+      "tags":"administrator"
     }
   ],
   "vhosts": [
@@ -32,7 +32,7 @@
   ],
   "permissions": [
     {
-      "user": "crm_test",
+      "user": "midaz",
       "vhost": "/",
       "configure": ".*",
       "write": ".*",

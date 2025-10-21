@@ -1,8 +1,8 @@
-name: plugin-reporter-test
+name: reporter-test
 
 services:
-  plugin-reporter-ui-test:
-    container_name: plugin-reporter-ui-test
+  reporter-ui-test:
+    container_name: reporter-ui-test
     build:
       context: ../..
       dockerfile: components/frontend/Dockerfile.test
@@ -18,10 +18,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
 networks:
-  plugin-reporter-test-network:
-    name: plugin-reporter-test-network
+  reporter-test-network:
+    name: reporter-test-network
     driver: bridge
     external: true

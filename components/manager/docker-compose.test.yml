@@ -1,8 +1,8 @@
-name: plugin-reporter-test
+name: reporter-test
 
 services:
-  plugin-smart-templates-manager-test:
-    container_name: plugin-smart-templates-manager-test
+  reporter-manager-test:
+    container_name: reporter-manager-test
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile.test
@@ -15,11 +15,11 @@ services:
     volumes:
       - .:/usr/src/manager
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
 networks:
-  plugin-reporter-test-network:
-    name: plugin-reporter-test-network
+  reporter-test-network:
+    name: reporter-test-network
     driver: bridge
     external: true
 

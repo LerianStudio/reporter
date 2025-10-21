@@ -17,8 +17,7 @@ export interface TemplateSearchResult {
  * @returns Promise<void>
  */
 export async function navigateTemplates(page: Page): Promise<void> {
-  await page.goto(BASE_URL, { timeout: 120000 })
-  await page.waitForLoadState('domcontentloaded')
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' })
 
   const templatesTab = page.getByRole('tab', { name: /templates/i })
   await templatesTab.click()

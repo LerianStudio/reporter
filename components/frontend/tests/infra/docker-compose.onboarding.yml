@@ -1,4 +1,4 @@
-name: plugin-reporter-test
+name: reporter-test
 
 services:
   midaz-onboarding-test:
@@ -7,7 +7,7 @@ services:
     env_file:
       - .env.onboarding
     ports:
-      - 3100:3100
+      - 3000:3000
     healthcheck:
       test:
         [
@@ -16,17 +16,17 @@ services:
           '--quiet',
           '--tries=1',
           '--spider',
-          'http://localhost:3100/health'
+          'http://localhost:3000/health'
         ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     networks:
-      - plugin-reporter-test-network
+      - reporter-test-network
 
 networks:
-  plugin-reporter-test-network:
-    name: plugin-reporter-test-network
+  reporter-test-network:
+    name: reporter-test-network
     driver: bridge
     external: true

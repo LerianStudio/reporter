@@ -95,6 +95,12 @@ set-env:
 	cp -r ./.env.example ./.env
 	@echo "$(BLUE)Environment files created successfully$(NC)"
 
+.PHONY: set-env-test
+set-env-test:
+	@echo "$(BLUE)Setting up test environment files...$(NC)"
+	cp -r ./.env.test ./.env
+	@echo "$(BLUE)Test environment files created successfully$(NC)"
+
 .PHONY: lint
 lint:
 	$(call title1,"Running linters on all components")

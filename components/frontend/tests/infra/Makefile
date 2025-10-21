@@ -2,7 +2,7 @@
 
 SERVICE_NAME := midaz-test-infra
 DOCKER_COMPOSE_FILE := docker-compose.infra.yml
-ENV_FILE := .env.infra
+ENV_FILE := .env
 
 # Colors for output
 GREEN := \033[0;32m
@@ -137,6 +137,8 @@ up-all:
 	@sleep 5
 	@make up-console
 	@sleep 5
+	@make up-nginx
+	@sleep 2
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) All services started successfully$(GREEN) ✔️$(NC)"
 
 .PHONY: down
@@ -148,7 +150,7 @@ down:
 .PHONY: down-all
 down-all:
 	$(call title1,"Stopping Complete E2E Stack")
-	@$(DOCKER_CMD) --env-file .env.infra -f docker-compose.infra.yml down 2>/dev/null || true
+	@$(DOCKER_CMD) --env-file .env -f docker-compose.infra.yml down 2>/dev/null || true
 	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml down 2>/dev/null || true
 	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml down 2>/dev/null || true
 	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml down 2>/dev/null || true
@@ -224,7 +226,7 @@ up-rabbitmq:
 .PHONY: up-onboarding
 up-onboarding:
 	$(call title1,"Starting Onboarding service")
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml up -d
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Onboarding service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for onboarding to be healthy...$(NC)"
 	@sleep 5
@@ -232,7 +234,7 @@ up-onboarding:
 .PHONY: up-transaction
 up-transaction:
 	$(call title1,"Starting Transaction service")
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml up -d
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Transaction service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for transaction to be healthy...$(NC)"
 	@sleep 5
@@ -240,7 +242,7 @@ up-transaction:
 .PHONY: up-console
 up-console:
 	$(call title1,"Starting Console service")
-	@$(DOCKER_CMD) -f docker-compose.console.yml up -d
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Waiting for console to be healthy...$(NC)"
 	@sleep 5
@@ -272,15 +274,15 @@ logs-rabbitmq:
 
 .PHONY: logs-onboarding
 logs-onboarding:
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml logs --tail=100 -f midaz-onboarding-test
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml logs --tail=100 -f midaz-onboarding-test
 
 .PHONY: logs-transaction
 logs-transaction:
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml logs --tail=100 -f midaz-transaction-test
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml logs --tail=100 -f midaz-transaction-test
 
 .PHONY: logs-console
 logs-console:
-	@$(DOCKER_CMD) -f docker-compose.console.yml logs --tail=100 -f midaz-console-test
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml logs --tail=100 -f midaz-console-test
 
 #-------------------------------------------------------
 # Status Commands
@@ -510,20 +512,19 @@ shell-rabbitmq:
 .PHONY: start-onboarding
 start-onboarding:
 	$(call title1,"Starting Onboarding service")
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml start
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml start
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Onboarding service started$(GREEN) ✔️$(NC)"
 
 .PHONY: stop-onboarding
 stop-onboarding:
 	$(call title1,"Stopping Onboarding service")
-	@$(DOCKER_CMD) -f docker-compose.onboarding.yml stop
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml stop
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Onboarding service stopped$(GREEN) ✔️$(NC)"
 
 .PHONY: restart-onboarding
 restart-onboarding:
 	$(call title1,"Restarting Onboarding service")
-	@make stop-onboarding
-	@make start-onboarding
+	@$(DOCKER_CMD) --env-file .env.onboarding -f docker-compose.onboarding.yml restart
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Onboarding service restarted$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
@@ -533,20 +534,19 @@ restart-onboarding:
 .PHONY: start-transaction
 start-transaction:
 	$(call title1,"Starting Transaction service")
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml start
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml start
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Transaction service started$(GREEN) ✔️$(NC)"
 
 .PHONY: stop-transaction
 stop-transaction:
 	$(call title1,"Stopping Transaction service")
-	@$(DOCKER_CMD) -f docker-compose.transaction.yml stop
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml stop
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Transaction service stopped$(GREEN) ✔️$(NC)"
 
 .PHONY: restart-transaction
 restart-transaction:
 	$(call title1,"Restarting Transaction service")
-	@make stop-transaction
-	@make start-transaction
+	@$(DOCKER_CMD) --env-file .env.transaction -f docker-compose.transaction.yml restart
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Transaction service restarted$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
@@ -556,20 +556,19 @@ restart-transaction:
 .PHONY: start-console
 start-console:
 	$(call title1,"Starting Console service")
-	@$(DOCKER_CMD) -f docker-compose.console.yml start
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml start
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service started$(GREEN) ✔️$(NC)"
 
 .PHONY: stop-console
 stop-console:
 	$(call title1,"Stopping Console service")
-	@$(DOCKER_CMD) -f docker-compose.console.yml stop
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml stop
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service stopped$(GREEN) ✔️$(NC)"
 
 .PHONY: restart-console
 restart-console:
 	$(call title1,"Restarting Console service")
-	@make stop-console
-	@make start-console
+	@$(DOCKER_CMD) --env-file .env.console -f docker-compose.console.yml restart
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Console service restarted$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
@@ -579,7 +578,7 @@ restart-console:
 .PHONY: up-nginx
 up-nginx:
 	$(call title1,"Starting Nginx Reverse Proxy")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml up -d
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml up -d
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx service started$(GREEN) ✔️$(NC)"
 	@echo "$(CYAN)Nginx is now routing:$(NC)"
 	@echo "  / → Console (http://localhost:8080)"
@@ -587,24 +586,24 @@ up-nginx:
 .PHONY: stop-nginx
 stop-nginx:
 	$(call title1,"Stopping Nginx service")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml stop
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml stop
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx service stopped$(GREEN) ✔️$(NC)"
 
 .PHONY: down-nginx
 down-nginx:
 	$(call title1,"Stopping and removing Nginx service")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml down
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml down
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx service removed$(GREEN) ✔️$(NC)"
 
 .PHONY: logs-nginx
 logs-nginx:
 	$(call title1,"Nginx Logs")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml logs -f
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml logs -f
 
 .PHONY: restart-nginx
 restart-nginx:
 	$(call title1,"Restarting Nginx service")
-	@$(DOCKER_CMD) -f docker-compose.nginx.yml restart
+	@$(DOCKER_CMD) --env-file .env.nginx -f docker-compose.nginx.yml restart
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Nginx service restarted$(GREEN) ✔️$(NC)"
 
 .PHONY: reload-nginx

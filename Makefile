@@ -131,6 +131,7 @@ help:
 	@echo ""
 	@echo "Setup Commands:"
 	@echo "  make set-env                     - Copy .env.example to .env for all components"
+	@echo "  make set-env-test                - Copy .env.test to .env for manager and worker"
 	@echo ""
 	@echo ""
 	@echo "Service Commands:"
@@ -143,6 +144,11 @@ help:
 	@echo "  make rebuild-up                   - Rebuild and restart all services"
 	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
 	@echo "  make logs                         - Show logs for all services"
+	@echo ""
+	@echo ""
+	@echo "Database Commands:"
+	@echo "  make db-seed                     - Seed test database with fixture data"
+	@echo "  make db-reset                    - Reset and restart test database"
 	@echo ""
 	@echo ""
 	@echo "Documentation Commands:"
@@ -215,6 +221,15 @@ set-env:
 		fi; \
 	done
 	@echo "[ok] Environment files set up successfully"
+
+.PHONY: set-env-test
+set-env-test:
+	$(call print_title,"Setting up test environment files")
+	@echo "$(CYAN)Setting up test environment for manager...$(NC)"
+	@cd $(MANAGER_DIR) && $(MAKE) set-env-test
+	@echo "$(CYAN)Setting up test environment for worker...$(NC)"
+	@cd $(WORKER_DIR) && $(MAKE) set-env-test
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Test environment files set up successfully$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
 # Build Commands
@@ -515,6 +530,24 @@ validate-api-docs: generate-docs
 	else \
 		echo "$(YELLOW)Validation scripts not found. Skipping validation.$(NC)"; \
 	fi
+
+#-------------------------------------------------------
+# Database Commands
+#-------------------------------------------------------
+
+.PHONY: db-seed
+db-seed:
+	$(call title1,"Seeding test database")
+	@echo "$(CYAN)Running database seed script...$(NC)"
+	@cd $(FRONT_END_DIR) && npm run db:seed
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Database seeded successfully$(GREEN) ✔️$(NC)"
+
+.PHONY: db-reset
+db-reset:
+	$(call title1,"Resetting test database")
+	@echo "$(CYAN)Cleaning up and restarting test database...$(NC)"
+	@cd $(FRONT_END_DIR) && npm run db:reset
+	@echo "$(GREEN)$(BOLD)[ok]$(NC) Database reset completed$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
 # Developer Helper Commands
