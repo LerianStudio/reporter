@@ -13,6 +13,7 @@ type Environment struct {
 
 	// Optional infra identifiers for chaos
 	RabbitContainer    string
+	WorkerContainer    string
 	MongoContainer     string
 	RedisContainer     string
 	SeaweedFSContainer string
@@ -37,10 +38,11 @@ func LoadEnvironment() Environment {
 		HTTPTimeout: time.Duration(secs) * time.Second,
 		ManageStack: manage,
 
-		RabbitContainer:    getenvDefault("RABBIT_CONTAINER", "plugin-reporter-rabbitmq"),
-		MongoContainer:     getenvDefault("MONGO_CONTAINER", "plugin-reporter-mongodb"),
-		RedisContainer:     getenvDefault("REDIS_CONTAINER", "plugin-reporter-valkey"),
-		SeaweedFSContainer: getenvDefault("SEAWEEDFS_CONTAINER", "plugin-reporter-seaweedfs-filer"),
+		RabbitContainer:    getenvDefault("RABBIT_CONTAINER", "reporter-rabbitmq"),
+		WorkerContainer:    getenvDefault("WORKER_CONTAINER", "reporter-worker"),
+		MongoContainer:     getenvDefault("MONGO_CONTAINER", "reporter-mongodb"),
+		RedisContainer:     getenvDefault("REDIS_CONTAINER", "reporter-valkey"),
+		SeaweedFSContainer: getenvDefault("SEAWEEDFS_CONTAINER", "reporter-seaweedfs-filer"),
 
 		DefaultOrgID: firstNonEmpty(
 			os.Getenv("X_ORGANIZATION_ID"),

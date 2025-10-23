@@ -68,6 +68,12 @@ func (d *decoderHandler) FiberHandlerFunc(c *fiber.Ctx) error {
 
 	bodyBytes := c.Body() // Get the body bytes
 
+	// Validate that body is not empty, whitespace-only, or literally "null"
+	trimmedBody := strings.TrimSpace(string(bodyBytes))
+	if len(trimmedBody) == 0 || trimmedBody == "null" {
+		return BadRequest(c, pkg.ValidateBusinessError(cn.ErrMissingRequiredFields, ""))
+	}
+
 	if err := json.Unmarshal(bodyBytes, s); err != nil {
 		// Convert JSON unmarshal errors to bad request errors
 		if strings.Contains(err.Error(), "cannot unmarshal") {

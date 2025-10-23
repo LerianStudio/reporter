@@ -147,6 +147,29 @@ test-fuzzy:
 	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
 	fi
 
+# Property-based tests
+.PHONY: test-property
+test-property:
+	$(call print_title,Running property-based tests - requires Docker stack)
+	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
+	$(call check_env_files)
+	@set -e; mkdir -p $(TEST_REPORTS_DIR)/property; \
+	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
+	$(MAKE) up; \
+	$(call wait_for_services); \
+	if [ -n "$(GOTESTSUM)" ]; then \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL)  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property || { \
+	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
+	      echo "Retrying property tests once..."; \
+	      TEST_MANAGER_URL=$(TEST_MANAGER_URL)  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	    else \
+	      exit 1; \
+	    fi; \
+	  }; \
+	else \
+	  TEST_MANAGER_URL=$(TEST_MANAGER_URL)  go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	fi
+
 # Chaos tests
 .PHONY: test-chaos
 test-chaos:
@@ -182,5 +205,7 @@ test-all:
 	$(MAKE) test-chaos
 	$(call print_title,Running e2e tests)
 	$(MAKE) test-e2e
+	$(call print_title,Running property tests)
+	$(MAKE) test-property
 	$(call print_title,Running fuzzy tests)
 	$(MAKE) test-fuzzy

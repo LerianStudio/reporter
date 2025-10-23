@@ -23,9 +23,9 @@ networks:
   infra-network:
     external: true
   plugin-fees-network:
-    driver: bridge
+    external: true
   plugin-crm-network:
-    driver: bridge
+    external: true
 
 secrets:
   github_token:

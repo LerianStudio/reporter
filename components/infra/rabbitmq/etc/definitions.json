@@ -25,12 +25,31 @@
     {
       "name": "reporter.generate-report.queue",
       "vhost": "/",
-      "durable": true
+      "durable": true,
+      "arguments": {
+        "x-dead-letter-exchange": "reporter.dlx",
+        "x-dead-letter-routing-key": "reporter.dlq.key"
+      }
+    },
+    {
+      "name": "reporter.dlq",
+      "vhost": "/",
+      "durable": true,
+      "arguments": {
+        "x-message-ttl": 604800000,
+        "x-max-length": 10000
+      }
     }
   ],
   "exchanges": [
     {
       "name": "reporter.generate-report.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true
+    },
+    {
+      "name": "reporter.dlx",
       "vhost": "/",
       "type": "direct",
       "durable": true
@@ -43,6 +62,13 @@
       "destination": "reporter.generate-report.queue",
       "destination_type": "queue",
       "routing_key": "reporter.generate-report.key"
+    },
+    {
+      "source": "reporter.dlx",
+      "vhost": "/",
+      "destination": "reporter.dlq",
+      "destination_type": "queue",
+      "routing_key": "reporter.dlq.key"
     }
   ]
 }
