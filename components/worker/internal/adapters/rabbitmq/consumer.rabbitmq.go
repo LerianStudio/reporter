@@ -24,7 +24,7 @@ type ConsumerRepository interface {
 	RunConsumers() error
 }
 
-// QueueHandlerFunc is a function that process a specific queue.
+// QueueHandlerFunc is a function that processes a specific queue.
 type QueueHandlerFunc func(ctx context.Context, body []byte) error
 
 // ConsumerRoutes struct
@@ -148,12 +148,13 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
 
-		// Recovery and increment retryCount
-		if !cr.retryMessageWithCount(message, workerID, queue) {
+		// Always retry any error 3 times with backoff
+		if !cr.retryMessageWithCount(message, workerID, queue, err) {
+			_ = message.Ack(false)
 			return false
 		}
 
-		// Exclude original
+		// Nack to exclude original (will be republished with retry_count++)
 		_ = message.Nack(false, false)
 
 		return true
@@ -166,15 +167,44 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 // retryMessage retries a message with the specified retryCount.
 // Returns true if the message was successfully requeued; otherwise, returns false.
-func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string) bool {
-	retryCount := message.Headers["x-retry-count"].(int32)
+func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string, processErr error) bool {
+	// Safely extract current retry count
+	var retryCount int32
+	if raw, ok := message.Headers["x-retry-count"]; ok {
+		switch v := raw.(type) {
+		case int32:
+			retryCount = v
+		case int64:
+			retryCount = int32(v)
+		case int:
+			retryCount = int32(v)
+		case float32:
+			retryCount = int32(v)
+		case float64:
+			retryCount = int32(v)
+		case string:
+			// fallback to zero if string cannot be parsed (avoid panic)
+			retryCount = 0
+		default:
+			retryCount = 0
+		}
+	} else {
+		retryCount = 0
+	}
+
 	if retryCount >= 3 {
-		cr.Warnf("Worker %d: Discarding message from queue %s after %d attempts", workerID, queue, retryCount)
+		cr.Warnf("Worker %d: Max retries reached for message from queue %s after %d attempts", workerID, queue, retryCount)
+		cr.Warnf("Worker %d: Report status should have been updated to Error by handler", workerID)
 
-		_ = message.Nack(false, false)
-
+		// Don't retry anymore - handler should have updated report status to "Error"
+		// Return false to signal caller to ACK the message
 		return false
 	}
+
+	// Backoff before republishing: 2^n seconds where n is current retryCount
+	backoffSeconds := time.Duration(1<<retryCount) * time.Second
+	cr.Infof("Worker %d: Applying backoff of %v before retrying message from queue %s", workerID, backoffSeconds, queue)
+	time.Sleep(backoffSeconds)
 
 	// Republish with retryCount + 1
 	retryCount++
@@ -185,6 +215,9 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 	}
 
 	headers["x-retry-count"] = retryCount
+	if processErr != nil {
+		headers["x-failure-reason"] = processErr.Error()
+	}
 
 	errPub := cr.conn.Channel.Publish(
 		message.Exchange,

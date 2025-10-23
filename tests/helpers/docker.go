@@ -54,3 +54,21 @@ func StartContainer(container string) error {
 
 	return nil
 }
+
+// StartWithWait starts a container and waits for a specified delay.
+func StartWithWait(container string, delay time.Duration) error {
+	if container == "" {
+		return fmt.Errorf("empty container name")
+	}
+
+	cmd := exec.Command("docker", "start", container)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("docker start %s: %v, out=%s", container, err, string(out))
+	}
+
+	if delay > 0 {
+		time.Sleep(delay)
+	}
+
+	return nil
+}
