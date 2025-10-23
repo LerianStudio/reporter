@@ -38,6 +38,12 @@ func TestNullPayloadValidation(t *testing.T) {
 			description: "Empty request body for report creation",
 		},
 		{
+			name:        "WhitespaceOnlyReport",
+			endpoint:    "/v1/reports",
+			payload:     "   \n\t\r   ",
+			description: "Whitespace-only request body",
+		},
+		{
 			name:        "EmptyArrayReport",
 			endpoint:    "/v1/reports",
 			payload:     "[]",

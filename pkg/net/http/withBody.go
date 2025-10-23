@@ -68,14 +68,9 @@ func (d *decoderHandler) FiberHandlerFunc(c *fiber.Ctx) error {
 
 	bodyBytes := c.Body() // Get the body bytes
 
-	// Validate that body is not null or empty
-	if len(bodyBytes) == 0 {
-		return BadRequest(c, pkg.ValidateBusinessError(cn.ErrMissingRequiredFields, ""))
-	}
-
-	// Check if body is literally "null"
+	// Validate that body is not empty, whitespace-only, or literally "null"
 	trimmedBody := strings.TrimSpace(string(bodyBytes))
-	if trimmedBody == "null" {
+	if len(trimmedBody) == 0 || trimmedBody == "null" {
 		return BadRequest(c, pkg.ValidateBusinessError(cn.ErrMissingRequiredFields, ""))
 	}
 

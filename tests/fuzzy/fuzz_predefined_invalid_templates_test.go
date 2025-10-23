@@ -130,7 +130,7 @@ func TestPredefinedInvalidTemplates(t *testing.T) {
 									if statusResp.Status == "Error" {
 										t.Logf("✅ Template %s correctly failed with Error status", templateName)
 									} else if statusResp.Status == "Finished" {
-										t.Logf("⚠️  Template %s unexpectedly succeeded", templateName)
+										t.Errorf("❌ Template %s unexpectedly succeeded but was expected to fail", templateName)
 									} else {
 										t.Logf("Report status: %s", statusResp.Status)
 									}

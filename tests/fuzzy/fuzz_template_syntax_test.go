@@ -278,10 +278,12 @@ func FuzzTemplateSize(f *testing.F) {
 	f.Add(10000000)
 
 	env := h.LoadEnvironment()
+	if env.DefaultOrgID == "" {
+		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
+	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, 30*time.Second) // Longer timeout for large uploads
-	orgID := "06c4f684-19b0-449a-81f4-f9a4e503db83"
-	headers := h.AuthHeadersWithOrg(orgID)
+	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
 
 	f.Fuzz(func(t *testing.T, size int) {
 		// Cap at 50MB to prevent test runner OOM
