@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/LerianStudio/reporter/v3/pkg"
 	reportData "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
@@ -29,4 +31,11 @@ type UseCase struct {
 
 	// ReportTTL defines the Time To Live for reports (e.g., "1m", "1h", "7d", "30d"). Empty means no TTL.
 	ReportTTL string
+}
+
+// HandleDLQMessage stores DLQ raw message for analysis; enrichment happens via headers in consumer layer in future step
+func (uc *UseCase) HandleDLQMessage(ctx context.Context, body []byte, headers map[string]any) error {
+	// For now, just log; repository wiring for dlq_messages will be added in subsequent step
+	// This placeholder ensures the DLQ consumer compiles and can be extended safely
+	return nil
 }
