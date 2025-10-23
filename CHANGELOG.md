@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.5] - 2025-10-23
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.4...v3.1.0-beta.5)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Testing Framework:** We've added property and fuzzy testing capabilities, making the system more robust and reliable. This ensures better validation and error detection, improving both frontend and backend performance.
+- **Dead Letter Queue (DLQ) System:** Implemented a DLQ system to handle persistent errors gracefully, preventing infinite retry loops. This significantly boosts system stability and reduces downtime.
+
+### 🐛 Bug Fixes
+- **Improved Payload Validation:** Fixed issues with fuzzy tests and payload validation for create template and report requests, ensuring more accurate data handling and reducing errors during report generation.
+- **Code Quality Enhancements:** Addressed linting and security issues following GoSec recommendations, enhancing the security and quality of the codebase.
+
+### 📚 Documentation
+- **Testing Framework Documentation:** Added a README to the tests package, providing clearer guidance for developers and improving the onboarding process.
+
+### 🔧 Maintenance
+- **Dependency Updates:** Conducted routine updates on project dependencies, ensuring compatibility and leveraging the latest improvements in third-party libraries.
+- **Changelog Updates:** Updated the CHANGELOG to reflect recent changes, maintaining accurate documentation of project progress.
+
+
 ## [v3.1.0-beta.4] - 2025-10-16
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.3...v3.1.0-beta.4)
