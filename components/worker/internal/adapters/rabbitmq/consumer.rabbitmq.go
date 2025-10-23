@@ -170,14 +170,25 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string, processErr error) bool {
 	// Safely extract current retry count
 	var retryCount int32
+
 	if raw, ok := message.Headers["x-retry-count"]; ok {
 		switch v := raw.(type) {
 		case int32:
 			retryCount = v
 		case int64:
-			retryCount = int32(v)
+			// Check for overflow before converting
+			if v > int64(^int32(0)) || v < int64(^int32(0)>>1) {
+				retryCount = 0 // Overflow - reset to 0
+			} else {
+				retryCount = int32(v)
+			}
 		case int:
-			retryCount = int32(v)
+			// Check for overflow before converting
+			if v > int(^int32(0)) || v < int(^int32(0)>>1) {
+				retryCount = 0 // Overflow - reset to 0
+			} else {
+				retryCount = int32(v)
+			}
 		case float32:
 			retryCount = int32(v)
 		case float64:
@@ -202,9 +213,9 @@ func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, worker
 	}
 
 	// Backoff before republishing: 2^n seconds where n is current retryCount
-	backoffSeconds := time.Duration(1<<retryCount) * time.Second
-	cr.Infof("Worker %d: Applying backoff of %v before retrying message from queue %s", workerID, backoffSeconds, queue)
-	time.Sleep(backoffSeconds)
+	backoff := time.Duration(1<<retryCount) * time.Second
+	cr.Infof("Worker %d: Applying backoff of %v before retrying message from queue %s", workerID, backoff, queue)
+	time.Sleep(backoff)
 
 	// Republish with retryCount + 1
 	retryCount++

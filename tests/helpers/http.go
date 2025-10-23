@@ -217,6 +217,7 @@ func (c *HTTPClient) ListReports(ctx context.Context, headers map[string]string,
 // UploadMultipartForm uploads a multipart form with files and form data
 func (c *HTTPClient) UploadMultipartForm(ctx context.Context, method, path string, headers map[string]string, formData map[string]string, files map[string][]byte) (int, []byte, error) {
 	var body bytes.Buffer
+
 	writer := multipart.NewWriter(&body)
 
 	// Add form fields
