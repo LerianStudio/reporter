@@ -42,10 +42,9 @@ networks:
     driver: bridge
   infra-network:
     name: infra-network
-    driver: bridge
+    external: true
   reporter-manager-network:
     name: reporter-manager-network
-    driver: bridge
     external: true
   proxy-network:
     name: proxy-network

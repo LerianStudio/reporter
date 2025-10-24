@@ -29,7 +29,7 @@ export class ReporterHttpService extends HttpService {
       'X-Request-Id': this.requestIdRepository.get()!
     }
 
-    if (process.env.REPORTER_AUTH_ENABLED === 'true') {
+    if (process.env.PLUGIN_AUTH_ENABLED === 'true') {
       const session = await getServerSession(nextAuthOptions)
       if (session?.user?.access_token) {
         headers.Authorization = `Bearer ${session.user.access_token}`

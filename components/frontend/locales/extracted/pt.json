@@ -125,7 +125,7 @@
   "reports.subtitle": "Crie e gerencie relatórios, o resultado do processamento de dados através de templates.",
   "reports.title": "Relatórios",
   "reports.tooltip": "Relatórios são documentos gerados que transformam seus dados de ledger usando templates. Você pode criar relatórios para conformidade, análise ou fins de exportação de dados.",
-  "reporter.breadcrumb.smartTemplates": "Reporter",
+  "reporter.breadcrumb.reporter": "Reporter",
   "table.toast.copyId": "O id foi copiado para sua área de transferência.",
   "templates.create.success": "Novo Template {name} criado com sucesso",
   "templates.delete.success": "Template excluído com sucesso",
