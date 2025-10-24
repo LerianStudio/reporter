@@ -360,7 +360,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingRequiredFields.Error(),
 			Title:      "Missing required fields",
-			Message:    "One or more required fields are missing. Please ensure all required fields like 'description', 'template', and 'outputFormat' are included.",
+			Message:    "One or more required fields are missing. Please ensure all required fields are included.",
 		},
 		constant.ErrInvalidFileFormat: ValidationError{
 			EntityType: entityType,
