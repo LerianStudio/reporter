@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0-beta.6] - 2025-10-27
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.5...v3.1.0-beta.6)
+Contributors: Gabriel Castro, lerian-studio
+
+### 📚 Documentation
+- Consistent code formatting and cleanup have been applied across configuration, documentation, and frontend components, improving code readability and maintainability.
+
+### 🔧 Maintenance
+- The CHANGELOG has been updated to reflect the latest changes, ensuring users and developers have access to the most current information about updates and improvements.
+
+### ✨ Improvements
+- **Authentication & Configuration**: The authentication network setup is now standardized across the application, reducing configuration errors and simplifying the integration process for developers.
+- **Frontend & Configuration**: We've unified the reporter configuration and internationalization (i18n) keys, streamlining the setup process and improving the user experience by making internationalization features easier to manage.
+- **Frontend**: The term "smart-templates" has been replaced with "reporter" throughout the application, clarifying terminology and enhancing user understanding of the reporting features.
+
+
 ## [v3.1.0-beta.5] - 2025-10-23
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.4...v3.1.0-beta.5)
