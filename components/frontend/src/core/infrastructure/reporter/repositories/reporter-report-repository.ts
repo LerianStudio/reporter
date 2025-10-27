@@ -27,13 +27,16 @@ export class ReporterReportRepository implements ReportRepository {
   async create(report: ReportEntity): Promise<ReportEntity> {
     const createDto = ReporterReportMapper.toCreateDto(report)
 
-    const response = await this.httpService.post<ReporterReportDto>(this.baseUrl, {
-      body: JSON.stringify(createDto),
-      headers: {
-        'X-Organization-Id': report.organizationId,
-        'Content-Type': 'application/json'
+    const response = await this.httpService.post<ReporterReportDto>(
+      this.baseUrl,
+      {
+        body: JSON.stringify(createDto),
+        headers: {
+          'X-Organization-Id': report.organizationId,
+          'Content-Type': 'application/json'
+        }
       }
-    })
+    )
 
     return {
       ...ReporterReportMapper.toEntity(response),

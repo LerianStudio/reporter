@@ -41,7 +41,9 @@ export class ReporterTemplateMapper {
   /**
    * Convert partial template entity to Reporter API update DTO
    */
-  static toUpdateDto(entity: Partial<TemplateEntity>): ReporterUpdateTemplateDto {
+  static toUpdateDto(
+    entity: Partial<TemplateEntity>
+  ): ReporterUpdateTemplateDto {
     return {
       description: entity.name,
       outputFormat: entity.outputFormat,

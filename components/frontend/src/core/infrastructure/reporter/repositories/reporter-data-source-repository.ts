@@ -13,14 +13,13 @@ export class ReporterDataSourceRepository implements DataSourceRepository {
   ) {}
 
   async fetchAll(organizationId: string): Promise<DataSource[]> {
-    const response = await this.reporterHttpService.get<ReporterDataSourceDto[]>(
-      '/v1/data-sources',
-      {
-        headers: {
-          'X-Organization-Id': organizationId
-        }
+    const response = await this.reporterHttpService.get<
+      ReporterDataSourceDto[]
+    >('/v1/data-sources', {
+      headers: {
+        'X-Organization-Id': organizationId
       }
-    )
+    })
 
     return ReporterDataSourceMapper.toListEntity(response)
   }

@@ -39,13 +39,13 @@ networks:
     driver: bridge
   plugin-auth-network:
     name: plugin-auth-network
-    external: true
+    driver: bridge
   infra-network:
     name: infra-network
     external: true
   reporter-manager-network:
     name: reporter-manager-network
-    external: true
+    driver: bridge
   proxy-network:
     name: proxy-network
     driver: bridge
