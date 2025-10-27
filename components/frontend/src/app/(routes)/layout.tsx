@@ -6,7 +6,7 @@ import { nextAuthOptions } from '@/core/infrastructure/next-auth/next-auth-provi
 
 export const metadata: Metadata = {
   title: 'Reporter | Midaz Console',
-  description: 'Manage smart templates in your system.'
+  description: 'Manage report templates in your system.'
 }
 
 export default async function RootLayout({

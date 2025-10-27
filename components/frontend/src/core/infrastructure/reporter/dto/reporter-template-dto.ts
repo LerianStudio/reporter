@@ -1,9 +1,9 @@
 import { OutputFormat } from '@/core/domain/entities/template-entity'
 
 /**
- * DTO representing a template response from the Smart Templates API
+ * DTO representing a template response from the Reporter API
  */
-export type SmartTemplateDto = {
+export type ReporterTemplateDto = {
   id: string
   fileName: string
   description?: string
@@ -14,18 +14,18 @@ export type SmartTemplateDto = {
 }
 
 /**
- * DTO for creating a new template via Smart Templates API
+ * DTO for creating a new template via Reporter API
  */
-export type SmartCreateTemplateDto = {
+export type ReporterCreateTemplateDto = {
   description?: string
   outputFormat: OutputFormat
   template: File
 }
 
 /**
- * DTO for updating a template via Smart Templates API
+ * DTO for updating a template via Reporter API
  */
-export type SmartUpdateTemplateDto = {
+export type ReporterUpdateTemplateDto = {
   description?: string
   outputFormat?: OutputFormat
   template?: File

@@ -1,8 +1,8 @@
-import { SmartPaginationMapper } from './smart-pagination-mapper'
+import { ReporterPaginationMapper } from './reporter-pagination-mapper'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
-import { SmartPaginationDto } from '../dto/smart-pagination-dto'
+import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
 
-describe('SmartPaginationMapper', () => {
+describe('ReporterPaginationMapper', () => {
   it('should map PaginationEntity to PaginationDto with default mapper', () => {
     const paginationEntity: PaginationEntity<number> = {
       items: [1, 2, 3],
@@ -10,8 +10,8 @@ describe('SmartPaginationMapper', () => {
       page: 1
     }
 
-    const result: SmartPaginationDto<number> =
-      SmartPaginationMapper.toResponseDto(paginationEntity, (item) => item)
+    const result: ReporterPaginationDto<number> =
+      ReporterPaginationMapper.toResponseDto(paginationEntity, (item) => item)
 
     expect(result).toEqual({
       items: [1, 2, 3],
@@ -28,8 +28,8 @@ describe('SmartPaginationMapper', () => {
     }
 
     const customMapper = (item: number) => `Item ${item}`
-    const result: SmartPaginationDto<string> =
-      SmartPaginationMapper.toResponseDto(paginationEntity, customMapper)
+    const result: ReporterPaginationDto<string> =
+      ReporterPaginationMapper.toResponseDto(paginationEntity, customMapper)
 
     expect(result).toEqual({
       items: ['Item 1', 'Item 2', 'Item 3'],
@@ -45,8 +45,8 @@ describe('SmartPaginationMapper', () => {
       page: 1
     }
 
-    const result: SmartPaginationDto<number> =
-      SmartPaginationMapper.toResponseDto(paginationEntity, (item) => item)
+    const result: ReporterPaginationDto<number> =
+      ReporterPaginationMapper.toResponseDto(paginationEntity, (item) => item)
 
     expect(result).toEqual({
       items: [],
@@ -62,8 +62,8 @@ describe('SmartPaginationMapper', () => {
       page: 1
     }
 
-    const result: SmartPaginationDto<number> =
-      SmartPaginationMapper.toResponseDto(paginationEntity, (item) => item)
+    const result: ReporterPaginationDto<number> =
+      ReporterPaginationMapper.toResponseDto(paginationEntity, (item) => item)
 
     expect(result).toEqual({
       items: [],

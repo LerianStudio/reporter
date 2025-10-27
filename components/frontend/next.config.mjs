@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 
-const basePath = process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+const basePath = process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH
 
 const nextConfig = {
-  basePath: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
-  assetPrefix: process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH,
+  basePath: process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH,
+  assetPrefix: process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH,
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   reactStrictMode: false,

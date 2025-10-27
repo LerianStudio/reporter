@@ -1,17 +1,20 @@
 import { ReportEntity } from '@/core/domain/entities/report-entity'
 import { PaginationEntity } from '@/core/domain/entities/pagination-entity'
-import { SmartReportDto, SmartCreateReportDto } from '../dto/smart-report-dto'
-import { SmartPaginationDto } from '../dto/smart-pagination-dto'
-import { SmartPaginationMapper } from './smart-pagination-mapper'
+import {
+  ReporterReportDto,
+  ReporterCreateReportDto
+} from '../dto/reporter-report-dto'
+import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
+import { ReporterPaginationMapper } from './reporter-pagination-mapper'
 
 /**
- * Mapper for converting between Smart Templates API DTOs and domain entities
+ * Mapper for converting between Reporter API DTOs and domain entities
  */
-export class SmartReportMapper {
+export class ReporterReportMapper {
   /**
-   * Convert Smart Report API DTO to domain entity
+   * Convert Reporter API DTO to domain entity
    */
-  static toEntity(dto: SmartReportDto): ReportEntity {
+  static toEntity(dto: ReporterReportDto): ReportEntity {
     return {
       id: dto.id,
       templateId: dto.templateId,
@@ -26,10 +29,10 @@ export class SmartReportMapper {
   }
 
   /**
-   * Convert report entity to Smart Templates API create DTO
+   * Convert report entity to Reporter API create DTO
    * Handles both old fields array format and new nested AdvancedReportFilters structure
    */
-  static toCreateDto(entity: ReportEntity): SmartCreateReportDto {
+  static toCreateDto(entity: ReportEntity): ReporterCreateReportDto {
     let filters: any = {}
 
     if (entity.filters && typeof entity.filters === 'object') {
@@ -82,11 +85,11 @@ export class SmartReportMapper {
   }
 
   /**
-   * Convert Smart Templates API pagination response to domain pagination entity
+   * Convert Reporter API pagination response to domain pagination entity
    */
   static toPaginationEntity(
-    dto: SmartPaginationDto<SmartReportDto>
+    dto: ReporterPaginationDto<ReporterReportDto>
   ): PaginationEntity<ReportEntity> {
-    return SmartPaginationMapper.toResponseDto(dto, this.toEntity)
+    return ReporterPaginationMapper.toResponseDto(dto, this.toEntity)
   }
 }

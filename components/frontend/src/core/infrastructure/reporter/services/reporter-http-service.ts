@@ -5,11 +5,11 @@ import { nextAuthOptions } from '@/core/infrastructure/next-auth/next-auth-provi
 import { OtelTracerProvider } from '@/core/infrastructure/observability/otel-tracer-provider'
 import { SpanStatusCode } from '@opentelemetry/api'
 import { getIntl } from '@/lib/intl'
-import { SmartTemplatesApiException } from '../exceptions/smart-templates-api-exceptions'
-import { smartTemplatesApiMessages } from '../messages/messages'
+import { ReporterApiException } from '../exceptions/reporter-api-exceptions'
+import { reporterApiMessages } from '../messages/messages'
 
 @Injectable()
-export class SmartTemplatesHttpService extends HttpService {
+export class ReporterHttpService extends HttpService {
   constructor(
     @Inject(LoggerAggregator)
     private readonly logger: LoggerAggregator,
@@ -21,7 +21,7 @@ export class SmartTemplatesHttpService extends HttpService {
     super()
   }
 
-  private smartTemplatesCustomSpanName: string = 'smart-templates-api-request'
+  private reporterCustomSpanName: string = 'reporter-api-request'
 
   protected async createDefaults() {
     const headers: Record<string, string> = {
@@ -29,35 +29,21 @@ export class SmartTemplatesHttpService extends HttpService {
       'X-Request-Id': this.requestIdRepository.get()!
     }
 
-    console.log('[INFO] - SmartTemplatesHttpService - Creating defaults', {})
-
     if (process.env.PLUGIN_AUTH_ENABLED === 'true') {
-      console.log(
-        '[INFO] - SmartTemplatesHttpService - PLUGIN_AUTH_ENABLED is',
-        process.env.PLUGIN_AUTH_ENABLED
-      )
-
       const session = await getServerSession(nextAuthOptions)
       if (session?.user?.access_token) {
-        console.log(
-          '[INFO] - SmartTemplatesHttpService - Session user access token',
-          session.user.access_token
-        )
-
         headers.Authorization = `Bearer ${session.user.access_token}`
       }
     }
 
-    console.log('[INFO] - SmartTemplatesHttpService - Headers', headers)
-
     return {
       headers,
-      baseUrl: process.env.PLUGIN_SMART_TEMPLATES_BASE_PATH
+      baseUrl: process.env.REPORTER_BASE_PATH
     }
   }
 
   protected onBeforeFetch(request: Request): void {
-    this.logger.info('[INFO] - SmartTemplatesHttpService', {
+    this.logger.info('[INFO] - ReporterHttpService', {
       url: request.url,
       method: request.method,
       headers: {
@@ -67,11 +53,11 @@ export class SmartTemplatesHttpService extends HttpService {
       }
     })
 
-    this.otelTracerProvider.startCustomSpan(this.smartTemplatesCustomSpanName)
+    this.otelTracerProvider.startCustomSpan(this.reporterCustomSpanName)
   }
 
   protected onAfterFetch(request: Request, response: Response): void {
-    this.logger.info('[INFO] - SmartTemplatesHttpService - Response', {
+    this.logger.info('[INFO] - ReporterHttpService - Response', {
       url: request.url,
       method: request.method,
       status: response.status,
@@ -83,7 +69,7 @@ export class SmartTemplatesHttpService extends HttpService {
         'http.url': request.url,
         'http.method': request.method,
         'http.status_code': response.status,
-        'smart-templates.service': 'smart-templates',
+        'reporter.service': 'reporter',
         'organization.id': request.headers.get('X-Organization-Id') || 'unknown'
       },
       status: {
@@ -93,7 +79,7 @@ export class SmartTemplatesHttpService extends HttpService {
   }
 
   protected async catch(request: Request, response: Response, error: any) {
-    this.logger.error('[ERROR] - SmartTemplatesHttpService', {
+    this.logger.error('[ERROR] - ReporterHttpService', {
       url: request.url,
       method: request.method,
       status: response.status,
@@ -108,13 +94,11 @@ export class SmartTemplatesHttpService extends HttpService {
 
     if (error?.code) {
       const message =
-        smartTemplatesApiMessages[
-          error.code as keyof typeof smartTemplatesApiMessages
-        ]
+        reporterApiMessages[error.code as keyof typeof reporterApiMessages]
 
       if (!message) {
         this.logger.warn(
-          '[ERROR] - SmartTemplatesHttpService - Error code not found',
+          '[ERROR] - ReporterHttpService - Error code not found',
           {
             url: request.url,
             method: request.method,
@@ -124,9 +108,9 @@ export class SmartTemplatesHttpService extends HttpService {
           }
         )
 
-        throw new SmartTemplatesApiException(
+        throw new ReporterApiException(
           intl.formatMessage({
-            id: 'error.smartTemplates.unknownError',
+            id: 'error.reporter.unknownError',
             defaultMessage: 'Unknown error occurred in Reporter service.'
           }),
           error.code,
@@ -134,26 +118,26 @@ export class SmartTemplatesHttpService extends HttpService {
         )
       }
 
-      throw new SmartTemplatesApiException(
+      throw new ReporterApiException(
         intl.formatMessage(message),
         error.code,
         response.status
       )
     }
 
-    throw new SmartTemplatesApiException(
+    throw new ReporterApiException(
       intl.formatMessage({
-        id: 'error.smartTemplates.unknownError',
+        id: 'error.reporter.unknownError',
         defaultMessage: 'Unknown error occurred in Reporter service.'
       }),
-      'SMART_TEMPLATES_UNKNOWN_ERROR',
+      'REPORTER_UNKNOWN_ERROR',
       response.status || 500
     )
   }
 
   /**
    * Handle file download streams with proper response handling
-   * Override for binary file downloads from the Smart Templates API
+   * Override for binary file downloads from the Reporter API
    */
   async getFileStream(
     url: URL | string,

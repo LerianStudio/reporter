@@ -8,35 +8,38 @@ import {
   ReportRepository,
   DownloadFileResponse
 } from '@/core/domain/repositories/report-repository'
-import { SmartTemplatesHttpService } from '../services/smart-templates-http-service'
-import { SmartReportMapper } from '../mappers/smart-report-mapper'
-import { SmartReportDto } from '../dto/smart-report-dto'
-import { SmartPaginationDto } from '../dto/smart-pagination-dto'
+import { ReporterHttpService } from '../services/reporter-http-service'
+import { ReporterReportMapper } from '../mappers/reporter-report-mapper'
+import { ReporterReportDto } from '../dto/reporter-report-dto'
+import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
 import { createQueryString } from '@/lib/search'
 import { validateAndFormatDateForQuery } from '@/lib/date-validation'
 
 @injectable()
-export class SmartReportRepository implements ReportRepository {
+export class ReporterReportRepository implements ReportRepository {
   constructor(
-    @inject(SmartTemplatesHttpService)
-    private readonly httpService: SmartTemplatesHttpService
+    @inject(ReporterHttpService)
+    private readonly httpService: ReporterHttpService
   ) {}
 
   private baseUrl: string = '/v1/reports'
 
   async create(report: ReportEntity): Promise<ReportEntity> {
-    const createDto = SmartReportMapper.toCreateDto(report)
+    const createDto = ReporterReportMapper.toCreateDto(report)
 
-    const response = await this.httpService.post<SmartReportDto>(this.baseUrl, {
-      body: JSON.stringify(createDto),
-      headers: {
-        'X-Organization-Id': report.organizationId,
-        'Content-Type': 'application/json'
+    const response = await this.httpService.post<ReporterReportDto>(
+      this.baseUrl,
+      {
+        body: JSON.stringify(createDto),
+        headers: {
+          'X-Organization-Id': report.organizationId,
+          'Content-Type': 'application/json'
+        }
       }
-    })
+    )
 
     return {
-      ...SmartReportMapper.toEntity(response),
+      ...ReporterReportMapper.toEntity(response),
       organizationId: report.organizationId
     }
   }
@@ -64,14 +67,14 @@ export class SmartReportRepository implements ReportRepository {
     }
 
     const response = await this.httpService.get<
-      SmartPaginationDto<SmartReportDto>
+      ReporterPaginationDto<ReporterReportDto>
     >(`${this.baseUrl}${createQueryString(queryParams)}`, {
       headers: {
         'X-Organization-Id': organizationId
       }
     })
 
-    const paginationResult = SmartReportMapper.toPaginationEntity(response)
+    const paginationResult = ReporterReportMapper.toPaginationEntity(response)
 
     return {
       ...paginationResult,
@@ -83,7 +86,7 @@ export class SmartReportRepository implements ReportRepository {
   }
 
   async fetchById(id: string, organizationId: string): Promise<ReportEntity> {
-    const response = await this.httpService.get<SmartReportDto>(
+    const response = await this.httpService.get<ReporterReportDto>(
       `${this.baseUrl}/${id}`,
       {
         headers: {
@@ -93,7 +96,7 @@ export class SmartReportRepository implements ReportRepository {
     )
 
     return {
-      ...SmartReportMapper.toEntity(response),
+      ...ReporterReportMapper.toEntity(response),
       organizationId
     }
   }
