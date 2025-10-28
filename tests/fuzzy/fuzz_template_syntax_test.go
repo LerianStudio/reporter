@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // FuzzTemplateSyntaxErrors tests various template syntax errors

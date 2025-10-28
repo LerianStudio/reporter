@@ -1,23 +1,24 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
-	in2 "github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/http/in"
-	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v3/components/manager/internal/adapters/redis"
-	"github.com/LerianStudio/reporter/v3/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	"github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v3/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v3/pkg/pdf"
-	simpleClient "github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
+	in2 "github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/http/in"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v4/pkg/pdf"
+	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -136,6 +137,18 @@ func InitServers() *Service {
 
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
+
+	// Create MongoDB indexes
+	logger.Info("Ensuring MongoDB indexes exist for templates and reports...")
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	if err := templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Fatalf("Failed to ensure template indexes: %v", err)
+	}
+
+	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Fatalf("Failed to ensure report indexes: %v", err)
+	}
 
 	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
 	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)

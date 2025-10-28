@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // Property 1: Report status deve sempre progredir de Processing → Finished ou Error

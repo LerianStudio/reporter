@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	"github.com/LerianStudio/reporter/v3/pkg/model"
-	"github.com/LerianStudio/reporter/v3/pkg/pongo"
-	"github.com/LerianStudio/reporter/v3/pkg/postgres"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/v4/pkg/pongo"
+	"github.com/LerianStudio/reporter/v4/pkg/postgres"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"

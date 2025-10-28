@@ -1,8 +1,8 @@
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v3/pkg/model"
-	"github.com/LerianStudio/reporter/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/v4/pkg/net/http"
 
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 

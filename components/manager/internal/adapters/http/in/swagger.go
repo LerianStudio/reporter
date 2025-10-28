@@ -3,8 +3,8 @@ package in
 import (
 	"os"
 
-	"github.com/LerianStudio/reporter/v3/components/manager/api"
-	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v4/components/manager/api"
+	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

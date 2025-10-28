@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"

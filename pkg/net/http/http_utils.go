@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"

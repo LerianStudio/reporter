@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // FuzzTemplateInvalidTags tests templates with non-existent or malformed tags

@@ -3,7 +3,7 @@ package report
 import (
 	"time"
 
-	"github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	"github.com/google/uuid"
 )

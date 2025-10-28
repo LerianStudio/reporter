@@ -7,7 +7,7 @@ import (
 	"testing/quick"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // Property 1: Report criado deve sempre existir no MongoDB

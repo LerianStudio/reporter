@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 )
 
 // GetMimeType return a MIME type correctly based with outputFormat

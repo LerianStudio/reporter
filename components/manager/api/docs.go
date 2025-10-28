@@ -191,7 +191,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -262,7 +262,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -325,7 +325,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -477,7 +477,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -560,7 +560,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -614,7 +614,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -751,7 +751,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -792,7 +792,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -867,7 +867,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition": {
+        "github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition": {
             "type": "object",
             "properties": {
                 "between": {
@@ -912,7 +912,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v3_pkg_mongodb_report.Report": {
+        "github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -931,7 +931,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v3_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -957,7 +957,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v3_pkg_mongodb_template.Template": {
+        "github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -1009,7 +1009,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "3.0.0",
+	Version:          "4.0.0",
 	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},

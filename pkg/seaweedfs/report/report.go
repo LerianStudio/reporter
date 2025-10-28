@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	"github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
 )
 
 // Repository provides an interface for SeaweedFS storage operations

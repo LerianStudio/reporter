@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation

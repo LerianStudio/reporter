@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 
-	"github.com/LerianStudio/reporter/v3/pkg"
-	reportData "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 )
 
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.

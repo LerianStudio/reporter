@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // FuzzReportPayload tests various malformed report creation payloads

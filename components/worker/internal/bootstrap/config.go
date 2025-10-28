@@ -1,17 +1,18 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 
-	"github.com/LerianStudio/reporter/v3/components/worker/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v3/components/worker/internal/services"
-	"github.com/LerianStudio/reporter/v3/pkg"
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	reportData "github.com/LerianStudio/reporter/v3/pkg/mongodb/report"
-	simpleClient "github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v3/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v4/components/worker/internal/services"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -117,6 +118,19 @@ func InitWorker() *Service {
 	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
 	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
 
+	// Initialize MongoDB repositories
+	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
+
+	// Create MongoDB indexes for optimal performance
+	// Indexes are created automatically on startup to ensure they exist
+	// This is idempotent and safe to run multiple times
+	logger.Info("Ensuring MongoDB indexes exist for reports...")
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
+	}
+
 	// Initialize circuit breaker manager for datasource resilience
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 	externalDataSources := pkg.ExternalDatasourceConnections(logger)
@@ -126,7 +140,7 @@ func InitWorker() *Service {
 		TemplateSeaweedFS:     templateSeaweedFSRepository,
 		ReportSeaweedFS:       reportSeaweedFSRepository,
 		ExternalDataSources:   externalDataSources,
-		ReportDataRepo:        reportData.NewReportMongoDBRepository(mongoConnection),
+		ReportDataRepo:        reportMongoDBRepository,
 		CircuitBreakerManager: circuitBreakerManager,
 		HealthChecker:         healthChecker,
 		ReportTTL:             cfg.SeaweedFSTTL,
