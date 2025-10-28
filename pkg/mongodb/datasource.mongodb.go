@@ -346,8 +346,17 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 		return ds.discoverFieldsWithSampling(ctx, coll, count)
 	}
 
-	// For small collections, use full aggregation
+	// For small collections, use optimized aggregation with $limit
 	pipeline := []bson.M{
+		// Limit processing to a reasonable sample size even for small collections
+		{
+			"$limit": func() int64 {
+				if count > 1000 {
+					return 1000
+				}
+				return count
+			}(),
+		},
 		{
 			"$project": bson.M{
 				"arrayofkeyvalue": bson.M{"$objectToArray": "$$ROOT"},

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 
@@ -117,6 +118,19 @@ func InitWorker() *Service {
 	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
 	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
 
+	// Initialize MongoDB repositories
+	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
+
+	// Create MongoDB indexes for optimal performance
+	// Indexes are created automatically on startup to ensure they exist
+	// This is idempotent and safe to run multiple times
+	logger.Info("Ensuring MongoDB indexes exist for reports...")
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
+	}
+
 	// Initialize circuit breaker manager for datasource resilience
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 	externalDataSources := pkg.ExternalDatasourceConnections(logger)
@@ -126,7 +140,7 @@ func InitWorker() *Service {
 		TemplateSeaweedFS:     templateSeaweedFSRepository,
 		ReportSeaweedFS:       reportSeaweedFSRepository,
 		ExternalDataSources:   externalDataSources,
-		ReportDataRepo:        reportData.NewReportMongoDBRepository(mongoConnection),
+		ReportDataRepo:        reportMongoDBRepository,
 		CircuitBreakerManager: circuitBreakerManager,
 		HealthChecker:         healthChecker,
 		ReportTTL:             cfg.SeaweedFSTTL,

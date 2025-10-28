@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -136,6 +137,20 @@ func InitServers() *Service {
 
 	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
 	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
+
+	// Create MongoDB indexes for optimal performance
+	// Indexes are created automatically on startup to ensure they exist
+	// This is idempotent and safe to run multiple times
+	logger.Info("Ensuring MongoDB indexes exist for templates and reports...")
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	if err := templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure template indexes (non-fatal): %v", err)
+	}
+
+	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
+	}
 
 	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
 	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
