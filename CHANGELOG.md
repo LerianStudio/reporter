@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.1] - 2025-10-28
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.6...v4.0.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Project Update to Module Version v4**: The project now uses SeaweedFS and has been renamed to "reporter". This update may require changes to configuration files and integration points. Please update any scripts or documentation referencing the old project name. Ensure compatibility with the new module version by reviewing your setup.
+
+### ✨ Features
+- **Improved Database Performance**: Implemented indexes for the template and report collections, significantly boosting query performance. This enhancement allows faster access to report data and templates, particularly benefiting users with large datasets.
+
+### 🐛 Bug Fixes
+- **Accurate Log Configuration**: Corrected the log type configuration to ensure precise logging behavior. This fix resolves issues where incorrect log types could lead to misinterpretation of log data, enhancing overall system reliability.
+
+### ⚡ Performance
+- **Enhanced Log Configuration**: Updated the type of log configuration to improve clarity and consistency across environments. This change ensures more reliable log outputs, aiding in better monitoring and troubleshooting of application behavior.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The CHANGELOG has been revised to reflect the latest changes and improvements, providing users with up-to-date information about the project's evolution.
+
+
 ## [v3.1.0-beta.6] - 2025-10-27
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.5...v3.1.0-beta.6)
