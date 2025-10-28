@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	"github.com/LerianStudio/reporter/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"

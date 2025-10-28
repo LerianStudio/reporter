@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/sony/gobreaker"

@@ -3,7 +3,7 @@ package postgres
 import (
 	"database/sql"
 
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 
 	"strings"
 

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
-	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/sony/gobreaker"
 )
 

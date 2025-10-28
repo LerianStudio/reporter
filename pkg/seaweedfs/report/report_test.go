@@ -2,11 +2,12 @@ package report
 
 import (
 	"context"
-	"github.com/LerianStudio/reporter/v3/pkg/seaweedfs"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
 )
 
 func TestSimpleRepository_Put_Success(t *testing.T) {

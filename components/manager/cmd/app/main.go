@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/LerianStudio/reporter/v3/components/manager/internal/bootstrap"
-	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/bootstrap"
+	"github.com/LerianStudio/reporter/v4/pkg"
 )
 
 // @title			Reporter
-// @version		3.0.0
+// @version		4.0.0
 // @description	This is a swagger documentation for Reporter
 // @termsOfService	http://swagger.io/terms/
 // @host			localhost:4005

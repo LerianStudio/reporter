@@ -1,7 +1,7 @@
 package bootstrap
 
 import (
-	"github.com/LerianStudio/reporter/v3/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libCommonsLicense "github.com/LerianStudio/lib-commons/v2/commons/license"

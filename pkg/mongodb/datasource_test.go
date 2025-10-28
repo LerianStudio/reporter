@@ -3,7 +3,7 @@ package mongodb
 import (
 	"testing"
 
-	"github.com/LerianStudio/reporter/v3/pkg/model"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

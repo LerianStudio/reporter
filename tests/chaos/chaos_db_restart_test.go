@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // Restarts MongoDB and Redis containers and validates recovery of the system

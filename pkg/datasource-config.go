@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v3/pkg/constant"
-	"github.com/LerianStudio/reporter/v3/pkg/mongodb"
-	pg "github.com/LerianStudio/reporter/v3/pkg/postgres"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/v4/pkg/postgres"
 
 	"context"
 

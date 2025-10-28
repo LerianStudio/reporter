@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
