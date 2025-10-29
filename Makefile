@@ -316,7 +316,22 @@ sec:
 .PHONY: clean
 clean:
 	$(call title1,"Cleaning build artifacts")
-	@rm -rf $(BIN_DIR)/* $(ARTIFACTS_DIR)/*
+	@if [ -z "$(BIN_DIR)" ] || [ -z "$(ARTIFACTS_DIR)" ]; then \
+		echo "$(RED)$(BOLD)[error]$(NC) BIN_DIR or ARTIFACTS_DIR is not set. Aborting to prevent accidental deletion.$(RED) ❌$(NC)"; \
+		exit 1; \
+	fi
+	@if [ "$(BIN_DIR)" = "/" ] || [ "$(ARTIFACTS_DIR)" = "/" ]; then \
+		echo "$(RED)$(BOLD)[error]$(NC) BIN_DIR or ARTIFACTS_DIR cannot be root directory. Aborting.$(RED) ❌$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -d "$(BIN_DIR)" ]; then \
+		echo "$(CYAN)Cleaning $(BIN_DIR)...$(NC)"; \
+		rm -rf $(BIN_DIR)/*; \
+	fi
+	@if [ -d "$(ARTIFACTS_DIR)" ]; then \
+		echo "$(CYAN)Cleaning $(ARTIFACTS_DIR)...$(NC)"; \
+		rm -rf $(ARTIFACTS_DIR)/*; \
+	fi
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Artifacts cleaned successfully$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------

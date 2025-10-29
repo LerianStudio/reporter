@@ -2,8 +2,8 @@ package pdf
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -53,7 +53,15 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 func (wp *WorkerPool) startWorker(_ int) {
 	defer wp.wg.Done()
 
-	// Optimized Chrome configuration for container environment
+	ctx := wp.initializeChromeContext()
+
+	for task := range wp.tasks {
+		wp.processTask(ctx, task)
+	}
+}
+
+// initializeChromeContext initializes a Chrome context with optimized flags for container environments.
+func (wp *WorkerPool) initializeChromeContext() context.Context {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
 		chromedp.Flag("no-sandbox", true),
@@ -68,111 +76,143 @@ func (wp *WorkerPool) startWorker(_ int) {
 		chromedp.Flag("memory-pressure-off", true),
 	)
 
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
+	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+	ctx, _ := chromedp.NewContext(allocCtx)
 
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+	return ctx
+}
 
-	for task := range wp.tasks {
-		ctxTimeout, cancelTimeout := context.WithTimeout(ctx, wp.timeout)
+// processTask handles a single PDF generation task.
+func (wp *WorkerPool) processTask(ctx context.Context, task Task) {
+	ctxTimeout, cancelTimeout := context.WithTimeout(ctx, wp.timeout)
+	defer cancelTimeout()
 
-		var pdfBuf []byte
+	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %d bytes)", task.Filename, len(task.HTML))
 
-		wp.logger.Infof("Starting PDF generation for task: %s", task.Filename)
-
-		dataURL := "data:text/html;charset=utf-8," + url.PathEscape(task.HTML)
-		err := chromedp.Run(ctxTimeout,
-			chromedp.Navigate(dataURL),
-			chromedp.WaitVisible("body", chromedp.ByQuery),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				return network.Enable().Do(ctx)
-			}),
-			chromedp.WaitReady("body", chromedp.ByQuery),
-			chromedp.Sleep(500*time.Millisecond),
-			chromedp.ActionFunc(func(ctx context.Context) error {
-				var err error
-
-				pdfBuf, _, err = page.PrintToPDF().
-					WithPrintBackground(true).
-					WithPaperWidth(8.5).
-					WithPaperHeight(11).
-					WithMarginTop(0.5).
-					WithMarginBottom(0.5).
-					WithMarginLeft(0.5).
-					WithMarginRight(0.5).
-					WithDisplayHeaderFooter(false).
-					Do(ctx)
-
-				return err
-			}),
-		)
-
-		// If PDF is too small, try with temporary file approach
-		if err == nil && len(pdfBuf) < 1000 {
-			wp.logger.Infof("PDF too small (%d bytes), trying file approach", len(pdfBuf))
-
-			tmpFile, tmpErr := os.CreateTemp("", "pdf-*.html")
-			if tmpErr != nil {
-				err = fmt.Errorf("failed to create temp file: %v", tmpErr)
-			} else {
-				tmpFileName := tmpFile.Name()
-				if closeErr := tmpFile.Close(); closeErr != nil {
-					wp.logger.Warnf("Failed to close temp file %s: %v", tmpFileName, closeErr)
-				}
-
-				if writeErr := os.WriteFile(tmpFileName, []byte(task.HTML), 0600); writeErr != nil {
-					err = fmt.Errorf("failed to write HTML to temp file: %v", writeErr)
-				} else {
-					fileURL := "file://" + filepath.ToSlash(tmpFileName)
-					err = chromedp.Run(ctxTimeout,
-						chromedp.Navigate(fileURL),
-						chromedp.WaitVisible("body", chromedp.ByQuery),
-						chromedp.ActionFunc(func(ctx context.Context) error {
-							return network.Enable().Do(ctx)
-						}),
-						chromedp.WaitReady("body", chromedp.ByQuery),
-						chromedp.Sleep(500*time.Millisecond),
-						chromedp.ActionFunc(func(ctx context.Context) error {
-							var err error
-
-							pdfBuf, _, err = page.PrintToPDF().
-								WithPrintBackground(true).
-								WithPaperWidth(8.5).
-								WithPaperHeight(11).
-								WithMarginTop(0.5).
-								WithMarginBottom(0.5).
-								WithMarginLeft(0.5).
-								WithMarginRight(0.5).
-								WithDisplayHeaderFooter(false).
-								Do(ctx)
-
-							return err
-						}),
-					)
-				}
-
-				if removeErr := os.Remove(tmpFileName); removeErr != nil {
-					wp.logger.Warnf("Failed to remove temp file %s: %v", tmpFileName, removeErr)
-				}
-			}
-		}
-
-		if err == nil {
-			if len(pdfBuf) < 1000 {
-				err = fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
-				wp.logger.Errorf("Final PDF too small: %d bytes", len(pdfBuf))
-			} else {
-				err = os.WriteFile(task.Filename, pdfBuf, 0600)
-				wp.logger.Infof("PDF generated successfully: %d bytes", len(pdfBuf))
-			}
-		} else {
-			wp.logger.Errorf("PDF generation failed: %v", err)
-		}
-
-		cancelTimeout()
-
+	tmpFileName, err := wp.createTempHTMLFile(task.HTML)
+	if err != nil {
 		task.Result <- err
+		return
+	}
+
+	pdfBuf, err := wp.generatePDFFromFile(ctxTimeout, tmpFileName)
+
+	err = wp.processPDFResult(pdfBuf, task.Filename, err)
+
+	err = wp.cleanupTempFile(tmpFileName, err)
+
+	task.Result <- err
+}
+
+// createTempHTMLFile creates a temporary HTML file with the provided content.
+func (wp *WorkerPool) createTempHTMLFile(html string) (string, error) {
+	tmpFile, err := os.CreateTemp("", "pdf-*.html")
+	if err != nil {
+		wp.logger.Errorf("Failed to create temp HTML file: %v", err)
+		return "", fmt.Errorf("failed to create temp HTML file: %w", err)
+	}
+
+	tmpFileName := tmpFile.Name()
+
+	if err := tmpFile.Close(); err != nil {
+		wp.logger.Warnf("Failed to close temp file %s: %v", tmpFileName, err)
+	}
+
+	if err := os.WriteFile(tmpFileName, []byte(html), 0600); err != nil {
+		wp.logger.Errorf("Failed to write HTML to temp file: %v", err)
+
+		_ = os.Remove(tmpFileName)
+
+		return "", fmt.Errorf("failed to write HTML to temp file: %w", err)
+	}
+
+	return tmpFileName, nil
+}
+
+// generatePDFFromFile generates a PDF from an HTML file using Chrome.
+func (wp *WorkerPool) generatePDFFromFile(ctx context.Context, htmlFilePath string) ([]byte, error) {
+	fileURL := "file://" + filepath.ToSlash(htmlFilePath)
+	wp.logger.Infof("Navigating to file URL: %s", fileURL)
+
+	var pdfBuf []byte
+
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(fileURL),
+		chromedp.WaitVisible("body", chromedp.ByQuery),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			return network.Enable().Do(ctx)
+		}),
+		chromedp.WaitReady("body", chromedp.ByQuery),
+		chromedp.Sleep(500*time.Millisecond),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			var err error
+
+			pdfBuf, _, err = page.PrintToPDF().
+				WithPrintBackground(true).
+				WithPaperWidth(8.5).
+				WithPaperHeight(11).
+				WithMarginTop(0.5).
+				WithMarginBottom(0.5).
+				WithMarginLeft(0.5).
+				WithMarginRight(0.5).
+				WithDisplayHeaderFooter(false).
+				Do(ctx)
+
+			return err
+		}),
+	)
+	if err != nil {
+		wp.logPDFGenerationError(ctx, err)
+		return nil, err
+	}
+
+	return pdfBuf, nil
+}
+
+// processPDFResult validates and writes the generated PDF to disk.
+func (wp *WorkerPool) processPDFResult(pdfBuf []byte, filename string, err error) error {
+	if err != nil {
+		return err
+	}
+
+	if len(pdfBuf) < 1000 {
+		wp.logger.Errorf("Final PDF too small: %d bytes", len(pdfBuf))
+		return fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
+	}
+
+	if err := os.WriteFile(filename, pdfBuf, 0600); err != nil {
+		wp.logger.Errorf("Failed to write PDF file: %v", err)
+		return err
+	}
+
+	wp.logger.Infof("PDF generated successfully: %d bytes written to %s", len(pdfBuf), filename)
+
+	return nil
+}
+
+// cleanupTempFile removes the temporary HTML file and wraps cleanup errors with the original error.
+func (wp *WorkerPool) cleanupTempFile(tmpFileName string, originalErr error) error {
+	if err := os.Remove(tmpFileName); err != nil {
+		wp.logger.Errorf("Failed to remove temp file %s: %v", tmpFileName, err)
+
+		if originalErr == nil {
+			return fmt.Errorf("generated PDF successfully but failed to remove temp file %s: %w", tmpFileName, err)
+		}
+
+		return fmt.Errorf("%w; additionally failed to remove temp file %s: %v", originalErr, tmpFileName, err)
+	}
+
+	return originalErr
+}
+
+// logPDFGenerationError logs PDF generation errors with appropriate context.
+func (wp *WorkerPool) logPDFGenerationError(ctx context.Context, err error) {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		wp.logger.Errorf("PDF generation timeout (configured timeout: %v): %v", wp.timeout, err)
+	} else if errors.Is(ctx.Err(), context.Canceled) {
+		wp.logger.Errorf("PDF generation context canceled: %v", err)
+	} else {
+		wp.logger.Errorf("PDF generation failed: %v", err)
 	}
 }
 
