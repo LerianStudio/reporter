@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.2] - 2025-10-29
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.1...v4.0.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved PDF Generation**: Resolved issues with PDF file creation by adopting a temporary file approach, ensuring reliable document exports without errors.
+- **Enhanced Error Handling**: Improved error messages during PDF generation, providing users with clearer guidance when issues occur.
+- **Clean Build Environment**: Fixed the `make clean` command to ensure proper removal of build artifacts, preventing potential conflicts and maintaining a tidy development setup.
+
+### 🔧 Maintenance
+- **Security Enhancements**: Addressed a security vulnerability in the frontend, ensuring a safer user experience by mitigating potential risks.
+- **Code Quality Improvements**: Implemented linting recommendations across the codebase, enhancing overall stability and readability.
+
+
 ## [v4.0.0-beta.1] - 2025-10-28
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.6...v4.0.0-beta.1)
