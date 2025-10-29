@@ -144,10 +144,7 @@ func (wp *WorkerPool) startWorker(_ int) {
 			}),
 		)
 
-		if removeErr := os.Remove(tmpFileName); removeErr != nil {
-			wp.logger.Warnf("Failed to remove temp file %s: %v", tmpFileName, removeErr)
-		}
-
+		// Process PDF generation result
 		if err == nil {
 			if len(pdfBuf) < 1000 {
 				err = fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
@@ -167,6 +164,19 @@ func (wp *WorkerPool) startWorker(_ int) {
 				wp.logger.Errorf("PDF generation context canceled: %v", err)
 			} else {
 				wp.logger.Errorf("PDF generation failed: %v", err)
+			}
+		}
+
+		// Clean up temporary HTML file - critical operation
+		// Failure to remove temp files will cause disk space exhaustion in long-running services
+		if removeErr := os.Remove(tmpFileName); removeErr != nil {
+			wp.logger.Errorf("Failed to remove temp file %s: %v", tmpFileName, removeErr)
+			if err == nil {
+				// PDF generation succeeded but cleanup failed - this is still an error
+				err = fmt.Errorf("generated PDF successfully but failed to remove temp file %s: %w", tmpFileName, removeErr)
+			} else {
+				// Both PDF generation and cleanup failed - wrap both errors
+				err = fmt.Errorf("%w; additionally failed to remove temp file %s: %v", err, tmpFileName, removeErr)
 			}
 		}
 
