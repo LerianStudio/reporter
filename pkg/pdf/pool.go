@@ -53,16 +53,14 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 func (wp *WorkerPool) startWorker(_ int) {
 	defer wp.wg.Done()
 
-	ctx := wp.initializeChromeContext()
-
 	for task := range wp.tasks {
-		wp.processTask(ctx, task)
+		wp.processTask(task)
 	}
 }
 
-// initializeChromeContext initializes a Chrome context with optimized flags for container environments.
-func (wp *WorkerPool) initializeChromeContext() context.Context {
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+// getChromeOptions returns optimized Chrome flags for PDF generation in containers with memory limits.
+func (wp *WorkerPool) getChromeOptions() []chromedp.ExecAllocatorOption {
+	return []chromedp.ExecAllocatorOption{
 		chromedp.Flag("headless", true),
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
@@ -72,22 +70,36 @@ func (wp *WorkerPool) initializeChromeContext() context.Context {
 		chromedp.Flag("disable-background-timer-throttling", true),
 		chromedp.Flag("disable-backgrounding-occluded-windows", true),
 		chromedp.Flag("disable-renderer-backgrounding", true),
-		chromedp.Flag("disable-features", "TranslateUI"),
-		chromedp.Flag("memory-pressure-off", true),
-	)
+		chromedp.Flag("disable-features", "TranslateUI,site-per-process"),
 
-	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-	ctx, _ := chromedp.NewContext(allocCtx)
+		chromedp.Flag("max-old-space-size", "512"),
+		chromedp.Flag("js-flags", "--max-old-space-size=512"),
+		chromedp.Flag("disable-software-rasterizer", true),
+		chromedp.Flag("single-process", true),
+		chromedp.Flag("disable-namespace-sandbox", true),
 
-	return ctx
+		chromedp.Flag("force-fieldtrials", "OmniboxBundledExperimentV1/Disabled"),
+	}
 }
 
 // processTask handles a single PDF generation task.
-func (wp *WorkerPool) processTask(ctx context.Context, task Task) {
+// Creates a fresh Chrome context per task to prevent memory leaks.
+func (wp *WorkerPool) processTask(task Task) {
+	htmlSizeKB := float64(len(task.HTML)) / 1024
+	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %.2f KB, timeout: %v)", task.Filename, htmlSizeKB, wp.timeout)
+
+	if len(task.HTML) > 500*1024 {
+		wp.logger.Warnf("⚠️  Large HTML detected (%.2f KB). Consider increasing PDF_TIMEOUT_SECONDS if timeouts occur", htmlSizeKB)
+	}
+
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), wp.getChromeOptions()...)
+	defer allocCancel()
+
+	ctx, ctxCancel := chromedp.NewContext(allocCtx)
+	defer ctxCancel()
+
 	ctxTimeout, cancelTimeout := context.WithTimeout(ctx, wp.timeout)
 	defer cancelTimeout()
-
-	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %d bytes)", task.Filename, len(task.HTML))
 
 	tmpFileName, err := wp.createTempHTMLFile(task.HTML)
 	if err != nil {
