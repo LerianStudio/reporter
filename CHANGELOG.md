@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.3] - 2025-10-30
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.2...v4.0.0-beta.3)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Backend Image Generation**: Resolved an issue with the generation of images for backend components. This fix ensures that all visual representations in the documentation are accurate, improving the reliability and clarity of the backend documentation for users.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to include the latest changes and improvements. This ensures users are informed about the most recent updates, helping them track project progress effectively and stay informed about the software's evolution.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates and maintenance of the documentation were performed to keep it current and useful. This ongoing effort ensures that users always have access to accurate and helpful information about the software.
+
+
 ## [v4.0.0-beta.2] - 2025-10-29
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.1...v4.0.0-beta.2)
