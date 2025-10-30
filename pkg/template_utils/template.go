@@ -19,6 +19,8 @@ func GetMimeType(outputFormat string) string {
 		return "text/csv"
 	case "txt":
 		return "text/plain"
+	case "pdf":
+		return "application/pdf"
 	default:
 		return "application/octet-stream"
 	}

@@ -50,11 +50,15 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 }
 
 // startWorker runs a Chrome worker to generate PDFs.
+// Creates a single browser process per worker and reuses it for all tasks.
 func (wp *WorkerPool) startWorker(_ int) {
 	defer wp.wg.Done()
 
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), wp.getChromeOptions()...)
+	defer allocCancel()
+
 	for task := range wp.tasks {
-		wp.processTask(task)
+		wp.processTask(allocCtx, task)
 	}
 }
 
@@ -83,17 +87,13 @@ func (wp *WorkerPool) getChromeOptions() []chromedp.ExecAllocatorOption {
 }
 
 // processTask handles a single PDF generation task.
-// Creates a fresh Chrome context per task to prevent memory leaks.
-func (wp *WorkerPool) processTask(task Task) {
+func (wp *WorkerPool) processTask(allocCtx context.Context, task Task) {
 	htmlSizeKB := float64(len(task.HTML)) / 1024
 	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %.2f KB, timeout: %v)", task.Filename, htmlSizeKB, wp.timeout)
 
 	if len(task.HTML) > 500*1024 {
 		wp.logger.Warnf("⚠️  Large HTML detected (%.2f KB). Consider increasing PDF_TIMEOUT_SECONDS if timeouts occur", htmlSizeKB)
 	}
-
-	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), wp.getChromeOptions()...)
-	defer allocCancel()
 
 	ctx, ctxCancel := chromedp.NewContext(allocCtx)
 	defer ctxCancel()
