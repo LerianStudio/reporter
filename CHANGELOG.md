@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.4] - 2025-10-30
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.3...v4.0.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **PDF Generation**: Resolved a performance issue that caused delays and errors during PDF exports. Users can now generate PDFs more reliably, enhancing the overall user experience.
+
+### ⚡ Performance
+- **PDF Export Efficiency**: Improved the speed of PDF generation, significantly reducing wait times, especially for large documents. This enhancement allows users to work more efficiently without interruptions.
+
+### 📚 Documentation
+- **Enhanced PDF Generation**: Updated documentation to reflect improvements in PDF generation performance. Users can now find detailed guidance on optimizing their document creation process.
+
+### 🔧 Maintenance
+- **Dependency Update**: Upgraded the `lib-commons` library to the latest version, ensuring compatibility and benefiting from the latest security patches and improvements.
+- **Changelog Update**: Revised the CHANGELOG to provide users with the latest information on updates and fixes, promoting transparency and effective communication.
+
+
 ## [v4.0.0-beta.3] - 2025-10-30
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.2...v4.0.0-beta.3)
