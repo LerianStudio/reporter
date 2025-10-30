@@ -8,6 +8,7 @@ import {
   ReportRepository,
   DownloadFileResponse
 } from '@/core/domain/repositories/report-repository'
+import { TemplateRepository } from '@/core/domain/repositories/template-repository'
 import { ReporterHttpService } from '../services/reporter-http-service'
 import { ReporterReportMapper } from '../mappers/reporter-report-mapper'
 import { ReporterReportDto } from '../dto/reporter-report-dto'
@@ -19,7 +20,9 @@ import { validateAndFormatDateForQuery } from '@/lib/date-validation'
 export class ReporterReportRepository implements ReportRepository {
   constructor(
     @inject(ReporterHttpService)
-    private readonly httpService: ReporterHttpService
+    private readonly httpService: ReporterHttpService,
+    @inject(TemplateRepository)
+    private readonly templateRepository: TemplateRepository
   ) {}
 
   private baseUrl: string = '/v1/reports'
@@ -113,6 +116,11 @@ export class ReporterReportRepository implements ReportRepository {
       )
     }
 
+    const template = await this.templateRepository.fetchById(
+      report.templateId,
+      organizationId
+    )
+
     const content = await this.httpService.getText(
       `${this.baseUrl}/${id}/download`,
       {
@@ -122,9 +130,20 @@ export class ReporterReportRepository implements ReportRepository {
       }
     )
 
-    const fileName = `report_${id}_${new Date().toISOString().split('T')[0]}.txt`
+    const outputFormat = template.outputFormat || 'txt'
 
-    const contentType = 'text/plain'
+    const contentTypeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      html: 'text/html',
+      xml: 'text/xml',
+      csv: 'text/csv',
+      txt: 'text/plain'
+    }
+
+    const contentType = contentTypeMap[outputFormat] || 'text/plain'
+
+    const sanitizedName = template.name.toLowerCase().replace(/\s+/g, '_')
+    const fileName = `${sanitizedName}_${new Date().toISOString().split('T')[0]}.${outputFormat}`
 
     return {
       content,
