@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.8] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.7...v4.0.0-beta.8)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Security Enhancement**: Resolved a vulnerability in a frontend dependency, significantly improving application security and safeguarding user data.
+- **Dependency Management**: Fixed issues in `package.json` to ensure stable dependency management, enhancing the reliability of the build process and preventing runtime errors.
+- **Deployment Stability**: Rolled back changes in the Dockerfile to a previous stable version, ensuring consistent and reliable deployment of the frontend environment.
+
+### 📚 Documentation
+- **Security Transparency**: Documented a known vulnerability (CVE) that does not impact project security, maintaining transparency and user trust.
+
+### 🔧 Maintenance
+- **Comprehensive Security Scan**: Conducted a thorough security scan across multiple components, including auth, docs, and frontend, to proactively identify and mitigate potential vulnerabilities, reinforcing the project's security posture.
+- **Changelog Update**: Updated the CHANGELOG to accurately reflect recent changes and improvements, ensuring clear communication of project updates to users and stakeholders.
+
+
 ## [v4.0.0-beta.7] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.6...v4.0.0-beta.7)
