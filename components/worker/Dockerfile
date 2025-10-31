@@ -53,19 +53,19 @@ RUN apk add --no-cache \
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+    adduser -u 1001 -S -h /app appuser -G appgroup && \
+    mkdir -p /app/.chromium && \
+    chown -R appuser:appgroup /app
 
 # Set Chrome/Chromium environment variables for headless operation
 ENV CHROME_BIN=/usr/bin/chromium-browser
 ENV CHROME_PATH=/usr/bin/chromium-browser
 ENV CHROMEDP_SKIP_CHROMEDP_DOWNLOAD=true
 ENV CHROMEDP_USE_SYSTEM_CHROME=true
+ENV HOME=/app
 
 # Copy the obfuscated binary from the builder stage
 COPY --from=builder /worker /app/worker
-
-# Change ownership to non-root user
-RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser

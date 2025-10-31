@@ -142,17 +142,19 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}
 
-	_ = message.Ack(false)
-
-	cr.Infof("Worker %d: Message ACKed, starting processing for queue %s", workerID, queue)
+	cr.Infof("Worker %d: Starting processing for queue %s", workerID, queue)
 
 	err = handlerFunc(ctx, message.Body)
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
 		opentelemetry.HandleSpanError(&spanConsumer, "Error processing message", err)
 
+		_ = message.Nack(false, false)
+
 		return
 	}
+
+	_ = message.Ack(false)
 
 	cr.Infof("Worker %d: Successfully processed message from queue %s", workerID, queue)
 }
