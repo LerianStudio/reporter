@@ -62,117 +62,201 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	ctx, span := tracer.Start(ctx, "service.generate_report")
 	defer span.End()
 
+	message, err := uc.parseMessage(ctx, body, &span, logger)
+	if err != nil {
+		return err
+	}
+
+	if skip := uc.shouldSkipProcessing(ctx, message.ReportID, logger); skip {
+		return nil
+	}
+
+	templateBytes, err := uc.loadTemplate(ctx, tracer, message, &span, logger)
+	if err != nil {
+		return err
+	}
+
+	result := make(map[string]map[string][]map[string]any)
+
+	if err := uc.queryExternalData(ctx, message, result); err != nil {
+		return uc.handleErrorWithUpdate(ctx, message.ReportID, &span, "Error querying external data", err, logger)
+	}
+
+	renderedOutput, err := uc.renderTemplate(ctx, tracer, templateBytes, result, message, &span, logger)
+	if err != nil {
+		return err
+	}
+
+	finalOutput, err := uc.convertToPDFIfNeeded(ctx, tracer, message, renderedOutput, &span, logger)
+	if err != nil {
+		return err
+	}
+
+	if err := uc.saveReport(ctx, tracer, message, finalOutput, logger); err != nil {
+		return uc.handleErrorWithUpdate(ctx, message.ReportID, &span, "Error saving report", err, logger)
+	}
+
+	if err := uc.markReportAsFinished(ctx, message.ReportID, &span, logger); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// parseMessage parses the RabbitMQ message body into GenerateReportMessage struct.
+func (uc *UseCase) parseMessage(ctx context.Context, body []byte, span *trace.Span, logger log.Logger) (GenerateReportMessage, error) {
 	var message GenerateReportMessage
 
 	err := json.Unmarshal(body, &message)
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
 			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
 
-			return errUpdate
+			return message, errUpdate
 		}
 
-		libOtel.HandleSpanError(&span, "Error unmarshalling message.", err)
-
+		libOtel.HandleSpanError(span, "Error unmarshalling message.", err)
 		logger.Errorf("Error unmarshalling message: %s", err.Error())
 
-		return err
+		return message, err
 	}
 
+	return message, nil
+}
+
+// shouldSkipProcessing checks if report should be skipped due to idempotency.
+func (uc *UseCase) shouldSkipProcessing(ctx context.Context, reportID uuid.UUID, logger log.Logger) bool {
+	reportStatus, err := uc.checkReportStatus(ctx, reportID, logger)
+	if err == nil {
+		if reportStatus == constant.FinishedStatus {
+			logger.Infof("Report %s is already finished, skipping reprocessing", reportID)
+			return true
+		}
+
+		if reportStatus == constant.ErrorStatus {
+			logger.Warnf("Report %s is in error state, skipping reprocessing", reportID)
+			return true
+		}
+	}
+
+	return false
+}
+
+// loadTemplate loads template file from SeaweedFS.
+func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, span *trace.Span, logger log.Logger) ([]byte, error) {
 	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
+	defer spanTemplate.End()
 
 	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
 			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
 
-			return errUpdate
+			return nil, errUpdate
 		}
 
 		libOtel.HandleSpanError(&spanTemplate, "Error getting file from template bucket.", err)
-
 		logger.Errorf("Error getting file from template bucket: %s", err.Error())
 
-		return err
+		return nil, err
 	}
 
 	logger.Infof("Template found: %s", string(fileBytes))
 
-	spanTemplate.End()
+	return fileBytes, nil
+}
 
-	result := make(map[string]map[string][]map[string]any)
-
-	err = uc.queryExternalData(ctx, message, result)
-	if err != nil {
-		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
-			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
-
-			return errUpdate
-		}
-
-		logger.Errorf("Error querying external data: %s", err.Error())
-
-		return err
-	}
-
+// renderTemplate renders the template with data from external sources.
+func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span, logger log.Logger) (string, error) {
 	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
+	defer spanRender.End()
+
 	renderer := pongo.NewTemplateRenderer()
 
-	out, err := renderer.RenderFromBytes(ctx, fileBytes, result, logger)
+	out, err := renderer.RenderFromBytes(ctx, templateBytes, result, logger)
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
 			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
 
-			return errUpdate
+			return "", errUpdate
 		}
 
 		libOtel.HandleSpanError(&spanRender, "Error rendering template.", err)
-
 		logger.Errorf("Error rendering template: %s", err.Error())
 
-		return err
+		return "", err
 	}
 
-	spanRender.End()
+	return out, nil
+}
 
-	err = uc.saveReport(ctx, tracer, message, out, logger)
+// convertToPDFIfNeeded converts HTML to PDF if output format is PDF.
+func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, htmlOutput string, span *trace.Span, logger log.Logger) (string, error) {
+	if strings.ToLower(message.OutputFormat) != "pdf" {
+		return htmlOutput, nil
+	}
+
+	_, spanPDF := tracer.Start(ctx, "service.generate_report.convert_to_pdf")
+	defer spanPDF.End()
+
+	logger.Infof("Converting HTML to PDF for report %s (HTML size: %d bytes)", message.ReportID, len(htmlOutput))
+
+	pdfBytes, err := uc.convertHTMLToPDF(htmlOutput, logger)
 	if err != nil {
 		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, err.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
+			libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
+			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+
+			return "", errUpdate
+		}
+
+		libOtel.HandleSpanError(&spanPDF, "Error converting HTML to PDF.", err)
+		logger.Errorf("Error converting HTML to PDF: %s", err.Error())
+
+		return "", err
+	}
+
+	logger.Infof("PDF generated successfully (PDF size: %d bytes)", len(pdfBytes))
+
+	return string(pdfBytes), nil
+}
+
+// markReportAsFinished updates report status to finished.
+func (uc *UseCase) markReportAsFinished(ctx context.Context, reportID uuid.UUID, span *trace.Span, logger log.Logger) error {
+	err := uc.ReportDataRepo.UpdateReportStatusById(ctx, constant.FinishedStatus, reportID, time.Now(), nil)
+	if err != nil {
+		if errUpdate := uc.updateReportWithErrors(ctx, reportID, err.Error()); errUpdate != nil {
+			libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
 			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
 
 			return errUpdate
 		}
 
-		libOtel.HandleSpanError(&span, "Error saving report.", err)
-
+		libOtel.HandleSpanError(span, "Error to update report status.", err)
 		logger.Errorf("Error saving report: %s", err.Error())
 
 		return err
 	}
 
-	errUpdateStatus := uc.ReportDataRepo.UpdateReportStatusById(ctx,
-		constant.FinishedStatus, message.ReportID, time.Now(), nil)
-	if errUpdateStatus != nil {
-		if errUpdate := uc.updateReportWithErrors(ctx, message.ReportID, errUpdateStatus.Error()); errUpdate != nil {
-			libOtel.HandleSpanError(&span, "Error to update report status with error.", errUpdate)
-			logger.Errorf("Error update report status with error: %s", errUpdate.Error())
+	return nil
+}
 
-			return errUpdate
-		}
+// handleErrorWithUpdate logs error and updates report status to error.
+func (uc *UseCase) handleErrorWithUpdate(ctx context.Context, reportID uuid.UUID, span *trace.Span, errorMsg string, err error, logger log.Logger) error {
+	if errUpdate := uc.updateReportWithErrors(ctx, reportID, err.Error()); errUpdate != nil {
+		libOtel.HandleSpanError(span, "Error to update report status with error.", errUpdate)
+		logger.Errorf("Error update report status with error: %s", errUpdate.Error())
 
-		libOtel.HandleSpanError(&span, "Error to update report status.", errUpdateStatus)
-
-		logger.Errorf("Error saving report: %s", errUpdateStatus.Error())
-
-		return errUpdateStatus
+		return errUpdate
 	}
 
-	return nil
+	libOtel.HandleSpanError(span, errorMsg, err)
+	logger.Errorf("%s: %s", errorMsg, err.Error())
+
+	return err
 }
 
 // updateReportWithErrors updates the status of a report to "Error" with metadata containing the provided error message.
@@ -872,4 +956,55 @@ func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string,
 	container[fieldName] = *decryptedValue
 
 	return nil
+}
+
+// checkReportStatus checks the current status of a report to implement idempotency.
+func (uc *UseCase) checkReportStatus(ctx context.Context, reportID uuid.UUID, logger log.Logger) (string, error) {
+	zeroUUID := uuid.UUID{}
+
+	report, err := uc.ReportDataRepo.FindByID(ctx, reportID, zeroUUID)
+	if err != nil {
+		logger.Debugf("Could not check report status for %s (may be first attempt): %v", reportID, err)
+		return "", err
+	}
+
+	logger.Debugf("Report %s current status: %s", reportID, report.Status)
+
+	return report.Status, nil
+}
+
+// convertHTMLToPDF converts HTML content to PDF using Chrome headless via PDF pool.
+func (uc *UseCase) convertHTMLToPDF(htmlContent string, logger log.Logger) ([]byte, error) {
+	tmpFile, err := os.CreateTemp("", "pdf-*.pdf")
+	if err != nil {
+		logger.Errorf("Failed to create temporary PDF file: %v", err)
+		return nil, fmt.Errorf("failed to create temporary PDF file: %w", err)
+	}
+
+	tmpFileName := tmpFile.Name()
+	if closeErr := tmpFile.Close(); closeErr != nil {
+		logger.Warnf("Failed to close temporary file %s: %v", tmpFileName, closeErr)
+	}
+
+	defer func() {
+		if removeErr := os.Remove(tmpFileName); removeErr != nil {
+			logger.Warnf("Failed to remove temporary PDF file %s: %v", tmpFileName, removeErr)
+		}
+	}()
+
+	err = uc.PdfPool.Submit(htmlContent, tmpFileName)
+	if err != nil {
+		logger.Errorf("Failed to generate PDF from HTML: %v", err)
+		return nil, fmt.Errorf("failed to generate PDF from HTML: %w", err)
+	}
+
+	// Read generated PDF file - tmpFileName is safe as it comes from os.CreateTemp
+	// #nosec G304 -- tmpFileName is generated by os.CreateTemp and is safe
+	pdfBytes, err := os.ReadFile(tmpFileName)
+	if err != nil {
+		logger.Errorf("Failed to read generated PDF: %v", err)
+		return nil, fmt.Errorf("failed to read generated PDF: %w", err)
+	}
+
+	return pdfBytes, nil
 }

@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 
@@ -109,8 +108,7 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 }
 
 // processMessage processes a single message from a specified queue using the provided handler function.
-// Returns true if an error occurred during processing and the message was requeued; otherwise, returns false.
-func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) bool {
+func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) {
 	requestID, found := message.Headers[constant.HeaderID]
 	if !found {
 		requestID = commons.GenerateUUIDv7().String()
@@ -144,112 +142,21 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}
 
+	cr.Infof("Worker %d: Starting processing for queue %s", workerID, queue)
+
 	err = handlerFunc(ctx, message.Body)
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
+		opentelemetry.HandleSpanError(&spanConsumer, "Error processing message", err)
 
-		// Always retry any error 3 times with backoff
-		if !cr.retryMessageWithCount(message, workerID, queue, err) {
-			_ = message.Ack(false)
-			return false
-		}
-
-		// Nack to exclude original (will be republished with retry_count++)
 		_ = message.Nack(false, false)
 
-		return true
+		return
 	}
 
 	_ = message.Ack(false)
 
-	return false
-}
-
-// retryMessage retries a message with the specified retryCount.
-// Returns true if the message was successfully requeued; otherwise, returns false.
-func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string, processErr error) bool {
-	// Safely extract current retry count
-	var retryCount int32
-
-	if raw, ok := message.Headers["x-retry-count"]; ok {
-		switch v := raw.(type) {
-		case int32:
-			retryCount = v
-		case int64:
-			// Check for overflow before converting
-			if v > int64(^int32(0)) || v < int64(^int32(0)>>1) {
-				retryCount = 0 // Overflow - reset to 0
-			} else {
-				retryCount = int32(v)
-			}
-		case int:
-			// Check for overflow before converting
-			if v > int(^int32(0)) || v < int(^int32(0)>>1) {
-				retryCount = 0 // Overflow - reset to 0
-			} else {
-				retryCount = int32(v)
-			}
-		case float32:
-			retryCount = int32(v)
-		case float64:
-			retryCount = int32(v)
-		case string:
-			// fallback to zero if string cannot be parsed (avoid panic)
-			retryCount = 0
-		default:
-			retryCount = 0
-		}
-	} else {
-		retryCount = 0
-	}
-
-	if retryCount >= 3 {
-		cr.Warnf("Worker %d: Max retries reached for message from queue %s after %d attempts", workerID, queue, retryCount)
-		cr.Warnf("Worker %d: Report status should have been updated to Error by handler", workerID)
-
-		// Don't retry anymore - handler should have updated report status to "Error"
-		// Return false to signal caller to ACK the message
-		return false
-	}
-
-	// Backoff before republishing: 2^n seconds where n is current retryCount
-	backoff := time.Duration(1<<retryCount) * time.Second
-	cr.Infof("Worker %d: Applying backoff of %v before retrying message from queue %s", workerID, backoff, queue)
-	time.Sleep(backoff)
-
-	// Republish with retryCount + 1
-	retryCount++
-
-	headers := amqp091.Table{}
-	for k, v := range message.Headers {
-		headers[k] = v
-	}
-
-	headers["x-retry-count"] = retryCount
-	if processErr != nil {
-		headers["x-failure-reason"] = processErr.Error()
-	}
-
-	errPub := cr.conn.Channel.Publish(
-		message.Exchange,
-		message.RoutingKey,
-		false,
-		false,
-		amqp091.Publishing{
-			Headers:      headers,
-			ContentType:  message.ContentType,
-			DeliveryMode: message.DeliveryMode,
-			Body:         message.Body,
-			Timestamp:    time.Now(),
-		},
-	)
-	if errPub != nil {
-		cr.Errorf("Worker %d: Failed to republish message: %v", workerID, errPub)
-	} else {
-		cr.Infof("Worker %d: Republished message with retryCount=%d", workerID, retryCount)
-	}
-
-	return true
+	cr.Infof("Worker %d: Successfully processed message from queue %s", workerID, queue)
 }
 
 // consumeMessages establishes a consumer for the specified queue and returns a channel for message deliveries.

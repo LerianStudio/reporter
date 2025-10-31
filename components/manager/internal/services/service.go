@@ -6,7 +6,6 @@ import (
 	pkgConfig "github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/pdf"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 )
@@ -33,7 +32,4 @@ type UseCase struct {
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
-
-	// PdfPool provides an abstraction on top of the pdf pool.
-	PdfPool *pdf.WorkerPool
 }
