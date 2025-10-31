@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.9] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.8...v4.0.0-beta.9)
+Contributors: Gabriel Castro, lerian-studio
+
+### 🐛 Bug Fixes
+- **Reliable Report Downloads**: Resolved issues with downloading PDF reports, eliminating errors and preventing file corruption. Users can now confidently access their reports without interruptions.
+- **Consistent Code Formatting**: Applied Prettier formatting across the codebase, enhancing code readability and reducing the likelihood of syntax errors. This change supports better collaboration among developers.
+
+### 🔧 Maintenance
+- **Updated Documentation**: The CHANGELOG has been refreshed to reflect the latest updates and fixes, providing users and developers with accurate and up-to-date information for effective version tracking.
+
+
 ## [v4.0.0-beta.8] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.7...v4.0.0-beta.8)
