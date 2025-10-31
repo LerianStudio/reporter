@@ -211,7 +211,10 @@ export class ReporterHttpService extends HttpService {
    * Handle binary responses for file content downloads
    * Returns the response content as ArrayBuffer for binary data
    */
-  async getBinary(url: URL | string, options: RequestInit = {}): Promise<ArrayBuffer> {
+  async getBinary(
+    url: URL | string,
+    options: RequestInit = {}
+  ): Promise<ArrayBuffer> {
     const defaults = await this.createDefaults()
 
     const request = new Request(new URL(url, defaults.baseUrl), {

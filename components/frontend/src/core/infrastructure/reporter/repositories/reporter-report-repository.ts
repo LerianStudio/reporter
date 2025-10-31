@@ -159,7 +159,8 @@ export class ReporterReportRepository implements ReportRepository {
       txt: 'text/plain'
     }
 
-    const contentType = contentTypeMap[outputFormat.toLowerCase()] || 'text/plain'
+    const contentType =
+      contentTypeMap[outputFormat.toLowerCase()] || 'text/plain'
 
     const sanitizedName = template.name.toLowerCase().replace(/\s+/g, '_')
     const fileName = `${sanitizedName}_${new Date().toISOString().split('T')[0]}.${outputFormat}`
