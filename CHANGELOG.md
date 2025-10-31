@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.7] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.6...v4.0.0-beta.7)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to include recent changes and improvements. This provides users and developers with the most current information about the project's updates, facilitating better understanding and tracking of the project's evolution.
+
+### 🔧 Maintenance
+- **Frontend/Docs**: Updated the Go version toolchain to the latest standards. This ensures compatibility with the current Go ecosystem, improving build consistency and reducing potential issues related to outdated dependencies. Developers will experience a more reliable and streamlined development process.
+
+
 ## [v4.0.0-beta.6] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.5...v4.0.0-beta.6)
