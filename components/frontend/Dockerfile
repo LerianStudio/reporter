@@ -1,38 +1,60 @@
 # Use an official Node.js runtime as the base image
-FROM node:22-alpine
+FROM node:22-alpine AS builder
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json to the working directory
+# Install dependencies first (better layer caching)
 COPY components/frontend/package*.json ./
 
-# Install dependencies
 RUN apk update && apk add bash && \
-    npm install && \
+    npm ci --only=production=false && \
     npm cache clean --force
 
-# copy entrypoint script
-COPY components/frontend/scripts/entrypoint.sh /scripts/entrypoint.sh
-
-RUN chmod +x /scripts/entrypoint.sh
-
-# Copy .env.example to the working directory
-COPY components/frontend/.env.example .env.example
-
-# Run the command to set environment variables
-RUN npm run set-env
-
-# Copy the rest of the application source code
+# Copy source code
 COPY components/frontend/. .
 
-# Build the app
+# Copy .env.example and set env
+RUN cp .env.example .env
+
+# Build the application
 RUN npm run build
 
-# Expose the port the app runs on
+# Stage 2: Runtime - Minimal production image
+FROM node:22-alpine
+
+WORKDIR /usr/src/app
+
+# Install only bash for entrypoint script
+RUN apk update && apk add --no-cache bash && \
+    rm -rf /var/cache/apk/*
+
+# Copy only production dependencies
+COPY components/frontend/package*.json ./
+
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built artifacts from builder
+COPY --from=builder /usr/src/app/.next ./.next
+COPY --from=builder /usr/src/app/public ./public
+COPY --from=builder /usr/src/app/.env .env
+
+# Copy entrypoint script
+COPY components/frontend/scripts/entrypoint.sh /scripts/entrypoint.sh
+RUN chmod +x /scripts/entrypoint.sh
+
+# Copy other necessary config files
+COPY components/frontend/next.config.mjs ./next.config.mjs
+COPY components/frontend/intl.config.ts ./intl.config.ts
+COPY components/frontend/locales ./locales
+
+# Expose the port
 EXPOSE 8083
 
-# Command to run the application
-ENTRYPOINT ["/scripts/entrypoint.sh"]
+# Run as non-root user for security
+USER node
 
+# Start the application
+ENTRYPOINT ["/scripts/entrypoint.sh"]
 CMD ["npm", "run", "start"]
