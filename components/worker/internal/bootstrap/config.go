@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/v4/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v4/pkg/pdf"
 	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
@@ -56,6 +58,9 @@ type Config struct {
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
+	// PDF Pool configuration envs
+	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
+	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -136,6 +141,10 @@ func InitWorker() *Service {
 	externalDataSources := pkg.ExternalDatasourceConnections(logger)
 	healthChecker := pkg.NewHealthChecker(&externalDataSources, circuitBreakerManager, logger)
 
+	// Initialize PDF Pool for PDF generation
+	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
+	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
+
 	service := &services.UseCase{
 		TemplateSeaweedFS:     templateSeaweedFSRepository,
 		ReportSeaweedFS:       reportSeaweedFSRepository,
@@ -144,6 +153,7 @@ func InitWorker() *Service {
 		CircuitBreakerManager: circuitBreakerManager,
 		HealthChecker:         healthChecker,
 		ReportTTL:             cfg.SeaweedFSTTL,
+		PdfPool:               pdfPool,
 	}
 
 	if cfg.SeaweedFSTTL != "" {

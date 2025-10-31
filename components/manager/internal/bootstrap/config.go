@@ -15,7 +15,6 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/pdf"
 	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
@@ -80,9 +79,6 @@ type Config struct {
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
-	// PDF Pool configuration envs
-	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"5"`
-	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"30"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -186,10 +182,6 @@ func InitServers() *Service {
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
 
-	// Initialize PDF Pool with logger and timeout
-	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
-	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
-
 	// Initialize datasources in lazy mode (connect on-demand for faster startup)
 	externalDataSources := pkg.ExternalDatasourceConnectionsLazy(logger)
 
@@ -199,7 +191,6 @@ func InitServers() *Service {
 		TemplateRepo:        templateMongoDBRepository,
 		ReportSeaweedFS:     reportSeaweedFSRepository,
 		ExternalDataSources: externalDataSources,
-		PdfPool:             pdfPool,
 	}
 
 	reportHandler := &in2.ReportHandler{

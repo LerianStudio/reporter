@@ -86,6 +86,14 @@ func TestGenerateReport_Success(t *testing.T) {
 	}
 	bodyBytes, _ := json.Marshal(body)
 
+	mockReportDataRepo.
+		EXPECT().
+		FindByID(gomock.Any(), reportID, gomock.Any()).
+		Return(&reportData.Report{
+			ID:     reportID,
+			Status: "processing",
+		}, nil)
+
 	mockTemplateRepo.
 		EXPECT().
 		Get(gomock.Any(), templateID.String()).
@@ -165,6 +173,14 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		DataQueries:  map[string]map[string][]string{},
 	}
 	bodyBytes, _ := json.Marshal(body)
+
+	mockReportDataRepo.
+		EXPECT().
+		FindByID(gomock.Any(), reportID, gomock.Any()).
+		Return(&reportData.Report{
+			ID:     reportID,
+			Status: "processing",
+		}, nil)
 
 	mockTemplateRepo.
 		EXPECT().
@@ -348,6 +364,14 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		},
 	}
 	bodyBytes, _ := json.Marshal(body)
+
+	mockReportDataRepo.
+		EXPECT().
+		FindByID(gomock.Any(), reportID, gomock.Any()).
+		Return(&reportData.Report{
+			ID:     reportID,
+			Status: "processing",
+		}, nil)
 
 	mockTemplateRepo.
 		EXPECT().
