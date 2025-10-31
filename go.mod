@@ -2,7 +2,7 @@ module github.com/LerianStudio/reporter/v4
 
 go 1.25
 
-toolchain go1.25.1
+toolchain go1.25.3
 
 require (
 	github.com/LerianStudio/lib-auth/v2 v2.2.0
