@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.5] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.4...v4.0.0-beta.5)
+Contributors: Gabriel Castro, lerian-studio
+
+### ✨ Features
+- **Dynamic Report Downloads**: Users can now choose from various file formats when downloading reports. This enhancement offers greater flexibility, allowing users to select the format that best suits their needs, whether for presentation, analysis, or storage purposes.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to accurately reflect recent changes and improvements. This ensures that all modifications are well-documented and easily accessible, aiding in transparency and effective version tracking.
+
+### 🔧 Maintenance
+- **Release Management**: Routine updates have been made to maintain the project's infrastructure and ensure smooth release management, indirectly benefiting users by enhancing the overall reliability and stability of the software.
+
+
 ## [v4.0.0-beta.4] - 2025-10-30
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.3...v4.0.0-beta.4)
