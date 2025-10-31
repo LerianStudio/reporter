@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-beta.6] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.5...v4.0.0-beta.6)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Messaging System**: Improved the acknowledgment process of messages, ensuring more reliable communication and reducing message loss. This enhancement is particularly beneficial for users who depend on timely and accurate message processing.
+- **PDF Generation**: Fixed an issue where PDF files were not being generated correctly by the worker. Users can now reliably create and access PDF documents, improving the overall document handling experience.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes and improvements, providing users with the latest information about the software's evolution. This ensures that documentation remains current and useful.
+
+### 🔧 Maintenance
+- Routine updates and optimizations have been applied to ensure the system continues to operate smoothly and efficiently.
+
+
 ## [v4.0.0-beta.5] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.4...v4.0.0-beta.5)
