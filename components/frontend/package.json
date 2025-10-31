@@ -95,6 +95,11 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.8"
   },
+  "overrides": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "esbuild": "^0.25.11"
+  },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.0.0",
     "@eslint/eslintrc": "^3.3.1",
@@ -124,8 +129,8 @@
     "@types/react": "^19",
     "@types/react-color": "^3.0.13",
     "@types/react-dom": "^19",
+    "esbuild": "^0.25.11",
     "conventional-changelog-conventionalcommits": "^9.0.0",
-    "esbuild": "^0.25.5",
     "eslint": "^9",
     "eslint-config-next": "^15.3.3",
     "eslint-config-prettier": "^10.1.5",
