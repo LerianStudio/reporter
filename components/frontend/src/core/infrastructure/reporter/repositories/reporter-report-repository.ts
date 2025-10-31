@@ -121,16 +121,35 @@ export class ReporterReportRepository implements ReportRepository {
       organizationId
     )
 
-    const content = await this.httpService.getText(
-      `${this.baseUrl}/${id}/download`,
-      {
-        headers: {
-          'X-Organization-Id': organizationId
-        }
-      }
-    )
-
     const outputFormat = template.outputFormat || 'txt'
+
+    // Determine if the format is binary or text
+    // Only PDF is binary among the supported formats
+    const isBinary = outputFormat.toLowerCase() === 'pdf'
+
+    let content: string | ArrayBuffer
+
+    if (isBinary) {
+      // Use getBinary for PDF to preserve binary data integrity
+      content = await this.httpService.getBinary(
+        `${this.baseUrl}/${id}/download`,
+        {
+          headers: {
+            'X-Organization-Id': organizationId
+          }
+        }
+      )
+    } else {
+      // Use getText for text-based formats (HTML, XML, CSV, TXT)
+      content = await this.httpService.getText(
+        `${this.baseUrl}/${id}/download`,
+        {
+          headers: {
+            'X-Organization-Id': organizationId
+          }
+        }
+      )
+    }
 
     const contentTypeMap: Record<string, string> = {
       pdf: 'application/pdf',
@@ -140,7 +159,8 @@ export class ReporterReportRepository implements ReportRepository {
       txt: 'text/plain'
     }
 
-    const contentType = contentTypeMap[outputFormat] || 'text/plain'
+    const contentType =
+      contentTypeMap[outputFormat.toLowerCase()] || 'text/plain'
 
     const sanitizedName = template.name.toLowerCase().replace(/\s+/g, '_')
     const fileName = `${sanitizedName}_${new Date().toISOString().split('T')[0]}.${outputFormat}`

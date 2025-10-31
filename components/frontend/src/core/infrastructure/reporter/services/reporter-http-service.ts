@@ -206,4 +206,40 @@ export class ReporterHttpService extends HttpService {
 
     return await response.text()
   }
+
+  /**
+   * Handle binary responses for file content downloads
+   * Returns the response content as ArrayBuffer for binary data
+   */
+  async getBinary(
+    url: URL | string,
+    options: RequestInit = {}
+  ): Promise<ArrayBuffer> {
+    const defaults = await this.createDefaults()
+
+    const request = new Request(new URL(url, defaults.baseUrl), {
+      ...defaults,
+      ...options,
+      method: 'GET',
+      headers: {
+        ...defaults.headers,
+        ...options.headers
+      }
+    })
+
+    this.onBeforeFetch(request)
+
+    const response = await fetch(request)
+
+    this.onAfterFetch(request, response)
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: 'Download failed' }))
+      await this.catch(request, response, error)
+    }
+
+    return await response.arrayBuffer()
+  }
 }
