@@ -30,13 +30,13 @@ networks:
   infra-network:
     external: true
   plugin-fees-network:
-    external: true
+    driver: bridge
   reporter-manager-network:
     driver: bridge
   plugin-auth-network:
-    external: true
+    driver: bridge
   plugin-crm-network:
-    external: true
+    driver: bridge
 
 secrets:
   github_token:
