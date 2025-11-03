@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "plugin-smart-templates/v3/tests/helpers"
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 )
 
 // GET /v1/reports — filters (status, templateId, createdAt)

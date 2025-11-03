@@ -1,6 +1,6 @@
 services:
-  plugin-smart-templates-worker:
-    container_name: plugin-smart-templates-worker
+  reporter-worker:
+    container_name: reporter-worker
     restart: always
     build:
       context: ../../
@@ -12,20 +12,20 @@ services:
     volumes:
       - .:/usr/src/worker
     networks:
-      - plugin-smart-templates-infra-network
+      - reporter-infra-network
       - infra-network
       - plugin-fees-network
       - plugin-crm-network
 
 networks:
-  plugin-smart-templates-infra-network:
+  reporter-infra-network:
     external: true
   infra-network:
     external: true
   plugin-fees-network:
-    driver: bridge
+    external: true
   plugin-crm-network:
-    driver: bridge
+    external: true
 
 secrets:
   github_token:

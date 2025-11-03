@@ -10,8 +10,8 @@ import { PaginationEntity } from '../entities/pagination-entity'
  * File download response containing file content and metadata
  */
 export type DownloadFileResponse = {
-  /** File content as text */
-  content: string
+  /** File content as text or binary data */
+  content: string | ArrayBuffer
   /** Original filename */
   fileName: string
   /** MIME type of the file */

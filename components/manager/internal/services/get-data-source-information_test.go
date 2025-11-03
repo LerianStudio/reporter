@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/model"
-	"plugin-smart-templates/v3/pkg/mongodb"
-	"plugin-smart-templates/v3/pkg/postgres"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/v4/pkg/postgres"
 
 	"github.com/stretchr/testify/assert"
 )

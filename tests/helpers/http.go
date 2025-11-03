@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"time"
 )
@@ -211,6 +212,74 @@ func (c *HTTPClient) ListReports(ctx context.Context, headers map[string]string,
 	}
 
 	return response.Items, nil
+}
+
+// UploadMultipartForm uploads a multipart form with files and form data
+func (c *HTTPClient) UploadMultipartForm(ctx context.Context, method, path string, headers map[string]string, formData map[string]string, files map[string][]byte) (int, []byte, error) {
+	var body bytes.Buffer
+
+	writer := multipart.NewWriter(&body)
+
+	// Add form fields
+	for key, value := range formData {
+		if err := writer.WriteField(key, value); err != nil {
+			return 0, nil, fmt.Errorf("failed to write form field %s: %w", key, err)
+		}
+	}
+
+	// Add files
+	for fieldName, fileData := range files {
+		// Use .tpl extension for template files
+		filename := fieldName
+		if fieldName == "template" {
+			filename = "template.tpl"
+		}
+
+		part, err := writer.CreateFormFile(fieldName, filename)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to create form file %s: %w", fieldName, err)
+		}
+
+		if _, err := part.Write(fileData); err != nil {
+			return 0, nil, fmt.Errorf("failed to write file data for %s: %w", fieldName, err)
+		}
+	}
+
+	// Important: Get the content type BEFORE closing the writer
+	contentType := writer.FormDataContentType()
+
+	if err := writer.Close(); err != nil {
+		return 0, nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, c.base+path, &body)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Add custom headers FIRST (but skip Content-Type)
+	for k, v := range headers {
+		// Don't override Content-Type - multipart boundary is critical
+		if k != "Content-Type" {
+			req.Header.Set(k, v)
+		}
+	}
+
+	// Set Content-Type with boundary LAST (this is critical for multipart)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp.StatusCode, nil, err
+	}
+
+	return resp.StatusCode, data, nil
 }
 
 // WaitForSystemHealth waits for the system to be healthy by checking health endpoint

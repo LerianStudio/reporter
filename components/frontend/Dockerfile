@@ -4,6 +4,7 @@ FROM node:22-alpine
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
+
 # Copy package.json and package-lock.json to the working directory
 COPY components/frontend/package*.json ./
 

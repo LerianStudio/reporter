@@ -1,10 +1,11 @@
 package template_utils
 
 import (
-	"plugin-smart-templates/v3/pkg/constant"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 )
 
 // GetMimeType return a MIME type correctly based with outputFormat
@@ -18,6 +19,8 @@ func GetMimeType(outputFormat string) string {
 		return "text/csv"
 	case "txt":
 		return "text/plain"
+	case "pdf":
+		return "application/pdf"
 	default:
 		return "application/octet-stream"
 	}

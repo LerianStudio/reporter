@@ -43,28 +43,28 @@ export default function Page() {
           },
           {
             name: intl.formatMessage({
-              id: 'smartTemplates.breadcrumb.smartTemplates',
+              id: 'reporter.breadcrumb.reporter',
               defaultMessage: 'Reporter'
             }),
             href: `/`
           },
           {
             name: intl.formatMessage({
-              id: 'smartTemplates.breadcrumb.overview',
+              id: 'reporter.breadcrumb.overview',
               defaultMessage: 'Overview'
             }),
             active: () => activeTab === 'overview'
           },
           {
             name: intl.formatMessage({
-              id: 'smartTemplates.breadcrumb.templates',
+              id: 'reporter.breadcrumb.templates',
               defaultMessage: 'Templates'
             }),
             active: () => activeTab === 'templates'
           },
           {
             name: intl.formatMessage({
-              id: 'smartTemplates.breadcrumb.reports',
+              id: 'reporter.breadcrumb.reports',
               defaultMessage: 'Reports'
             }),
             active: () => activeTab === 'reports'
@@ -76,7 +76,7 @@ export default function Page() {
         <PageHeaderWrapper className="border-none">
           <PageHeaderInfoTitle
             title={intl.formatMessage({
-              id: 'smartTemplates.title',
+              id: 'reporter.title',
               defaultMessage: 'Reporter'
             })}
           />
@@ -91,13 +91,13 @@ export default function Page() {
             <div className="mb-4 space-y-2">
               <AlertTitle className="text-sm font-medium text-zinc-600">
                 {intl.formatMessage({
-                  id: 'smartTemplates.about.title',
+                  id: 'reporter.about.title',
                   defaultMessage: 'About Reporter'
                 })}
               </AlertTitle>
               <AlertDescription className="text-sm leading-relaxed font-medium text-zinc-500">
                 {intl.formatMessage({
-                  id: 'smartTemplates.about.description',
+                  id: 'reporter.about.description',
                   defaultMessage:
                     'Generate dynamic, data-driven reports using plain-text templates (.tpl). Reporter use simple placeholders to pull data directly from the database and renders reports in CSV, XML, HTML, or TXT, always matching the structure defined in the original file.'
                 })}
@@ -134,19 +134,19 @@ export default function Page() {
         <TabsList className="mb-6 grid w-fit grid-cols-3">
           <TabsTrigger value="overview" className="">
             {intl.formatMessage({
-              id: 'smartTemplates.tabs.overview',
+              id: 'reporter.tabs.overview',
               defaultMessage: 'Overview'
             })}
           </TabsTrigger>
           <TabsTrigger value="templates">
             {intl.formatMessage({
-              id: 'smartTemplates.tabs.templates',
+              id: 'reporter.tabs.templates',
               defaultMessage: 'Templates'
             })}
           </TabsTrigger>
           <TabsTrigger value="reports">
             {intl.formatMessage({
-              id: 'smartTemplates.tabs.reports',
+              id: 'reporter.tabs.reports',
               defaultMessage: 'Reports'
             })}
           </TabsTrigger>

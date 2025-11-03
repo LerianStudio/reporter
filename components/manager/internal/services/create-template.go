@@ -3,12 +3,13 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	templateUtils "plugin-smart-templates/v3/pkg/template_utils"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	templateUtils "github.com/LerianStudio/reporter/v4/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

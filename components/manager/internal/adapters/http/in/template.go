@@ -1,12 +1,12 @@
 package in
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/model"
-	_ "plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/net/http"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/model"
+	_ "github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v4/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -35,6 +35,8 @@ type TemplateHandler struct {
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
 //	@Success		201					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -113,13 +115,18 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	errPutMinio := th.Service.TemplateMinio.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
-	if errPutMinio != nil {
-		libOpentelemetry.HandleSpanError(&span, "Error putting template file.", errPutMinio)
+	errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
+	if errPutSeaweedFS != nil {
+		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 
-		logger.Errorf("Error putting template file: %s", errPutMinio.Error())
+		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
+		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, organizationID, true); errDelete != nil {
+			logger.Errorf("Failed to roll back template creation for ID %s after SeaweedFS failure. Error: %s", templateOut.ID.String(), errDelete.Error())
+		}
 
-		return http.WithError(c, errPutMinio)
+		logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
+
+		return http.WithError(c, errPutSeaweedFS)
 	}
 
 	logger.Infof("Successfully created create template %v", templateOut)
@@ -141,6 +148,9 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Param			description			formData	string	true	"Description of the template"
 //	@Param			id					path		string	true	"Template ID"
 //	@Success		200					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -206,13 +216,13 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 			return http.WithError(c, err)
 		}
 
-		errPutMinio := th.Service.TemplateMinio.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
-		if errPutMinio != nil {
-			libOpentelemetry.HandleSpanError(&span, "Error putting template file.", errPutMinio)
+		errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
+		if errPutSeaweedFS != nil {
+			libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 
-			logger.Errorf("Error putting template file: %s", errPutMinio.Error())
+			logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
 
-			return http.WithError(c, errPutMinio)
+			return http.WithError(c, errPutSeaweedFS)
 		}
 	}
 
@@ -226,15 +236,15 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Summary		Get template
 //	@Description	Get a template by id
 //	@Tags			Templates
-//	@Accept			mpfd
 //	@Produce		json
 //	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
 //	@Param			id					path		string	true	"Template ID"
 //	@Success		200					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
+//
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -282,6 +292,8 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Param			limit				query		int		false	"Limit"	default(10)
 //	@Param			page				query		int		false	"Page"	default(1)
 //	@Success		200					{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [get]
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -339,12 +351,16 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 // DeleteTemplateByID is a method that removes template information by a given id.
 //
 //	@Summary		SoftDelete a Template by ID
-//	@Description	SoftDelete a Template with the input ID
+//	@Description	SoftDelete a Template with the input ID. Returns 204 with no content on success.
 //	@Tags			Templates
+//	@Produce		json
 //	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
 //	@Param			X-Organization-Id	header	string	true	"Organization ID"
 //	@Param			id					path	string	true	"Template ID"
-//	@Success		204
+//	@Success		204					"No content"
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -365,7 +381,7 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID); err != nil {
+	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID, false); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())

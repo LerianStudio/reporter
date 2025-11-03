@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/net/http"
 	"testing"
 	"time"
+
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v4/pkg/net/http"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

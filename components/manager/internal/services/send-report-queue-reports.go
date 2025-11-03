@@ -3,7 +3,8 @@ package services
 import (
 	"context"
 	"os"
-	"plugin-smart-templates/v3/pkg/model"
+
+	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

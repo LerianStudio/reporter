@@ -1,3 +1,3 @@
 package constant
 
-const ApplicationName = "plugin-smart-templates"
+const ApplicationName = "reporter"

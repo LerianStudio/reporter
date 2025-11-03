@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"plugin-smart-templates/v3/pkg"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/gofiber/fiber/v2"
 	"gopkg.in/go-playground/validator.v9"
 
-	cn "plugin-smart-templates/v3/pkg/constant"
+	cn "github.com/LerianStudio/reporter/v4/pkg/constant"
 
 	en2 "github.com/go-playground/validator/translations/en"
 )
@@ -66,6 +67,12 @@ func (d *decoderHandler) FiberHandlerFunc(c *fiber.Ctx) error {
 	}
 
 	bodyBytes := c.Body() // Get the body bytes
+
+	// Validate that body is not empty, whitespace-only, or literally "null"
+	trimmedBody := strings.TrimSpace(string(bodyBytes))
+	if len(trimmedBody) == 0 || trimmedBody == "null" {
+		return BadRequest(c, pkg.ValidateBusinessError(cn.ErrMissingRequiredFields, ""))
+	}
 
 	if err := json.Unmarshal(bodyBytes, s); err != nil {
 		// Convert JSON unmarshal errors to bad request errors

@@ -132,24 +132,28 @@ export const deleteFetcher = (url: string) => {
 export const downloadFetcher = (url: string) => {
   return async (): Promise<void> => {
     const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      method: 'GET'
     })
 
     if (!response.ok) {
       throw new Error(`Download failed: ${response.statusText}`)
     }
 
-    const downloadUrl = response.url
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const fileName =
+      contentDisposition?.split('filename="')[1]?.slice(0, -1) || 'download'
 
     const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = ''
+    link.href = blobUrl
+    link.download = fileName
     document.body.appendChild(link)
     link.click()
+
     document.body.removeChild(link)
+    URL.revokeObjectURL(blobUrl)
   }
 }
 

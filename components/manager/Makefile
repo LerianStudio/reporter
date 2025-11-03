@@ -1,10 +1,10 @@
-# Plugin Smart Templates Makefile
+# Reporter Makefile
 ifneq ("$(wildcard .env.local)","")
 	include .env.local
 	export
 endif
 
-service_name := plugin-smart-templates-manager
+service_name := reporter-manager
 bin_dir := ./.bin
 
 BLUE := \033[36m

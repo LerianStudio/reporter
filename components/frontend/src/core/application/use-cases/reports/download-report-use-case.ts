@@ -8,7 +8,7 @@ export type DownloadReportParams = {
 }
 
 export type DownloadReportResponse = {
-  content: string
+  content: string | ArrayBuffer
   fileName: string
   contentType: string
 }
@@ -26,7 +26,6 @@ export class DownloadReportUseCase implements DownloadReport {
 
   @LogOperation({ layer: 'application' })
   async execute(params: DownloadReportParams): Promise<DownloadReportResponse> {
-    // Get file content directly from the repository
     const downloadInfo = await this.reportRepository.downloadFile(
       params.id,
       params.organizationId

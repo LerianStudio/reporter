@@ -57,16 +57,16 @@ export function OverviewTabContent() {
       {/* Templates Card */}
       <OverviewCard
         title={intl.formatMessage({
-          id: 'smartTemplates.cards.templates.title',
+          id: 'reporter.cards.templates.title',
           defaultMessage: 'Templates'
         })}
         description={intl.formatMessage({
-          id: 'smartTemplates.cards.templates.description',
+          id: 'reporter.cards.templates.description',
           defaultMessage:
-            "Here are the templates you've created and loaded into the Plugin domain."
+            "Here are the templates you've created and loaded into the Reporter domain."
         })}
         action={intl.formatMessage({
-          id: 'smartTemplates.cards.templates.action',
+          id: 'reporter.cards.templates.action',
           defaultMessage: 'Manage Templates'
         })}
         onClick={() => {
@@ -77,16 +77,16 @@ export function OverviewTabContent() {
       {/* Reports Card */}
       <OverviewCard
         title={intl.formatMessage({
-          id: 'smartTemplates.cards.reports.title',
+          id: 'reporter.cards.reports.title',
           defaultMessage: 'Reports'
         })}
         description={intl.formatMessage({
-          id: 'smartTemplates.cards.reports.description',
+          id: 'reporter.cards.reports.description',
           defaultMessage:
             'Here are the reports, the output of data processing through templates.'
         })}
         action={intl.formatMessage({
-          id: 'smartTemplates.cards.reports.action',
+          id: 'reporter.cards.reports.action',
           defaultMessage: 'Manage Reports'
         })}
         onClick={() => {
@@ -97,11 +97,11 @@ export function OverviewTabContent() {
       {/* Documentation Card */}
       <OverviewCard
         title={intl.formatMessage({
-          id: 'smartTemplates.cards.docs.title',
+          id: 'reporter.cards.docs.title',
           defaultMessage: 'Reporter Docs'
         })}
         description={intl.formatMessage({
-          id: 'smartTemplates.cards.docs.description',
+          id: 'reporter.cards.docs.description',
           defaultMessage:
             "Need help or additional documentation? We're here to help."
         })}
@@ -111,7 +111,7 @@ export function OverviewTabContent() {
         })}
         onClick={() => {
           window.open(
-            'https://docs.lerian.studio/docs/smart-templates',
+            'https://docs.lerian.studio/reporter',
             '_blank',
             'noopener,noreferrer'
           )

@@ -1,8 +1,9 @@
 package template
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Template represents the entity model for a template

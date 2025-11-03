@@ -1,15 +1,20 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 	"net/url"
-	"plugin-smart-templates/v3/components/worker/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/worker/internal/services"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	reportFile "plugin-smart-templates/v3/pkg/minio/report"
-	templateFile "plugin-smart-templates/v3/pkg/minio/template"
-	reportData "plugin-smart-templates/v3/pkg/mongodb/report"
+	"time"
+
+	"github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v4/components/worker/internal/services"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v4/pkg/pdf"
+	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -17,8 +22,6 @@ import (
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
 	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -40,12 +43,10 @@ type Config struct {
 	OtelDeploymentEnv           string `env:"OTEL_RESOURCE_DEPLOYMENT_ENVIRONMENT"`
 	OtelColExporterEndpoint     string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry             bool   `env:"ENABLE_TELEMETRY"`
-	// MINIO
-	MinioAPIHost     string `env:"MINIO_API_HOST"`
-	MinioAPIPort     string `env:"MINIO_API_PORT"`
-	MinioSSLEnabled  bool   `env:"MINIO_SSL_ENABLED"`
-	MinioAppUsername string `env:"MINIO_APP_USER"`
-	MinioAppPassword string `env:"MINIO_APP_PASSWORD"`
+	// SeaweedFS configuration envs
+	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
+	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
+	SeaweedFSTTL       string `env:"SEAWEEDFS_TTL"`
 	// MongoDB
 	MongoURI        string `env:"MONGO_URI"`
 	MongoDBHost     string `env:"MONGO_HOST"`
@@ -57,6 +58,9 @@ type Config struct {
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
+	// PDF Pool configuration envs
+	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
+	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -96,15 +100,9 @@ func InitWorker() *Service {
 
 	routes := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
 
-	minioEndpoint := fmt.Sprintf("%s:%s", cfg.MinioAPIHost, cfg.MinioAPIPort)
-
-	minioClient, err := minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.MinioAppUsername, cfg.MinioAppPassword, ""),
-		Secure: cfg.MinioSSLEnabled,
-	})
-	if err != nil {
-		logger.Fatalf("Error creating minio client: %v", err)
-	}
+	// Config SeaweedFS connection
+	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
+	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -122,12 +120,50 @@ func InitWorker() *Service {
 		MaxPoolSize:            uint64(cfg.MaxPoolSize),
 	}
 
-	service := &services.UseCase{
-		TemplateFileRepo:    templateFile.NewMinioRepository(minioClient, "templates"),
-		ReportFileRepo:      reportFile.NewMinioRepository(minioClient, "reports"),
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
-		ReportDataRepo:      reportData.NewReportMongoDBRepository(mongoConnection),
+	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
+	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
+
+	// Initialize MongoDB repositories
+	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
+
+	// Create MongoDB indexes for optimal performance
+	// Indexes are created automatically on startup to ensure they exist
+	// This is idempotent and safe to run multiple times
+	logger.Info("Ensuring MongoDB indexes exist for reports...")
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
 	}
+
+	// Initialize circuit breaker manager for datasource resilience
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+	externalDataSources := pkg.ExternalDatasourceConnections(logger)
+	healthChecker := pkg.NewHealthChecker(&externalDataSources, circuitBreakerManager, logger)
+
+	// Initialize PDF Pool for PDF generation
+	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
+	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
+
+	service := &services.UseCase{
+		TemplateSeaweedFS:     templateSeaweedFSRepository,
+		ReportSeaweedFS:       reportSeaweedFSRepository,
+		ExternalDataSources:   externalDataSources,
+		ReportDataRepo:        reportMongoDBRepository,
+		CircuitBreakerManager: circuitBreakerManager,
+		HealthChecker:         healthChecker,
+		ReportTTL:             cfg.SeaweedFSTTL,
+		PdfPool:               pdfPool,
+	}
+
+	if cfg.SeaweedFSTTL != "" {
+		logger.Infof("Reports will expire after: %s", cfg.SeaweedFSTTL)
+	} else {
+		logger.Infof("Reports will be stored permanently (no TTL)")
+	}
+
+	// Start health checker in background
+	healthChecker.Start()
 
 	licenseClient := libLicense.NewLicenseClient(
 		constant.ApplicationName,
@@ -141,5 +177,6 @@ func InitWorker() *Service {
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		licenseShutdown:    licenseClient.GetLicenseManagerShutdown(),
+		healthChecker:      healthChecker,
 	}
 }

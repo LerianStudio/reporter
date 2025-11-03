@@ -3,8 +3,9 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"plugin-smart-templates/v3/pkg/constant"
 	"strings"
+
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 )
 
 // EntityNotFoundError records an error indicating an entity was not found in any case that caused it.
@@ -359,7 +360,7 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			EntityType: entityType,
 			Code:       constant.ErrMissingRequiredFields.Error(),
 			Title:      "Missing required fields",
-			Message:    "One or more required fields are missing. Please ensure all required fields like 'description', 'template', and 'outputFormat' are included.",
+			Message:    "One or more required fields are missing. Please ensure all required fields are included.",
 		},
 		constant.ErrInvalidFileFormat: ValidationError{
 			EntityType: entityType,
@@ -462,6 +463,12 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrDecryptionData.Error(),
 			Title:      "Encryption data error Tag Detected",
 			Message:    fmt.Sprintf("Error to make the encryption of CRM data. Err: %v", args...),
+		},
+		constant.ErrCommunicateSeaweedFS: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrCommunicateSeaweedFS.Error(),
+			Title:      "Communication Error with SeaweedFS",
+			Message:    "Error to communicate with SeaweedFS to download or upload file. Please try again.",
 		},
 	}
 
