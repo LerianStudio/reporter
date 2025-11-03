@@ -1,14 +1,13 @@
 package services
 
 import (
-	"plugin-smart-templates/v3/components/manager/internal/adapters/rabbitmq"
-	"plugin-smart-templates/v3/components/manager/internal/adapters/redis"
-	pkgConfig "plugin-smart-templates/v3/pkg"
-	reportMinio "plugin-smart-templates/v3/pkg/minio/report"
-	templateMinio "plugin-smart-templates/v3/pkg/minio/template"
-	"plugin-smart-templates/v3/pkg/mongodb/report"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/pdf"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
+	pkgConfig "github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
 )
 
 // UseCase is a struct to implement the services methods
@@ -16,14 +15,14 @@ type UseCase struct {
 	// TemplateRepo provides an abstraction on top of the template data source.
 	TemplateRepo template.Repository
 
-	// TemplateMinio is a repository interface for storing template files in MinIO.
-	TemplateMinio templateMinio.Repository
+	// TemplateSeaweedFS is a repository interface for storing template files in SeaweedFS.
+	TemplateSeaweedFS templateSeaweedFS.Repository
 
 	// ReportRepo provides an abstraction on top of the report data source.
 	ReportRepo report.Repository
 
-	// ReportMinio is a repository interface for storing report files in MinIO.
-	ReportMinio reportMinio.Repository
+	// ReportSeaweed is a repository interface for storing report files in SeaweedFS.
+	ReportSeaweedFS reportSeaweedFS.Repository
 
 	// RabbitMQRepo provides an abstraction on top of the producer rabbitmq.
 	RabbitMQRepo rabbitmq.ProducerRepository
@@ -33,7 +32,4 @@ type UseCase struct {
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
-
-	// PdfPool provides an abstraction on top of the pdf pool
-	PdfPool *pdf.WorkerPool
 }

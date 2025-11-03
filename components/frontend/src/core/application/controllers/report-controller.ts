@@ -103,7 +103,18 @@ export class ReportController {
         organizationId
       })
 
-      return new NextResponse(downloadInfo.content, {
+      // Convert content to appropriate format for NextResponse
+      let responseBody: BodyInit
+
+      if (downloadInfo.content instanceof ArrayBuffer) {
+        // For binary data, use the ArrayBuffer directly
+        responseBody = downloadInfo.content
+      } else {
+        // For text data, use the string directly
+        responseBody = downloadInfo.content
+      }
+
+      return new NextResponse(responseBody, {
         status: 200,
         headers: {
           'Content-Type': downloadInfo.contentType,

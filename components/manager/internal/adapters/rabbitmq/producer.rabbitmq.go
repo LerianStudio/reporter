@@ -3,7 +3,8 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
-	"plugin-smart-templates/v3/pkg/model"
+
+	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -26,14 +27,20 @@ type ProducerRabbitMQRepository struct {
 }
 
 // NewProducerRabbitMQ returns a new instance of ProducerRabbitMQRepository using the given rabbitmq connection.
+// Connection is established lazily on first use to avoid panic during initialization.
 func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRepository {
 	prmq := &ProducerRabbitMQRepository{
 		conn: c,
 	}
 
+	// Try to connect but don't panic if it fails
+	// Connection will be retried on first use
 	_, err := c.GetNewConnect()
 	if err != nil {
-		panic("Failed to connect rabbitmq")
+		c.Logger.Errorf("⚠️  Failed to connect to RabbitMQ during initialization: %v", err)
+		c.Logger.Warn("RabbitMQ connection will be retried on first message publish")
+	} else {
+		c.Logger.Info("✅ RabbitMQ producer connected successfully")
 	}
 
 	return prmq
@@ -65,6 +72,21 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 		logger.Errorf("Failed to marshal queue message struct")
 
 		return nil, err
+	}
+
+	// Ensure connection is established before publishing
+	if prmq.conn.Channel == nil || prmq.conn.Channel.IsClosed() {
+		logger.Warn("RabbitMQ channel not initialized - attempting to connect...")
+
+		_, err := prmq.conn.GetNewConnect()
+		if err != nil {
+			libOpentelemetry.HandleSpanError(&spanProducer, "Failed to establish RabbitMQ connection", err)
+			logger.Errorf("Failed to establish RabbitMQ connection: %v", err)
+
+			return nil, err
+		}
+
+		logger.Info("✅ RabbitMQ connection established on-demand")
 	}
 
 	retryCount := 0

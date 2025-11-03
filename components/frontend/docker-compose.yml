@@ -1,8 +1,8 @@
-name: plugin-smart-templates-ui
+name: reporter-ui
 
 services:
-  plugin-smart-templates-ui:
-    container_name: plugin-smart-templates-ui
+  reporter-ui:
+    container_name: reporter-ui
     build:
       context: ../..
       dockerfile: components/frontend/Dockerfile
@@ -22,7 +22,7 @@ services:
       - console-network
       - transaction-network
       - plugin-auth-network
-      - plugin-smart-templates-manager-network
+      - reporter-manager-network
       - infra-network
       - ledger-network
       - proxy-network
@@ -42,11 +42,10 @@ networks:
     driver: bridge
   infra-network:
     name: infra-network
-    driver: bridge
-  plugin-smart-templates-manager-network:
-    name: plugin-smart-templates-manager-network
-    driver: bridge
     external: true
+  reporter-manager-network:
+    name: reporter-manager-network
+    driver: bridge
   proxy-network:
     name: proxy-network
     driver: bridge

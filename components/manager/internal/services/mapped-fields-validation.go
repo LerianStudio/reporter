@@ -3,10 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb"
-	"plugin-smart-templates/v3/pkg/postgres"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/v4/pkg/postgres"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )

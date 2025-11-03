@@ -22,8 +22,8 @@ import { TemplateQueryKeys } from '@/lib/utils'
 import { useRetryInvalidation } from '@/hooks/use-retry-invalidation'
 
 const basePath =
-  getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
-  process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+  getRuntimeEnv('NEXT_PUBLIC_REPORTER_UI_BASE_PATH') ??
+  process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH
 
 type UseListTemplatesProps = {
   organizationId?: string

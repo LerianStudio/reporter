@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"plugin-smart-templates/v3/pkg/mongodb"
-	pg "plugin-smart-templates/v3/pkg/postgres"
 	"strings"
-
-	"context"
 	"time"
 
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/v4/pkg/postgres"
+
+	"context"
+
+	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,51 +64,220 @@ type DataSource struct {
 
 	// Initialized indicates if the connection has been established
 	Initialized bool
+
+	// Status indicates the current health status of the datasource
+	Status string
+
+	// LastError stores the most recent error encountered
+	LastError error
+
+	// LastAttempt stores the timestamp of the last connection attempt
+	LastAttempt time.Time
+
+	// RetryCount tracks how many times we've attempted to connect
+	RetryCount int
 }
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
 func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger, externalDataSources map[string]DataSource) error {
+	dataSource.LastAttempt = time.Now()
+	dataSource.RetryCount++
+
+	var err error
+
 	switch dataSource.DatabaseType {
 	case PostgreSQLType:
-		dataSource.PostgresRepository = pg.NewDataSourceRepository(dataSource.DatabaseConfig)
+		dataSource.PostgresRepository, err = pg.NewDataSourceRepository(dataSource.DatabaseConfig)
+		if err != nil {
+			dataSource.Status = libConstant.DataSourceStatusUnavailable
+			dataSource.LastError = err
+			logger.Errorf("Failed to establish PostgreSQL connection to %s: %v", databaseName, err)
+
+			return fmt.Errorf("failed to establish PostgreSQL connection to %s: %w", databaseName, err)
+		}
 
 		logger.Infof("Established PostgreSQL connection to %s database", databaseName)
 
+		dataSource.Status = libConstant.DataSourceStatusAvailable
+
 	case MongoDBType:
-		dataSource.MongoDBRepository = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName, logger)
+		dataSource.MongoDBRepository, err = mongodb.NewDataSourceRepository(dataSource.MongoURI, dataSource.MongoDBName, logger)
+		if err != nil {
+			dataSource.Status = libConstant.DataSourceStatusUnavailable
+			dataSource.LastError = err
+			logger.Errorf("Failed to establish MongoDB connection to %s: %v", databaseName, err)
+
+			return fmt.Errorf("failed to establish MongoDB connection to %s: %w", databaseName, err)
+		}
 
 		logger.Infof("Established MongoDB connection to %s database", databaseName)
 
+		dataSource.Status = libConstant.DataSourceStatusAvailable
+
 	default:
+		dataSource.Status = libConstant.DataSourceStatusUnavailable
+		dataSource.LastError = fmt.Errorf("unsupported database type: %s", dataSource.DatabaseType)
+
 		return fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
 	}
 
 	dataSource.Initialized = true
+	dataSource.LastError = nil
 	externalDataSources[databaseName] = *dataSource
 
 	return nil
 }
 
-// ExternalDatasourceConnections initializes and returns a map of external data source connections.
-func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
+// isFatalError checks if an error is fatal (no point in retrying)
+func isFatalError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errMsg := strings.ToLower(err.Error())
+
+	// DNS/network errors that won't be fixed by retrying
+	fatalPatterns := []string{
+		"no such host",
+		"lookup",
+		"server misbehaving",
+		"connection refused",
+		"unsupported database type",
+		"invalid connection string",
+		"authentication failed",
+		"authorization failed",
+		"access denied",
+	}
+
+	for _, pattern := range fatalPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ConnectToDataSourceWithRetry attempts to connect to a datasource with exponential backoff retry logic.
+func ConnectToDataSourceWithRetry(databaseName string, dataSource *DataSource, logger log.Logger, externalDataSources map[string]DataSource) error {
+	backoff := constant.DataSourceInitialBackoff
+
+	for attempt := 0; attempt <= constant.DataSourceMaxRetries; attempt++ {
+		if attempt > 0 {
+			logger.Warnf("Retry attempt %d/%d for datasource %s after %v", attempt, constant.DataSourceMaxRetries, databaseName, backoff)
+			time.Sleep(backoff)
+
+			// Calculate next backoff (exponential with max cap)
+			backoff = time.Duration(float64(backoff) * constant.DataSourceBackoffMultiplier)
+			if backoff > constant.DataSourceMaxBackoff {
+				backoff = constant.DataSourceMaxBackoff
+			}
+		}
+
+		err := ConnectToDataSource(databaseName, dataSource, logger, externalDataSources)
+		if err == nil {
+			logger.Infof("Successfully connected to datasource %s on attempt %d", databaseName, attempt+1)
+			return nil
+		}
+
+		logger.Errorf("Failed to connect to datasource %s (attempt %d/%d): %v", databaseName, attempt+1, constant.DataSourceMaxRetries+1, err)
+
+		// Check if error is fatal (no point in retrying)
+		if isFatalError(err) {
+			logger.Warnf("⚠️  Fatal error detected for datasource %s - skipping remaining retries", databaseName)
+			break
+		}
+
+		// Don't retry on last attempt
+		if attempt == constant.DataSourceMaxRetries {
+			break
+		}
+	}
+
+	logger.Errorf("Exhausted all retry attempts for datasource %s - marking as unavailable", databaseName)
+
+	dataSource.Status = libConstant.DataSourceStatusUnavailable
+	externalDataSources[databaseName] = *dataSource
+
+	return fmt.Errorf("failed to connect to datasource %s after %d attempts", databaseName, constant.DataSourceMaxRetries+1)
+}
+
+// ExternalDatasourceConnectionsLazy initializes datasource configurations WITHOUT attempting connections.
+// Useful for components that connect on-demand (like Manager).
+func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource {
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
 	for _, dataSource := range dataSourceConfigs {
+		var ds DataSource
+
 		switch strings.ToLower(dataSource.Type) {
 		case MongoDBType:
-			ds := initMongoDataSource(dataSource, logger)
-			externalDataSources[dataSource.ConfigName] = ds
+			ds = initMongoDataSource(dataSource, logger)
 		case PostgreSQLType:
-			ds := initPostgresDataSource(dataSource, logger)
-			externalDataSources[dataSource.ConfigName] = ds
+			ds = initPostgresDataSource(dataSource, logger)
 		default:
 			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
 			continue
 		}
 
-		logger.Infof("Configured external data source: %s with config name: %s", dataSource.Name, dataSource.ConfigName)
+		// Add datasource WITHOUT attempting connection
+		externalDataSources[dataSource.ConfigName] = ds
+		logger.Infof("📦 Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
 	}
+
+	logger.Infof("Datasource lazy initialization complete: %d configured", len(externalDataSources))
+
+	return externalDataSources
+}
+
+// ExternalDatasourceConnections initializes and returns a map of external data source connections.
+// Uses graceful degradation - continues initialization even if some datasources fail.
+// Attempts connection with retry for each datasource (use for Worker).
+func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
+	externalDataSources := make(map[string]DataSource)
+
+	dataSourceConfigs := getDataSourceConfigs(logger)
+	for _, dataSource := range dataSourceConfigs {
+		var ds DataSource
+
+		switch strings.ToLower(dataSource.Type) {
+		case MongoDBType:
+			ds = initMongoDataSource(dataSource, logger)
+		case PostgreSQLType:
+			ds = initPostgresDataSource(dataSource, logger)
+		default:
+			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
+			continue
+		}
+
+		externalDataSources[dataSource.ConfigName] = ds
+
+		// Attempt connection with retry
+		err := ConnectToDataSourceWithRetry(dataSource.ConfigName, &ds, logger, externalDataSources)
+		if err != nil {
+			logger.Errorf("⚠️  Datasource '%s' is UNAVAILABLE - system will continue without it: %v", dataSource.ConfigName, err)
+			externalDataSources[dataSource.ConfigName] = ds
+		} else {
+			logger.Infof("✅  Datasource '%s' initialized successfully", dataSource.ConfigName)
+			externalDataSources[dataSource.ConfigName] = ds
+		}
+	}
+
+	available := 0
+	unavailable := 0
+
+	for name, ds := range externalDataSources {
+		if ds.Status == libConstant.DataSourceStatusAvailable {
+			available++
+		} else {
+			unavailable++
+
+			logger.Warnf("Datasource '%s' status: %s", name, ds.Status)
+		}
+	}
+
+	logger.Infof("Datasource initialization complete: %d available, %d unavailable", available, unavailable)
 
 	return externalDataSources
 }
@@ -134,25 +306,41 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), constant.ConnectionTimeout)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	// Configure MongoDB client with pool settings and shorter timeouts
+	clientOpts := options.Client().
+		ApplyURI(mongoURI).
+		SetMaxPoolSize(constant.MongoDBMaxPoolSize).
+		SetMinPoolSize(constant.MongoDBMinPoolSize).
+		SetMaxConnIdleTime(constant.MongoDBMaxConnIdleTime).
+		SetConnectTimeout(constant.ConnectionTimeout).
+		SetServerSelectionTimeout(constant.ConnectionTimeout)
+
+	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
 		logger.Errorf("Failed to connect to MongoDB [%s]: %v", dataSource.ConfigName, err)
 	} else if err := client.Ping(ctx, nil); err != nil {
 		logger.Errorf("Failed to ping MongoDB [%s]: %v", dataSource.ConfigName, err)
 	} else {
-		logger.Infof("Successfully connected to MongoDB [%s]", dataSource.ConfigName)
+		logger.Infof("Successfully connected to MongoDB [%s] with pool config (max: %d, min: %d)",
+			dataSource.ConfigName, constant.MongoDBMaxPoolSize, constant.MongoDBMinPoolSize)
 	}
 
-	_ = client.Disconnect(ctx)
+	// Only disconnect if client was successfully created
+	if client != nil {
+		_ = client.Disconnect(ctx)
+	}
 
 	return DataSource{
 		DatabaseType: MongoDBType,
 		MongoURI:     mongoURI,
 		MongoDBName:  dataSource.Database,
 		Initialized:  false,
+		Status:       libConstant.DataSourceStatusUnknown,
+		LastAttempt:  time.Time{},
+		RetryCount:   0,
 	}
 }
 
@@ -167,17 +355,23 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		ConnectionString:   connectionString,
 		DBName:             dataSource.Database,
 		Logger:             logger,
-		MaxOpenConnections: 10,
-		MaxIdleConnections: 5,
+		MaxOpenConnections: constant.PostgresMaxOpenConns,
+		MaxIdleConnections: constant.PostgresMaxIdleConns,
 	}
 	if err := connection.Connect(); err != nil {
 		logger.Errorf("Failed to connect to Postgres [%s]: %v", dataSource.ConfigName, err)
+	} else {
+		logger.Infof("Successfully connected to Postgres [%s] with pool config (max: %d, idle: %d)",
+			dataSource.ConfigName, constant.PostgresMaxOpenConns, constant.PostgresMaxIdleConns)
 	}
 
 	return DataSource{
 		DatabaseType:   dataSource.Type,
 		DatabaseConfig: connection,
 		Initialized:    false,
+		Status:         libConstant.DataSourceStatusUnknown,
+		LastAttempt:    time.Time{},
+		RetryCount:     0,
 	}
 }
 

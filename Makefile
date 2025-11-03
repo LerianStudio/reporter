@@ -5,8 +5,29 @@
 ROOT_DIR := $(shell pwd)
 
 # Define the root directory of the project
-SERVICE_NAME := plugin-smart-templates
+SERVICE_NAME := reporter
 BIN_DIR := ./.bin
+ARTIFACTS_DIR := ./artifacts
+
+# Color definitions for terminal output
+GREEN := \033[32m
+RED := \033[31m
+YELLOW := \033[33m
+CYAN := \033[36m
+BLUE := \033[34m
+BOLD := \033[1m
+NC := \033[0m
+
+# Docker command detection (supports both docker compose and docker-compose)
+DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}' 2>/dev/null || echo "0")
+DOCKER_MIN_VERSION := 20.10.13
+DOCKER_CMD := $(shell \
+	if [ "$(shell printf '%s\n' "$(DOCKER_MIN_VERSION)" "$(DOCKER_VERSION)" | sort -V | head -n1)" = "$(DOCKER_MIN_VERSION)" ]; then \
+		echo "docker compose"; \
+	else \
+		echo "docker-compose"; \
+	fi \
+)
 
 # Component directories
 INFRA_DIR := ./components/infra
@@ -25,6 +46,13 @@ define print_title
 	@echo "------------------------------------------"
 	@echo "   📝 $(1)  "
 	@echo "------------------------------------------"
+endef
+
+define title1
+	@echo ""
+	@echo "$(CYAN)------------------------------------------$(NC)"
+	@echo "$(CYAN)   📝 $(1)$(NC)"
+	@echo "$(CYAN)------------------------------------------$(NC)"
 endef
 
 # Check if a command is available
@@ -76,7 +104,7 @@ include $(MK_DIR)/tests.mk
 help:
 	@echo ""
 	@echo ""
-	@echo "Plugin Smart Templates Commands"
+	@echo "Reporter Commands"
 	@echo ""
 	@echo ""
 	@echo "Core Commands:"
@@ -288,7 +316,22 @@ sec:
 .PHONY: clean
 clean:
 	$(call title1,"Cleaning build artifacts")
-	@rm -rf $(BIN_DIR)/* $(ARTIFACTS_DIR)/*
+	@if [ -z "$(BIN_DIR)" ] || [ -z "$(ARTIFACTS_DIR)" ]; then \
+		echo "$(RED)$(BOLD)[error]$(NC) BIN_DIR or ARTIFACTS_DIR is not set. Aborting to prevent accidental deletion.$(RED) ❌$(NC)"; \
+		exit 1; \
+	fi
+	@if [ "$(BIN_DIR)" = "/" ] || [ "$(ARTIFACTS_DIR)" = "/" ]; then \
+		echo "$(RED)$(BOLD)[error]$(NC) BIN_DIR or ARTIFACTS_DIR cannot be root directory. Aborting.$(RED) ❌$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -d "$(BIN_DIR)" ]; then \
+		echo "$(CYAN)Cleaning $(BIN_DIR)...$(NC)"; \
+		rm -rf $(BIN_DIR)/*; \
+	fi
+	@if [ -d "$(ARTIFACTS_DIR)" ]; then \
+		echo "$(CYAN)Cleaning $(ARTIFACTS_DIR)...$(NC)"; \
+		rm -rf $(ARTIFACTS_DIR)/*; \
+	fi
 	@echo "$(GREEN)$(BOLD)[ok]$(NC) Artifacts cleaned successfully$(GREEN) ✔️$(NC)"
 
 #-------------------------------------------------------
@@ -386,8 +429,8 @@ logs:
 
 .PHONY: logs-api
 logs-api:
-	$(call title1,"Showing logs for plugin-smart-templates service")
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f golang-plugin-boilerplate
+	$(call title1,"Showing logs for reporter service")
+	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter
 
 .PHONY: ps
 ps:
@@ -451,7 +494,7 @@ generate-docs:
 	fi
 	@swag init -g ./components/manager/cmd/app/main.go -d ./ -o ./components/manager/api --parseDependency --parseInternal
 	@docker run --rm -v $(ROOT_DIR):/local --user $(shell id -u):$(shell id -g) openapitools/openapi-generator-cli:v5.1.1 generate -i /local/components/manager/api/swagger.json -g openapi-yaml -o /local/components/manager/api
-	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/openapi.yaml
+	@mv ./components/manager/api/openapi/openapi.yaml ./components/manager/api/openapi.yaml
 	@rm -rf ./components/manager/api/README.md ./components/manager/api/.openapi-generator* ./components/manager/api/openapi
 	@if [ -f "$(ROOT_DIR)/scripts/package.json" ]; then \
 		echo "$(YELLOW)Installing npm dependencies for validation...$(NC)"; \

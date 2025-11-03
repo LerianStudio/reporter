@@ -8,12 +8,13 @@ import (
 	"io"
 	"mime/multipart"
 	"net/textproto"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
-	"plugin-smart-templates/v3/pkg/postgres"
 	"testing"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/v4/pkg/postgres"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

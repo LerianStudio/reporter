@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"io"
 	"mime/multipart"
-	"plugin-smart-templates/v3/pkg"
-	"plugin-smart-templates/v3/pkg/constant"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"

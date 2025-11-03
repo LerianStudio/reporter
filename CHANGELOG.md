@@ -2,36 +2,269 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v3.0.0] - 2025-10-07
+## [v4.0.0-beta.9] - 2025-10-31
 
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0)
-Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.8...v4.0.0-beta.9)
+Contributors: Gabriel Castro, lerian-studio
 
 ### 🐛 Bug Fixes
-- **Dependency Security**: Resolved vulnerabilities in dependencies affecting the `build`, `deps`, and `frontend` components, enhancing overall application security and stability.
-- **Pipeline Reliability**: Fixed issues with pipeline scan execution to ensure consistent security checks across `deps`, `docs`, and `frontend`, improving the reliability of the CI/CD process.
+- **Reliable Report Downloads**: Resolved issues with downloading PDF reports, eliminating errors and preventing file corruption. Users can now confidently access their reports without interruptions.
+- **Consistent Code Formatting**: Applied Prettier formatting across the codebase, enhancing code readability and reducing the likelihood of syntax errors. This change supports better collaboration among developers.
+
+### 🔧 Maintenance
+- **Updated Documentation**: The CHANGELOG has been refreshed to reflect the latest updates and fixes, providing users and developers with accurate and up-to-date information for effective version tracking.
+
+
+## [v4.0.0-beta.8] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.7...v4.0.0-beta.8)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Security Enhancement**: Resolved a vulnerability in a frontend dependency, significantly improving application security and safeguarding user data.
+- **Dependency Management**: Fixed issues in `package.json` to ensure stable dependency management, enhancing the reliability of the build process and preventing runtime errors.
+- **Deployment Stability**: Rolled back changes in the Dockerfile to a previous stable version, ensuring consistent and reliable deployment of the frontend environment.
 
 ### 📚 Documentation
-- **Changelog Updates**: Updated the CHANGELOG to provide users with the latest information on software changes and improvements, ensuring transparency and ease of access to release details.
+- **Security Transparency**: Documented a known vulnerability (CVE) that does not impact project security, maintaining transparency and user trust.
 
 ### 🔧 Maintenance
-- **Security Scans**: Integrated Trivy security scans into the CI pipeline, enabling continuous security assessment across `frontend`, `docs`, `test`, `auth`, and `deps` components. This proactive measure ensures early detection of vulnerabilities, contributing to a more secure software environment.
-- **Dockerfile Enhancements**: Added comments to Dockerfiles to facilitate easier maintenance and understanding of the build process, aiding developers in managing and updating the build configuration efficiently.
+- **Comprehensive Security Scan**: Conducted a thorough security scan across multiple components, including auth, docs, and frontend, to proactively identify and mitigate potential vulnerabilities, reinforcing the project's security posture.
+- **Changelog Update**: Updated the CHANGELOG to accurately reflect recent changes and improvements, ensuring clear communication of project updates to users and stakeholders.
 
 
-## [v3.0.0-beta.4] - 2025-10-07
+## [v4.0.0-beta.7] - 2025-10-31
 
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
-Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.6...v4.0.0-beta.7)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to include recent changes and improvements. This provides users and developers with the most current information about the project's updates, facilitating better understanding and tracking of the project's evolution.
+
+### 🔧 Maintenance
+- **Frontend/Docs**: Updated the Go version toolchain to the latest standards. This ensures compatibility with the current Go ecosystem, improving build consistency and reducing potential issues related to outdated dependencies. Developers will experience a more reliable and streamlined development process.
+
+
+## [v4.0.0-beta.6] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.5...v4.0.0-beta.6)
+Contributors: arthurkz, lerian-studio
 
 ### 🐛 Bug Fixes
-- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
-- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
+- **Messaging System**: Improved the acknowledgment process of messages, ensuring more reliable communication and reducing message loss. This enhancement is particularly beneficial for users who depend on timely and accurate message processing.
+- **PDF Generation**: Fixed an issue where PDF files were not being generated correctly by the worker. Users can now reliably create and access PDF documents, improving the overall document handling experience.
+
+### 📚 Documentation
+- **Changelog Update**: The CHANGELOG has been updated to reflect recent changes and improvements, providing users with the latest information about the software's evolution. This ensures that documentation remains current and useful.
 
 ### 🔧 Maintenance
-- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
-- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
-- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
+- Routine updates and optimizations have been applied to ensure the system continues to operate smoothly and efficiently.
+
+
+## [v4.0.0-beta.5] - 2025-10-31
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.4...v4.0.0-beta.5)
+Contributors: Gabriel Castro, lerian-studio
+
+### ✨ Features
+- **Dynamic Report Downloads**: Users can now choose from various file formats when downloading reports. This enhancement offers greater flexibility, allowing users to select the format that best suits their needs, whether for presentation, analysis, or storage purposes.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to accurately reflect recent changes and improvements. This ensures that all modifications are well-documented and easily accessible, aiding in transparency and effective version tracking.
+
+### 🔧 Maintenance
+- **Release Management**: Routine updates have been made to maintain the project's infrastructure and ensure smooth release management, indirectly benefiting users by enhancing the overall reliability and stability of the software.
+
+
+## [v4.0.0-beta.4] - 2025-10-30
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.3...v4.0.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **PDF Generation**: Resolved a performance issue that caused delays and errors during PDF exports. Users can now generate PDFs more reliably, enhancing the overall user experience.
+
+### ⚡ Performance
+- **PDF Export Efficiency**: Improved the speed of PDF generation, significantly reducing wait times, especially for large documents. This enhancement allows users to work more efficiently without interruptions.
+
+### 📚 Documentation
+- **Enhanced PDF Generation**: Updated documentation to reflect improvements in PDF generation performance. Users can now find detailed guidance on optimizing their document creation process.
+
+### 🔧 Maintenance
+- **Dependency Update**: Upgraded the `lib-commons` library to the latest version, ensuring compatibility and benefiting from the latest security patches and improvements.
+- **Changelog Update**: Revised the CHANGELOG to provide users with the latest information on updates and fixes, promoting transparency and effective communication.
+
+
+## [v4.0.0-beta.3] - 2025-10-30
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.2...v4.0.0-beta.3)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Backend Image Generation**: Resolved an issue with the generation of images for backend components. This fix ensures that all visual representations in the documentation are accurate, improving the reliability and clarity of the backend documentation for users.
+
+### 📚 Documentation
+- **Changelog Update**: The changelog has been updated to include the latest changes and improvements. This ensures users are informed about the most recent updates, helping them track project progress effectively and stay informed about the software's evolution.
+
+### 🔧 Maintenance
+- **Documentation Maintenance**: Regular updates and maintenance of the documentation were performed to keep it current and useful. This ongoing effort ensures that users always have access to accurate and helpful information about the software.
+
+
+## [v4.0.0-beta.2] - 2025-10-29
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.1...v4.0.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved PDF Generation**: Resolved issues with PDF file creation by adopting a temporary file approach, ensuring reliable document exports without errors.
+- **Enhanced Error Handling**: Improved error messages during PDF generation, providing users with clearer guidance when issues occur.
+- **Clean Build Environment**: Fixed the `make clean` command to ensure proper removal of build artifacts, preventing potential conflicts and maintaining a tidy development setup.
+
+### 🔧 Maintenance
+- **Security Enhancements**: Addressed a security vulnerability in the frontend, ensuring a safer user experience by mitigating potential risks.
+- **Code Quality Improvements**: Implemented linting recommendations across the codebase, enhancing overall stability and readability.
+
+
+## [v4.0.0-beta.1] - 2025-10-28
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.6...v4.0.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Project Update to Module Version v4**: The project now uses SeaweedFS and has been renamed to "reporter". This update may require changes to configuration files and integration points. Please update any scripts or documentation referencing the old project name. Ensure compatibility with the new module version by reviewing your setup.
+
+### ✨ Features
+- **Improved Database Performance**: Implemented indexes for the template and report collections, significantly boosting query performance. This enhancement allows faster access to report data and templates, particularly benefiting users with large datasets.
+
+### 🐛 Bug Fixes
+- **Accurate Log Configuration**: Corrected the log type configuration to ensure precise logging behavior. This fix resolves issues where incorrect log types could lead to misinterpretation of log data, enhancing overall system reliability.
+
+### ⚡ Performance
+- **Enhanced Log Configuration**: Updated the type of log configuration to improve clarity and consistency across environments. This change ensures more reliable log outputs, aiding in better monitoring and troubleshooting of application behavior.
+
+### 🔧 Maintenance
+- **Updated Changelog**: The CHANGELOG has been revised to reflect the latest changes and improvements, providing users with up-to-date information about the project's evolution.
+
+
+## [v3.1.0-beta.6] - 2025-10-27
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.5...v3.1.0-beta.6)
+Contributors: Gabriel Castro, lerian-studio
+
+### 📚 Documentation
+- Consistent code formatting and cleanup have been applied across configuration, documentation, and frontend components, improving code readability and maintainability.
+
+### 🔧 Maintenance
+- The CHANGELOG has been updated to reflect the latest changes, ensuring users and developers have access to the most current information about updates and improvements.
+
+### ✨ Improvements
+- **Authentication & Configuration**: The authentication network setup is now standardized across the application, reducing configuration errors and simplifying the integration process for developers.
+- **Frontend & Configuration**: We've unified the reporter configuration and internationalization (i18n) keys, streamlining the setup process and improving the user experience by making internationalization features easier to manage.
+- **Frontend**: The term "smart-templates" has been replaced with "reporter" throughout the application, clarifying terminology and enhancing user understanding of the reporting features.
+
+
+## [v3.1.0-beta.5] - 2025-10-23
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.4...v3.1.0-beta.5)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Testing Framework:** We've added property and fuzzy testing capabilities, making the system more robust and reliable. This ensures better validation and error detection, improving both frontend and backend performance.
+- **Dead Letter Queue (DLQ) System:** Implemented a DLQ system to handle persistent errors gracefully, preventing infinite retry loops. This significantly boosts system stability and reduces downtime.
+
+### 🐛 Bug Fixes
+- **Improved Payload Validation:** Fixed issues with fuzzy tests and payload validation for create template and report requests, ensuring more accurate data handling and reducing errors during report generation.
+- **Code Quality Enhancements:** Addressed linting and security issues following GoSec recommendations, enhancing the security and quality of the codebase.
+
+### 📚 Documentation
+- **Testing Framework Documentation:** Added a README to the tests package, providing clearer guidance for developers and improving the onboarding process.
+
+### 🔧 Maintenance
+- **Dependency Updates:** Conducted routine updates on project dependencies, ensuring compatibility and leveraging the latest improvements in third-party libraries.
+- **Changelog Updates:** Updated the CHANGELOG to reflect recent changes, maintaining accurate documentation of project progress.
+
+
+## [v3.1.0-beta.4] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.3...v3.1.0-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Code Quality**: A comprehensive linting process has been applied to the codebase, addressing various formatting and style issues. This improvement enhances code readability and maintainability, making it easier for developers to work with the code without affecting its functionality.
+
+### 🔧 Maintenance
+- **Testing**: Introduced end-to-end (e2e) local test collection for backend and frontend components. This addition improves testing coverage, ensuring critical user flows are automatically validated, which enhances overall system reliability.
+- **Documentation**: Updated the CHANGELOG to reflect recent changes and improvements, ensuring users and developers have access to the latest information about project updates.
+
+### ✨ Improvements
+- **Project Naming**: The project is now consistently named "reporter" across all components, including backend, frontend, and documentation. This change ensures clarity and uniformity in project references, making it easier for users to identify and interact with the project.
+
+
+## [v3.1.0-beta.3] - 2025-10-16
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.2...v3.1.0-beta.3)
+Contributors: Gabriel Ferreira, lerian-studio
+
+### 📚 Documentation
+- **Updated Documentation**: Minor updates have been made to the documentation to align with the new Trivy scan configuration. These changes ensure all team members are informed about the updated security practices.
+
+### 🔧 Maintenance
+- **Enhanced Security Scanning**: We have updated the Trivy scan version, which enhances our security scanning capabilities. This ensures that our application benefits from the latest vulnerability checks, improving our overall security posture.
+- **Automated Security Checks**: The Trivy scan configuration is now integrated into the pull request process. This automates vulnerability checks during code review stages, streamlining the security review process and enhancing development workflow efficiency.
+
+
+## [v3.1.0-beta.2] - 2025-10-15
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.1.0-beta.1...v3.1.0-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Storage System Migration**: We've transitioned our file storage from Minio to SeaweedFS. This upgrade boosts scalability and reliability, ensuring a more robust file management system for all users.
+- **File Expiry Management**: Introduced Time-To-Live (TTL) for report files on SeaweedFS, which automatically manages file lifecycle. This feature helps you maintain storage efficiency and reduce costs by automatically deleting outdated files.
+
+### 🐛 Bug Fixes
+- **Database Stability**: Fixed an issue with span deletion that could cause data inconsistencies. This enhancement ensures smoother and more reliable database operations.
+- **Logging Accuracy**: Corrected the order of TTL log information, providing clearer and more accurate logs for better system monitoring and debugging.
+
+### 🔧 Maintenance
+- **Error Handling and Rollback**: Implemented a hard delete mechanism for failed file uploads. This improvement prevents incomplete uploads from cluttering the system, enhancing data integrity and user experience.
+- **Changelog Update**: Updated the project changelog to reflect recent changes and improvements, ensuring users have access to the latest information about system updates and enhancements.
+
+
+## [v3.1.0-beta.1] - 2025-10-13
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.1-beta.1...v3.1.0-beta.1)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Enhanced Resilience with Retry Mechanism**: We've introduced a robust retry mechanism with a circuit breaker for message handling and external database connections. This feature minimizes downtime by ensuring more reliable service connections, significantly improving user experience during transient network issues.
+
+### 🐛 Bug Fixes
+- **Datasource Configuration Initialization**: Fixed an issue that could cause incorrect setup of datasource configurations, ensuring seamless service operation without manual intervention.
+- **Improved Code Quality**: Applied comprehensive code linting across multiple components, enhancing readability and reducing the likelihood of future bugs.
+
+### 🔧 Maintenance
+- **Library Updates**: Updated all library dependencies to their latest versions, ensuring compatibility and leveraging new security and performance enhancements.
+- **Documentation Refresh**: The changelog and other documentation have been updated to provide a clear and concise history of recent updates, helping users stay informed about changes and improvements.
+
+
+## [v3.0.1-beta.1] - 2025-10-09
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0...v3.0.1-beta.1)
+Contributors: arthurkz
+
+### ⚠️ Breaking Changes
+- **Backend Error Response Update**: The format of error responses for the delete endpoint has changed. This may impact existing integrations that rely on the previous format. Users should review and update their error handling logic to ensure compatibility. [Migration steps: Update your error handling code to accommodate the new response structure.]
+
+### 🐛 Bug Fixes
+- **Corrected API Response Descriptions**: Fixed inaccuracies in the API documentation that previously misrepresented certain response behaviors. This correction helps developers by providing reliable information, minimizing integration errors.
+
+### 📚 Documentation
+- **API Documentation Enhancements**: Comprehensive updates have been made to the API documentation, providing clearer and more accurate guidance for developers. This ensures better integration experiences by reducing misunderstandings and potential errors.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Several dependencies have been updated to address known vulnerabilities, significantly enhancing the security and stability of the application. This proactive measure protects users from potential security threats.
+- **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
 
 
 ## [v3.0.0] - 2025-10-02
@@ -64,6 +297,19 @@ Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, ler
 - **Build System Update**: Updated Go version and linting tools in the GitHub workflow to ensure compatibility with the latest development standards.
 - **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
 
+## [v3.0.0-beta.4] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
+- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
+
+### 🔧 Maintenance
+- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
+- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
+- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
 
 ## [v3.0.0-rc.3] - 2025-10-02
 

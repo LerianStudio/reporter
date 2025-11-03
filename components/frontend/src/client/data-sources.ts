@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { getRuntimeEnv } from '@lerianstudio/console-layout'
 
 const basePath =
-  getRuntimeEnv('NEXT_PUBLIC_PLUGIN_UI_BASE_PATH') ??
-  process.env.NEXT_PUBLIC_PLUGIN_UI_BASE_PATH
+  getRuntimeEnv('NEXT_PUBLIC_REPORTER_UI_BASE_PATH') ??
+  process.env.NEXT_PUBLIC_REPORTER_UI_BASE_PATH
 
 type UseListDataSourcesProps = {
   organizationId: string

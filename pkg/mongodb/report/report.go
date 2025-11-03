@@ -1,8 +1,9 @@
 package report
 
 import (
-	"plugin-smart-templates/v3/pkg/model"
 	"time"
+
+	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	"github.com/google/uuid"
 )

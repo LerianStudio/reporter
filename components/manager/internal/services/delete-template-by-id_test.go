@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg/constant"
-	"plugin-smart-templates/v3/pkg/mongodb/template"
 	"testing"
+
+	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -27,41 +28,45 @@ func Test_deleteTemplateByID(t *testing.T) {
 		name           string
 		tempID         uuid.UUID
 		orgId          uuid.UUID
+		hardDelete     bool
 		mockSetup      func()
 		expectErr      bool
 		expectedResult error
 	}{
 		{
-			name:   "Success - Delete a template",
-			tempID: tempID,
-			orgId:  orgId,
+			name:       "Success - Delete a template",
+			tempID:     tempID,
+			orgId:      orgId,
+			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr:      false,
 			expectedResult: nil,
 		},
 		{
-			name:   "Error Bad Request - Delete a template",
-			tempID: tempID,
-			orgId:  orgId,
+			name:       "Error Bad Request - Delete a template",
+			tempID:     tempID,
+			orgId:      orgId,
+			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrBadRequest)
 			},
 			expectErr:      true,
 			expectedResult: constant.ErrBadRequest,
 		},
 		{
-			name:   "Error Document Not found - Delete a template",
-			tempID: tempID,
-			orgId:  orgId,
+			name:       "Error Document Not found - Delete a template",
+			tempID:     tempID,
+			orgId:      orgId,
+			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					SoftDelete(gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
@@ -74,7 +79,7 @@ func Test_deleteTemplateByID(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.orgId)
+			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.orgId, tt.hardDelete)
 
 			if tt.expectErr {
 				assert.Error(t, err)

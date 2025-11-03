@@ -188,8 +188,24 @@ i18n:
 
 clean:
 	$(call title1,"Cleaning build artifacts")
+	@if [ -z "$(BUILD_DIR)" ] || [ -z "$(ARTIFACTS_DIR)" ]; then \
+		echo "ERROR: BUILD_DIR or ARTIFACTS_DIR is not set. Aborting to prevent accidental deletion."; \
+		exit 1; \
+	fi
+	@if [ "$(BUILD_DIR)" = "/" ] || [ "$(ARTIFACTS_DIR)" = "/" ]; then \
+		echo "ERROR: BUILD_DIR or ARTIFACTS_DIR cannot be root directory. Aborting."; \
+		exit 1; \
+	fi
 	@echo "Cleaning $(SERVICE_NAME) artifacts..."
-	@rm -rf $(BUILD_DIR) $(ARTIFACTS_DIR) coverage coverage.out coverage.html *.tmp
+	@if [ -d "$(BUILD_DIR)" ]; then \
+		echo "Removing $(BUILD_DIR)..."; \
+		rm -rf $(BUILD_DIR); \
+	fi
+	@if [ -d "$(ARTIFACTS_DIR)" ]; then \
+		echo "Removing $(ARTIFACTS_DIR)..."; \
+		rm -rf $(ARTIFACTS_DIR); \
+	fi
+	@rm -f coverage coverage.out coverage.html *.tmp
 	@if [ -d "node_modules" ]; then \
 		echo "Removing node_modules..."; \
 		rm -rf node_modules; \
@@ -198,4 +214,4 @@ clean:
 		echo "Removing .next..."; \
 		rm -rf .next; \
 	fi
-	@echo "$(OK_COLOR)[ok] Artifacts cleaned successfully ✔️$(NO_COLOR)"
+	@echo "[ok] Artifacts cleaned successfully ✔️"

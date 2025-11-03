@@ -2,9 +2,9 @@ package rabbitmq
 
 import (
 	"context"
-	"plugin-smart-templates/v3/pkg"
 	"sync"
-	"time"
+
+	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	constant "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -23,7 +23,7 @@ type ConsumerRepository interface {
 	RunConsumers() error
 }
 
-// QueueHandlerFunc is a function that process a specific queue.
+// QueueHandlerFunc is a function that processes a specific queue.
 type QueueHandlerFunc func(ctx context.Context, body []byte) error
 
 // ConsumerRoutes struct
@@ -108,8 +108,7 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 }
 
 // processMessage processes a single message from a specified queue using the provided handler function.
-// Returns true if an error occurred during processing and the message was requeued; otherwise, returns false.
-func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) bool {
+func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) {
 	requestID, found := message.Headers[constant.HeaderID]
 	if !found {
 		requestID = commons.GenerateUUIDv7().String()
@@ -143,68 +142,21 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}
 
+	cr.Infof("Worker %d: Starting processing for queue %s", workerID, queue)
+
 	err = handlerFunc(ctx, message.Body)
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
+		opentelemetry.HandleSpanError(&spanConsumer, "Error processing message", err)
 
-		// Recovery and increment retryCount
-		if !cr.retryMessageWithCount(message, workerID, queue) {
-			return false
-		}
-
-		// Exclude original
 		_ = message.Nack(false, false)
 
-		return true
+		return
 	}
 
 	_ = message.Ack(false)
 
-	return false
-}
-
-// retryMessage retries a message with the specified retryCount.
-// Returns true if the message was successfully requeued; otherwise, returns false.
-func (cr *ConsumerRoutes) retryMessageWithCount(message amqp091.Delivery, workerID int, queue string) bool {
-	retryCount := message.Headers["x-retry-count"].(int32)
-	if retryCount >= 3 {
-		cr.Warnf("Worker %d: Discarding message from queue %s after %d attempts", workerID, queue, retryCount)
-
-		_ = message.Nack(false, false)
-
-		return false
-	}
-
-	// Republish with retryCount + 1
-	retryCount++
-
-	headers := amqp091.Table{}
-	for k, v := range message.Headers {
-		headers[k] = v
-	}
-
-	headers["x-retry-count"] = retryCount
-
-	errPub := cr.conn.Channel.Publish(
-		message.Exchange,
-		message.RoutingKey,
-		false,
-		false,
-		amqp091.Publishing{
-			Headers:      headers,
-			ContentType:  message.ContentType,
-			DeliveryMode: message.DeliveryMode,
-			Body:         message.Body,
-			Timestamp:    time.Now(),
-		},
-	)
-	if errPub != nil {
-		cr.Errorf("Worker %d: Failed to republish message: %v", workerID, errPub)
-	} else {
-		cr.Infof("Worker %d: Republished message with retryCount=%d", workerID, retryCount)
-	}
-
-	return true
+	cr.Infof("Worker %d: Successfully processed message from queue %s", workerID, queue)
 }
 
 // consumeMessages establishes a consumer for the specified queue and returns a channel for message deliveries.
