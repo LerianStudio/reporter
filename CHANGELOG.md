@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0-rc.1] - 2025-11-03
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.0.0-rc.4...v4.0.0-rc.1)
+Contributors: Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Migration to SeaweedFS**: We've transitioned from Minio to SeaweedFS for file storage. This change improves reliability and scalability. Users must update their storage configurations to ensure compatibility with SeaweedFS. [Migration Guide](#)
+- **API Error Handling**: The error handling for the delete endpoint has been modified. Users need to update their integrations to accommodate new error responses, enhancing API interaction consistency.
+
+### ✨ Features
+- **Dead Letter Queue System**: A new DLQ system has been implemented to prevent retry loops, boosting message processing reliability and fault tolerance.
+- **Time-To-Live for Reports**: Introduced TTL for report files on SeaweedFS, automating storage lifecycle management and reducing manual cleanup efforts.
+- **Circuit Breaker Mechanism**: Added a circuit breaker and retry mechanism for external database connections, enhancing system resilience and minimizing downtime.
+
+### 🐛 Bug Fixes
+- **PDF Report Downloads**: Resolved issues with binary file downloads, ensuring correct handling and access to PDF reports.
+- **Worker Process Fixes**: Corrected worker processes to ensure complete and accurate PDF file generation, addressing previous generation failures.
+- **Dependency Updates**: Updated dependencies to fix vulnerabilities, improving overall application security and stability.
+
+### ⚡ Performance
+- **Report Download Flexibility**: Enhanced report download functionality to support dynamic file formats, offering users greater flexibility.
+- **PDF Generation Speed**: Improved PDF generation performance, reducing processing time and enhancing the user experience.
+- **Database Query Optimization**: Added indexes to template and report collections, significantly improving query performance and response times.
+
+### 📚 Documentation
+- **Comprehensive Updates**: Expanded and updated documentation to reflect recent changes, ensuring users have access to accurate and comprehensive guidance.
+
+### 🔧 Maintenance
+- **Network Configuration Standardization**: Standardized network configurations to improve consistency and simplify management across environments.
+- **Regular Updates**: Continued updates to libraries and tools to keep the project current with the latest improvements and security patches.
+
+
 ## [v4.0.0-beta.9] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.8...v4.0.0-beta.9)
