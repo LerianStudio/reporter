@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0] - 2025-11-03
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.0.0...v4.0.0)
+Contributors: Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
+
+### ⚠️ Breaking Changes
+- **Backend/Config:** The project has been renamed to 'reporter' and updated to use SeaweedFS. Ensure your configurations and integrations are compatible with the new system and update any references to the project name.
+- **Backend/Frontend:** The error return for the delete endpoint has been modified, which may affect integrations relying on previous error handling. Review and update dependent systems to align with the new error response format.
+
+### ✨ Features
+- **Scalable Storage System:** Migrated to SeaweedFS, enhancing scalability and performance for handling large files. This change improves data management and retrieval efficiency.
+- **Reliable Message Processing:** Implemented a Dead Letter Queue (DLQ) system, preventing retry loops and improving system stability.
+- **Resilient Database Connections:** Introduced a retry mechanism with circuit breaker functionality, increasing resilience against transient failures.
+
+### 🐛 Bug Fixes
+- **PDF Reports:** Resolved issues with binary file downloads, ensuring correct file handling and improved user accessibility.
+- **Security Enhancements:** Fixed vulnerabilities in frontend dependencies, enhancing overall security and stability.
+- **Datasource Configurations:** Corrected initialization issues, preventing potential misconfigurations and runtime errors.
+
+### ⚡ Performance
+- **Query Optimization:** Added indexes to template and report collections, significantly reducing data retrieval times and improving query performance.
+- **Dynamic File Formats:** Enhanced report download functionality to support dynamic file formats, offering greater flexibility and user experience.
+
+### 📚 Documentation
+- **Updated Guides:** Documentation has been updated to reflect recent changes and improvements, ensuring users have access to accurate and up-to-date information.
+
+### 🔧 Maintenance
+- **Network Standardization:** Standardized network configurations across the application, ensuring consistent and reliable interactions.
+- **Security Compliance:** Conducted a comprehensive security scan and updated libraries to address vulnerabilities, maintaining system integrity.
+
+
 ## [v4.0.0-beta.9] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.8...v4.0.0-beta.9)
