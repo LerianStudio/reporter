@@ -266,38 +266,6 @@ Contributors: arthurkz
 - **Dependency Updates**: Several dependencies have been updated to address known vulnerabilities, significantly enhancing the security and stability of the application. This proactive measure protects users from potential security threats.
 - **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
 
-## [v3.0.0-rc.4] - 2025-10-07
-
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-rc.4)
-Contributors: Gabriel Ferreira, arthurkz, lerian-studio
-
-### 🐛 Bug Fixes
-- **Dependencies**: Updated to secure versions to resolve vulnerabilities, enhancing application stability and security.
-- **Pipeline Execution**: Fixed issues with security scan execution, ensuring consistent and reliable vulnerability detection during builds.
-
-### 📚 Documentation
-- **Security Scanning**: Updated documentation to guide users on interpreting and responding to new security scan results, making it easier to maintain a secure environment.
-
-### 🔧 Maintenance
-- **Security Scans**: Integrated Trivy security scans into the CI/CD pipeline, automatically detecting vulnerabilities to improve system reliability.
-- **Testing Enhancements**: Conducted extensive testing of security scans across key components to validate effectiveness, ensuring robust security measures are in place.
-- **Changelog Updates**: Regularly updated the CHANGELOG file for transparency and easy reference, helping users and developers stay informed about changes.
-
-
-## [v3.0.0-beta.4] - 2025-10-07
-
-[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
-Contributors: Gabriel Ferreira, arthurkz, lerian-studio
-
-### 🐛 Bug Fixes
-- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
-- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
-
-### 🔧 Maintenance
-- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
-- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
-- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
-
 
 ## [v3.0.0] - 2025-10-02
 
@@ -328,6 +296,28 @@ Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, ler
 ### 🔧 Maintenance
 - **Build System Update**: Updated Go version and linting tools in the GitHub workflow to ensure compatibility with the latest development standards.
 - **Dependency Upgrades**: Updated @lerianstudio/console-layout and other dependencies, incorporating the latest features and security patches for enhanced stability.
+
+## [v3.0.0-beta.4] - 2025-10-07
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.3...v3.0.0-beta.4)
+Contributors: Gabriel Ferreira, arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Enhanced Security**: Updated several dependencies to resolve vulnerabilities, ensuring a more secure and stable application environment for users.
+- **Smooth Builds**: Fixed issues in the frontend build process, resulting in a more reliable deployment experience with fewer errors.
+
+### 🔧 Maintenance
+- **Automated Security Scans**: Integrated Trivy scanning into the continuous integration pipeline. This automatically detects vulnerabilities in dependencies and Docker images, providing ongoing security assurance.
+- **Improved Documentation**: Updated documentation to reflect new security scanning processes, helping users understand and leverage enhanced security features.
+- **Streamlined Configurations**: Adjusted settings to automatically trigger security scans with every pull request, ensuring continuous security checks and a streamlined development workflow.
+
+## [v3.0.0-rc.3] - 2025-10-02
+
+[Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v3.0.0-rc.2...v3.0.0-rc.3)
+Contributors: arthurkz
+
+### 🐛 Bug Fixes
+- Improved Branch Management: We've added a condition to the release-candidate branch handling process. This fix ensures that only the correct code changes are included in release candidates, preventing potential deployment issues. As a result, users can expect a more stable and reliable deployment pipeline, reducing the risk of unintended code merges.
 
 
 ## [v3.0.0-beta.3] - 2025-10-01
