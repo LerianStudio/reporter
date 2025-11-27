@@ -6,7 +6,7 @@ import (
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/v4/pkg/storage/seaweedfs"
 )
 
 // Repository provides an interface for SeaweedFS storage operations

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/v4/pkg/storage/seaweedfs"
 )
 
 func TestSimpleRepository_Get_AppendsTplExtension(t *testing.T) {
