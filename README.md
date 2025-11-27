@@ -72,21 +72,156 @@ The field mapping should be:
 }
 ```
 
-## File storage with SeaweedFS
+## File Storage Configuration
+
+The Reporter supports two storage providers for templates and generated reports: **SeaweedFS** (default) and **AWS S3**.
+
+### Storage Provider Selection
+
+Set the storage provider using the environment variable:
+
+```bash
+# Use SeaweedFS (default)
+STORAGE_PROVIDER=seaweedfs
+
+# Use AWS S3
+STORAGE_PROVIDER=s3
+```
+
+### SeaweedFS Storage
 
 We use SeaweedFS (Filer + Volume + Master) to store both template files and generated reports. Access is done via Filer HTTP API.
-### Configuration
+
+#### Configuration
 
 Configure the following environment variables:
 
-- `SEAWEEDFS_HOST`: SeaweedFS Filer hostname
-- `SEAWEEDFS_FILER_PORT`: SeaweedFS Filer port (default: 8888)
+- `STORAGE_PROVIDER`: Set to `seaweedfs` or leave empty (default)
+- `SEAWEEDFS_HOST`: SeaweedFS Filer hostname (default: `reporter-seaweedfs-filer`)
+- `SEAWEEDFS_FILER_PORT`: SeaweedFS Filer port (default: `8888`)
+- `SEAWEEDFS_TTL`: Time-to-live for stored files (default: `6M`)
 
-### Accessing SeaweedFS
+#### Accessing SeaweedFS
 
 **Development**: Access the Filer web interface directly at `http://localhost:8888/`
 
 **Production**: Filer should be accessible only from Manager/Worker services within the private network.
+
+### AWS S3 Storage
+
+Alternative storage using Amazon S3 for scalable cloud storage of templates and reports.
+
+#### Configuration
+
+Configure the following environment variables:
+
+- `STORAGE_PROVIDER`: Set to `s3`
+- `S3_REGION`: AWS region (e.g., `us-east-1`, `us-west-2`)
+- `S3_BUCKET`: S3 bucket name for storing files
+- `S3_ACCESS_KEY_ID`: AWS access key ID
+- `S3_SECRET_ACCESS_KEY`: AWS secret access key
+- `S3_ENDPOINT`: Custom S3 endpoint (optional, for S3-compatible services)
+- `S3_FORCE_PATH_STYLE`: Force path-style URLs (optional, default: `false`)
+
+#### Example S3 Configuration
+
+```bash
+STORAGE_PROVIDER=s3
+S3_REGION=us-east-1
+S3_BUCKET=my-reporter-bucket
+S3_ACCESS_KEY_ID=AKIA...
+S3_SECRET_ACCESS_KEY=your-secret-key
+```
+
+#### S3 Bucket Structure
+
+The Reporter organizes files in S3 with the following structure:
+
+```
+my-reporter-bucket/
+├── templates/
+│   ├── template-uuid-1.tpl
+│   └── template-uuid-2.tpl
+└── reports/
+    ├── report-uuid-1.pdf
+    ├── report-uuid-2.html
+    └── report-uuid-3.csv
+```
+
+#### S3 Permissions
+
+Ensure your AWS credentials have the following S3 permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-reporter-bucket",
+        "arn:aws:s3:::my-reporter-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+### Storage Provider Troubleshooting
+
+#### Common Issues
+
+**1. Storage Provider Not Recognized**
+
+The `STORAGE_PROVIDER` value is case-sensitive and must be lowercase:
+
+```bash
+# ✅ Correct
+STORAGE_PROVIDER=s3
+STORAGE_PROVIDER=seaweedfs
+
+# ❌ Incorrect
+STORAGE_PROVIDER=S3
+STORAGE_PROVIDER=SeaweedFS
+```
+
+**2. S3 Connection Issues**
+
+- Verify AWS credentials have correct permissions
+- Check S3 bucket exists and is accessible
+- Ensure region matches bucket location
+- For custom endpoints, verify `S3_ENDPOINT` and `S3_FORCE_PATH_STYLE` settings
+
+**3. SeaweedFS Connection Issues**
+
+- Verify SeaweedFS services are running
+- Check `SEAWEEDFS_HOST` and `SEAWEEDFS_FILER_PORT` are correct
+- Ensure Filer is accessible from Manager/Worker containers
+
+#### Switching Storage Providers
+
+To switch between storage providers:
+
+1. Update environment variables
+2. Restart Manager and Worker services
+3. Existing files remain in the previous storage (migration not automatic)
+
+```bash
+# Switch to S3
+export STORAGE_PROVIDER=s3
+export S3_REGION=us-east-1
+export S3_BUCKET=my-bucket
+# ... other S3 config
+
+# Restart services
+make down && make up
+```
 
 ## Swagger Documentation
 
