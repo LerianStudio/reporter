@@ -6,6 +6,8 @@ import {
 } from '../dto/reporter-report-dto'
 import { ReporterPaginationDto } from '../dto/reporter-pagination-dto'
 import { ReporterPaginationMapper } from './reporter-pagination-mapper'
+import { operatorRequiresMultipleValues } from '@/utils/filter-operators'
+import { parseValuesToArray } from '@/utils/parse-values'
 
 /**
  * Mapper for converting between Reporter API DTOs and domain entities
@@ -68,9 +70,19 @@ export class ReporterReportMapper {
             filters[database][table][field] = {}
           }
 
-          filters[database][table][field][operator] = Array.isArray(values)
-            ? values
-            : [values]
+          // Convert values to array, splitting comma-separated strings for multi-value operators
+          let normalizedValues: string[]
+          if (operatorRequiresMultipleValues(operator)) {
+            // Use shared utility for between/in/nin operators (handles both string and array)
+            normalizedValues = parseValuesToArray(values)
+          } else if (Array.isArray(values)) {
+            normalizedValues = values
+              .map((value) => value.trim())
+              .filter((value) => value)
+          } else {
+            normalizedValues = [values.trim()]
+          }
+          filters[database][table][field][operator] = normalizedValues
         })
       } else if (!isOldFormat) {
         filters = entity.filters
