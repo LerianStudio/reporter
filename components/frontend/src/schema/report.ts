@@ -3,6 +3,7 @@ import {
   operatorRequiresNoValues,
   operatorRequiresMultipleValues
 } from '@/utils/filter-operators'
+import { parseValuesToArray } from '@/utils/parse-values'
 
 const VALID_OPERATORS = [
   'eq',
@@ -36,20 +37,16 @@ const validateValues = (values: string | string[], operator: string) => {
   }
 
   if (operator === 'between') {
-    if (!Array.isArray(values)) {
-      return { valid: false, message: 'report_values_between_required' }
-    }
-    if (values.length !== 2 || !values.every((v) => v && v.trim())) {
+    const valuesArray = parseValuesToArray(values)
+    if (valuesArray.length !== 2) {
       return { valid: false, message: 'report_values_between_required' }
     }
     return { valid: true }
   }
 
   if (operatorRequiresMultipleValues(operator)) {
-    if (!Array.isArray(values)) {
-      return { valid: false, message: 'report_values_multiple_required' }
-    }
-    if (values.length === 0 || !values.some((v) => v && v.trim())) {
+    const valuesArray = parseValuesToArray(values)
+    if (valuesArray.length === 0) {
       return { valid: false, message: 'report_values_multiple_required' }
     }
     return { valid: true }

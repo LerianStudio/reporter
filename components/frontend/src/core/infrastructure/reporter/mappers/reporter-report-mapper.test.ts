@@ -83,5 +83,153 @@ describe('ReporterReportMapper', () => {
         metadata: undefined
       })
     })
+
+    describe('comma-separated string parsing', () => {
+      it('should split comma-separated string for "in" operator', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'midaz_transaction',
+                table: 'account',
+                field: 'status',
+                operator: 'in',
+                values: 'active,pending,completed'
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.midaz_transaction.account.status.in).toEqual([
+          'active',
+          'pending',
+          'completed'
+        ])
+      })
+
+      it('should split comma-separated string for "nin" operator', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'db',
+                table: 'tbl',
+                field: 'code',
+                operator: 'nin',
+                values: 'exclude1,exclude2'
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.db.tbl.code.nin).toEqual(['exclude1', 'exclude2'])
+      })
+
+      it('should split comma-separated string for "between" operator', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'db',
+                table: 'tbl',
+                field: 'amount',
+                operator: 'between',
+                values: '100,500'
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.db.tbl.amount.between).toEqual(['100', '500'])
+      })
+
+      it('should trim whitespace from comma-separated values', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'db',
+                table: 'tbl',
+                field: 'status',
+                operator: 'in',
+                values: '  active  ,  pending  ,  completed  '
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.db.tbl.status.in).toEqual([
+          'active',
+          'pending',
+          'completed'
+        ])
+      })
+
+      it('should filter empty values from comma-separated string', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'db',
+                table: 'tbl',
+                field: 'status',
+                operator: 'in',
+                values: 'active,,pending,,,completed'
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.db.tbl.status.in).toEqual([
+          'active',
+          'pending',
+          'completed'
+        ])
+      })
+
+      it('should not split string for single-value operators like "eq"', () => {
+        const entity: ReportEntity = {
+          templateId: 'test-template-id',
+          organizationId: 'test-org-id',
+          filters: {
+            fields: [
+              {
+                database: 'db',
+                table: 'tbl',
+                field: 'description',
+                operator: 'eq',
+                values: 'value with, comma inside'
+              }
+            ]
+          } as any
+        }
+
+        const result = ReporterReportMapper.toCreateDto(entity)
+
+        expect(result.filters.db.tbl.description.eq).toEqual([
+          'value with, comma inside'
+        ])
+      })
+    })
   })
 })
