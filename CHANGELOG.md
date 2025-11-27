@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.1] - 2025-11-27
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0...v4.0.1-beta.1)
+Contributors: Gabriel Castro
+
+### 🐛 Bug Fixes
+- **Improved Filter Handling**: Enhanced the parsing of multi-value operators in filters, ensuring accurate application of multiple criteria in searches and queries. This improvement affects the database and frontend, providing users with more reliable and precise filtering capabilities.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Updated project dependencies to enhance security and compatibility. This ensures the application remains stable and benefits from the latest improvements in third-party libraries.
+
+
 ## [v4.0.0-beta.9] - 2025-10-31
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0-beta.8...v4.0.0-beta.9)
