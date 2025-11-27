@@ -15,9 +15,7 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -79,6 +77,17 @@ type Config struct {
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
+
+	// Storage configuration envs (S3 support - optional, defaults to SeaweedFS)
+	StorageProvider   string `env:"STORAGE_PROVIDER"` // "seaweedfs" (default) or "s3"
+	S3Region          string `env:"S3_REGION"`
+	S3Bucket          string `env:"S3_BUCKET"`
+	S3AccessKeyID     string `env:"S3_ACCESS_KEY_ID"`
+	S3SecretAccessKey string `env:"S3_SECRET_ACCESS_KEY"`
+	S3Endpoint        string `env:"S3_ENDPOINT"`         // For MinIO/LocalStack
+	S3ForcePathStyle  bool   `env:"S3_FORCE_PATH_STYLE"` // For MinIO compatibility
+	S3TemplateBucket  string `env:"S3_TEMPLATE_BUCKET"`  // Optional: separate bucket for templates
+	S3ReportBucket    string `env:"S3_REPORT_BUCKET"`    // Optional: separate bucket for reports
 }
 
 // InitServers initiate http and grpc servers.
@@ -100,10 +109,6 @@ func InitServers() *Service {
 		EnableTelemetry:           cfg.EnableTelemetry,
 		Logger:                    logger,
 	})
-
-	// Config SeaweedFS connection
-	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
-	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -146,8 +151,38 @@ func InitServers() *Service {
 		logger.Fatalf("Failed to ensure report indexes: %v", err)
 	}
 
-	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
-	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
+	// Create storage repositories (supports both SeaweedFS and S3)
+	storageConfig := &storage.Config{
+		Provider:           cfg.StorageProvider,
+		S3Region:           cfg.S3Region,
+		S3Bucket:           cfg.S3Bucket,
+		S3AccessKeyID:      cfg.S3AccessKeyID,
+		S3SecretAccessKey:  cfg.S3SecretAccessKey,
+		S3Endpoint:         cfg.S3Endpoint,
+		S3ForcePathStyle:   cfg.S3ForcePathStyle,
+		S3TemplateBucket:   cfg.S3TemplateBucket,
+		S3ReportBucket:     cfg.S3ReportBucket,
+		SeaweedFSHost:      cfg.SeaweedFSHost,
+		SeaweedFSFilerPort: cfg.SeaweedFSFilerPort,
+	}
+
+	// Use storage provider to create appropriate repository (SeaweedFS or S3)
+	templateStorageRepository, err := storage.CreateTemplateRepository(storageConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create template storage repository: %v", err))
+	}
+
+	reportStorageRepository, err := storage.CreateReportRepository(storageConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create report storage repository: %v", err))
+	}
+
+	// Log which storage provider is being used
+	provider := storageConfig.Provider
+	if provider == "" || provider == "seaweedfs" {
+		provider = "seaweedfs" // default
+	}
+	logger.Infof("Using storage provider: %s", provider)
 
 	// Init Redis/Valkey connection
 	redisConnection := &libRedis.RedisConnection{
@@ -170,7 +205,7 @@ func InitServers() *Service {
 
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
-		TemplateSeaweedFS:   templateSeaweedFSRepository,
+		TemplateStorage:     templateStorageRepository,
 		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
 	}
 
@@ -189,7 +224,7 @@ func InitServers() *Service {
 		ReportRepo:          reportMongoDBRepository,
 		RabbitMQRepo:        producerRabbitMQRepository,
 		TemplateRepo:        templateMongoDBRepository,
-		ReportSeaweedFS:     reportSeaweedFSRepository,
+		ReportStorage:       reportStorageRepository,
 		ExternalDataSources: externalDataSources,
 	}
 

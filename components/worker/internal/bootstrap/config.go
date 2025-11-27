@@ -12,9 +12,7 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/pdf"
-	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -61,6 +59,17 @@ type Config struct {
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
+
+	// Storage configuration envs (S3 support - optional, defaults to SeaweedFS)
+	StorageProvider   string `env:"STORAGE_PROVIDER"` // "seaweedfs" (default) or "s3"
+	S3Region          string `env:"S3_REGION"`
+	S3Bucket          string `env:"S3_BUCKET"`
+	S3AccessKeyID     string `env:"S3_ACCESS_KEY_ID"`
+	S3SecretAccessKey string `env:"S3_SECRET_ACCESS_KEY"`
+	S3Endpoint        string `env:"S3_ENDPOINT"`         // For MinIO/LocalStack
+	S3ForcePathStyle  bool   `env:"S3_FORCE_PATH_STYLE"` // For MinIO compatibility
+	S3TemplateBucket  string `env:"S3_TEMPLATE_BUCKET"`  // Optional: separate bucket for templates
+	S3ReportBucket    string `env:"S3_REPORT_BUCKET"`    // Optional: separate bucket for reports
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -100,9 +109,37 @@ func InitWorker() *Service {
 
 	routes := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
 
-	// Config SeaweedFS connection
-	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
-	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
+	// Create storage repositories (supports both SeaweedFS and S3)
+	storageConfig := &storage.Config{
+		Provider:           cfg.StorageProvider,
+		S3Region:           cfg.S3Region,
+		S3Bucket:           cfg.S3Bucket,
+		S3AccessKeyID:      cfg.S3AccessKeyID,
+		S3SecretAccessKey:  cfg.S3SecretAccessKey,
+		S3Endpoint:         cfg.S3Endpoint,
+		S3ForcePathStyle:   cfg.S3ForcePathStyle,
+		S3TemplateBucket:   cfg.S3TemplateBucket,
+		S3ReportBucket:     cfg.S3ReportBucket,
+		SeaweedFSHost:      cfg.SeaweedFSHost,
+		SeaweedFSFilerPort: cfg.SeaweedFSFilerPort,
+	}
+
+	templateStorageRepository, err := storage.CreateTemplateRepository(storageConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create template storage repository: %v", err))
+	}
+
+	reportStorageRepository, err := storage.CreateReportRepository(storageConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create report storage repository: %v", err))
+	}
+
+	// Log which storage provider is being used
+	provider := storageConfig.Provider
+	if provider == "" || provider == "seaweedfs" {
+		provider = "seaweedfs" // default
+	}
+	logger.Infof("Using storage provider: %s", provider)
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -119,9 +156,6 @@ func InitWorker() *Service {
 		Logger:                 logger,
 		MaxPoolSize:            uint64(cfg.MaxPoolSize),
 	}
-
-	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
-	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
 
 	// Initialize MongoDB repositories
 	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
@@ -146,8 +180,8 @@ func InitWorker() *Service {
 	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
 
 	service := &services.UseCase{
-		TemplateSeaweedFS:     templateSeaweedFSRepository,
-		ReportSeaweedFS:       reportSeaweedFSRepository,
+		TemplateStorage:       templateStorageRepository,
+		ReportStorage:         reportStorageRepository,
 		ExternalDataSources:   externalDataSources,
 		ReportDataRepo:        reportMongoDBRepository,
 		CircuitBreakerManager: circuitBreakerManager,

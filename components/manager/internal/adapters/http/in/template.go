@@ -115,7 +115,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
+	errPutSeaweedFS := th.Service.TemplateStorage.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
 	if errPutSeaweedFS != nil {
 		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 
@@ -216,7 +216,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 			return http.WithError(c, err)
 		}
 
-		errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
+		errPutSeaweedFS := th.Service.TemplateStorage.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
 		if errPutSeaweedFS != nil {
 			libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 

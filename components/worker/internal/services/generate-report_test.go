@@ -13,8 +13,7 @@ import (
 	mongodb2 "github.com/LerianStudio/reporter/v4/pkg/mongodb"
 	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	postgres2 "github.com/LerianStudio/reporter/v4/pkg/postgres"
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
@@ -59,8 +58,8 @@ func TestGenerateReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockTemplateRepo := storage.NewMockTemplateRepository(ctrl)
+	mockReportRepo := storage.NewMockReportRepository(ctrl)
 	mockPostgresRepo := postgres2.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
@@ -137,8 +136,8 @@ func TestGenerateReport_Success(t *testing.T) {
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		TemplateSeaweedFS:     mockTemplateRepo,
-		ReportSeaweedFS:       mockReportRepo,
+		TemplateStorage:       mockTemplateRepo,
+		ReportStorage:         mockReportRepo,
 		ReportDataRepo:        mockReportDataRepo,
 		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
@@ -160,7 +159,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockTemplateRepo := storage.NewMockTemplateRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	templateID := uuid.New()
@@ -192,7 +191,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 		Return(nil)
 
 	useCase := &UseCase{
-		TemplateSeaweedFS:   mockTemplateRepo,
+		TemplateStorage:     mockTemplateRepo,
 		ReportDataRepo:      mockReportDataRepo,
 		ExternalDataSources: map[string]pkg.DataSource{},
 	}
@@ -207,10 +206,10 @@ func TestSaveReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportRepo := storage.NewMockReportRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportSeaweedFS: mockReportRepo,
+		ReportStorage: mockReportRepo,
 	}
 
 	reportID := uuid.New()
@@ -239,12 +238,12 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockReportRepo := storage.NewMockReportRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	useCase := &UseCase{
-		ReportSeaweedFS: mockReportRepo,
-		ReportDataRepo:  mockReportDataRepo,
+		ReportStorage:  mockReportRepo,
+		ReportDataRepo: mockReportDataRepo,
 	}
 
 	reportID := uuid.New()
@@ -283,8 +282,8 @@ func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockReportRepo := report.NewMockRepository(ctrl)
+	mockTemplateRepo := storage.NewMockTemplateRepository(ctrl)
+	mockReportRepo := storage.NewMockReportRepository(ctrl)
 	mockMongoRepo := mongodb2.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
@@ -438,8 +437,8 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		TemplateSeaweedFS:     mockTemplateRepo,
-		ReportSeaweedFS:       mockReportRepo,
+		TemplateStorage:       mockTemplateRepo,
+		ReportStorage:         mockReportRepo,
 		ReportDataRepo:        mockReportDataRepo,
 		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{

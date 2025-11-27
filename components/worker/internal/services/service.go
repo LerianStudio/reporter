@@ -4,17 +4,16 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg"
 	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/pdf"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 )
 
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.
 type UseCase struct {
-	// TemplateSeaweedFS is a repository used to retrieve template files from SeaweedFS storage.
-	TemplateSeaweedFS templateSeaweedFS.Repository
+	// TemplateStorage is a repository used to retrieve template files from storage (S3, SeaweedFS, etc).
+	TemplateStorage storage.TemplateRepository
 
-	// ReportSeaweedFS is a repository interface for storing report files in SeaweedFS.
-	ReportSeaweedFS reportSeaweedFS.Repository
+	// ReportStorage is a repository interface for storing report files (S3, SeaweedFS, etc).
+	ReportStorage storage.ReportRepository
 
 	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
 	ExternalDataSources map[string]pkg.DataSource
