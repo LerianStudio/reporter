@@ -139,6 +139,7 @@ func InitWorker() *Service {
 	if provider == "" || provider == "seaweedfs" {
 		provider = "seaweedfs" // default
 	}
+
 	logger.Infof("Using storage provider: %s", provider)
 
 	// Init mongo DB connection

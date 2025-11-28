@@ -182,6 +182,7 @@ func InitServers() *Service {
 	if provider == "" || provider == "seaweedfs" {
 		provider = "seaweedfs" // default
 	}
+
 	logger.Infof("Using storage provider: %s", provider)
 
 	// Init Redis/Valkey connection

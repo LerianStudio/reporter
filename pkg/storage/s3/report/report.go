@@ -44,8 +44,8 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 
 	// Add reports/ prefix to maintain compatibility with SeaweedFS structure
 	path := fmt.Sprintf("reports/%s", objectName)
-	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, ttl)
 
+	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, ttl)
 	if err != nil {
 		logger.Errorf("Error communicating with S3: %v", err)
 		return fmt.Errorf("upload report to S3: %w", err)
@@ -60,8 +60,8 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 
 	// Add reports/ prefix to maintain compatibility with SeaweedFS structure
 	path := fmt.Sprintf("reports/%s", objectName)
-	data, err := repo.client.DownloadFile(ctx, path)
 
+	data, err := repo.client.DownloadFile(ctx, path)
 	if err != nil {
 		logger.Errorf("Error communicating with S3: %v", err)
 		return nil, fmt.Errorf("download report from S3: %w", err)

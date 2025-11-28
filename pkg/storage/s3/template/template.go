@@ -55,8 +55,8 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 
 	// Add templates/ prefix and .tpl extension for templates (maintaining compatibility with SeaweedFS behavior)
 	path := fmt.Sprintf("templates/%s.tpl", objectName)
-	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, "")
 
+	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, "")
 	if err != nil {
 		logger.Errorf("Error communicating with S3: %v", err)
 		return pkg.ValidateBusinessError(constant.ErrCommunicateStorage, "")
