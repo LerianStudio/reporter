@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -67,7 +68,45 @@ func (c *S3Client) UploadFile(ctx context.Context, path string, data []byte) err
 	return c.UploadFileWithTTL(ctx, path, data, "")
 }
 
+// UploadFileWithContentType uploads a file to S3 with specified content type and TTL
+func (c *S3Client) UploadFileWithContentType(ctx context.Context, path string, data []byte, contentType, ttl string) error {
+	input := &s3.PutObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(path),
+		Body:   bytes.NewReader(data),
+	}
+
+	// Use provided content type or detect from file extension
+	if contentType != "" {
+		input.ContentType = aws.String(contentType)
+	} else {
+		detectedType := getContentType(path)
+		if detectedType != "" {
+			input.ContentType = aws.String(detectedType)
+		}
+	}
+
+	// Handle TTL by setting expiration date
+	if ttl != "" {
+		expiration, err := parseTTL(ttl)
+		if err != nil {
+			return fmt.Errorf("invalid TTL format: %w", err)
+		}
+
+		input.Expires = aws.Time(expiration)
+	}
+
+	_, err := c.client.PutObject(ctx, input)
+	if err != nil {
+		return fmt.Errorf("failed to upload file to S3: %w", err)
+	}
+
+	return nil
+}
+
 // UploadFileWithTTL uploads a file to S3 with optional TTL
+// Note: TTL sets HTTP cache expiration metadata only, not automatic object deletion.
+// For automatic deletion, configure S3 Lifecycle Rules on the bucket.
 func (c *S3Client) UploadFileWithTTL(ctx context.Context, path string, data []byte, ttl string) error {
 	input := &s3.PutObjectInput{
 		Bucket: aws.String(c.bucket),
@@ -87,6 +126,7 @@ func (c *S3Client) UploadFileWithTTL(ctx context.Context, path string, data []by
 		if err != nil {
 			return fmt.Errorf("invalid TTL format: %w", err)
 		}
+
 		input.Expires = aws.Time(expiration)
 	}
 
@@ -109,6 +149,7 @@ func (c *S3Client) DownloadFile(ctx context.Context, path string) ([]byte, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to download file from S3: %w", err)
 	}
+
 	defer result.Body.Close()
 
 	data, err := io.ReadAll(result.Body)
@@ -156,14 +197,14 @@ func parseTTL(ttl string) (time.Time, error) {
 
 	unit := ttl[len(ttl)-1:]
 	valueStr := ttl[:len(ttl)-1]
-	
+
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid TTL value: %s", valueStr)
 	}
 
 	now := time.Now()
-	
+
 	switch unit {
 	case "m":
 		return now.Add(time.Duration(value) * time.Minute), nil
@@ -184,15 +225,13 @@ func parseTTL(ttl string) (time.Time, error) {
 
 // getContentType returns appropriate content type based on file extension
 func getContentType(path string) string {
-	if len(path) < 4 {
-		return "application/octet-stream"
-	}
-	
-	ext := path[len(path)-4:]
+	ext := filepath.Ext(path)
 	switch ext {
 	case ".tpl":
 		return "text/plain"
-	case ".html", ".htm":
+	case ".html":
+		return "text/html"
+	case ".htm":
 		return "text/html"
 	case ".pdf":
 		return "application/pdf"

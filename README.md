@@ -137,7 +137,7 @@ S3_SECRET_ACCESS_KEY=your-secret-key
 
 The Reporter organizes files in S3 with the following structure:
 
-```
+```text
 my-reporter-bucket/
 ├── templates/
 │   ├── template-uuid-1.tpl
@@ -177,7 +177,7 @@ Ensure your AWS credentials have the following S3 permissions:
 
 #### Common Issues
 
-**1. Storage Provider Not Recognized**
+#### 1. Storage Provider Not Recognized
 
 The `STORAGE_PROVIDER` value is case-sensitive and must be lowercase:
 
@@ -191,14 +191,14 @@ STORAGE_PROVIDER=S3
 STORAGE_PROVIDER=SeaweedFS
 ```
 
-**2. S3 Connection Issues**
+#### 2. S3 Connection Issues
 
 - Verify AWS credentials have correct permissions
 - Check S3 bucket exists and is accessible
 - Ensure region matches bucket location
 - For custom endpoints, verify `S3_ENDPOINT` and `S3_FORCE_PATH_STYLE` settings
 
-**3. SeaweedFS Connection Issues**
+#### 3. SeaweedFS Connection Issues
 
 - Verify SeaweedFS services are running
 - Check `SEAWEEDFS_HOST` and `SEAWEEDFS_FILER_PORT` are correct

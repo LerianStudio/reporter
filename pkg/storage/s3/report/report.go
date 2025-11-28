@@ -2,8 +2,9 @@ package report
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
 )
 
 // Repository provides an interface for S3 report storage operations
@@ -18,6 +19,7 @@ type Repository interface {
 // S3Client interface defines the methods needed from the S3 client
 type S3Client interface {
 	UploadFileWithTTL(ctx context.Context, path string, data []byte, ttl string) error
+	UploadFileWithContentType(ctx context.Context, path string, data []byte, contentType, ttl string) error
 	DownloadFile(ctx context.Context, path string) ([]byte, error)
 }
 
@@ -33,14 +35,19 @@ func NewSimpleRepository(client S3Client) *SimpleRepository {
 	}
 }
 
-// Put uploads a report file to S3 storage with optional TTL
+// Put uploads a report file to S3 storage with optional time-to-live
 // TTL is implemented using S3 object expiration
-// TTL format: 3m (3 minutes), 4h (4 hours), 5d (5 days), 6w (6 weeks), 7M (7 months), 8y (8 years)
-// If ttl is empty string, no TTL is applied and the file will be stored permanently
+// Format: 3m (3 minutes), 4h (4 hours), 5d (5 days), 6w (6 weeks), 7M (7 months), 8y (8 years)
+// If ttl is empty string, no expiration is applied and the file will be stored permanently
 func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error {
-	err := repo.client.UploadFileWithTTL(ctx, objectName, data, ttl)
+	logger := pkg.NewLoggerFromContext(ctx)
+
+	// Add reports/ prefix to maintain compatibility with SeaweedFS structure
+	path := fmt.Sprintf("reports/%s", objectName)
+	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, ttl)
 	if err != nil {
-		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+		logger.Errorf("Error communicating with S3: %v", err)
+		return fmt.Errorf("upload report to S3: %w", err)
 	}
 
 	return nil
@@ -48,9 +55,14 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 
 // Get downloads a report file from S3 storage
 func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	data, err := repo.client.DownloadFile(ctx, objectName)
+	logger := pkg.NewLoggerFromContext(ctx)
+
+	// Add reports/ prefix to maintain compatibility with SeaweedFS structure
+	path := fmt.Sprintf("reports/%s", objectName)
+	data, err := repo.client.DownloadFile(ctx, path)
 	if err != nil {
-		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+		logger.Errorf("Error communicating with S3: %v", err)
+		return nil, fmt.Errorf("download report from S3: %w", err)
 	}
 
 	return data, nil

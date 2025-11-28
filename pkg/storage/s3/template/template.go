@@ -3,6 +3,7 @@ package template
 import (
 	"context"
 	"fmt"
+
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 )
@@ -37,12 +38,12 @@ func NewSimpleRepository(client S3Client) *SimpleRepository {
 // Get retrieves a template file from S3 storage
 // Automatically adds .tpl extension for templates (same behavior as SeaweedFS)
 func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	// Add .tpl extension for templates (maintaining compatibility with SeaweedFS behavior)
-	path := fmt.Sprintf("%s.tpl", objectName)
+	// Add templates/ prefix and .tpl extension for templates (maintaining compatibility with SeaweedFS behavior)
+	path := fmt.Sprintf("templates/%s.tpl", objectName)
 
 	data, err := repo.client.DownloadFile(ctx, path)
 	if err != nil {
-		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateStorage, "")
 	}
 
 	return data, nil
@@ -52,10 +53,12 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
 	logger := pkg.NewLoggerFromContext(ctx)
 
-	err := repo.client.UploadFile(ctx, objectName, data)
+	// Add templates/ prefix to maintain compatibility with SeaweedFS structure
+	path := fmt.Sprintf("templates/%s", objectName)
+	err := repo.client.UploadFile(ctx, path, data)
 	if err != nil {
 		logger.Errorf("Error communicating with S3: %v", err)
-		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+		return pkg.ValidateBusinessError(constant.ErrCommunicateStorage, "")
 	}
 
 	return nil

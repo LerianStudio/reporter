@@ -46,6 +46,7 @@ func CreateReportRepository(config *Config) (ReportRepository, error) {
 func createSeaweedFSTemplateRepository(config *Config) (TemplateRepository, error) {
 	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", config.SeaweedFSHost, config.SeaweedFSFilerPort)
 	seaweedFSClient := seaweedfs.NewSeaweedFSClient(seaweedFSEndpoint)
+
 	return templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName), nil
 }
 
@@ -77,6 +78,7 @@ func createS3TemplateRepository(config *Config) (TemplateRepository, error) {
 func createSeaweedFSReportRepository(config *Config) (ReportRepository, error) {
 	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", config.SeaweedFSHost, config.SeaweedFSFilerPort)
 	seaweedFSClient := seaweedfs.NewSeaweedFSClient(seaweedFSEndpoint)
+
 	return reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName), nil
 }
 
