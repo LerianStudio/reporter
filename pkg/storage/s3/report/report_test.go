@@ -13,7 +13,7 @@ func TestSimpleRepository_Put_Success(t *testing.T) {
 
 	mockClient := NewMockS3Client(ctrl)
 	mockClient.EXPECT().
-		UploadFileWithContentType(gomock.Any(), "test-report.pdf", []byte("test data"), "application/pdf", "1h").
+		UploadFileWithContentType(gomock.Any(), "reports/test-report.pdf", []byte("test data"), "application/pdf", "1h").
 		Return(nil)
 
 	repo := NewSimpleRepository(mockClient)
@@ -32,7 +32,7 @@ func TestSimpleRepository_Put_WithoutTTL(t *testing.T) {
 
 	mockClient := NewMockS3Client(ctrl)
 	mockClient.EXPECT().
-		UploadFileWithContentType(gomock.Any(), "test-report.pdf", []byte("test data"), "application/pdf", "").
+		UploadFileWithContentType(gomock.Any(), "reports/test-report.pdf", []byte("test data"), "application/pdf", "").
 		Return(nil)
 
 	repo := NewSimpleRepository(mockClient)
@@ -51,7 +51,7 @@ func TestSimpleRepository_Get_Success(t *testing.T) {
 	expectedData := []byte("report content")
 	mockClient := NewMockS3Client(ctrl)
 	mockClient.EXPECT().
-		DownloadFile(gomock.Any(), "test-report.pdf").
+		DownloadFile(gomock.Any(), "reports/test-report.pdf").
 		Return(expectedData, nil)
 
 	repo := NewSimpleRepository(mockClient)
@@ -77,7 +77,7 @@ func TestSimpleRepository_TTLFormats(t *testing.T) {
 
 			mockClient := NewMockS3Client(ctrl)
 			mockClient.EXPECT().
-				UploadFileWithContentType(gomock.Any(), "test.pdf", []byte("test"), "application/pdf", ttl).
+				UploadFileWithContentType(gomock.Any(), "reports/test.pdf", []byte("test"), "application/pdf", ttl).
 				Return(nil)
 
 			repo := NewSimpleRepository(mockClient)

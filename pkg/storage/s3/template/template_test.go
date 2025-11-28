@@ -7,13 +7,13 @@ import (
 
 // MockS3Client implements S3Client interface for testing
 type MockS3Client struct {
-	uploadFunc   func(ctx context.Context, path string, data []byte) error
+	uploadFunc   func(ctx context.Context, path string, data []byte, contentType, ttl string) error
 	downloadFunc func(ctx context.Context, path string) ([]byte, error)
 }
 
-func (m *MockS3Client) UploadFile(ctx context.Context, path string, data []byte) error {
+func (m *MockS3Client) UploadFileWithContentType(ctx context.Context, path string, data []byte, contentType, ttl string) error {
 	if m.uploadFunc != nil {
-		return m.uploadFunc(ctx, path, data)
+		return m.uploadFunc(ctx, path, data, contentType, ttl)
 	}
 	return nil
 }
@@ -28,11 +28,13 @@ func (m *MockS3Client) DownloadFile(ctx context.Context, path string) ([]byte, e
 func TestSimpleRepository_Put_Success(t *testing.T) {
 	var capturedPath string
 	var capturedData []byte
+	var capturedContentType string
 
 	mockClient := &MockS3Client{
-		uploadFunc: func(ctx context.Context, path string, data []byte) error {
+		uploadFunc: func(ctx context.Context, path string, data []byte, contentType, ttl string) error {
 			capturedPath = path
 			capturedData = data
+			capturedContentType = contentType
 			return nil
 		},
 	}
@@ -46,12 +48,18 @@ func TestSimpleRepository_Put_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if capturedPath != "test-template" {
-		t.Errorf("expected path 'test-template', got '%s'", capturedPath)
+	// Should automatically add templates/ prefix and .tpl extension
+	expectedPath := "templates/test-template.tpl"
+	if capturedPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, capturedPath)
 	}
 
 	if string(capturedData) != string(testData) {
 		t.Errorf("expected data '%s', got '%s'", string(testData), string(capturedData))
+	}
+
+	if capturedContentType != "text/plain" {
+		t.Errorf("expected contentType 'text/plain', got '%s'", capturedContentType)
 	}
 }
 
@@ -74,9 +82,10 @@ func TestSimpleRepository_Get_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Should automatically add .tpl extension
-	if capturedPath != "test-template.tpl" {
-		t.Errorf("expected path 'test-template.tpl', got '%s'", capturedPath)
+	// Should automatically add templates/ prefix and .tpl extension
+	expectedPath := "templates/test-template.tpl"
+	if capturedPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, capturedPath)
 	}
 
 	if string(data) != string(expectedData) {
@@ -102,7 +111,7 @@ func TestSimpleRepository_Get_AutoAddsTplExtension(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedPath := "my-template.tpl"
+	expectedPath := "templates/my-template.tpl"
 	if capturedPath != expectedPath {
 		t.Errorf("expected path '%s', got '%s'", expectedPath, capturedPath)
 	}

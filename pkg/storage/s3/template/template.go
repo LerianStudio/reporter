@@ -19,7 +19,7 @@ type Repository interface {
 
 // S3Client interface defines the methods needed from the S3 client
 type S3Client interface {
-	UploadFile(ctx context.Context, path string, data []byte) error
+	UploadFileWithContentType(ctx context.Context, path string, data []byte, contentType, ttl string) error
 	DownloadFile(ctx context.Context, path string) ([]byte, error)
 }
 
@@ -53,9 +53,10 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
 	logger := pkg.NewLoggerFromContext(ctx)
 
-	// Add templates/ prefix to maintain compatibility with SeaweedFS structure
-	path := fmt.Sprintf("templates/%s", objectName)
-	err := repo.client.UploadFile(ctx, path, data)
+	// Add templates/ prefix and .tpl extension for templates (maintaining compatibility with SeaweedFS behavior)
+	path := fmt.Sprintf("templates/%s.tpl", objectName)
+	err := repo.client.UploadFileWithContentType(ctx, path, data, contentType, "")
+
 	if err != nil {
 		logger.Errorf("Error communicating with S3: %v", err)
 		return pkg.ValidateBusinessError(constant.ErrCommunicateStorage, "")
