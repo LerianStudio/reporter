@@ -173,7 +173,7 @@ CRITICAL - NAMING CONVENTION:
 
 CRITICAL - DATA SOURCES:
 ⚠️ ALWAYS prefix fields with the correct data source!
-Reference: /docs/regulatory/DATA_SOURCES.md
+Reference: .claude/docs/regulatory/DATA_SOURCES.md
 
 Available Data Sources:
 - midaz_onboarding: organization, account (cadastral data)

@@ -152,7 +152,7 @@ Checklist:
 ## Quick Reference: Template Patterns from Reporter Guide
 
 ### Key Reporter Filters for All Template Formats
-(From `.claude/docs/regulatory/templates/documentation/reporter-guide.md`)
+(From `.claude/docs/regulatory/templates/reporter-guide.md`)
 
 **Numbers:**
 - `{{ value | floatformat:2 }}` - Monetary values with 2 decimals
@@ -185,14 +185,14 @@ TXT:  {{ field|ljust:"20" }} {{ amount|rjust:"15" }}
 - Calculations in template
 - Error handling in template
 
-### Common Filters (See regulatory/templates/reporter-platform.md)
+### Common Filters (See .claude/docs/regulatory/templates/reporter-guide.md)
 - `slice:':8'` - Truncate to 8 chars (CNPJ for BACEN)
 - `floatformat:2` - 2 decimal places (BACEN amounts)
 - `floatformat:4` - 4 decimal places (Open Banking)
 - `date:'Y-m'` - BACEN date format
 - `date:'Y-m-d'` - RFB date format
 
-### Validation by Authority (See regulatory/templates/validation-rules.md)
+### Validation by Authority
 - **BACEN:** CNPJ 8 digits, dates YYYY-MM, amounts 2 decimals
 - **RFB:** Full CNPJ 14 digits, dates YYYY-MM-DD, thresholds apply
 - **Open Banking:** camelCase, ISO 8601, 4 decimals, UUIDs

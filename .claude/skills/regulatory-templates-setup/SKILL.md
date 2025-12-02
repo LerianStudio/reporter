@@ -64,7 +64,7 @@ Setup is not "just configuration" - it's critical validation:
 - Why: Validation confirms correct template, prevents typos, establishes audit trail
 
 **Dictionary Status Check:**
-- ✅ REQUIRED: Check ~/.claude/docs/regulatory/dictionaries/ for template dictionary
+- ✅ REQUIRED: Check .claude/docs/regulatory/dictionaries/ for template dictionary
 - ❌ FORBIDDEN: Skip check, assume no dictionary exists
 - Why: Determines validation mode (automatic vs interactive = 40 min time difference)
 
@@ -357,7 +357,7 @@ If not provided by user, use standard deadline for the template type.
 ```javascript
 // Dictionary status check - MANDATORY
 // STANDARDIZED DICTIONARY PATH
-const DICTIONARY_BASE_PATH = "~/.claude/docs/regulatory/dictionaries";
+const DICTIONARY_BASE_PATH = ".claude/docs/regulatory/dictionaries";
 
 const TEMPLATES_WITH_DICTIONARY = {
   "CADOC_4010": `${DICTIONARY_BASE_PATH}/cadoc-4010.yaml`,
@@ -447,10 +447,10 @@ let context = {
   template_selected: "CADOC 4010", // combined identifier
 
   // Dictionary status (CRITICAL - determines validation mode)
-  // STANDARDIZED PATH: ~/.claude/docs/regulatory/dictionaries/
+  // STANDARDIZED PATH: .claude/docs/regulatory/dictionaries/
   dictionary_status: {
     has_dictionary: true/false,
-    dictionary_path: "~/.claude/docs/regulatory/dictionaries/cadoc-4010.yaml" or null,
+    dictionary_path: ".claude/docs/regulatory/dictionaries/cadoc-4010.yaml" or null,
     validation_mode: "automatic" or "interactive"
   },
 

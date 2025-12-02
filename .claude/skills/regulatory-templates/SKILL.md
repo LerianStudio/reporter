@@ -19,7 +19,7 @@ description: Use when mapping Brazilian regulatory templates (BACEN CADOCs, e-Fi
 
 **BACEN (Banco Central):**
 - **CADOC:** 4010 (Cadastro), 4016 (Crédito), 4111 (Câmbio)
-- **APIX:** 001 (Dados Cadastrais), 002 (Contas e Transações)
+- **APIX:** 001 (Estatísticas de Transações PIX), 002 (Contas e Transações)
 
 **RFB (Receita Federal):**
 - **e-Financeira:** evtCadDeclarante, evtAberturaeFinanceira, evtFechamentoeFinanceira, evtMovOpFin, evtMovPP, evtMovOpFinAnual
@@ -240,7 +240,7 @@ TodoWrite({
    - `skill`: "regulatory-templates-gate1"
 
 2. The Gate 1 skill will dispatch the finops-analyzer agent to:
-   - **READ the regulatory specification** from `/docs/regulatory/templates/`
+   - **READ the regulatory specification** from `.claude/docs/regulatory/templates/`
    - **ANALYZE the specification requirements**
    - **GENERATE a SPECIFICATION REPORT**
 
@@ -613,8 +613,7 @@ If you catch yourself thinking ANY of these, STOP and re-read the NO EXCEPTIONS 
 | regulatory-templates-setup | Initial configuration | User selections | Base context |
 | regulatory-templates-gate1 | Regulatory analysis | Base context | Field mappings, uncertainties |
 | regulatory-templates-gate2 | Technical validation | Context + Gate 1 | Validated mappings, rules |
-| regulatory-templates-gate3 | API readiness | Context + Gates 1-2 | Authentication, endpoints |
-| regulatory-templates-gate4 | Template creation | Complete context | Template ID, verification |
+| regulatory-templates-gate3 | Template creation | Context + Gates 1-2 | Template file (.tpl), verification |
 
 ---
 

@@ -87,7 +87,7 @@ Gate 1 is the foundation of regulatory template accuracy:
 - Why: Quality gate for Gate 2/3, prevents low-confidence mappings in production
 
 **Dictionary Check:**
-- ✅ REQUIRED: Check `~/.claude/docs/regulatory/dictionaries/` first
+- ✅ REQUIRED: Check `.claude/docs/regulatory/dictionaries/` first
 - ❌ FORBIDDEN: Skip check and use memory
 - Why: Consistency, audit trail, error prevention
 
@@ -152,7 +152,7 @@ The requirements exist to prevent these exact thoughts from causing errors. If a
 
 ### 🔴 CRITICAL: DATA SOURCES - ALWAYS USE CORRECT DOMAIN PREFIX
 
-**REFERENCE:** See `/docs/regulatory/DATA_SOURCES.md` for complete documentation.
+**REFERENCE:** See `.claude/docs/regulatory/DATA_SOURCES.md` for complete documentation.
 
 **Available Data Sources (Reporter Platform):**
 
@@ -208,7 +208,7 @@ The requirements exist to prevent these exact thoughts from causing errors. If a
 // CRITICAL: Hierarchical search to avoid unnecessary MCP calls
 
 // STANDARDIZED DICTIONARY PATH - ALWAYS USE THIS PATH
-const DICTIONARY_BASE_PATH = "~/.claude/docs/regulatory/dictionaries";
+const DICTIONARY_BASE_PATH = ".claude/docs/regulatory/dictionaries";
 
 const templateCode = context.template_selected.split(' ')[1]; // e.g., "4010"
 const templateCategory = context.template_category.toLowerCase(); // e.g., "cadoc"
@@ -282,7 +282,7 @@ return useDictionary(newDictionary);
 
 ### Data Dictionaries Location
 
-**Dicionários de dados disponíveis em:** `~/.claude/docs/regulatory/dictionaries/`
+**Dicionários de dados disponíveis em:** `.claude/docs/regulatory/dictionaries/`
 
 Consulte os dicionários existentes antes de iniciar o mapeamento de campos.
 
@@ -759,7 +759,7 @@ Valid: ✓ TRUE (confidence +20)
 1. **BEFORE dispatching the agent, check for existing data dictionary:**
    ```javascript
    // STANDARDIZED DICTIONARY PATH - ALWAYS USE THIS PATH
-   const DICTIONARY_BASE_PATH = "~/.claude/docs/regulatory/dictionaries";
+   const DICTIONARY_BASE_PATH = ".claude/docs/regulatory/dictionaries";
 
    // Extract template code from context
    const templateCode = context.template_selected.split(' ')[1].toLowerCase(); // e.g., "4010"
@@ -1049,7 +1049,7 @@ COMPLETION STATUS: COMPLETE, INCOMPLETE, or NEEDS_DISCUSSION
 4. **Example Task tool invocation:**
 ```javascript
 // STANDARDIZED DICTIONARY PATH - ALWAYS USE THIS PATH
-const DICTIONARY_BASE_PATH = "~/.claude/docs/regulatory/dictionaries";
+const DICTIONARY_BASE_PATH = ".claude/docs/regulatory/dictionaries";
 
 // First, check for data dictionary
 const templateCode = context.template_selected.split(' ')[1].toLowerCase();

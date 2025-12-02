@@ -33,7 +33,7 @@ templates:
     reference_files:
       schema: null
       examples: []
-      dictionary: "BACEN/CADOC/4010/dictionary.yaml"
+      dictionary: ".claude/docs/regulatory/dictionaries/cadoc-4010.yaml"
     fields_count: 45
     mandatory_fields: 38
 
@@ -52,7 +52,7 @@ templates:
     reference_files:
       schema: null
       examples: []
-      dictionary: "BACEN/CADOC/4016/dictionary.yaml"
+      dictionary: ".claude/docs/regulatory/dictionaries/cadoc-4016.yaml"
     fields_count: 5
     mandatory_fields: 5
 
@@ -93,7 +93,7 @@ templates:
       examples:
         - "BACEN/APIX/001/examples/APIX001-ok-1.xml"
         - "BACEN/APIX/001/examples/APIX001-erro-1.xml"
-      dictionary: "BACEN/APIX/001/dictionary.yaml"
+      dictionary: ".claude/docs/regulatory/dictionaries/apix-001.yaml"
     fields_count: 170  # Complex structure
     mandatory_fields: 10  # Main sections
 

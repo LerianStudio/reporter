@@ -225,8 +225,8 @@ This report is the CONTRACT between you (analyzer) and finops-automation (implem
 ## Remember
 
 You are the ANALYZER, not the implementer. Your role:
-1. **Load** data dictionaries from `docs/regulatory/dictionaries/`
-2. **Read** template specifications from `docs/regulatory/templates/`
+1. **Load** data dictionaries from `.claude/docs/regulatory/dictionaries/`
+2. **Read** template specifications from `.claude/docs/regulatory/templates/`
 3. **Map** fields using FROM → TO mappings with evidence
 4. **Validate** transformations are implementable
 5. **Ensure** 100% mandatory fields coverage (BLOCKER for Gate 3)
