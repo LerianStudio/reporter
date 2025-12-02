@@ -572,24 +572,10 @@ function validateUserInputPath(inputPath) {
 }
 ```
 
-### NAMING CONVENTION IN FIELD DISCOVERY
+### Field Naming During Discovery
 
-```javascript
-CRITICAL: When discovering fields, ALWAYS CONVERT TO SNAKE_CASE!
-
-Examples of CORRECT field mapping with snake_case conversion:
-✅ API has "legalDocument" → Map as "organization.legal_document"
-✅ API has "taxId" → Map as "organization.tax_id"
-✅ API has "TaxID" → Map as "organization.tax_id"
-✅ API has "openingDate" → Map as "organization.opening_date"
-✅ API has "naturalPerson" → Map as "organization.natural_person"
-
-Examples of INCORRECT field mapping (NEVER DO THIS):
-❌ API has "legalDocument" → Mapping as "organization.legalDocument" (keep camelCase)
-❌ API has "openingDate" → Mapping as "organization.openingDate" (keep camelCase)
-
-The search patterns below help FIND fields. Once found, CONVERT TO SNAKE_CASE!
-```
+> **Note:** All discovered fields must follow snake_case convention.
+> See [Naming Convention](#-critical-naming-convention---snake_case-standard) section above for details and examples.
 
 ### Hierarchical Search Strategy
 
