@@ -151,7 +151,7 @@ if (fileExists(subSkillPath)) {
 
 2. **Prompt Template for Gate 2:**
 
-```
+```text
 GATE 2: TECHNICAL VALIDATION
 
 ⚠️ CRITICAL: DO NOT MAKE MCP API CALLS
@@ -502,7 +502,7 @@ if (mandatoryValidation.all_mandatory_fields_valid) {
 
 ### After PASS:
 
-```
+```yaml
 SKILL: regulatory-templates-gate2
 GATE: 2 - Technical Validation
 STATUS: PASSED
@@ -517,7 +517,7 @@ BLOCKERS: None
 
 ### After FAIL:
 
-```
+```yaml
 SKILL: regulatory-templates-gate2
 GATE: 2 - Technical Validation
 STATUS: FAILED
