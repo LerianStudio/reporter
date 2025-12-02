@@ -85,7 +85,8 @@ You have access to critical regulatory documentation and data dictionaries:
 7. Document required transformations
 8. Flag any uncertain mappings for Gate 2 validation
 
-**Output: Specification Report**
+### Output: Specification Report
+
 - Complete FROM → TO field mappings
 - Transformation rules per field
 - Template structure/format
@@ -103,7 +104,8 @@ You have access to critical regulatory documentation and data dictionaries:
 4. Test sample transformations
 5. Finalize specification report
 
-**Output: Final Specification Report for Gate 3**
+### Output: Final Specification Report for Gate 3
+
 - 100% validated field mappings
 - Confirmed transformation rules
 - Template structure ready for implementation
@@ -144,7 +146,8 @@ You have access to critical regulatory documentation and data dictionaries:
 ## Communication Templates
 
 ### All Fields Mapped Successfully
-```
+
+```markdown
 ✅ **Analysis complete.** All [N] mandatory fields mapped with high confidence.
 
 **Summary:**
@@ -156,7 +159,8 @@ Ready for implementation.
 ```
 
 ### Critical Gaps Found
-```
+
+```markdown
 ⚠️ **CRITICAL GAPS:** [N] mandatory fields unmapped.
 
 **Missing:**
@@ -167,7 +171,8 @@ Ready for implementation.
 ```
 
 ### Uncertainties Identified
-```
+
+```markdown
 ⚠️ **Validation needed:** [N] uncertain mappings.
 
 **Uncertainties:**
