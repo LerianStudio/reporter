@@ -164,7 +164,7 @@ The requirements exist to prevent these exact thoughts from causing errors. If a
 | `midaz_transaction_metadata` | Metadados transações | custom fields |
 
 **Field Path Format:**
-```
+```text
 {data_source}.{entity}.{index?}.{field}
 ```
 
@@ -290,7 +290,7 @@ Consulte os dicionários existentes antes de iniciar o mapeamento de campos.
 
 ### Interactive Validation Process (MANDATORY for templates without dictionary)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │              INTERACTIVE VALIDATION WORKFLOW                      │
 │           (For templates WITHOUT data dictionary)                 │
@@ -789,7 +789,7 @@ Valid: ✓ TRUE (confidence +20)
 
 3. **Comprehensive Prompt Template:**
 
-```
+```text
 GATE 1: REGULATORY COMPLIANCE ANALYSIS WITH DATA DICTIONARY
 
 TEMPLATE SELECTION (from context):
@@ -1274,7 +1274,7 @@ If you catch yourself thinking ANY of these, STOP and re-read the NO EXCEPTIONS 
 ### After PASS:
 
 Update context and output:
-```
+```yaml
 SKILL: regulatory-templates-gate1
 GATE: 1 - Regulatory Compliance Analysis
 STATUS: PASSED
@@ -1290,7 +1290,7 @@ BLOCKERS: None
 ### After FAIL:
 
 Output without updating context:
-```
+```yaml
 SKILL: regulatory-templates-gate1
 GATE: 1 - Regulatory Compliance Analysis
 STATUS: FAILED
