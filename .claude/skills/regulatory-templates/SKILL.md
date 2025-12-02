@@ -141,7 +141,7 @@ The workflow exists specifically to prevent these exact thoughts from leading to
 
 ## Workflow Overview
 
-```
+```text
 ┌─────────────────────┐
 │  ORCHESTRATOR       │
 │  (this skill)       │
@@ -426,7 +426,7 @@ When adding support for a new regulatory template:
 
 **Output state tracking comment after EACH sub-skill execution:**
 
-```
+```yaml
 SKILL: regulatory-templates (orchestrator)
 PHASE: {current_phase}
 TEMPLATE: {context.template_selected}
@@ -575,7 +575,7 @@ If you catch yourself thinking ANY of these, STOP and re-read the NO EXCEPTIONS 
 ### Calling Sub-skills
 
 **Use the Skill tool to invoke sub-skills:**
-```
+```text
 1. Call Skill tool with skill: "regulatory-templates-gate1"
 2. Sub-skill will handle agent dispatch internally
 3. Context is maintained in orchestrator memory
