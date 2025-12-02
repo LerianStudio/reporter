@@ -49,69 +49,53 @@ Gate 3 transforms validated specifications into production artifacts:
 
 ---
 
-## NO EXCEPTIONS - Generation Requirements Are Mandatory
+## Generation Requirements
 
-**Gate 3 template generation requirements have ZERO exceptions.** This is the final artifact that goes to production.
+Gate 3 produces the final production artifact. These requirements ensure quality and regulatory compliance.
 
-### Common Pressures You Must Resist
+### Why Agent-Based Generation Matters
 
-| Pressure | Your Thought | Reality |
-|----------|--------------|---------|
-| **Fatigue** | "Manual creation is faster when tired" | Fatigue increases error rate. Agent doesn't get tired. 10 min manual < 15 min validated |
-| **Simplicity** | "One file easier than two" | Production artifacts must be clean. Documentation bloats .tpl files |
-| **Confidence** | "45/47 fields works for 99% cases" | 100% mandatory required. 95% = BACEN submission failures on edge cases |
-| **Experience** | "I can optimize agent output" | Agent applies validated mappings systematically. Manual edits introduce drift |
+| Consideration | Manual Approach | Agent Approach |
+|---------------|-----------------|----------------|
+| **Consistency** | Varies with fatigue/experience | Systematic validation |
+| **Traceability** | Ad-hoc decisions | Gates 1-2 mappings applied |
+| **Completeness** | Risk of missing fields | All fields included |
+| **Maintainability** | Mixed code/docs | Clean separation |
 
-### Generation Requirements (Non-Negotiable)
+### Mandatory Requirements
 
-**Agent-Based Generation:**
-- ✅ REQUIRED: Use finops-automation agent for all template generation
-- ❌ FORBIDDEN: Manual .tpl creation, editing agent output
-- Why: Agent applies Gates 1-2 validations consistently, prevents fatigue errors
+**1. Agent-Based Generation**
+- Use `finops-automation` agent for template generation
+- Agent applies Gates 1-2 validations consistently
+- Exceptions require documented justification and approval
 
-**Two-File Output:**
-- ✅ REQUIRED: Generate .tpl (clean code) + .tpl.docs (documentation)
-- ❌ FORBIDDEN: Single file with inline comments, merged documentation
-- Why: Production artifacts stay clean, documentation separate for maintenance
+**2. Two-File Output**
+- Generate `.tpl` (clean template code) + `.tpl.docs` (documentation)
+- Production artifacts remain clean and maintainable
 
-**All Mandatory Fields:**
-- ✅ REQUIRED: 100% mandatory fields in template (47/47)
-- ❌ FORBIDDEN: "45/47 is good enough", placeholder comments for missing
-- Why: Each missing field = potential regulatory compliance failure
+**3. Complete Field Coverage**
+- All mandatory fields must be included (100% coverage)
+- Missing fields risk regulatory compliance failures
 
-**Validated Output:**
-- ✅ REQUIRED: Use exact agent output without manual "improvements"
-- ❌ FORBIDDEN: Refactoring for optimization, rewriting for clarity
-- Why: Agent output validated against Gates 1-2, edits create drift
+**4. Validated Output**
+- Use agent output as-is unless corrections are documented
+- Manual edits should be reviewed to prevent drift from validated specs
 
-### The Bottom Line
+### Common Pitfalls to Avoid
 
-**Manual shortcuts in final artifact = production regulatory failures.**
+| Shortcut | Risk | Recommendation |
+|----------|------|----------------|
+| Manual creation "to save time" | Inconsistent validation | Use agent workflow |
+| Single file with inline docs | Maintenance burden | Separate `.tpl` and `.docs` |
+| Partial field coverage | Compliance failures | Ensure 100% mandatory fields |
+| Optimizing agent output | Drift from validated spec | Document any changes |
 
-Gate 3 is the last checkpoint. All previous gates' work culminates here. Bypassing agent generation defeats the entire 3-gate validation process.
+### Quality Checkpoint
 
-**If you're tempted to skip agent generation, ask yourself: Am I willing to debug production BACEN submission failures from manual template errors?**
-
----
-
-## Rationalization Table - Know the Excuses
-
-| Excuse | Why It's Wrong | Correct Response |
-|--------|---------------|------------------|
-| "Manual creation same output, faster" | Agent validates systematically, manual risks errors | Use agent completely |
-| "10 min vs 15 min, I'm tired" | Fatigue increases manual error rate | Let agent work |
-| "Two files is over-engineering" | Production code must be clean, no doc bloat | Generate TWO files |
-| "One file easier to maintain" | Mixing code and docs creates maintenance burden | Separate concerns |
-| "45/47 works for 99% cases" | 100% mandatory required, edge cases matter | Include ALL fields |
-| "I can optimize agent output" | Optimization creates drift from validated spec | Use exact output |
-| "Agent code is verbose" | Verbose but validated > concise but wrong | Trust validation |
-| "Skip for now, add fields later" | Template is final artifact, can't patch BACEN | Complete now |
-
-### If You Find Yourself Making These Excuses
-
-**STOP. You are rationalizing.**
-
-Gate 3 is where 5+ hours of Gates 1-2 work becomes a production artifact. Shortcuts here waste all previous validation effort.
+Before finalizing, verify:
+- ✅ All mandatory fields from Gates 1-2 are present
+- ✅ Template and documentation are separate files
+- ✅ Agent-generated output is used (or changes documented)
 
 ---
 
@@ -221,13 +205,58 @@ the functional template code. All documentation goes in .docs file.
 COMPLETION STATUS must be COMPLETE or INCOMPLETE.
 ```
 
-3. **Example Task tool invocation:**
-```text
-When executing Gate 3, call the Task tool with:
-- subagent_type: "finops-automation"
-- model: "sonnet"
-- description: "Gate 3: Generate template file"
-- prompt: [The full prompt above with context from Gates 1-2 substituted]
+3. **Complete Example - CADOC 4010:**
+
+```javascript
+// Task tool invocation with substituted values
+Task({
+  subagent_type: "finops-automation",
+  model: "sonnet",
+  description: "Gate 3: Generate CADOC 4010 template",
+  prompt: `
+GATE 3: TEMPLATE FILE GENERATION
+
+CONTEXT FROM GATES 1-2:
+- Template: CADOC 4010 - Informações de Cadastro
+- Template Code: 4010
+- Authority: BACEN
+- Fields Mapped: 47
+- Validation Rules: 12
+
+FIELD MAPPINGS FROM GATE 1:
+Field CNPJ_BASE: CNPJ da Instituição (8 dígitos)
+- Source: midaz_onboarding.organization.0.legal_document
+- Transformation: slice:':8'
+- Confidence: 95%
+- Required: true
+
+Field DATA_BASE: Data Base do Documento
+- Source: report_period.reference_date
+- Transformation: date:'Y-m'
+- Confidence: 98%
+- Required: true
+
+[... remaining 45 fields ...]
+
+VALIDATION RULES FROM GATE 2:
+Rule V001: CNPJ deve ter 8 dígitos
+- Formula: len(CNPJ_BASE) == 8
+
+[... remaining rules ...]
+
+TASKS:
+1. Generate .tpl file with all 47 field mappings
+2. Generate .tpl.docs with field documentation
+3. Apply all transformations from Gate 1
+4. Include validation rules from Gate 2
+
+OUTPUT FILES:
+- cadoc4010_20251202_preview.tpl
+- cadoc4010_20251202_preview.tpl.docs
+
+COMPLETION STATUS must be COMPLETE or INCOMPLETE.
+`
+})
 ```
 
 ---
@@ -371,19 +400,14 @@ Return to `regulatory-templates` main skill:
 
 ## Common Template Patterns
 
-### SNAKE_CASE Field Names (STANDARD)
-```django
-CORRECT - All fields in snake_case (as provided by Gate 1):
-{{ organization.legal_document }}  # Converted from legalDocument
-{{ holder.natural_person }}        # Already snake_case
-{{ account.opening_date }}          # Converted from openingDate
-{{ banking_details.account_number }} # Converted from accountNumber
+### Field Naming (snake_case)
 
-WRONG - Using other naming conventions:
-{{ organization.legalDocument }}   # ❌ Should be legal_document
-{{ holder.naturalPerson }}         # ❌ Should be natural_person
-{{ account.openingDate }}          # ❌ Should be opening_date
-{{ bankingDetails.accountNumber }} # ❌ Should be banking_details.account_number
+All fields from Gate 1 are provided in snake_case format:
+
+```django
+{{ organization.legal_document }}    # ✅ Correct
+{{ account.opening_date }}           # ✅ Correct
+{{ organization.legalDocument }}     # ❌ Wrong (camelCase)
 ```
 
 ### Iterating Collections
@@ -414,11 +438,9 @@ WRONG - Using other naming conventions:
 
 ## Remember
 
-1. **Use exact field paths** from Gate 1 mappings
-2. **ALL FIELDS IN SNAKE_CASE** - Gate 1 provides all fields already converted to snake_case
-3. **Apply all transformations** validated in Gate 2
-4. **Include comments** for maintainability
-5. **Follow regulatory format** exactly
-6. **Test syntax validity** before saving
-7. **Document assumptions** made during generation
-8. **Fields are standardized** - All fields follow snake_case convention consistently
+1. **Use exact field paths** from Gate 1 mappings (all fields are snake_case)
+2. **Apply all transformations** validated in Gate 2
+3. **Include comments** for maintainability
+4. **Follow regulatory format** exactly
+5. **Test syntax validity** before saving
+6. **Document assumptions** made during generation
