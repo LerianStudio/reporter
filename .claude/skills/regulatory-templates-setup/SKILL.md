@@ -1,6 +1,7 @@
 ---
 name: regulatory-templates-setup
 description: Initial setup for regulatory templates - handles template selection and context initialization
+when_to_use: Called by regulatory-templates orchestrator at the beginning of workflow to gather user selections and initialize context
 ---
 
 # Regulatory Templates - Initial Setup
@@ -316,7 +317,7 @@ AskUserQuestion({
 
 ### Selection Flow Diagram
 
-```
+```text
 ┌─────────────────────────────────────┐
 │ Step 1: Select Authority            │
 │ ○ CADOC (BACEN)                     │
@@ -691,7 +692,7 @@ const TEMPLATE_REGISTRY = {
 
 After completing setup, output:
 
-```
+```text
 SKILL: regulatory-templates-setup
 STATUS: COMPLETE
 TEMPLATE: {context.template_selected}
