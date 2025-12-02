@@ -48,7 +48,7 @@ Este manual orienta a geração do arquivo digital referente à **Declaração d
 
 ### Hierarquia de Registros
 
-```
+```text
 Nível 0    Nível 1    Nível 2    Nível 3    Nível 4    Nível 5
 ┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐
 │0000 │────│0001 │────│0002 │

@@ -129,7 +129,7 @@ Gate 3 is where 5+ hours of Gates 1-2 work becomes a production artifact. Shortc
 
 2. **Prompt Template for Gate 3:**
 
-```
+```text
 GATE 3: TEMPLATE FILE GENERATION
 
 CONTEXT FROM GATES 1-2:
@@ -222,13 +222,12 @@ COMPLETION STATUS must be COMPLETE or INCOMPLETE.
 ```
 
 3. **Example Task tool invocation:**
-```
+```text
 When executing Gate 3, call the Task tool with:
 - subagent_type: "finops-automation"
 - model: "sonnet"
 - description: "Gate 3: Generate template file"
 - prompt: [The full prompt above with context from Gates 1-2 substituted]
-```
 ```
 
 ---
@@ -323,7 +322,7 @@ If you catch yourself thinking ANY of these, STOP and re-read the NO EXCEPTIONS 
 
 ### After PASS:
 
-```
+```yaml
 SKILL: regulatory-templates-gate3
 GATE: 3 - Template File Generation
 STATUS: PASSED ✅
@@ -337,7 +336,7 @@ BLOCKERS: None
 
 ### After FAIL:
 
-```
+```yaml
 SKILL: regulatory-templates-gate3
 GATE: 3 - Template File Generation
 STATUS: FAILED ❌
