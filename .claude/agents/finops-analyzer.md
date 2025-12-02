@@ -59,7 +59,7 @@ You have access to critical regulatory documentation and data dictionaries:
    - Contains data_source, api_resource, api_field, full_path
    - Includes transformation rules and validation
 
-3. **System APIs:** Via MCP tools
+4. **System APIs:** Via MCP tools
    - Midaz API schema - Core ledger fields
    - CRM API schema - Customer data fields
    - Reporter API schema - Template submission fields
