@@ -83,7 +83,7 @@ Input from Gate 2:
 ### Step 2: Create Structure
 ```markdown
 1. Use template structure from the specification report
-2. Consult documentation/reporter-guide.md for correct syntax and filters
+2. Consult .claude/docs/regulatory/templates/reporter-guide.md for correct syntax and filters
 3. Implement field mappings with proper Reporter filters:
    - floatformat:2 for monetary values
    - date:"Ymd" for BACEN dates
