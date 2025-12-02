@@ -1,0 +1,356 @@
+# APIX 001 - Dados Cadastrais (Customer Registration Data)
+# Open Banking Brazil Standard
+# Generated: 2025-11-24
+# Status: User Approved Mappings
+
+template:
+  code: "001"
+  name: "APIX 001 - Dados Cadastrais"
+  authority: "BACEN - Open Banking Brazil"
+  format: "JSON"
+  version: "1.0"
+  frequency: "Real-time API"
+  description: "Customer registration data sharing for Open Banking Brazil"
+
+metadata:
+  created_at: "2025-11-24"
+  created_by: "FinOps Regulatory Analyzer"
+  last_updated: "2025-11-24"
+  approval_status: "USER_APPROVED"
+  confidence_level: "HIGH"
+
+field_mappings:
+  # IDENTIFICATION FIELDS
+  - regulatory_field: "documentNumber"
+    api_field: "document"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: true
+    confidence: 95
+    approved: true
+    description: "CPF for natural persons, CNPJ for legal persons"
+    validation_rule: "CPF: 11 digits, CNPJ: 14 digits"
+
+  - regulatory_field: "name"
+    api_field: "name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: true
+    confidence: 100
+    approved: true
+    description: "Full name for natural persons, company name for legal persons"
+
+  - regulatory_field: "personType"
+    api_field: "type"
+    source: "CRM"
+    transformation: "enum_mapping"
+    data_type: "string"
+    required: true
+    confidence: 100
+    approved: true
+    mapping:
+      "NATURAL_PERSON": "PESSOA_FISICA"
+      "LEGAL_PERSON": "PESSOA_JURIDICA"
+
+  # NATURAL PERSON FIELDS
+  - regulatory_field: "socialName"
+    api_field: "natural_person.social_name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 90
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  - regulatory_field: "birthDate"
+    api_field: "natural_person.birth_date"
+    source: "CRM"
+    transformation: "date_format"
+    data_type: "date"
+    required: true
+    confidence: 95
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+    format: "YYYY-MM-DD"
+
+  - regulatory_field: "maritalStatus"
+    api_field: "natural_person.civil_status"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 90
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  - regulatory_field: "nationality"
+    api_field: "natural_person.nationality"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 100
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  - regulatory_field: "gender"
+    api_field: "natural_person.gender"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 100
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  - regulatory_field: "motherName"
+    api_field: "natural_person.mother_name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 100
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  - regulatory_field: "fatherName"
+    api_field: "natural_person.father_name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 100
+    approved: true
+    condition: "type == 'NATURAL_PERSON'"
+
+  # LEGAL PERSON FIELDS
+  - regulatory_field: "companyName"
+    api_field: "legal_person.trade_name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: true
+    confidence: 95
+    approved: true
+    condition: "type == 'LEGAL_PERSON'"
+    notes: "User selected legal_person.trade_name for company name"
+
+  - regulatory_field: "tradingName"
+    api_field: "legal_person.trading_name"
+    source: "CRM"
+    transformation: "direct"
+    data_type: "string"
+    required: false
+    confidence: 80
+    approved: true
+    condition: "type == 'LEGAL_PERSON'"
+
+  # CONTACT FIELDS
+  - regulatory_field: "phones"
+    api_field: "contact.other_phone"
+    source: "CRM"
+    transformation: "array_from_fields"
+    data_type: "array"
+    required: false
+    confidence: 90
+    approved: true
+    notes: "User selected contact.other_phone for phones"
+    structure:
+      - source: "contact.mobile_phone"
+        type: "MOBILE"
+      - source: "contact.other_phone"
+        type: "OTHER"
+
+  - regulatory_field: "emails"
+    api_field: "contact.primary_email"
+    source: "CRM"
+    transformation: "array_from_fields"
+    data_type: "array"
+    required: false
+    confidence: 95
+    approved: true
+    notes: "User selected contact.primary_email for emails"
+    structure:
+      - source: "contact.primary_email"
+        type: "PRIMARY"
+      - source: "contact.secondary_email"
+        type: "SECONDARY"
+
+  # ADDRESS FIELDS
+  - regulatory_field: "addresses"
+    api_field: "addresses"
+    source: "CRM"
+    transformation: "address_structure_mapping"
+    data_type: "array"
+    required: false
+    confidence: 95
+    approved: true
+    mapping:
+      - from: "addresses.primary"
+        to: "addresses[0]"
+        type: "RESIDENTIAL"
+      - from: "addresses.additional1"
+        to: "addresses[1]"
+        type: "COMMERCIAL"
+      - from: "addresses.additional2"
+        to: "addresses[2]"
+        type: "OTHER"
+    field_mapping:
+      "line1": "streetName"
+      "line2": "additionalInfo"
+      "zip_code": "postalCode"
+      "city": "townName"
+      "state": "countrySubDivision"
+      "country": "country"
+
+  # ACCOUNT FIELDS
+  - regulatory_field: "accountOpeningDate"
+    api_field: "created_at"
+    source: "Midaz"
+    transformation: "date_format"
+    data_type: "datetime"
+    required: false
+    confidence: 85
+    approved: true
+    notes: "Maps to Midaz account creation timestamp"
+    format: "YYYY-MM-DD"
+
+json_structure:
+  root: "data"
+  type: "object"
+  properties:
+    personal:
+      type: "object"
+      description: "Personal information section"
+      fields:
+        - "documentNumber"
+        - "name"
+        - "socialName"
+        - "birthDate"
+        - "maritalStatus"
+        - "nationality"
+        - "gender"
+        - "motherName"
+        - "fatherName"
+    company:
+      type: "object"
+      description: "Company information for legal persons"
+      fields:
+        - "companyName"
+        - "tradingName"
+    contact:
+      type: "object"
+      description: "Contact information"
+      fields:
+        - "phones"
+        - "emails"
+    addresses:
+      type: "array"
+      description: "Address list"
+    account:
+      type: "object"
+      description: "Account information"
+      fields:
+        - "accountOpeningDate"
+
+validation_rules:
+  - field: "documentNumber"
+    rule: "CPF_OR_CNPJ_VALIDATION"
+    description: "Validate CPF (11 digits) or CNPJ (14 digits) with check digits"
+
+  - field: "birthDate"
+    rule: "DATE_IN_PAST"
+    description: "Birth date must be in the past"
+
+  - field: "emails"
+    rule: "VALID_EMAIL_FORMAT"
+    description: "Email must follow RFC 5322 standard"
+
+  - field: "phones"
+    rule: "BRAZILIAN_PHONE_FORMAT"
+    description: "Must follow Brazilian phone format: +55 XX XXXXX-XXXX"
+
+transformation_functions:
+  enum_mapping: |
+    def map_person_type(value):
+        mapping = {
+            "NATURAL_PERSON": "PESSOA_FISICA",
+            "LEGAL_PERSON": "PESSOA_JURIDICA"
+        }
+        return mapping.get(value, value)
+
+  date_format: |
+    def format_date(value, format="YYYY-MM-DD"):
+        from datetime import datetime
+        if isinstance(value, str):
+            dt = datetime.fromisoformat(value)
+        else:
+            dt = value
+        return dt.strftime(format.replace("YYYY", "%Y").replace("MM", "%m").replace("DD", "%d"))
+
+  array_from_fields: |
+    def create_array_from_fields(holder_data, field_config):
+        result = []
+        for item in field_config['structure']:
+            value = get_nested_value(holder_data, item['source'])
+            if value:
+                result.append({
+                    'value': value,
+                    'type': item['type']
+                })
+        return result
+
+  address_structure_mapping: |
+    def map_addresses(crm_addresses):
+        result = []
+        mapping_config = {...}  # Load from field_mapping
+        for key, address in crm_addresses.items():
+            if address:
+                mapped = {}
+                for crm_field, apix_field in mapping_config['field_mapping'].items():
+                    if crm_field in address:
+                        mapped[apix_field] = address[crm_field]
+                result.append(mapped)
+        return result
+
+common_pitfalls:
+  - issue: "Missing CPF/CNPJ validation"
+    solution: "Always validate document numbers with check digits"
+
+  - issue: "Date format mismatch"
+    solution: "Ensure dates are in ISO 8601 format (YYYY-MM-DD)"
+
+  - issue: "Phone number formatting"
+    solution: "Normalize phone numbers to E.164 format"
+
+  - issue: "Address structure differences"
+    solution: "Map CRM nested address structure to APIX array format"
+
+  - issue: "Null handling for optional fields"
+    solution: "Omit null fields from JSON response rather than sending null values"
+
+api_integration_notes:
+  crm_api:
+    base_url: "https://api.crm.example.com/v1"
+    authentication: "Bearer token in header"
+    rate_limit: "100 requests per minute"
+
+  midaz_api:
+    base_url: "https://api.midaz.example.com/v1"
+    authentication: "Bearer token in header"
+    rate_limit: "500 requests per minute"
+
+  data_flow:
+    1. "Query CRM API for holder data using document number"
+    2. "Query Midaz API for account data using entity_id"
+    3. "Transform and combine data according to field mappings"
+    4. "Return JSON response in APIX 001 format"
+
+compliance_notes:
+  - "Personal data must be handled according to LGPD (Brazilian Data Protection Law)"
+  - "Financial data sharing requires explicit customer consent"
+  - "Data retention policies must comply with BACEN regulations"
+  - "Audit trail required for all data access"

@@ -1,0 +1,271 @@
+# Template Registry - Central Configuration
+# Generated: 2025-11-25
+# Version: 1.1
+#
+# DICTIONARY STATUS:
+# - has_dictionary: true  → Uses pre-configured field mappings (automatic validation)
+# - has_dictionary: false → Requires INTERACTIVE user validation for each field
+#
+# When has_dictionary is FALSE, Gate 1 will:
+# 1. Query API schemas via MCP
+# 2. Suggest mappings for each regulatory field
+# 3. Present AskUserQuestion with selection boxes + typing option
+# 4. Save user-approved mappings as new dictionary
+
+templates:
+  # ==========================================
+  # BACEN - BANCO CENTRAL DO BRASIL
+  # ==========================================
+
+  # CADOC Templates
+  BACEN_CADOC_4010:
+    display_name: "CADOC 4010 - Informações de Cadastro"
+    authority: BACEN
+    category: CADOC
+    code: "4010"
+    format: XML
+    frequency: monthly
+    status: active
+    description: "Cadastral information for financial institutions"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: true  # ✅ Automatic validation using pre-configured mappings
+    validation_mode: automatic
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: "BACEN/CADOC/4010/dictionary.yaml"
+    fields_count: 45
+    mandatory_fields: 38
+
+  BACEN_CADOC_4016:
+    display_name: "CADOC 4016 - Balanço Patrimonial Analítico Semestral"
+    authority: BACEN
+    category: CADOC
+    code: "4016"
+    format: XML
+    frequency: semiannual
+    status: active
+    description: "Semiannual balance sheet report"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: true  # ✅ Automatic validation using pre-configured mappings
+    validation_mode: automatic
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: "BACEN/CADOC/4016/dictionary.yaml"
+    fields_count: 5
+    mandatory_fields: 5
+
+  BACEN_CADOC_4111:
+    display_name: "CADOC 4111 - Operações de Câmbio"
+    authority: BACEN
+    category: CADOC
+    code: "4111"
+    format: XML
+    frequency: monthly
+    status: pending  # Awaiting implementation
+    description: "Foreign exchange operations"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0  # Not implemented yet
+    mandatory_fields: 0
+
+  # APIX Templates
+  BACEN_APIX_001:
+    display_name: "APIX 001 - Estatísticas de Transações PIX"
+    authority: BACEN
+    category: APIX
+    code: "001"
+    format: XML
+    frequency: monthly
+    status: active
+    description: "Monthly PIX transaction statistics"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: true  # ✅ Automatic validation using pre-configured mappings
+    validation_mode: automatic
+    reference_files:
+      schema: "BACEN/APIX/001/APIX001_2-5.xsd"
+      examples:
+        - "BACEN/APIX/001/examples/APIX001-ok-1.xml"
+        - "BACEN/APIX/001/examples/APIX001-erro-1.xml"
+      dictionary: "BACEN/APIX/001/dictionary.yaml"
+    fields_count: 170  # Complex structure
+    mandatory_fields: 10  # Main sections
+
+  BACEN_APIX_002:
+    display_name: "APIX 002 - Contas e Transações"
+    authority: BACEN
+    category: APIX
+    code: "002"
+    format: XML
+    frequency: monthly
+    status: pending  # Awaiting implementation
+    description: "Accounts and transactions Open Banking"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0  # Not implemented yet
+    mandatory_fields: 0
+
+  # ==========================================
+  # RFB - RECEITA FEDERAL DO BRASIL
+  # ==========================================
+
+  # e-Financeira Templates
+  RFB_EFINANCEIRA_evtCadDeclarante:
+    display_name: "e-Financeira - Cadastro do Declarante"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtCadDeclarante"
+    format: XML
+    frequency: per_period
+    status: pending
+    description: "Entity registration with GIIN, FATCA/CRS categories"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  RFB_EFINANCEIRA_evtAberturaeFinanceira:
+    display_name: "e-Financeira - Abertura e-Financeira"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtAberturaeFinanceira"
+    format: XML
+    frequency: semestral
+    status: pending
+    description: "Opens reporting period (dtIni/dtFim)"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  RFB_EFINANCEIRA_evtFechamentoeFinanceira:
+    display_name: "e-Financeira - Fechamento e-Financeira"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtFechamentoeFinanceira"
+    format: XML
+    frequency: semestral
+    status: pending
+    description: "Closes period, consolidates PP/OpFin/OpFinAnual totals"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  RFB_EFINANCEIRA_evtMovOpFin:
+    display_name: "e-Financeira - Movimento de Operações Financeiras"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtMovOpFin"
+    format: XML
+    frequency: semestral
+    status: pending
+    description: "Financial movements - accounts, balances, income"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  RFB_EFINANCEIRA_evtMovPP:
+    display_name: "e-Financeira - Movimento de Previdência Privada"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtMovPP"
+    format: XML
+    frequency: semestral
+    status: pending
+    description: "Private pension movements - PGBL, VGBL, etc."
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  RFB_EFINANCEIRA_evtMovOpFinAnual:
+    display_name: "e-Financeira - Movimento de Operações Financeiras Anual"
+    authority: RFB
+    category: EFINANCEIRA
+    code: "evtMovOpFinAnual"
+    format: XML
+    frequency: annual
+    status: pending
+    description: "Annual consolidated financial movements"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0
+    mandatory_fields: 0
+
+  # DIMP Template
+  RFB_DIMP_v10:
+    display_name: "DIMP v10 - Declaração de Informações sobre Movimentação Patrimonial"
+    authority: RFB
+    category: DIMP
+    code: "v10"
+    format: XML
+    frequency: annual
+    status: pending  # Awaiting implementation
+    description: "Asset movement declaration - version 10"
+    # DICTIONARY STATUS - Determines validation mode
+    has_dictionary: false  # ⚠️ REQUIRES INTERACTIVE USER VALIDATION
+    validation_mode: interactive  # User must approve each field mapping
+    reference_files:
+      schema: null
+      examples: []
+      dictionary: null  # No dictionary - will be created during Gate 1
+    fields_count: 0  # Not implemented yet
+    mandatory_fields: 0
+
+# Metadata
+metadata:
+  last_updated: "2025-11-25"
+  total_templates: 12
+  templates_with_dictionary: 3
+  templates_without_dictionary: 9
+  authorities:
+    - BACEN
+    - RFB
+  categories:
+    - CADOC
+    - APIX
+    - EFINANCEIRA
+    - DIMP
