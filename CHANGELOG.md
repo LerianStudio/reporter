@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.2] - 2025-12-05
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.1...v4.0.1-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Security Enhancements**: Resolved vulnerabilities in the frontend and dependencies, significantly improving application safety and protecting user data.
+- **Data Filtering Reliability**: Fixed an issue with backend list data sources that affected filtering functionality. Users can now accurately filter lists, enhancing overall reliability and satisfaction.
+
+### 📚 Documentation
+- **Image Generation Guidance**: Updated documentation to include detailed instructions on generating images for workers, providing clearer guidance for developers and users.
+
+### 🔧 Maintenance
+- **Changelog Updates**: Refreshed the CHANGELOG file to reflect recent changes and improvements, ensuring transparency and accessibility for users and developers.
+
+
 ## [v4.0.1-beta.1] - 2025-11-27
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0...v4.0.1-beta.1)
