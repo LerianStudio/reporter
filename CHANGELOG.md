@@ -2,35 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v4.0.0] - 2025-11-03
+## [v4.0.1-beta.2] - 2025-12-05
 
-[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.0.0...v4.0.0)
-Contributors: Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
-
-### ⚠️ Breaking Changes
-- **Backend/Config:** The project has been renamed to 'reporter' and updated to use SeaweedFS. Ensure your configurations and integrations are compatible with the new system and update any references to the project name.
-- **Backend/Frontend:** The error return for the delete endpoint has been modified, which may affect integrations relying on previous error handling. Review and update dependent systems to align with the new error response format.
-
-### ✨ Features
-- **Scalable Storage System:** Migrated to SeaweedFS, enhancing scalability and performance for handling large files. This change improves data management and retrieval efficiency.
-- **Reliable Message Processing:** Implemented a Dead Letter Queue (DLQ) system, preventing retry loops and improving system stability.
-- **Resilient Database Connections:** Introduced a retry mechanism with circuit breaker functionality, increasing resilience against transient failures.
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.1...v4.0.1-beta.2)
+Contributors: arthurkz, lerian-studio
 
 ### 🐛 Bug Fixes
-- **PDF Reports:** Resolved issues with binary file downloads, ensuring correct file handling and improved user accessibility.
-- **Security Enhancements:** Fixed vulnerabilities in frontend dependencies, enhancing overall security and stability.
-- **Datasource Configurations:** Corrected initialization issues, preventing potential misconfigurations and runtime errors.
-
-### ⚡ Performance
-- **Query Optimization:** Added indexes to template and report collections, significantly reducing data retrieval times and improving query performance.
-- **Dynamic File Formats:** Enhanced report download functionality to support dynamic file formats, offering greater flexibility and user experience.
+- **Security Enhancements**: Resolved vulnerabilities in the frontend and dependencies, significantly improving application safety and protecting user data.
+- **Data Filtering Reliability**: Fixed an issue with backend list data sources that affected filtering functionality. Users can now accurately filter lists, enhancing overall reliability and satisfaction.
 
 ### 📚 Documentation
-- **Updated Guides:** Documentation has been updated to reflect recent changes and improvements, ensuring users have access to accurate and up-to-date information.
+- **Image Generation Guidance**: Updated documentation to include detailed instructions on generating images for workers, providing clearer guidance for developers and users.
 
 ### 🔧 Maintenance
-- **Network Standardization:** Standardized network configurations across the application, ensuring consistent and reliable interactions.
-- **Security Compliance:** Conducted a comprehensive security scan and updated libraries to address vulnerabilities, maintaining system integrity.
+- **Changelog Updates**: Refreshed the CHANGELOG file to reflect recent changes and improvements, ensuring transparency and accessibility for users and developers.
+
+
+## [v4.0.1-beta.1] - 2025-11-27
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0...v4.0.1-beta.1)
+Contributors: Gabriel Castro
+
+### 🐛 Bug Fixes
+- **Improved Filter Handling**: Enhanced the parsing of multi-value operators in filters, ensuring accurate application of multiple criteria in searches and queries. This improvement affects the database and frontend, providing users with more reliable and precise filtering capabilities.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Updated project dependencies to enhance security and compatibility. This ensures the application remains stable and benefits from the latest improvements in third-party libraries.
 
 
 ## [v4.0.0-beta.9] - 2025-10-31
