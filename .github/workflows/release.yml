@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   push:
@@ -6,40 +6,28 @@ on:
       - develop
       - release-candidate
       - main
-    paths-ignore:
-      - '.gitignore'
-      - '**/*.env'
-      - '*.env'
-      - '**/*.md'
-      - '*.md'
-      - '**/*.txt'
-      - '*.txt'
-    tags-ignore:
-      - '**'
 
 permissions:
-  id-token: write
   contents: write
+  issues: write
   pull-requests: write
-  packages: read
 
 jobs:
-  # Publish release using the lerian-studio/github-actions-go-pipeline-template
-  publish-release:
-    uses: LerianStudio/github-actions-go-pipeline-template/.github/workflows/release.yml@main
-    secrets:
-      lerian_studio_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-      lerian_studio_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-      lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-      lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-      lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-      lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
+  # =========================
+  # RELEASE
+  # =========================
+  release:
+    name: Create Release
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@feature/go-workflows
+    secrets: inherit
 
-  # Generate changelog with gptchangelog custom module
+  # =========================
+  # AI-POWERED CHANGELOG
+  # =========================
   generate_changelog:
-    name: 📝 Generate AI-powered Changelog
+    name: Generate AI-powered Changelog
     runs-on: ubuntu-22.04
-    needs: publish-release
+    needs: release
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
@@ -47,7 +35,7 @@ jobs:
           app-id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
           private-key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
 
-      - uses: LerianStudio/github-actions-gptchangelog@main
+      - uses: LerianStudio/github-actions-gptchangelog@develop
         with:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
