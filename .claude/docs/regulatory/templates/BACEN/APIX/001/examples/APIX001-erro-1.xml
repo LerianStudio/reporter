@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<APIX001 DtArquivo="2021-11-30" Ano="2021" Mes="11" ISPB="12345678" NomeResp="Fulano de Tal" EmailResp="fulano.tal@instituicao.com.br" TelResp="61989891234" TipoEnvio="I">
+  <Transacoes>
+    <Transacao>
+      <QtdTransacoes>884523</QtdTransacoes>
+      <ValorTransacoes>56744408.98</ValorTransacoes>
+      <ValorEspecie>34524653</ValorEspecie> <!-- Erro: ValorEspecie diferente de zero --> 
+      <DetalhamentoTransacoes>6</DetalhamentoTransacoes>
+     <FinalidadeTransacoes>1</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>3129</QtdTransacoes>
+      <ValorTransacoes>52028.03</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>6</DetalhamentoTransacoes> <!-- Erro: detalhamento duplicado -->
+      <FinalidadeTransacoes>1</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>50</QtdTransacoes>
+      <ValorTransacoes>24589.01</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>4</DetalhamentoTransacoes>  <!-- Erro: detalhamento não permitido -->
+      <FinalidadeTransacoes>1</FinalidadeTransacoes> 
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>50</QtdTransacoes>
+      <ValorTransacoes>24589.01</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>5</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>1</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>1256</QtdTransacoes>
+      <ValorTransacoes>13789.01</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>7</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>1</FinalidadeTransacoes>
+    </Transacao>
+     <Transacao>
+      <QtdTransacoes>789</QtdTransacoes>
+      <ValorTransacoes>78912.34</ValorTransacoes>
+      <ValorEspecie>78912.34</ValorEspecie>
+      <DetalhamentoTransacoes>7</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>1</FinalidadeTransacoes> <!-- Erro: finalidade duplicada -->
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>5678</QtdTransacoes>
+      <ValorTransacoes>567890.12</ValorTransacoes>
+      <ValorEspecie>56789.12</ValorEspecie> <!-- Erro: ValorEspecie diferente de ValorTransações --> 
+      <DetalhamentoTransacoes>6</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>2</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>90</QtdTransacoes>
+      <ValorTransacoes>90123.45</ValorTransacoes>
+      <ValorEspecie>90123.45</ValorEspecie>
+      <DetalhamentoTransacoes>5</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>2</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>789123</QtdTransacoes>
+      <ValorTransacoes>56744408.98</ValorTransacoes>
+      <ValorEspecie>432123400.56</ValorEspecie> <!-- Erro: ValorEspecie maior que ValorTransações --> 
+      <DetalhamentoTransacoes>7</DetalhamentoTransacoes>
+     <FinalidadeTransacoes>2</FinalidadeTransacoes>
+    </Transacao>
+   
+    <Transacao>
+      <QtdTransacoes>569</QtdTransacoes>
+      <ValorTransacoes>7239.78</ValorTransacoes>
+      <ValorEspecie>1324.56</ValorEspecie>
+      <DetalhamentoTransacoes>7</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>3</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>50</QtdTransacoes>
+      <ValorTransacoes>24589.01</ValorTransacoes>
+      <ValorEspecie>4321.56</ValorEspecie>
+      <DetalhamentoTransacoes>5</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>3</FinalidadeTransacoes>
+    </Transacao>
+    <Transacao>
+      <QtdTransacoes>56</QtdTransacoes>
+      <ValorTransacoes>2589.01</ValorTransacoes>
+      <ValorEspecie>431.56</ValorEspecie>
+      <DetalhamentoTransacoes>6</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>3</FinalidadeTransacoes>
+    </Transacao>
+
+		<!-- Erro: Falta Finalidade 4 e  detalhamento 7--> 
+ <Transacao>
+      <QtdTransacoes>500</QtdTransacoes>
+      <ValorTransacoes>24563</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>5</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>4</FinalidadeTransacoes>
+    </Transacao>
+  <Transacao>
+      <QtdTransacoes>300</QtdTransacoes>
+      <ValorTransacoes>723.78</ValorTransacoes>
+      <ValorEspecie>0</ValorEspecie>
+      <DetalhamentoTransacoes>6</DetalhamentoTransacoes>
+      <FinalidadeTransacoes>4</FinalidadeTransacoes>
+    </Transacao>
+
+  </Transacoes>
+  <Devolucoes QtdDevolucoes="787" ValorDevolucoes="4563.63" />  <!-- Erro: Atributo não permitido --> 
+<BloqueiosCautelares>
+    <BloqueioCautelar>
+      <QtdeBloqCaut>8823</QtdeBloqCaut>
+      <ValorBloqCaut>56708.98</ValorBloqCaut>
+      <DetalhamentoTransacoesBloqCaut>1</DetalhamentoTransacoesBloqCaut>
+    </BloqueioCautelar>
+    <BloqueioCautelar>
+      <QtdeBloqCaut>1000</QtdeBloqCaut>
+      <ValorBloqCaut>55.18</ValorBloqCaut>
+      <DetalhamentoTransacoesBloqCaut>2</DetalhamentoTransacoesBloqCaut>
+    </BloqueioCautelar>
+    <BloqueioCautelar>
+      <QtdeBloqCaut>0</QtdeBloqCaut>
+      <ValorBloqCaut>0.0</ValorBloqCaut>
+      <DetalhamentoTransacoesBloqCaut>3</DetalhamentoTransacoesBloqCaut>
+    </BloqueioCautelar>
+    <BloqueioCautelar>
+      <QtdeBloqCaut>15</QtdeBloqCaut>
+      <ValorBloqCaut>5670.00</ValorBloqCaut>
+      <DetalhamentoTransacoesBloqCaut>4</DetalhamentoTransacoesBloqCaut>
+    </BloqueioCautelar>
+  </BloqueiosCautelares>
+  <Receitas>
+    <Receita>
+      <ValorReceita>108374.78</ValorReceita>
+      <FonteReceita>2</FonteReceita>
+    </Receita>
+    <Receita>
+      <ValorReceita>1872344.65</ValorReceita>
+      <FonteReceita>2</FonteReceita> <!-- Erro: fonte da receita duplicada -->
+    </Receita>
+    <Receita>
+      <ValorReceita>8768.98</ValorReceita>
+      <FonteReceita>3</FonteReceita>
+    </Receita>
+	 <Receita>
+      <ValorReceita>587.02</ValorReceita>
+      <FonteReceita>4</FonteReceita>
+    </Receita>
+  </Receitas>
+  <TemposTransacoes 
+	Perc50TempoExpUsuarioLiqSPI="5.1" 
+	Perc99TempoExpUsuarioLiqSPI="8.9" 
+	Perc50TempoExpUsuarioLiqForaSPI="4.6" 
+	Perc99TempoExpUsuarioLiqForaSPI="9.9" 
+	TempoMaxBloqueioCautelar="9.2"/>
+  <TemposDict 
+	Perc99TempoUsuarioConsulta="1.9" 
+	PercTempoEnvioRegistro="28.5" 
+	PercTempoExpUsuarioRegistro="17.3" 
+	PercTempoExpUsuarioExclusao="18.8" 
+	PercTempoNotificacaoPortabilidade="501.8" 
+	PercTempoEnvioPortabilidade="56.1"
+	PercTempoAberturaMED="78.5"
+	 />
+  <ConsultasDict QtdConsultas="4465" />
+  <Disponibilidade IndiceDisponibilidade="99.45" />
+  <TempoAutorizacoes Perc95TempoAutorizacao="92.5" />
+ <Autorizacoes>
+   <Autorizacao>
+      <QtdAutorizacoes>500</QtdAutorizacoes>
+      <QtdEstoqueAutorizacoes>10000</QtdEstoqueAutorizacoes>
+      <TipoPagador>1</TipoPagador>
+    </Autorizacao>
+		<!-- Erro: Falta tipo Pagador 2 -->
+ </Autorizacoes>
+</APIX001>

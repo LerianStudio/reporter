@@ -1,0 +1,19 @@
+{
+  "name": "ring-reporter",
+  "description": "Product reporter plugin marketplace: Core software engineering skills (TDD, debugging, code review), specialized developer agents (Backend, DevOps, Frontend, QA, SRE), product planning workflows (8-gate pre-dev system), and FinOps tools with Brazilian regulatory compliance templates.",
+  "owner": {
+    "name": "Jefferson Rodrigues"
+  },
+  "plugins": [    
+    {
+      "name": "ring-reporter",
+      "description": "Reporter plugin marketplace: Core software engineering skills (TDD, debugging, code review), specialized developer agents (Backend, DevOps, Frontend, QA, SRE), product planning workflows (8-gate pre-dev system), and FinOps tools with Brazilian regulatory compliance templates.",
+      "version": "0.0.1",
+      "source": "./reporter",
+      "homepage": "https://github.com/lerianstudio/reporter/tree/reporter",
+      "repository": "https://github.com/lerianstudio/reporter/tree/reporter",
+      "license": "MIT",
+      "keywords": ["product", "reporter", "plugin", "core", "software", "engineering", "skills", "tdd", "code", "review", "developer", "agents", "backend", "product", "workflows", "regulatory", "compliance", "templates"]
+    }
+  ]
+}

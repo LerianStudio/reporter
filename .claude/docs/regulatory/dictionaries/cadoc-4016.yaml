@@ -1,0 +1,125 @@
+# Data Dictionary - CADOC 4016
+# Used by finops-analyzer to map regulatory fields to API fields
+# VALIDATED VIA MCP API DOG - 2025-11-24
+
+template:
+  code: "4016"
+  name: "CADOC 4016 - Balanço Patrimonial Analítico Semestral"
+  authority: "BACEN"
+  format: "XML"
+  frequency: "semiannual"
+
+# Data Sources (namespaces used in Reporter templates)
+# VALIDATED: List datasources endpoint returns these IDs
+data_sources:
+  midaz_onboarding:
+    description: "Organization and account setup data (postgresql)"
+    entities:
+      - organization    # Contains: legalDocument, legalName, address, etc.
+  midaz_transaction:
+    description: "Transaction and balance data (postgresql)"
+    entities:
+      - operation_route # Contains: code (COSIF), title, description
+      - balance         # Contains: available, onHold, accountId
+
+# FIELD MAPPINGS - VALIDATED VIA MCP
+# ⚠️ IMPORTANTE: Usar sempre snake_case nos templates (normalizado pelo Reporter)
+field_mappings:
+  - regulatory_field: "CNPJ (8 dígitos base)"
+    data_source: "midaz_onboarding"
+    api_field: "organization.legal_document"  # snake_case (normalizado)
+    transformation: "slice:':8'"
+    data_type: "string"
+    required: true
+    mcp_validated: true
+
+  - regulatory_field: "Código COSIF"
+    data_source: "midaz_transaction"
+    api_field: "operation_route"
+    field_path: "code"
+    transformation: "direct"
+    data_type: "string"
+    format: "10 digits"
+    required: true
+    notes: "Iterated via for loop"
+    mcp_validated: true
+
+  - regulatory_field: "Saldo"
+    data_source: "midaz_transaction"
+    api_field: "balance"
+    field_path: "available"
+    transformation: "floatformat:2"
+    data_type: "decimal"
+    required: true
+    notes: "Filtered by operation_route relationship"
+    mcp_validated: true
+
+  - regulatory_field: "Data Base"
+    data_source: "reporter"
+    api_field: "date_time"
+    transformation: "date_time:'YYYY/MM'"
+    data_type: "date"
+    format: "YYYY/MM"
+    validation: "June or December only"
+    required: true
+    notes: "Uses Reporter date_time tag"
+
+  - regulatory_field: "Tipo Remessa"
+    data_source: "parameter"
+    api_field: "submission_type"
+    transformation: "default:I"
+    data_type: "string"
+    options: ["I", "S"]
+    required: true
+
+notes:
+  - "Excludes revenue (group 7) and expense (group 8) accounts"
+  - "Only submitted in June and December"
+  - "Same structure as 4010 but different account filters"
+
+# CRITICAL: Reporter-specific template patterns
+reporter_patterns:
+  attribute_syntax: "Check system - may or may not need quotes around Django expressions"
+
+  namespaces:
+    organization_data: "midaz_onboarding"
+    transaction_data: "midaz_transaction"
+    first_item_access: ".0."
+
+  naming_convention: |
+    ⚠️ SEMPRE USAR snake_case NOS TEMPLATES!
+    O Reporter normaliza os campos para snake_case:
+    - legal_document (normalizado de legalDocument)
+    - legal_name (normalizado de legalName)
+    - doing_business_as (normalizado de doingBusinessAs)
+    - created_at, updated_at, deleted_at
+
+  date_formatting:
+    correct: "{% date_time 'YYYY/MM' %}"
+    wrong: "{{ current_period|date:'Y-m' }}"
+
+  whitespace_control:
+    remove_leading: "{%- for"
+    remove_trailing: "endfor -%}"
+
+  filter_function: |
+    {%- with balance = filter(midaz_transaction.balance, "operation_route_id", route.id)[0] %}
+      {%- set saldo_conta = balance.available %}
+    {% endwith %}
+
+  working_example: |
+    <documento codigoDocumento="4016"
+               cnpj={{ midaz_onboarding.organization.0.legal_document|slice:':8' }}
+               dataBase={% date_time "YYYY/MM" %}
+               tipoRemessa="I">
+      <contas>
+        {%- for route in midaz_transaction.operation_route %}
+          {%- if not route.code|slice:':1' == '7' and not route.code|slice:':1' == '8' %}
+            {%- with balance = filter(midaz_transaction.balance, "operation_route_id", route.id)[0] %}
+              {%- set saldo_conta = balance.available %}
+              <conta codigoConta="{{ route.code }}" saldo="{{ saldo_conta|floatformat:2 }}"/>
+            {% endwith %}
+          {%- endif %}
+        {% endfor %}
+      </contas>
+    </documento>
