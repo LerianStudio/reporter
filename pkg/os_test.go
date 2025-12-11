@@ -378,14 +378,3 @@ func TestEnsureConfigFromEnvVars(t *testing.T) {
 		})
 	})
 }
-
-func TestLocalEnvConfig_Struct(t *testing.T) {
-	config := LocalEnvConfig{
-		Initialized: true,
-	}
-
-	assert.True(t, config.Initialized)
-
-	config.Initialized = false
-	assert.False(t, config.Initialized)
-}

@@ -196,6 +196,13 @@ func TestInit_PercentOfFilter_EdgeCases(t *testing.T) {
 			expectError: false,
 			contains:    "33.33%",
 		},
+		{
+			name:        "zero denominator",
+			template:    "{{ 10|percent_of:0 }}",
+			context:     pongo2.Context{},
+			expectError: true,
+			contains:    "NaN",
+		},
 	}
 
 	for _, tt := range tests {

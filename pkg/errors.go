@@ -319,13 +319,13 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Invalid Date Range Error",
 			Message:    "Both 'initialDate' and 'finalDate' fields are required and must be in the 'yyyy-mm-dd' format. Please provide valid dates and try again.",
 		},
-		constant.ErrPaginationLimitExceeded: EntityNotFoundError{
+		constant.ErrPaginationLimitExceeded: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrPaginationLimitExceeded.Error(),
 			Title:      "Pagination Limit Exceeded",
 			Message:    fmt.Sprintf("The pagination limit exceeds the maximum allowed of %v items per page. Please verify the limit and try again.", args...),
 		},
-		constant.ErrInvalidSortOrder: EntityNotFoundError{
+		constant.ErrInvalidSortOrder: ValidationError{
 			EntityType: entityType,
 			Code:       constant.ErrInvalidSortOrder.Error(),
 			Title:      "Invalid Sort Order",

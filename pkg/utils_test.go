@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
@@ -274,6 +275,16 @@ func TestSafeInt64ToInt(t *testing.T) {
 			name:     "negative",
 			input:    -100,
 			expected: -100,
+		},
+		{
+			name:     "overflow max int",
+			input:    math.MaxInt64,
+			expected: math.MaxInt,
+		},
+		{
+			name:     "overflow min int",
+			input:    math.MinInt64,
+			expected: math.MinInt,
 		},
 	}
 
