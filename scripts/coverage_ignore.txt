@@ -1,4 +1,13 @@
-golang-plugin-boilerplate/api
-golang-plugin-boilerplate/cmd/app
-golang-plugin-boilerplate/pkg/constant
-golang-plugin-boilerplate/internal/bootstrap
+github.com/LerianStudio/reporter/v4/components/manager/api
+github.com/LerianStudio/reporter/v4/components/manager/cmd/app
+github.com/LerianStudio/reporter/v4/components/manager/internal/bootstrap
+github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq
+github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis
+github.com/LerianStudio/reporter/v4/components/worker/cmd/app
+github.com/LerianStudio/reporter/v4/components/worker/internal/bootstrap
+github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq
+github.com/LerianStudio/reporter/v4/pkg/constant
+github.com/LerianStudio/reporter/v4/pkg/mongodb
+github.com/LerianStudio/reporter/v4/pkg/postgres
+github.com/LerianStudio/reporter/v4/pkg/datasource-config
+github.com/LerianStudio/reporter/v4/tests

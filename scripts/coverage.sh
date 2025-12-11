@@ -1,22 +1,22 @@
 #!/bin/bash
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-echo "${BLUE}Generating test coverage report...${NC}"
+echo "Generating test coverage report..."
 
 PACKAGES=$(go list ./... | grep -v -f ./scripts/coverage_ignore.txt)
 
-echo "${BLUE}Running tests on packages:${NC}"
+echo "Running tests on packages:"
 echo "$PACKAGES"
 
-go test -cover $PACKAGES -coverprofile=coverage.out
+go test -cover $PACKAGES -coverprofile=coverage.raw.out
 
-printf "\n${GREEN}Coverage Summary:${NC}\n"
+# Filter out mock files and datasource-config from coverage report
+echo "Filtering mock files and connection files from coverage..."
+grep -v -E "mock\.go|datasource-config\.go" coverage.raw.out > coverage.out
+rm coverage.raw.out
+
+printf "\nCoverage Summary:\n"
 go tool cover -func=coverage.out
 
-printf "\n${BLUE}Generating HTML coverage report...${NC}\n"
+printf "\nGenerating HTML coverage report...\n"
 go tool cover -html=coverage.out -o coverage.html
-echo "${GREEN}HTML coverage report generated at: ${NC}coverage.html"
+echo "HTML coverage report generated at: coverage.html"

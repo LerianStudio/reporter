@@ -475,6 +475,309 @@ func TestValidateFieldsInSchemaMongo(t *testing.T) {
 	}
 }
 
+// Additional tests for convertBsonValue coverage
+func TestConvertBsonValue_BsonD(t *testing.T) {
+	doc := bson.D{
+		primitive.E{Key: "name", Value: "test"},
+		primitive.E{Key: "nested", Value: bson.D{
+			primitive.E{Key: "inner", Value: "value"},
+		}},
+	}
+
+	result := convertBsonValue(doc)
+
+	mapResult, ok := result.(map[string]any)
+	if !ok {
+		t.Errorf("Expected map[string]any, got %T", result)
+		return
+	}
+
+	if mapResult["name"] != "test" {
+		t.Errorf("Expected 'test', got %v", mapResult["name"])
+	}
+
+	if nested, ok := mapResult["nested"].(map[string]any); !ok {
+		t.Error("Expected nested to be map[string]any")
+	} else if nested["inner"] != "value" {
+		t.Errorf("Expected 'value', got %v", nested["inner"])
+	}
+}
+
+func TestConvertBsonValue_BinaryUUID(t *testing.T) {
+	// Create a valid UUID binary
+	uuidBytes := []byte{
+		0x12, 0x34, 0x56, 0x78,
+		0x90, 0xab,
+		0xcd, 0xef,
+		0x12, 0x34, 0x56, 0x78,
+		0x90, 0xab, 0xcd, 0xef,
+	}
+	binary := primitive.Binary{
+		Subtype: 0x04, // UUID subtype
+		Data:    uuidBytes,
+	}
+
+	result := convertBsonValue(binary)
+
+	// Should be converted to UUID string format
+	strResult, ok := result.(string)
+	if !ok {
+		t.Errorf("Expected string, got %T", result)
+		return
+	}
+
+	// Verify it's a valid UUID format
+	if len(strResult) != 36 { // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+		// It could also be hex encoded if UUID parsing fails
+		if len(strResult) != 32 {
+			t.Errorf("Expected UUID string (36) or hex (32), got length %d", len(strResult))
+		}
+	}
+}
+
+func TestConvertBsonValue_NestedArray(t *testing.T) {
+	nestedArray := bson.A{
+		bson.M{"item": "first"},
+		bson.A{"nested", "array"},
+		"string",
+		42,
+	}
+
+	result := convertBsonValue(nestedArray)
+
+	arrayResult, ok := result.([]any)
+	if !ok {
+		t.Errorf("Expected []any, got %T", result)
+		return
+	}
+
+	if len(arrayResult) != 4 {
+		t.Errorf("Expected length 4, got %d", len(arrayResult))
+	}
+
+	// Check first element is a map
+	if _, ok := arrayResult[0].(map[string]any); !ok {
+		t.Errorf("Expected first element to be map[string]any, got %T", arrayResult[0])
+	}
+
+	// Check second element is an array
+	if _, ok := arrayResult[1].([]any); !ok {
+		t.Errorf("Expected second element to be []any, got %T", arrayResult[1])
+	}
+}
+
+// Tests for buildFindOptions
+func TestBuildFindOptions_WithFields(t *testing.T) {
+	ds := &ExternalDataSource{}
+	fields := []string{"name", "age", "email"}
+
+	options := ds.buildFindOptions(fields)
+
+	if options == nil {
+		t.Error("Expected options to be non-nil")
+	}
+}
+
+func TestBuildFindOptions_WithWildcard(t *testing.T) {
+	ds := &ExternalDataSource{}
+	fields := []string{"*"}
+
+	options := ds.buildFindOptions(fields)
+
+	if options == nil {
+		t.Error("Expected options to be non-nil")
+	}
+}
+
+func TestBuildFindOptions_EmptyFields(t *testing.T) {
+	ds := &ExternalDataSource{}
+	fields := []string{}
+
+	options := ds.buildFindOptions(fields)
+
+	if options == nil {
+		t.Error("Expected options to be non-nil")
+	}
+}
+
+// Additional tests for validateFilterCondition
+func TestValidateFilterCondition(t *testing.T) {
+	ds := &ExternalDataSource{}
+
+	testCases := []struct {
+		name      string
+		field     string
+		condition model.FilterCondition
+		expectErr bool
+	}{
+		{
+			name:  "valid equals",
+			field: "name",
+			condition: model.FilterCondition{
+				Equals: []any{"value1", "value2"},
+			},
+			expectErr: false,
+		},
+		{
+			name:  "valid between",
+			field: "age",
+			condition: model.FilterCondition{
+				Between: []any{18, 65},
+			},
+			expectErr: false,
+		},
+		{
+			name:  "invalid between - one value",
+			field: "age",
+			condition: model.FilterCondition{
+				Between: []any{18},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid between - three values",
+			field: "age",
+			condition: model.FilterCondition{
+				Between: []any{18, 40, 65},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid gt - multiple values",
+			field: "age",
+			condition: model.FilterCondition{
+				GreaterThan: []any{18, 21},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid gte - multiple values",
+			field: "age",
+			condition: model.FilterCondition{
+				GreaterOrEqual: []any{18, 21},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid lt - multiple values",
+			field: "age",
+			condition: model.FilterCondition{
+				LessThan: []any{18, 21},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "invalid lte - multiple values",
+			field: "age",
+			condition: model.FilterCondition{
+				LessOrEqual: []any{18, 21},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "valid in",
+			field: "status",
+			condition: model.FilterCondition{
+				In: []any{"active", "pending"},
+			},
+			expectErr: false,
+		},
+		{
+			name:  "valid not in",
+			field: "status",
+			condition: model.FilterCondition{
+				NotIn: []any{"deleted"},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ds.validateFilterCondition(tc.field, tc.condition)
+			if tc.expectErr && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// Test for convertFilterConditionToMongoFilter additional cases
+func TestConvertFilterConditionToMongoFilter_LessThanOrEqual(t *testing.T) {
+	ds := &ExternalDataSource{}
+
+	condition := model.FilterCondition{
+		LessOrEqual: []any{100},
+	}
+
+	result, err := ds.convertFilterConditionToMongoFilter("price", condition)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+		return
+	}
+
+	fieldFilter, ok := result["price"].(map[string]any)
+	if !ok {
+		t.Errorf("Expected map[string]any for field filter, got %T", result["price"])
+		return
+	}
+
+	if fieldFilter["$lte"] != 100 {
+		t.Errorf("Expected $lte=100, got %v", fieldFilter["$lte"])
+	}
+}
+
+func TestConvertFilterConditionToMongoFilter_LessThan(t *testing.T) {
+	ds := &ExternalDataSource{}
+
+	condition := model.FilterCondition{
+		LessThan: []any{50},
+	}
+
+	result, err := ds.convertFilterConditionToMongoFilter("quantity", condition)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+		return
+	}
+
+	fieldFilter, ok := result["quantity"].(map[string]any)
+	if !ok {
+		t.Errorf("Expected map[string]any for field filter, got %T", result["quantity"])
+		return
+	}
+
+	if fieldFilter["$lt"] != 50 {
+		t.Errorf("Expected $lt=50, got %v", fieldFilter["$lt"])
+	}
+}
+
+func TestConvertFilterConditionToMongoFilter_GreaterOrEqual(t *testing.T) {
+	ds := &ExternalDataSource{}
+
+	condition := model.FilterCondition{
+		GreaterOrEqual: []any{10},
+	}
+
+	result, err := ds.convertFilterConditionToMongoFilter("count", condition)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+		return
+	}
+
+	fieldFilter, ok := result["count"].(map[string]any)
+	if !ok {
+		t.Errorf("Expected map[string]any for field filter, got %T", result["count"])
+		return
+	}
+
+	if fieldFilter["$gte"] != 10 {
+		t.Errorf("Expected $gte=10, got %v", fieldFilter["$gte"])
+	}
+}
+
 // Benchmark tests
 func BenchmarkInferDataTypeFromDocument(b *testing.B) {
 	ds := &ExternalDataSource{}

@@ -236,3 +236,29 @@ func Test_createTemplate(t *testing.T) {
 		})
 	}
 }
+
+func Test_createTemplate_FieldValidationFails(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	orgId := uuid.New()
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		ExternalDataSources: map[string]pkg.DataSource{}, // Empty - no data sources
+	}
+
+	// Template referencing a non-existent data source
+	templateWithUnknownDS := `
+		{% for item in unknown_datasource.items %}
+		<Item>{{ item.name }}</Item>
+		{% endfor %}
+	`
+
+	ctx := context.Background()
+	result, err := tempSvc.CreateTemplate(ctx, templateWithUnknownDS, "xml", "Test Template", orgId)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}

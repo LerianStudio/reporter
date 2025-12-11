@@ -14,14 +14,17 @@ import (
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
 func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizationID string, logger log.Logger, mappedFields map[string]map[string][]string) error {
+	for databaseName := range mappedFields {
+		if _, exists := uc.ExternalDataSources[databaseName]; !exists {
+			logger.Errorf("Unknown data source: %s - rejecting request to prevent map corruption", databaseName)
+			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+		}
+	}
+
 	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, organizationID)
 
 	for databaseName := range mappedFields {
-		dataSource, exists := uc.ExternalDataSources[databaseName]
-		if !exists {
-			logger.Errorf("Unknown data source: %s", databaseName)
-			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
-		}
+		dataSource := uc.ExternalDataSources[databaseName]
 
 		switch dataSource.DatabaseType {
 		case pkg.PostgreSQLType:
