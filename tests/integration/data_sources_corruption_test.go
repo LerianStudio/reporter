@@ -119,7 +119,9 @@ func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *t
 	}
 
 	var initialDataSources []map[string]any
-	_ = json.Unmarshal(body, &initialDataSources)
+	if err := json.Unmarshal(body, &initialDataSources); err != nil {
+		t.Fatalf("failed to unmarshal initial data sources: %v", err)
+	}
 	initialCount := len(initialDataSources)
 
 	// Send multiple requests with different invalid datasource names
@@ -157,7 +159,9 @@ func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *t
 	}
 
 	var finalDataSources []map[string]any
-	_ = json.Unmarshal(body, &finalDataSources)
+	if err := json.Unmarshal(body, &finalDataSources); err != nil {
+		t.Fatalf("failed to unmarshal final data sources: %v", err)
+	}
 
 	if len(finalDataSources) != initialCount {
 		t.Errorf("data source count changed after multiple invalid requests: initial=%d, final=%d",

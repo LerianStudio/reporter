@@ -154,6 +154,10 @@ func TestWithSwaggerEnvConfig(t *testing.T) {
 				assert.Equal(t, tt.expectedTitle, api.SwaggerInfo.Title)
 			}
 
+			if tt.expectedHost != "" {
+				assert.Equal(t, tt.expectedHost, api.SwaggerInfo.Host)
+			}
+
 			if tt.expectedScheme != "" {
 				assert.Contains(t, api.SwaggerInfo.Schemes, tt.expectedScheme)
 			}

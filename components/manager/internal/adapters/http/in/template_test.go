@@ -244,12 +244,12 @@ func TestTemplateHandler_GetAllTemplates_ValidationErrors(t *testing.T) {
 		{
 			name:           "Error - Limit exceeds max pagination limit",
 			queryParams:    "?limit=1000&page=1",
-			expectedStatus: fiber.StatusNotFound, // ErrPaginationLimitExceeded maps to EntityNotFoundError
+			expectedStatus: fiber.StatusBadRequest, // ErrPaginationLimitExceeded maps to ValidationError
 		},
 		{
 			name:           "Error - Invalid sort order",
 			queryParams:    "?limit=10&page=1&sortOrder=invalid",
-			expectedStatus: fiber.StatusNotFound, // ErrInvalidSortOrder maps to EntityNotFoundError
+			expectedStatus: fiber.StatusBadRequest, // ErrInvalidSortOrder maps to ValidationError
 		},
 	}
 
