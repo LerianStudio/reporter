@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.3] - 2025-12-12
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.2...v4.0.1-beta.3)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Database Workflow Reliability**: We've resolved an issue that previously affected the listing functionality within the database workflow. This fix enhances the consistency and reliability of database operations, leading to a more seamless experience when managing your data. Say goodbye to previous disruptions and enjoy a more stable environment.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to include the latest fixes and improvements. This ensures transparency and aids users in easily tracking the evolution of the software, providing a clear history of updates and enhancements.
+
+
 ## [v4.0.1-beta.2] - 2025-12-05
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.1...v4.0.1-beta.2)
