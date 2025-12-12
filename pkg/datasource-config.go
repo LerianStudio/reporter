@@ -80,6 +80,12 @@ type DataSource struct {
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
 func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger, externalDataSources map[string]DataSource) error {
+	// This prevents map corruption from invalid/unknown datasource names
+	if _, exists := externalDataSources[databaseName]; !exists {
+		logger.Errorf("Attempted to connect to unregistered datasource: %s - operation rejected", databaseName)
+		return fmt.Errorf("cannot connect to unregistered datasource: %s", databaseName)
+	}
+
 	dataSource.LastAttempt = time.Now()
 	dataSource.RetryCount++
 
