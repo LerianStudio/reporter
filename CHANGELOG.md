@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.4] - 2025-12-12
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.3...v4.0.1-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Enhanced Visual Clarity**: We've added images to our backend documentation. This visual enhancement helps developers and stakeholders better understand the system architecture, making it easier to visualize component interactions and dependencies. This is particularly beneficial for onboarding new team members and improving overall collaboration.
+
+### 🔧 Maintenance
+- **Updated Changelog**: We've ensured that the changelog accurately reflects the latest updates, maintaining transparency and keeping all users informed about the software's evolution. This helps users stay aligned with the project's progress and any changes that may affect them.
+
+
 ## [v4.0.1-beta.3] - 2025-12-12
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.2...v4.0.1-beta.3)
