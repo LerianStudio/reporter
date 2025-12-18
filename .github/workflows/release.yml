@@ -20,7 +20,7 @@ jobs:
     name: Create Release
     uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@v1.3.3
     with:
-      runner_type: "firmino-lxc-runners"
+      runner_type: "blacksmith-4vcpu-ubuntu-2404"
     secrets: inherit
 
   # =========================
@@ -28,7 +28,7 @@ jobs:
   # =========================
   generate_changelog:
     name: Generate AI-powered Changelog
-    runs-on: firmino-lxc-runners
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: release
     steps:
       - uses: actions/create-github-app-token@v1
