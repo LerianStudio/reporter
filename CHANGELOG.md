@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.5] - 2025-12-18
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.4...v4.0.1-beta.5)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Immutable Datasource ID Registry**: We've introduced an immutable datasource ID registry across the Authentication, Backend, Config, Database, and Test components. This improvement significantly enhances system reliability by preventing data listing corruption, ensuring consistent data handling, and reducing potential disruptions. Users will benefit from fewer data integrity issues and a smoother overall experience.
+
+### 🔧 Maintenance
+- **Changelog Update**: Our release management process has been refined with an updated changelog. This ensures users have a clear and organized history of system modifications, helping them stay informed about the latest updates and enhancements.
+
+
 ## [v4.0.1-beta.4] - 2025-12-12
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.3...v4.0.1-beta.4)
