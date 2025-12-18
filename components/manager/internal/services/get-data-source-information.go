@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -32,6 +33,11 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 	var result = make([]*model.DataSourceInformation, 0)
 
 	for key, dataSource := range uc.ExternalDataSources {
+		if !pkg.IsValidDataSourceID(key) {
+			logger.Warnf("Skipping datasource '%s' from listing - not in immutable registry (possible corruption)", key)
+			continue
+		}
+
 		var dataSourceInformation *model.DataSourceInformation
 
 		switch dataSource.DatabaseType {
