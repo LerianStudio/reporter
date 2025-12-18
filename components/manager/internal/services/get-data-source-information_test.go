@@ -15,6 +15,10 @@ import (
 func Test_GetDataSourceInformation(t *testing.T) {
 	ctx := context.Background()
 
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds", "pg_ds"})
+
 	pgConfig := &postgres.Connection{DBName: "pg_db"}
 
 	tests := []struct {
