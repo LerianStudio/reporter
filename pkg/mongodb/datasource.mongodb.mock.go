@@ -70,6 +70,21 @@ func (mr *MockRepositoryMockRecorder) GetDatabaseSchema(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatabaseSchema", reflect.TypeOf((*MockRepository)(nil).GetDatabaseSchema), ctx)
 }
 
+// GetDatabaseSchemaForOrganization mocks base method.
+func (m *MockRepository) GetDatabaseSchemaForOrganization(ctx context.Context, organizationID string) ([]CollectionSchema, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDatabaseSchemaForOrganization", ctx, organizationID)
+	ret0, _ := ret[0].([]CollectionSchema)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDatabaseSchemaForOrganization indicates an expected call of GetDatabaseSchemaForOrganization.
+func (mr *MockRepositoryMockRecorder) GetDatabaseSchemaForOrganization(ctx, organizationID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatabaseSchemaForOrganization", reflect.TypeOf((*MockRepository)(nil).GetDatabaseSchemaForOrganization), ctx, organizationID)
+}
+
 // Query mocks base method.
 func (m *MockRepository) Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	m.ctrl.T.Helper()
