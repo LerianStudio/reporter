@@ -28,6 +28,7 @@ type Repository interface {
 	Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
 	GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error)
+	GetDatabaseSchemaForOrganization(ctx context.Context, organizationID string) ([]CollectionSchema, error)
 	CloseConnection(ctx context.Context) error
 }
 
@@ -330,6 +331,99 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 	}
 
 	logger.Infof("Retrieved schema for %d collections", len(schema))
+
+	return schema, nil
+}
+
+// GetDatabaseSchemaForOrganization retrieves collections filtered by organization ID suffix
+// This is used for plugin_crm where collections are named as tablename_organizationID
+func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Context, organizationID string) ([]CollectionSchema, error) {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
+	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema_for_organization")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.organization_id", organizationID),
+	)
+
+	logger.Infof("Retrieving MongoDB schema for organization %s", organizationID)
+
+	schemaCtx, cancel := context.WithTimeout(ctx, constant.SchemaDiscoveryTimeout)
+	defer cancel()
+
+	client, err := ds.connection.GetDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	database := client.Database(ds.Database)
+
+	// Filter collections that end with _organizationID
+	filter := bson.M{
+		"name": bson.M{"$regex": "_" + organizationID + "$"},
+	}
+
+	collections, err := database.ListCollectionNames(schemaCtx, filter)
+	if err != nil {
+		if schemaCtx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("mongodb schema discovery timeout after %v while listing collections: %w", constant.SchemaDiscoveryTimeout, err)
+		}
+
+		return nil, err
+	}
+
+	logger.Infof("Found %d collections for organization %s", len(collections), organizationID)
+
+	schema := make([]CollectionSchema, 0, len(collections))
+
+	for _, collName := range collections {
+		coll := database.Collection(collName)
+
+		logger.Infof("Analyzing collection: %s", collName)
+
+		allFields, err := ds.discoverAllFieldsWithAggregation(schemaCtx, coll)
+		if err != nil {
+			logger.Warnf("Aggregation failed for collection %s, falling back to sampling: %v", collName, err)
+
+			allFields = make(map[string]bool)
+		}
+
+		fieldTypes, additionalFields, err := ds.sampleMultipleDocuments(schemaCtx, coll)
+		if err != nil {
+			logger.Warnf("Document sampling failed for collection %s: %v", collName, err)
+
+			fieldTypes = make(map[string]string)
+			additionalFields = make(map[string]bool)
+		}
+
+		for field := range additionalFields {
+			allFields[field] = true
+		}
+
+		collSchema := CollectionSchema{
+			CollectionName: collName,
+			Fields:         []FieldInformation{},
+		}
+
+		for fieldName := range allFields {
+			dataType := fieldTypes[fieldName]
+			if dataType == "" {
+				dataType = "unknown"
+			}
+
+			collSchema.Fields = append(collSchema.Fields, FieldInformation{
+				Name:     fieldName,
+				DataType: dataType,
+			})
+		}
+
+		logger.Infof("Discovered %d fields in collection %s", len(collSchema.Fields), collName)
+		schema = append(schema, collSchema)
+	}
+
+	logger.Infof("Retrieved schema for %d collections for organization %s", len(schema), organizationID)
 
 	return schema, nil
 }
