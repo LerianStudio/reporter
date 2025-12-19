@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.6] - 2025-12-19
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.5...v4.0.1-beta.6)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Data Integrity**: Resolved an issue where duplicate entries appeared in the `plugin_crm` collections. This fix ensures data is accurately filtered by organization ID, providing users with more reliable and consistent data handling.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been updated to include recent changes and improvements. This ensures users have access to the latest information about software updates, fostering transparency and keeping users informed about the project's progress.
+
+### 🔧 Maintenance
+- **Release Management**: Continued efforts in maintaining project documentation and release management practices to ensure clarity and transparency for all users.
+
+
 ## [v4.0.1-beta.5] - 2025-12-18
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.4...v4.0.1-beta.5)
