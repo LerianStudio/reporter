@@ -18,7 +18,7 @@ jobs:
   # =========================
   release:
     name: Create Release
-    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@v1.3.3
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@v1.3.5
     with:
       runner_type: "blacksmith-4vcpu-ubuntu-2404"
     secrets: inherit
