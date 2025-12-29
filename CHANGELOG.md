@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.7] - 2025-12-29
+
+### 🐛 Bug Fixes
+- add header parameter validation to data source endpoint
+
+### 🔧 Maintenance
+- Update CHANGELOG
+
+
 ## [v4.0.1-beta.6] - 2025-12-19
 
 [Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.5...v4.0.1-beta.6)
@@ -346,7 +355,7 @@ Contributors: arthurkz
 - **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
 
 
-## [v3.0.0] - 2025-10-02
+## [v4.0.1-beta.7] - 2025-12-29
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0)
 Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
