@@ -48,13 +48,14 @@ type Config struct {
 	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
 	SeaweedFSTTL       string `env:"SEAWEEDFS_TTL"`
 	// MongoDB
-	MongoURI        string `env:"MONGO_URI"`
-	MongoDBHost     string `env:"MONGO_HOST"`
-	MongoDBName     string `env:"MONGO_NAME"`
-	MongoDBUser     string `env:"MONGO_USER"`
-	MongoDBPassword string `env:"MONGO_PASSWORD"`
-	MongoDBPort     string `env:"MONGO_PORT"`
-	MaxPoolSize     int    `env:"MONGO_MAX_POOL_SIZE"`
+	MongoURI          string `env:"MONGO_URI"`
+	MongoDBHost       string `env:"MONGO_HOST"`
+	MongoDBName       string `env:"MONGO_NAME"`
+	MongoDBUser       string `env:"MONGO_USER"`
+	MongoDBPassword   string `env:"MONGO_PASSWORD"`
+	MongoDBPort       string `env:"MONGO_PORT"`
+	MongoDBParameters string `env:"MONGO_PARAMETERS"`
+	MaxPoolSize       int    `env:"MONGO_MAX_POOL_SIZE"`
 	// License configuration envs
 	LicenseKey      string `env:"LICENSE_KEY"`
 	OrganizationIDs string `env:"ORGANIZATION_IDS"`
@@ -108,6 +109,10 @@ func InitWorker() *Service {
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
+
+	if cfg.MongoDBParameters != "" {
+		mongoSource += "/?" + cfg.MongoDBParameters
+	}
 
 	if cfg.MaxPoolSize <= 0 {
 		cfg.MaxPoolSize = 100
