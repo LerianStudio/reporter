@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1-beta.8] - 2026-01-15
+
+### 📚 Documentation
+- add security policy with GitHub advisory reporting
+
+### 👷 CI/CD
+- add paths-ignore for docs files
+- add issue templates and funding file
+- standardize dependabot.yml and CODEOWNERS for monorepo
+- fail on coverage below threshold
+- increase coverage threshold to 85%
+- enable private Go modules for lib-commons access
+- trigger security scan test
+- trigger workflow test for security scan fix
+- migrate to shared workflows with secrets inherit pattern
+
+### 🔧 Maintenance
+- Update CHANGELOG
+- update shared workflows to v1.3.5, fix discussions link and CODEOWNERS
+- use firmino-lxc-runners for api-dog-e2e-tests
+- change runner from firmino-lxc-runners to blacksmith-4vcpu-ubuntu-2404
+- update shared workflows to v1.3.3
+- add explicit runner_type parameter to all shared workflow calls
+- use firmino-lxc-runners for all shared workflows
+- use firmino-lxc-runners instead of ubuntu
+- Update CHANGELOG
+
+
 ## [v4.0.1-beta.7] - 2025-12-29
 
 ### 🐛 Bug Fixes
@@ -950,7 +978,7 @@ This release introduces a major update to the worker process API, enhancing scal
 This changelog is structured to clearly communicate the key updates in version 3.0.0, focusing on the impact and benefits for users. Breaking changes are prominently highlighted with guidance for migration, while new features and performance improvements are described in terms of user value. Documentation updates and maintenance improvements are also noted to ensure users are well-informed about the changes.
 
 
-## [v2.0.0] - 2025-08-08
+## [v4.0.1-beta.8] - 2026-01-15
 
 This major release of plugin-smart-templates introduces enhanced security, improved performance, and significant updates to monitoring capabilities. Users should review breaking changes to ensure smooth integration.
 
