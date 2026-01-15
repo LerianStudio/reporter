@@ -81,7 +81,6 @@ func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 			},
 			Options: options.Index().
 				SetName("idx_template_description_text").
-				SetDefaultLanguage("portuguese").
 				SetWeights(bson.D{
 					{Key: "description", Value: 10},
 				}),
