@@ -42,12 +42,13 @@ type Config struct {
 	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry         bool   `env:"ENABLE_TELEMETRY"`
 	// Mongo configuration envs
-	MongoURI        string `env:"MONGO_URI"`
-	MongoDBHost     string `env:"MONGO_HOST"`
-	MongoDBName     string `env:"MONGO_NAME"`
-	MongoDBUser     string `env:"MONGO_USER"`
-	MongoDBPassword string `env:"MONGO_PASSWORD"`
-	MongoDBPort     string `env:"MONGO_PORT"`
+	MongoURI          string `env:"MONGO_URI"`
+	MongoDBHost       string `env:"MONGO_HOST"`
+	MongoDBName       string `env:"MONGO_NAME"`
+	MongoDBUser       string `env:"MONGO_USER"`
+	MongoDBPassword   string `env:"MONGO_PASSWORD"`
+	MongoDBPort       string `env:"MONGO_PORT"`
+	MongoDBParameters string `env:"MONGO_PARAMETERS"`
 	// SeaweedFS configuration envs
 	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
 	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
@@ -109,6 +110,10 @@ func InitServers() *Service {
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
+
+	if cfg.MongoDBParameters != "" {
+		mongoSource += "/?" + cfg.MongoDBParameters
+	}
 
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
