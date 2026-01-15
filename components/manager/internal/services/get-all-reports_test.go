@@ -116,6 +116,18 @@ func Test_getAllReports(t *testing.T) {
 			expectedResult: []*report.Report{},
 			expectedCount:  0,
 		},
+		{
+			name:    "Success - Nil result returns empty slice",
+			filters: filters,
+			mockSetup: func() {
+				mockReportRepo.EXPECT().
+					FindList(gomock.Any(), gomock.Any()).
+					Return(nil, nil) // Return nil, not empty slice
+			},
+			expectErr:      false,
+			expectedResult: []*report.Report{},
+			expectedCount:  0,
+		},
 	}
 
 	for _, tt := range tests {

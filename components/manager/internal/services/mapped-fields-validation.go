@@ -15,13 +15,8 @@ import (
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
 func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizationID string, logger log.Logger, mappedFields map[string]map[string][]string) error {
 	for databaseName := range mappedFields {
-		if !pkg.IsValidDataSourceID(databaseName) {
-			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
-			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
-		}
-
 		if _, exists := uc.ExternalDataSources[databaseName]; !exists {
-			logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
+			logger.Errorf("Unknown data source: %s - rejecting request to prevent map corruption", databaseName)
 			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 	}

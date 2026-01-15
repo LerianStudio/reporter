@@ -32,5 +32,5 @@ type UseCase struct {
 	ReportTTL string
 
 	// PdfPool provides PDF generation capabilities using Chrome headless
-	PdfPool *pdf.WorkerPool
+	PdfPool pdf.Pool
 }

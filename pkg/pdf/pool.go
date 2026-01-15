@@ -15,6 +15,16 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
+//go:generate mockgen -source=pool.go -destination=pool.mock.go -package=pdf
+
+// Pool defines the interface for PDF generation pool operations.
+type Pool interface {
+	Submit(html, filename string) error
+	Close()
+	GetStats() map[string]any
+	IsHealthy() bool
+}
+
 // Task represents a task to generate a PDF.
 type Task struct {
 	HTML     string
