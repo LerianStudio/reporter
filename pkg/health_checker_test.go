@@ -409,7 +409,6 @@ func TestHealthChecker_Struct(t *testing.T) {
 	assert.NotNil(t, hc.stopChan)
 }
 
-
 func TestHealthChecker_NeedsHealing_WithCircuitBreakerStates(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -464,4 +463,78 @@ func TestHealthChecker_Constants(t *testing.T) {
 	assert.Equal(t, constant.CircuitBreakerStateOpen, "open")
 	assert.Equal(t, constant.CircuitBreakerStateClosed, "closed")
 	assert.Equal(t, constant.CircuitBreakerStateHalfOpen, "half-open")
+}
+
+func TestHealthChecker_AttemptReconnection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := log.NewMockLogger(ctrl)
+	logger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Errorf(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	t.Run("fails when datasource has no valid config", func(t *testing.T) {
+		ds := &DataSource{
+			DatabaseType: PostgreSQLType,
+			Initialized:  false,
+			Status:       libConstants.DataSourceStatusUnavailable,
+		}
+
+		result := hc.attemptReconnection("invalid-ds", ds)
+		assert.False(t, result)
+		assert.Equal(t, libConstants.DataSourceStatusUnavailable, ds.Status)
+	})
+
+	t.Run("resets retry count before reconnection attempt", func(t *testing.T) {
+		ds := &DataSource{
+			DatabaseType: MongoDBType,
+			Initialized:  false,
+			Status:       libConstants.DataSourceStatusUnavailable,
+			RetryCount:   5,
+		}
+
+		// This will fail because there's no valid MongoDB config
+		// but we can verify the retry count is reset
+		_ = hc.attemptReconnection("test-ds", ds)
+
+		// RetryCount should have been reset to 0 before the attempt
+		assert.Equal(t, 0, ds.RetryCount)
+	})
+
+	t.Run("updates LastAttempt timestamp", func(t *testing.T) {
+		ds := &DataSource{
+			DatabaseType: PostgreSQLType,
+			Initialized:  false,
+			Status:       libConstants.DataSourceStatusUnavailable,
+		}
+
+		beforeAttempt := time.Now()
+		_ = hc.attemptReconnection("test-ds", ds)
+		afterAttempt := time.Now()
+
+		// LastAttempt should be set during the reconnection attempt
+		assert.True(t, ds.LastAttempt.After(beforeAttempt) || ds.LastAttempt.Equal(beforeAttempt))
+		assert.True(t, ds.LastAttempt.Before(afterAttempt) || ds.LastAttempt.Equal(afterAttempt))
+	})
+
+	t.Run("sets error on failed reconnection", func(t *testing.T) {
+		ds := &DataSource{
+			DatabaseType: PostgreSQLType,
+			Initialized:  false,
+			Status:       libConstants.DataSourceStatusUnavailable,
+			LastError:    nil,
+		}
+
+		result := hc.attemptReconnection("test-ds", ds)
+
+		assert.False(t, result)
+		assert.NotNil(t, ds.LastError)
+		assert.Equal(t, libConstants.DataSourceStatusUnavailable, ds.Status)
+	})
 }

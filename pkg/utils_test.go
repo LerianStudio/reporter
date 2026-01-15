@@ -296,6 +296,48 @@ func TestSafeInt64ToInt(t *testing.T) {
 	}
 }
 
+func TestSyscmd_ExecCmd(t *testing.T) {
+	syscmd := &Syscmd{}
+
+	tests := []struct {
+		name        string
+		command     string
+		args        []string
+		expectError bool
+	}{
+		{
+			name:        "successful echo command",
+			command:     "echo",
+			args:        []string{"hello"},
+			expectError: false,
+		},
+		{
+			name:        "successful pwd command",
+			command:     "pwd",
+			args:        []string{},
+			expectError: false,
+		},
+		{
+			name:        "command not found",
+			command:     "nonexistent_command_12345",
+			args:        []string{},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := syscmd.ExecCmd(tt.command, tt.args...)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, output)
+			}
+		})
+	}
+}
+
 // Helper function
 func strPtr(s string) *string {
 	return &s

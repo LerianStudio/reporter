@@ -573,6 +573,60 @@ func TestGetMimeType(t *testing.T) {
 	}
 }
 
+func TestGetMapKeys(t *testing.T) {
+	t.Run("returns keys from populated map", func(t *testing.T) {
+		m := map[string]any{
+			"key1": "value1",
+			"key2": 123,
+			"key3": true,
+		}
+
+		keys := getMapKeys(m)
+
+		assert.Len(t, keys, 3)
+		assert.Contains(t, keys, "key1")
+		assert.Contains(t, keys, "key2")
+		assert.Contains(t, keys, "key3")
+	})
+
+	t.Run("returns empty slice for empty map", func(t *testing.T) {
+		m := map[string]any{}
+
+		keys := getMapKeys(m)
+
+		assert.Empty(t, keys)
+		assert.NotNil(t, keys)
+	})
+
+	t.Run("returns keys from nested map", func(t *testing.T) {
+		m := map[string]any{
+			"parent": map[string]any{
+				"child": "value",
+			},
+			"sibling": "value2",
+		}
+
+		keys := getMapKeys(m)
+
+		assert.Len(t, keys, 2)
+		assert.Contains(t, keys, "parent")
+		assert.Contains(t, keys, "sibling")
+	})
+
+	t.Run("returns keys from map with nil values", func(t *testing.T) {
+		m := map[string]any{
+			"key1": nil,
+			"key2": nil,
+		}
+
+		keys := getMapKeys(m)
+
+		assert.Len(t, keys, 2)
+		assert.Contains(t, keys, "key1")
+		assert.Contains(t, keys, "key2")
+	})
+}
+
 func TestValidateNoScriptTag(t *testing.T) {
 	t.Run("returns nil for template without script tags", func(t *testing.T) {
 		template := `<html><body><h1>Hello</h1></body></html>`

@@ -32,6 +32,10 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// Register test datasource IDs for validation
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds", "pg_ds"})
+	defer pkg.ResetRegisteredDataSourceIDsForTesting()
+
 	pgConfig := &postgres.Connection{DBName: "pg_db"}
 	orgID := uuid.New()
 

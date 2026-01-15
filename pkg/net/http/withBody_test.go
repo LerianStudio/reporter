@@ -1,6 +1,9 @@
 package http
 
 import (
+	"bytes"
+	"io"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -539,6 +542,175 @@ func TestWithBody(t *testing.T) {
 		})
 
 		assert.NotNil(t, handler)
+	})
+}
+
+func TestFiberHandlerFunc(t *testing.T) {
+	type TestPayload struct {
+		Name  string `json:"name" validate:"required"`
+		Value int    `json:"value"`
+	}
+
+	t.Run("successfully parses valid JSON body", func(t *testing.T) {
+		app := fiber.New()
+
+		var receivedPayload *TestPayload
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			receivedPayload = p.(*TestPayload)
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		body := bytes.NewReader([]byte(`{"name": "test", "value": 42}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+		assert.NotNil(t, receivedPayload)
+		assert.Equal(t, "test", receivedPayload.Name)
+		assert.Equal(t, 42, receivedPayload.Value)
+	})
+
+	t.Run("returns bad request for empty body", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		body := bytes.NewReader([]byte(``))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("returns bad request for null body", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		body := bytes.NewReader([]byte(`null`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("returns bad request for invalid JSON", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		body := bytes.NewReader([]byte(`{invalid json}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		// Invalid JSON should return an error status
+		assert.NotEqual(t, fiber.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("returns bad request for validation failure", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		// Missing required "name" field
+		body := bytes.NewReader([]byte(`{"value": 42}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("returns bad request for unknown fields", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		// Contains unknown field "extra"
+		body := bytes.NewReader([]byte(`{"name": "test", "value": 42, "extra": "unknown"}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("returns bad request for type mismatch", func(t *testing.T) {
+		app := fiber.New()
+
+		handler := WithBody(&TestPayload{}, func(p any, c *fiber.Ctx) error {
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		app.Post("/test", handler)
+
+		// "value" should be int, not string
+		body := bytes.NewReader([]byte(`{"name": "test", "value": "not_an_int"}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("handles constructor function", func(t *testing.T) {
+		app := fiber.New()
+
+		d := &decoderHandler{
+			constructor: func() any {
+				return &TestPayload{Name: "default"}
+			},
+			handler: func(p any, c *fiber.Ctx) error {
+				payload := p.(*TestPayload)
+				return c.JSON(payload)
+			},
+		}
+
+		app.Post("/test", d.FiberHandlerFunc)
+
+		body := bytes.NewReader([]byte(`{"name": "test", "value": 42}`))
+		req := httptest.NewRequest("POST", "/test", body)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+		respBody, _ := io.ReadAll(resp.Body)
+		assert.Contains(t, string(respBody), "test")
 	})
 }
 

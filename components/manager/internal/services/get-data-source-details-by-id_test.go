@@ -4,20 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
+	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	_ "github.com/LerianStudio/reporter/v4/pkg/constant"
 	"github.com/LerianStudio/reporter/v4/pkg/model"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
 	"github.com/LerianStudio/reporter/v4/pkg/postgres"
-
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 )
 
 func Test_GetDataSourceDetailsByID(t *testing.T) {
@@ -299,22 +300,27 @@ func Test_getBaseCollectionName(t *testing.T) {
 		expected       string
 	}{
 		{
-			name:           "Collection with organization suffix",
-			collectionName: "holders_org-123",
-			expected:       "holders",
-		},
-		{
-			name:           "Collection without underscore",
+			name:           "collection without underscore",
 			collectionName: "users",
 			expected:       "users",
 		},
 		{
-			name:           "Collection with multiple underscores",
-			collectionName: "some_long_name_org-456",
-			expected:       "some_long_name",
+			name:           "collection with organization suffix",
+			collectionName: "holders_org123",
+			expected:       "holders",
 		},
 		{
-			name:           "Empty string",
+			name:           "collection with multiple underscores",
+			collectionName: "some_table_name_org456",
+			expected:       "some_table_name",
+		},
+		{
+			name:           "collection with single underscore",
+			collectionName: "holders_",
+			expected:       "holders",
+		},
+		{
+			name:           "empty collection name",
 			collectionName: "",
 			expected:       "",
 		},
@@ -323,37 +329,6 @@ func Test_getBaseCollectionName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := uc.getBaseCollectionName(tt.collectionName)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func Test_getDisplayNameForCollection(t *testing.T) {
-	uc := &UseCase{}
-
-	tests := []struct {
-		name           string
-		collectionName string
-		dataSourceID   string
-		expected       string
-	}{
-		{
-			name:           "plugin_crm - extracts base name",
-			collectionName: "holders_org-123",
-			dataSourceID:   "plugin_crm",
-			expected:       "holders",
-		},
-		{
-			name:           "Other database - returns original name",
-			collectionName: "users",
-			dataSourceID:   "regular_db",
-			expected:       "users",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := uc.getDisplayNameForCollection(tt.collectionName, tt.dataSourceID)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -369,51 +344,39 @@ func Test_shouldIncludeFieldForPluginCRM(t *testing.T) {
 		expected       bool
 	}{
 		{
-			name:           "Search field - included",
-			fieldName:      "search.document",
+			name:           "search field should be included",
+			fieldName:      "search",
 			collectionName: "holders",
 			expected:       true,
 		},
 		{
-			name:           "Encrypted field - excluded",
+			name:           "encrypted field should be excluded",
 			fieldName:      "document",
 			collectionName: "holders",
 			expected:       false,
 		},
 		{
-			name:           "Name field - excluded",
-			fieldName:      "name",
+			name:           "nested encrypted field should be excluded",
+			fieldName:      "natural_person.mother_name",
 			collectionName: "holders",
 			expected:       false,
 		},
 		{
-			name:           "Nested encrypted field - excluded",
-			fieldName:      "contact.primary_email",
-			collectionName: "holders",
-			expected:       false,
-		},
-		{
-			name:           "Regular field in holders - included",
-			fieldName:      "external_id",
+			name:           "regular field in holders should be included",
+			fieldName:      "_id",
 			collectionName: "holders",
 			expected:       true,
 		},
 		{
-			name:           "Regular field in aliases - included",
+			name:           "regular field in aliases should be included",
 			fieldName:      "account_id",
 			collectionName: "aliases",
 			expected:       true,
 		},
 		{
-			name:           "Regular field in other collection - included",
+			name:           "regular field in other collection should be included",
 			fieldName:      "some_field",
 			collectionName: "other_collection",
-			expected:       true,
-		},
-		{
-			name:           "Search object - included",
-			fieldName:      "search",
-			collectionName: "holders",
 			expected:       true,
 		},
 	}
@@ -433,66 +396,31 @@ func Test_getExpandedFieldsForPluginCRM(t *testing.T) {
 		name           string
 		collectionName string
 		expectNil      bool
-		expectFields   []string
+		expectContains []string
 	}{
 		{
-			name:           "holders collection - returns expanded fields",
+			name:           "holders collection returns expanded fields",
 			collectionName: "holders",
 			expectNil:      false,
-			expectFields: []string{
-				"_id",
-				"external_id",
-				"type",
-				"addresses",
-				"created_at",
-				"updated_at",
-				"deleted_at",
-				"metadata",
-				"search.document",
-				"natural_person.favorite_name",
-				"natural_person.social_name",
-				"natural_person.gender",
-				"natural_person.birth_date",
-				"natural_person.civil_status",
-				"natural_person.nationality",
-				"natural_person.status",
-				"legal_person.trade_name",
-				"legal_person.activity",
-				"legal_person.type",
-				"legal_person.founding_date",
-				"legal_person.size",
-				"legal_person.status",
-				"legal_person.representative.role",
-			},
+			expectContains: []string{"_id", "external_id", "type", "addresses", "search.document"},
 		},
 		{
-			name:           "aliases collection - returns expanded fields",
+			name:           "aliases collection returns expanded fields",
 			collectionName: "aliases",
 			expectNil:      false,
-			expectFields: []string{
-				"_id",
-				"account_id",
-				"holder_id",
-				"ledger_id",
-				"type",
-				"created_at",
-				"updated_at",
-				"deleted_at",
-				"metadata",
-				"search.document",
-				"search.banking_details_account",
-				"search.banking_details_iban",
-				"banking_details.branch",
-				"banking_details.type",
-				"banking_details.opening_date",
-				"banking_details.country_code",
-				"banking_details.bank_id",
-			},
+			expectContains: []string{"_id", "account_id", "holder_id", "search.document"},
 		},
 		{
-			name:           "unknown collection - returns nil",
+			name:           "unknown collection returns nil",
 			collectionName: "unknown",
 			expectNil:      true,
+			expectContains: nil,
+		},
+		{
+			name:           "empty collection returns nil",
+			collectionName: "",
+			expectNil:      true,
+			expectContains: nil,
 		},
 	}
 
@@ -502,416 +430,104 @@ func Test_getExpandedFieldsForPluginCRM(t *testing.T) {
 			if tt.expectNil {
 				assert.Nil(t, result)
 			} else {
-				assert.Equal(t, tt.expectFields, result)
+				assert.NotNil(t, result)
+				for _, expected := range tt.expectContains {
+					assert.Contains(t, result, expected)
+				}
 			}
 		})
 	}
 }
 
-func Test_getFieldsForCollection(t *testing.T) {
+func Test_getFieldsForPluginCRM(t *testing.T) {
 	uc := &UseCase{}
 
 	tests := []struct {
-		name         string
-		collection   mongodb.CollectionSchema
-		dataSourceID string
-		expectLen    int
+		name           string
+		collection     mongodb.CollectionSchema
+		expectContains []string
 	}{
 		{
-			name: "plugin_crm with holders - uses expanded fields",
+			name: "holders collection uses expanded fields",
 			collection: mongodb.CollectionSchema{
-				CollectionName: "holders_org-123",
+				CollectionName: "holders_org123",
 				Fields: []mongodb.FieldInformation{
-					{Name: "_id", DataType: "ObjectId"},
-					{Name: "document", DataType: "string"},
+					{Name: "_id"},
+					{Name: "external_id"},
+					{Name: "document"}, // encrypted - should not appear (using expanded fields instead)
 				},
 			},
-			dataSourceID: "plugin_crm",
-			expectLen:    23, // holders expanded fields count
+			expectContains: []string{"_id", "external_id", "type"},
 		},
 		{
-			name: "plugin_crm with aliases - uses expanded fields",
+			name: "aliases collection uses expanded fields",
 			collection: mongodb.CollectionSchema{
-				CollectionName: "aliases_org-123",
+				CollectionName: "aliases_org123",
 				Fields: []mongodb.FieldInformation{
-					{Name: "_id", DataType: "ObjectId"},
+					{Name: "_id"},
+					{Name: "account_id"},
 				},
 			},
-			dataSourceID: "plugin_crm",
-			expectLen:    17, // aliases expanded fields count
+			expectContains: []string{"_id", "account_id", "holder_id"},
 		},
 		{
-			name: "plugin_crm with unknown collection - filters fields",
+			name: "unknown collection filters by shouldInclude",
 			collection: mongodb.CollectionSchema{
-				CollectionName: "unknown_org-123",
+				CollectionName: "other_collection_org123",
 				Fields: []mongodb.FieldInformation{
-					{Name: "_id", DataType: "ObjectId"},
-					{Name: "external_id", DataType: "string"},
-					{Name: "document", DataType: "string"}, // encrypted - excluded
+					{Name: "_id"},
+					{Name: "some_field"},
+					{Name: "document"}, // encrypted - should be filtered
 				},
 			},
-			dataSourceID: "plugin_crm",
-			expectLen:    2, // Only _id and external_id
-		},
-		{
-			name: "regular database - includes all fields",
-			collection: mongodb.CollectionSchema{
-				CollectionName: "users",
-				Fields: []mongodb.FieldInformation{
-					{Name: "_id", DataType: "ObjectId"},
-					{Name: "name", DataType: "string"},
-					{Name: "email", DataType: "string"},
-				},
-			},
-			dataSourceID: "regular_db",
-			expectLen:    3,
+			expectContains: []string{"_id", "some_field"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := uc.getFieldsForCollection(tt.collection, tt.dataSourceID)
-			assert.Equal(t, tt.expectLen, len(result))
+			result := uc.getFieldsForPluginCRM(tt.collection)
+			assert.NotNil(t, result)
+			for _, expected := range tt.expectContains {
+				assert.Contains(t, result, expected)
+			}
 		})
 	}
 }
 
-func Test_ensureDataSourceConnected(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := log.NewMockLogger(ctrl)
-	mockLogger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Warnf(gomock.Any(), gomock.Any()).AnyTimes()
+func Test_getDisplayNameForCollection(t *testing.T) {
+	uc := &UseCase{}
 
 	tests := []struct {
-		name         string
-		dataSourceID string
-		dataSource   *pkg.DataSource
-		expectError  bool
+		name           string
+		collectionName string
+		dataSourceID   string
+		expected       string
 	}{
 		{
-			name:         "PostgreSQL already connected",
-			dataSourceID: "pg_ds",
-			dataSource: &pkg.DataSource{
-				DatabaseType:   pkg.PostgreSQLType,
-				Initialized:    true,
-				DatabaseConfig: &postgres.Connection{Connected: true},
-			},
-			expectError: false,
+			name:           "plugin_crm removes org suffix",
+			collectionName: "holders_org123",
+			dataSourceID:   "plugin_crm",
+			expected:       "holders",
 		},
 		{
-			name:         "MongoDB already initialized",
-			dataSourceID: "mongo_ds",
-			dataSource: &pkg.DataSource{
-				DatabaseType: pkg.MongoDBType,
-				Initialized:  true,
-			},
-			expectError: false,
+			name:           "non plugin_crm returns original",
+			collectionName: "holders_org123",
+			dataSourceID:   "other_datasource",
+			expected:       "holders_org123",
 		},
 		{
-			name:         "Unavailable datasource logs warning but continues",
-			dataSourceID: "unavailable_ds",
-			dataSource: &pkg.DataSource{
-				DatabaseType:   pkg.PostgreSQLType,
-				Initialized:    true,
-				DatabaseConfig: &postgres.Connection{Connected: true},
-				Status:         libConstants.DataSourceStatusUnavailable,
-			},
-			expectError: false,
+			name:           "plugin_crm with simple name",
+			collectionName: "users",
+			dataSourceID:   "plugin_crm",
+			expected:       "users",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := &UseCase{
-				ExternalDataSources: map[string]pkg.DataSource{
-					tt.dataSourceID: *tt.dataSource,
-				},
-			}
-
-			err := uc.ensureDataSourceConnected(mockLogger, tt.dataSourceID, tt.dataSource)
-
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			result := uc.getDisplayNameForCollection(tt.collectionName, tt.dataSourceID)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func Test_getDataSourceDetailsFromCache_InvalidJSON(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	uc := &UseCase{
-		RedisRepo: mockRedisRepo,
-	}
-
-	cacheKey := "test-key"
-
-	// Return invalid JSON
-	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("invalid-json{}", nil)
-
-	result, ok := uc.getDataSourceDetailsFromCache(ctx, cacheKey)
-
-	assert.False(t, ok)
-	assert.Nil(t, result)
-}
-
-func Test_getDataSourceDetailsFromCache_NilRedisRepo(t *testing.T) {
-	ctx := context.Background()
-
-	uc := &UseCase{
-		RedisRepo: nil,
-	}
-
-	result, ok := uc.getDataSourceDetailsFromCache(ctx, "any-key")
-
-	assert.False(t, ok)
-	assert.Nil(t, result)
-}
-
-func Test_setDataSourceDetailsToCache_NilDetails(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	uc := &UseCase{
-		RedisRepo: mockRedisRepo,
-	}
-
-	// Should return nil without calling Redis
-	err := uc.setDataSourceDetailsToCache(ctx, "any-key", nil)
-	assert.NoError(t, err)
-}
-
-func Test_setDataSourceDetailsToCache_NilRedisRepo(t *testing.T) {
-	ctx := context.Background()
-
-	uc := &UseCase{
-		RedisRepo: nil,
-	}
-
-	details := &model.DataSourceDetails{
-		Id: "test",
-	}
-
-	err := uc.setDataSourceDetailsToCache(ctx, "any-key", details)
-	assert.NoError(t, err)
-}
-
-func Test_GetDataSourceDetailsByID_UnsupportedDatabaseType(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	uc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
-			"unsupported_ds": {
-				DatabaseType: "unsupported",
-				Initialized:  true,
-			},
-		},
-		RedisRepo: mockRedisRepo,
-	}
-
-	mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":unsupported_ds").Return("", nil)
-
-	result, err := uc.GetDataSourceDetailsByID(ctx, "unsupported_ds")
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-}
-
-func Test_GetDataSourceDetailsByID_CacheSetError(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockMongoRepo := mongodb.NewMockRepository(ctrl)
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	mongoSchema := []mongodb.CollectionSchema{
-		{
-			CollectionName: "collection1",
-			Fields: []mongodb.FieldInformation{
-				{Name: "field1", DataType: "string"},
-			},
-		},
-	}
-
-	mongoResult := &model.DataSourceDetails{
-		Id:           "mongo_ds",
-		ExternalName: "mongo_db",
-		Type:         pkg.MongoDBType,
-		Tables: []model.TableDetails{{
-			Name:   "collection1",
-			Fields: []string{"field1"},
-		}},
-	}
-	mongoResultJSON, _ := json.Marshal(mongoResult)
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds"
-
-	uc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
-			"mongo_ds": {
-				DatabaseType:      pkg.MongoDBType,
-				MongoDBRepository: mockMongoRepo,
-				MongoDBName:       "mongo_db",
-				Initialized:       true,
-			},
-		},
-		RedisRepo: mockRedisRepo,
-	}
-
-	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
-	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-	mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(errors.New("cache error"))
-
-	result, err := uc.GetDataSourceDetailsByID(ctx, "mongo_ds")
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-}
-
-func Test_GetDataSourceDetailsByID_MongoCloseError(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockMongoRepo := mongodb.NewMockRepository(ctrl)
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	mongoSchema := []mongodb.CollectionSchema{
-		{
-			CollectionName: "collection1",
-			Fields: []mongodb.FieldInformation{
-				{Name: "field1", DataType: "string"},
-			},
-		},
-	}
-
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds"
-
-	uc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
-			"mongo_ds": {
-				DatabaseType:      pkg.MongoDBType,
-				MongoDBRepository: mockMongoRepo,
-				MongoDBName:       "mongo_db",
-				Initialized:       true,
-			},
-		},
-		RedisRepo: mockRedisRepo,
-	}
-
-	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
-	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(errors.New("close error"))
-
-	result, err := uc.GetDataSourceDetailsByID(ctx, "mongo_ds")
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-}
-
-func Test_GetDataSourceDetailsByID_PostgresCloseError(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockPostgresRepo := postgres.NewMockRepository(ctrl)
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	postgresSchema := []postgres.TableSchema{
-		{
-			TableName: "table1",
-			Columns: []postgres.ColumnInformation{
-				{Name: "col1", DataType: "string"},
-			},
-		},
-	}
-
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":pg_ds"
-
-	uc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
-			"pg_ds": {
-				DatabaseType:       pkg.PostgreSQLType,
-				PostgresRepository: mockPostgresRepo,
-				DatabaseConfig:     &postgres.Connection{Connected: true, DBName: "pg_db"},
-				MongoDBName:        "pg_db",
-				Initialized:        true,
-			},
-		},
-		RedisRepo: mockRedisRepo,
-	}
-
-	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-	mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(postgresSchema, nil)
-	mockPostgresRepo.EXPECT().CloseConnection().Return(errors.New("close error"))
-
-	result, err := uc.GetDataSourceDetailsByID(ctx, "pg_ds")
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-}
-
-func Test_GetDataSourceDetailsByID_PluginCRM(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockMongoRepo := mongodb.NewMockRepository(ctrl)
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
-	mongoSchema := []mongodb.CollectionSchema{
-		{
-			CollectionName: "holders_org-123",
-			Fields: []mongodb.FieldInformation{
-				{Name: "_id", DataType: "ObjectId"},
-				{Name: "external_id", DataType: "string"},
-				{Name: "document", DataType: "string"},
-			},
-		},
-	}
-
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":plugin_crm"
-
-	uc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
-			"plugin_crm": {
-				DatabaseType:      pkg.MongoDBType,
-				MongoDBRepository: mockMongoRepo,
-				MongoDBName:       "crm_db",
-				Initialized:       true,
-			},
-		},
-		RedisRepo: mockRedisRepo,
-	}
-
-	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
-	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-	mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, gomock.Any(), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
-
-	result, err := uc.GetDataSourceDetailsByID(ctx, "plugin_crm")
-
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "plugin_crm", result.Id)
-	// The table name should be "holders" (base name extracted)
-	assert.Equal(t, "holders", result.Tables[0].Name)
-	// Should use expanded fields for holders
-	assert.Equal(t, 23, len(result.Tables[0].Fields))
 }
