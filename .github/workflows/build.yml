@@ -1,81 +1,70 @@
-name: "Build Pipeline"
+name: "Build"
+
+# This workflow builds and pushes Docker images
+# Triggered on any tag push (e.g., v1.0.0, v1.0.0-beta.1)
+#
+# Monorepo strategy:
+# - Uses filter_paths to detect which components changed
+# - Builds only the changed components
+# - Updates GitOps for beta/rc tags
 
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-
-permissions:
-  id-token: write
-  contents: read
-  pull-requests: write
-  packages: write
+      - '**'
 
 jobs:
-  # Build and Publish Docker Image to GHCR - Backend
-  build_and_publish_ghcr_backend:
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Manager Docker Image to GHCR
-        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
-        with:
-          app_name: 'reporter-manager'
-          context: .
-          working_dir: components/manager
-          token: ${{ secrets.MANAGE_TOKEN }}
+  build:
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/build.yml@v1.3.5
+    with:
+      runner_type: "blacksmith-4vcpu-ubuntu-2404"
+      # Monorepo configuration
+      filter_paths: |-
+        components/manager
+        components/worker
+      path_level: 2
+      app_name_prefix: "reporter"
+      # Registry configuration
+      enable_dockerhub: true
+      enable_ghcr: true
+      dockerhub_org: lerianstudio
+      # GitOps artifacts for update_gitops job
+      enable_gitops_artifacts: true
+    secrets: inherit
 
-      - name: Build And Publish Worker Docker Image to GHCR
-        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
-        with:
-          app_name: 'reporter-worker'
-          context: .
-          working_dir: components/worker
-          token: ${{ secrets.MANAGE_TOKEN }}
+  # =========================
+  # GITOPS UPDATE
+  # =========================
+  update_gitops:
+    needs: [build]
+    if: (contains(github.ref, '-beta') || contains(github.ref, '-rc')) && needs.build.result == 'success'
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/gitops-update.yml@v1.3.5
+    with:
+      runner_type: "blacksmith-4vcpu-ubuntu-2404"
+      gitops_repository: "LerianStudio/midaz-firmino-gitops"
+      gitops_server: "firmino"
+      app_name: "reporter"
+      artifact_pattern: "gitops-tags-reporter-*"
+      yaml_key_mappings: '{"manager.tag": ".manager.image.tag", "worker.tag": ".worker.image.tag"}'
+      configmap_updates: '{"manager.tag": ".manager.configmap.VERSION", "worker.tag": ".worker.configmap.VERSION"}'
+      commit_message_prefix: "reporter"
+      enable_argocd_sync: true
+      argocd_app_name: "firmino-reporter"
+      use_dynamic_mapping: true
+    secrets: inherit
 
-  # Build and Publish Docker Image to Dockerhub - Backend
-  build_and_publish_dockerhub_backend:
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Docker Image to Dockerhub - Worker
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
-        with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          app_name: 'reporter-worker'
-          working_dir: 'components/worker'
-          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-
-      - name: Build And Publish Docker Image to Dockerhub - Manager
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
-        with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          app_name: 'reporter-manager'
-          working_dir: 'components/manager'
-          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-
-  # Build and Publish Docker Image to GHCR - Frontend
-  build_and_publish_ghcr_frontend:
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Frontend Docker Image to GHCR
-        uses: LerianStudio/github-actions-ghcr-private-pipeline@main
-        with:
-          app_name: 'reporter-frontend'
-          context: .
-          working_dir: components/frontend
-          token: ${{ secrets.MANAGE_TOKEN }}
-
-  # Build and Publish Docker Image to Dockerhub - Frontend
-  build_and_publish_dockerhub_frontend:
-    runs-on: firmino-lxc-runners
-    steps:
-      - name: Build And Publish Docker Image to Dockerhub - Frontend
-        uses: LerianStudio/github-actions-docker-private-pipeline@main
-        with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          docker_access_token: ${{ secrets.MANAGE_TOKEN }}
-          app_name: 'reporter-frontend'
-          context: .
-          working_dir: 'components/frontend'
+  # =========================
+  # E2E TESTS
+  # =========================
+  api-dog-e2e-tests:
+    needs: update_gitops
+    if: (contains(github.ref, '-beta') || contains(github.ref, '-rc')) && needs.update_gitops.result == 'success'
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/api-dog-e2e-tests.yml@v1.3.5
+    with:
+      runner_type: "firmino-lxc-runners"
+      auto_detect_environment: true
+    secrets:
+      test_scenario_id: ${{ secrets.REPORTER_APIDOG_TEST_SCENARIO_ID }}
+      apidog_access_token: ${{ secrets.APIDOG_ACCESS_TOKEN }}
+      dev_environment_id: ${{ secrets.REPORTER_APIDOG_DEV_ENVIRONMENT_ID }}
+      stg_environment_id: ${{ secrets.REPORTER_APIDOG_STG_ENVIRONMENT_ID }}
