@@ -1,4 +1,5 @@
-//go:build unit
+//go:build integration
+// +build integration
 
 // Copyright (c) 2025 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
