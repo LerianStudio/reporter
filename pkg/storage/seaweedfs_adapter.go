@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
@@ -80,10 +81,14 @@ func (a *SeaweedFSAdapter) Exists(ctx context.Context, key string) (bool, error)
 	// Try to download the file to check existence
 	_, err := a.Download(ctx, key)
 	if err != nil {
-		// If download fails, object doesn't exist or there's an error
-		// SeaweedFS returns 404 status in error message
-		return false, nil
+		// SeaweedFS returns 404 status in error message when file doesn't exist
+		if strings.Contains(err.Error(), "status 404") {
+			return false, nil
+		}
+		// For other errors, propagate them
+		return false, err
 	}
+
 	return true, nil
 }
 
