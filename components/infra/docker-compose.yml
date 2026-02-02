@@ -40,47 +40,23 @@ services:
     networks:
       - reporter-infra-network
 
-  reporter-seaweedfs-master:
+  reporter-seaweedfs:
     image: chrislusf/seaweedfs:3.97
-    container_name: reporter-seaweedfs-master
+    container_name: reporter-seaweedfs
+    command: server -s3 -dir=/data
     ports:
-      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
-      - "${SEAWEEDFS_MASTER_UI_PORT:-9334}:9334"
-    command: "master -ip=reporter-seaweedfs-master -port=9333 -mdir=/data"
+      - "8333:8333"  # S3 API
+      - "9333:9333"  # Admin/Master API (optional)
     volumes:
-      - reporter-seaweedfs-master-data:/data
+      - reporter-seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - reporter-infra-network
-    restart: always
-
-  reporter-seaweedfs-volume:
-    image: chrislusf/seaweedfs:3.97
-    container_name: reporter-seaweedfs-volume
-    ports:
-      - "${SEAWEEDFS_VOLUME_PORT:-9080}:9080"
-    command: "volume -ip=reporter-seaweedfs-volume -port=9080 -mserver=reporter-seaweedfs-master:9333 -dir=/data -max=0"
-    volumes:
-      - reporter-seaweedfs-volume-data:/data
-    networks:
-      - reporter-infra-network
-    depends_on:
-      - reporter-seaweedfs-master
-    restart: always
-
-  reporter-seaweedfs-filer:
-    image: chrislusf/seaweedfs:3.97
-    container_name: reporter-seaweedfs-filer
-    ports:
-      - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
-      - "${SEAWEEDFS_FILER_S3_PORT:-8333}:8333"
-    command: "filer -ip=reporter-seaweedfs-filer -port=8888 -master=reporter-seaweedfs-master:9333"
-    volumes:
-      - reporter-seaweedfs-filer-data:/data
-    networks:
-      - reporter-infra-network
-    depends_on:
-      - reporter-seaweedfs-master
-      - reporter-seaweedfs-volume
     restart: always
 
   reporter-keda:
@@ -119,9 +95,7 @@ services:
 
 volumes:
   reporter-mongodb-data:
-  reporter-seaweedfs-master-data:
-  reporter-seaweedfs-volume-data:
-  reporter-seaweedfs-filer-data:
+  reporter-seaweedfs-data:
   reporter-redis-data:
 
 networks:

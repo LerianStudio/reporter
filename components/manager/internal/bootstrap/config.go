@@ -15,9 +15,9 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	simpleClient "github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -49,9 +49,14 @@ type Config struct {
 	MongoDBPassword   string `env:"MONGO_PASSWORD"`
 	MongoDBPort       string `env:"MONGO_PORT"`
 	MongoDBParameters string `env:"MONGO_PARAMETERS"`
-	// SeaweedFS configuration envs
-	SeaweedFSHost      string `env:"SEAWEEDFS_HOST"`
-	SeaweedFSFilerPort string `env:"SEAWEEDFS_FILER_PORT"`
+	// Storage configuration envs (S3-compatible only)
+	ObjectStorageEndpoint     string `env:"OBJECT_STORAGE_ENDPOINT"`
+	ObjectStorageRegion       string `env:"OBJECT_STORAGE_REGION" default:"us-east-1"`
+	ObjectStorageAccessKeyID  string `env:"OBJECT_STORAGE_ACCESS_KEY_ID"`
+	ObjectStorageSecretKey    string `env:"OBJECT_STORAGE_SECRET_KEY"`
+	ObjectStorageUsePathStyle bool   `env:"OBJECT_STORAGE_USE_PATH_STYLE" default:"false"`
+	ObjectStorageDisableSSL   bool   `env:"OBJECT_STORAGE_DISABLE_SSL" default:"false"`
+	StorageBucket             string `env:"STORAGE_BUCKET" default:"reporter-storage"` // Single bucket for templates/ and reports/ prefixes
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
@@ -102,9 +107,29 @@ func InitServers() *Service {
 		Logger:                    logger,
 	})
 
-	// Config SeaweedFS connection
-	seaweedFSEndpoint := fmt.Sprintf("http://%s:%s", cfg.SeaweedFSHost, cfg.SeaweedFSFilerPort)
-	seaweedFSClient := simpleClient.NewSeaweedFSClient(seaweedFSEndpoint)
+	// Create single storage client for both templates and reports (using prefixes)
+	storageConfig := storage.Config{
+		Bucket:            cfg.StorageBucket,
+		S3Endpoint:        cfg.ObjectStorageEndpoint,
+		S3Region:          cfg.ObjectStorageRegion,
+		S3AccessKeyID:     cfg.ObjectStorageAccessKeyID,
+		S3SecretAccessKey: cfg.ObjectStorageSecretKey,
+		S3UsePathStyle:    cfg.ObjectStorageUsePathStyle,
+		S3DisableSSL:      cfg.ObjectStorageDisableSSL,
+	}
+
+	ctx := pkg.ContextWithLogger(context.Background(), logger)
+
+	storageClient, err := storage.NewStorageClient(ctx, storageConfig)
+	if err != nil {
+		logger.Fatalf("Failed to create storage client: %v", err)
+	}
+
+	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.StorageBucket)
+
+	// Use same storage client for both templates and reports (repositories handle prefixes)
+	templateStorageClient := storageClient
+	reportStorageClient := storageClient
 
 	// Init mongo DB connection
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
@@ -141,18 +166,17 @@ func InitServers() *Service {
 
 	// Create MongoDB indexes
 	logger.Info("Ensuring MongoDB indexes exist for templates and reports...")
-	ctx := pkg.ContextWithLogger(context.Background(), logger)
 
-	if err := templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
+	if err = templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
 		logger.Fatalf("Failed to ensure template indexes: %v", err)
 	}
 
-	if err := reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
 		logger.Fatalf("Failed to ensure report indexes: %v", err)
 	}
 
-	templateSeaweedFSRepository := templateSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.TemplateBucketName)
-	reportSeaweedFSRepository := reportSeaweedFS.NewSimpleRepository(seaweedFSClient, constant.ReportBucketName)
+	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
+	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
 
 	// Init Redis/Valkey connection
 	redisConnection := &libRedis.RedisConnection{

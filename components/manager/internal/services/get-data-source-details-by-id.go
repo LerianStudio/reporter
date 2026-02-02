@@ -38,17 +38,20 @@ var (
 
 	// Define nested encrypted fields that should be excluded
 	nestedEncryptedFields = map[string]bool{
-		"contact.primary_email":                true,
-		"contact.secondary_email":              true,
-		"contact.mobile_phone":                 true,
-		"contact.other_phone":                  true,
-		"banking_details.account":              true,
-		"banking_details.iban":                 true,
-		"legal_person.representative.name":     true,
-		"legal_person.representative.document": true,
-		"legal_person.representative.email":    true,
-		"natural_person.mother_name":           true,
-		"natural_person.father_name":           true,
+		"contact.primary_email":                  true,
+		"contact.secondary_email":                true,
+		"contact.mobile_phone":                   true,
+		"contact.other_phone":                    true,
+		"banking_details.account":                true,
+		"banking_details.iban":                   true,
+		"legal_person.representative.name":       true,
+		"legal_person.representative.document":   true,
+		"legal_person.representative.email":      true,
+		"natural_person.mother_name":             true,
+		"natural_person.father_name":             true,
+		"regulatory_fields.participant_document": true,
+		"related_parties.document":               true,
+		"related_parties.name":                   true,
 	}
 )
 
@@ -361,15 +364,27 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 			"updated_at",
 			"deleted_at",
 			"metadata",
+			// Search fields (hashes, not encrypted)
 			"search.document",
 			"search.banking_details_account",
 			"search.banking_details_iban",
+			"search.regulatory_fields_participant_document",
+			"search.related_party_documents",
 			// Banking details fields (non-encrypted)
 			"banking_details.branch",
 			"banking_details.type",
 			"banking_details.opening_date",
+			"banking_details.closing_date",
 			"banking_details.country_code",
 			"banking_details.bank_id",
+			// Regulatory fields (non-encrypted)
+			"regulatory_fields",
+			// Related parties fields (non-encrypted)
+			"related_parties",
+			"related_parties._id",
+			"related_parties.role",
+			"related_parties.start_date",
+			"related_parties.end_date",
 		}
 	default:
 		return nil
