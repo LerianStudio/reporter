@@ -206,7 +206,43 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 		}
 	}
 
+	// Resolve nested variable references (e.g., when inner loop iterates over parent loop variable's field)
+	resolveNestedVariables(variableMap)
+
 	return variableMap
+}
+
+// resolveNestedVariables resolves nested loop variable references in variableMap.
+// When a variable's path starts with another loop variable, it expands the full path.
+// Example: if variableMap["alias"] = ["plugin_crm", "aliases"] and
+// variableMap["related_party"] = ["alias", "related_parties"], this function
+// resolves it to variableMap["related_party"] = ["plugin_crm", "aliases", "related_parties"]
+func resolveNestedVariables(variableMap map[string][]string) {
+	maxIterations := len(variableMap) // Prevent infinite loops
+
+	for i := 0; i < maxIterations; i++ {
+		resolved := true
+
+		for varName, path := range variableMap {
+			if len(path) == 0 {
+				continue
+			}
+
+			// Check if first element of path is another loop variable
+			if parentPath, exists := variableMap[path[0]]; exists && path[0] != varName {
+				// Expand: replace path[0] with parentPath, keep rest
+				newPath := make([]string, 0, len(parentPath)+len(path)-1)
+				newPath = append(newPath, parentPath...)
+				newPath = append(newPath, path[1:]...)
+				variableMap[varName] = newPath
+				resolved = false
+			}
+		}
+
+		if resolved {
+			break
+		}
+	}
 }
 
 // regexBlockForWithFilterOnPlaceholder processes "for" loops with the filter function in a template file, updating nested data structures.
@@ -382,9 +418,9 @@ func normalizeStructure(input map[string]any) map[string]map[string][]string {
 						case string:
 							section[subKey] = append(section[subKey], itemVal)
 						case map[string]any:
-							for nestedKey := range itemVal {
-								section[subKey] = append(section[subKey], nestedKey)
-							}
+							// Recursively flatten nested fields with prefix
+							nestedFields := flattenNestedFields(itemVal, "")
+							section[subKey] = append(section[subKey], nestedFields...)
 						}
 					}
 				case map[string]any: // Caso especial como em "transaction": { "metadata": [...] }
@@ -397,6 +433,44 @@ func normalizeStructure(input map[string]any) map[string]map[string][]string {
 	}
 
 	return result
+}
+
+// flattenNestedFields recursively extracts all fields from a nested map structure,
+// prefixing nested field names with their parent keys (e.g., "related_parties.role").
+func flattenNestedFields(m map[string]any, prefix string) []string {
+	var fields []string
+
+	for key, val := range m {
+		fieldName := key
+		if prefix != "" {
+			fieldName = prefix + "." + key
+		}
+
+		switch v := val.(type) {
+		case []any:
+			// Add the key itself as a field
+			fields = append(fields, fieldName)
+			// Also extract nested string fields
+			for _, item := range v {
+				switch itemVal := item.(type) {
+				case string:
+					fields = append(fields, fieldName+"."+itemVal)
+				case map[string]any:
+					// Recursively flatten deeper nested structures
+					nested := flattenNestedFields(itemVal, fieldName)
+					fields = append(fields, nested...)
+				}
+			}
+		case map[string]any:
+			// Recursively process nested maps
+			nested := flattenNestedFields(v, fieldName)
+			fields = append(fields, nested...)
+		case string:
+			fields = append(fields, fieldName)
+		}
+	}
+
+	return fields
 }
 
 // getMapKeys retrieves all keys from a given map and returns them as a slice of strings.
