@@ -635,14 +635,16 @@ func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.Fil
 
 	// Define field mappings: encrypted field -> search field
 	fieldMappings := map[string]string{
-		"document":                "search.document",
-		"name":                    "search.name",
-		"banking_details.account": "search.banking_details_account",
-		"banking_details.iban":    "search.banking_details_iban",
-		"contact.primary_email":   "search.contact_primary_email",
-		"contact.secondary_email": "search.contact_secondary_email",
-		"contact.mobile_phone":    "search.contact_mobile_phone",
-		"contact.other_phone":     "search.contact_other_phone",
+		"document":                                "search.document",
+		"name":                                    "search.name",
+		"banking_details.account":                 "search.banking_details_account",
+		"banking_details.iban":                    "search.banking_details_iban",
+		"contact.primary_email":                   "search.contact_primary_email",
+		"contact.secondary_email":                 "search.contact_secondary_email",
+		"contact.mobile_phone":                    "search.contact_mobile_phone",
+		"contact.other_phone":                     "search.contact_other_phone",
+		"regulatory_fields.participant_document":  "search.regulatory_fields_participant_document",
+		"related_parties.document":                "search.related_party_documents",
 	}
 
 	for fieldName, condition := range filter {
@@ -848,6 +850,14 @@ func (uc *UseCase) decryptNestedFields(record map[string]any, crypto *libCrypto.
 		return err
 	}
 
+	if err := uc.decryptRegulatoryFieldsFields(record, crypto); err != nil {
+		return err
+	}
+
+	if err := uc.decryptRelatedPartiesFields(record, crypto); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -937,6 +947,54 @@ func (uc *UseCase) decryptNaturalPersonFields(record map[string]any, crypto *lib
 	}
 
 	record["natural_person"] = naturalPerson
+
+	return nil
+}
+
+// decryptRegulatoryFieldsFields decrypts fields within the regulatory_fields object
+func (uc *UseCase) decryptRegulatoryFieldsFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	regulatoryFields, ok := record["regulatory_fields"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	regulatoryFieldNames := []string{"participant_document"}
+	for _, fieldName := range regulatoryFieldNames {
+		if fieldValue, exists := regulatoryFields[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(regulatoryFields, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt regulatory_fields.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	record["regulatory_fields"] = regulatoryFields
+
+	return nil
+}
+
+// decryptRelatedPartiesFields decrypts the document field within each related_parties array item
+func (uc *UseCase) decryptRelatedPartiesFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	relatedParties, ok := record["related_parties"].([]any)
+	if !ok {
+		return nil
+	}
+
+	for i, party := range relatedParties {
+		partyMap, ok := party.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if fieldValue, exists := partyMap["document"]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(partyMap, "document", fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt related_parties[%d].document: %w", i, err)
+			}
+		}
+
+		relatedParties[i] = partyMap
+	}
+
+	record["related_parties"] = relatedParties
 
 	return nil
 }
