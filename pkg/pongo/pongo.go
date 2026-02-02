@@ -49,4 +49,8 @@ func init() {
 	if err := pongo2.RegisterTag("calc", makeCalcTag); err != nil {
 		panic("Failed to register calc tag: " + err.Error())
 	}
+
+	if err := pongo2.RegisterTag("aggregate_balance", makeAggregateBalanceTag()); err != nil {
+		panic("Failed to register aggregate_balance tag: " + err.Error())
+	}
 }
