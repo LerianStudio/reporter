@@ -56,7 +56,7 @@ type Config struct {
 	ObjectStorageSecretKey    string `env:"OBJECT_STORAGE_SECRET_KEY"`
 	ObjectStorageUsePathStyle bool   `env:"OBJECT_STORAGE_USE_PATH_STYLE" default:"false"`
 	ObjectStorageDisableSSL   bool   `env:"OBJECT_STORAGE_DISABLE_SSL" default:"false"`
-	StorageBucket             string `env:"STORAGE_BUCKET" default:"reporter-storage"` // Single bucket for templates/ and reports/ prefixes
+	ObjectStorageBucket       string `env:"OBJECT_STORAGE_BUCKET" default:"reporter-storage"` // Single bucket for templates/ and reports/ prefixes
 	// RabbitMQ configuration envs
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
@@ -109,7 +109,7 @@ func InitServers() *Service {
 
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
-		Bucket:            cfg.StorageBucket,
+		Bucket:            cfg.ObjectStorageBucket,
 		S3Endpoint:        cfg.ObjectStorageEndpoint,
 		S3Region:          cfg.ObjectStorageRegion,
 		S3AccessKeyID:     cfg.ObjectStorageAccessKeyID,
@@ -125,7 +125,7 @@ func InitServers() *Service {
 		logger.Fatalf("Failed to create storage client: %v", err)
 	}
 
-	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.StorageBucket)
+	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.ObjectStorageBucket)
 
 	// Use same storage client for both templates and reports (repositories handle prefixes)
 	templateStorageClient := storageClient
