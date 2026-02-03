@@ -441,6 +441,16 @@ func TestFilterNestedFields(t *testing.T) {
 			input:    []string{"account_id", "holder_id", "banking_details", "related_parties", "related_parties.document", "related_parties.name", "related_parties.role", "related_parties.start_date", "related_parties.end_date"},
 			expected: []string{"account_id", "banking_details", "holder_id", "related_parties"},
 		},
+		{
+			name:     "nested parent with nested children - path collision prevention",
+			input:    []string{"contact.address", "contact.address.city", "contact.address.zip", "contact.phone"},
+			expected: []string{"contact.address", "contact.phone"},
+		},
+		{
+			name:     "multiple levels of nesting",
+			input:    []string{"a.b", "a.b.c", "a.b.c.d", "a.b.c.d.e"},
+			expected: []string{"a.b"},
+		},
 	}
 
 	for _, tc := range testCases {

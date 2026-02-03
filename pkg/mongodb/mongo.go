@@ -5,33 +5,28 @@ import (
 	"strings"
 )
 
-// FilterNestedFields removes nested fields when their parent field is already in the list.
+// FilterNestedFields removes nested fields when any ancestor field is already in the list.
 // MongoDB projections cannot have both a parent field and its nested fields simultaneously.
 // For example, if "related_parties" is in the list, "related_parties.document" should be removed.
+// This also handles deeply nested cases: if "contact.address" exists, "contact.address.city" is removed.
 // This prevents MongoDB projection conflicts and Pongo2 path collision errors.
 func FilterNestedFields(fields []string) []string {
 	if len(fields) == 0 {
 		return fields
 	}
 
-	// Build a set of parent fields (fields without dots)
-	parentFields := make(map[string]struct{})
-
+	// Build a set of all fields for ancestor lookup
+	fieldSet := make(map[string]struct{})
 	for _, field := range fields {
-		if !strings.Contains(field, ".") {
-			parentFields[field] = struct{}{}
-		}
+		fieldSet[field] = struct{}{}
 	}
 
-	// Filter out nested fields whose parent is already in the list
+	// Filter out fields that have any ancestor already in the list
 	result := make([]string, 0, len(fields))
 	for _, field := range fields {
-		if strings.Contains(field, ".") {
-			parent := strings.Split(field, ".")[0]
-			if _, parentExists := parentFields[parent]; parentExists {
-				// Skip this nested field, parent already includes it
-				continue
-			}
+		if hasAncestor(field, fieldSet) {
+			// Skip this field, an ancestor already includes it
+			continue
 		}
 
 		result = append(result, field)
@@ -41,6 +36,21 @@ func FilterNestedFields(fields []string) []string {
 	sort.Strings(result)
 
 	return result
+}
+
+// hasAncestor checks if any prefix path of field exists in fieldSet.
+// For "contact.address.city", it checks if "contact" or "contact.address" exists.
+func hasAncestor(field string, fieldSet map[string]struct{}) bool {
+	parts := strings.Split(field, ".")
+	// Check all prefixes except the full field itself
+	for i := 1; i < len(parts); i++ {
+		ancestor := strings.Join(parts[:i], ".")
+		if _, exists := fieldSet[ancestor]; exists {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ValidateFieldsInSchemaMongo validate if all fields exist on mongo DB collection
