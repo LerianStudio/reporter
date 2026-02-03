@@ -130,10 +130,12 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 	}
 
 	// Create projection for specified fields
+	// Filter nested fields to avoid MongoDB projection conflicts
 	projection := bson.M{}
 
 	if len(fields) > 0 && fields[0] != "*" {
-		for _, field := range fields {
+		filteredFields := FilterNestedFields(fields)
+		for _, field := range filteredFields {
 			projection[field] = 1
 		}
 	}
@@ -733,10 +735,12 @@ func (ds *ExternalDataSource) buildMongoFilter(filter map[string]model.FilterCon
 
 // buildFindOptions creates MongoDB find options with field projection
 func (ds *ExternalDataSource) buildFindOptions(fields []string) *options.FindOptions {
+	// Filter nested fields to avoid MongoDB projection conflicts
 	projection := bson.M{}
 
 	if len(fields) > 0 && fields[0] != "*" {
-		for _, field := range fields {
+		filteredFields := FilterNestedFields(fields)
+		for _, field := range filteredFields {
 			projection[field] = 1
 		}
 	}

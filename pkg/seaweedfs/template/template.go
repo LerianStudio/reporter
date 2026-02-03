@@ -1,15 +1,18 @@
 package template
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 )
 
-// Repository provides an interface for SeaweedFS storage operations
+// Repository provides an interface for storage operations
 //
 //go:generate mockgen --destination=template.mock.go --package=template . Repository
 type Repository interface {
@@ -17,26 +20,32 @@ type Repository interface {
 	Put(ctx context.Context, objectName string, contentType string, data []byte) error
 }
 
-// SimpleRepository provides access to SeaweedFS storage for file operations using direct HTTP.
-type SimpleRepository struct {
-	client *seaweedfs.SeaweedFSClient
-	bucket string
+// StorageRepository provides access to object storage for template operations.
+type StorageRepository struct {
+	storage storage.ObjectStorage
 }
 
-// NewSimpleRepository creates a new instance of SimpleRepository with the given HTTP client and bucket name.
-func NewSimpleRepository(client *seaweedfs.SeaweedFSClient, bucket string) *SimpleRepository {
-	return &SimpleRepository{
-		client: client,
-		bucket: bucket,
+// NewStorageRepository creates a new instance of StorageRepository with the given storage client.
+func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepository {
+	return &StorageRepository{
+		storage: storageClient,
 	}
 }
 
-// Get the content of a .tpl file from the SeaweedFS storage.
-func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	// Add .tpl extension for templates
-	path := fmt.Sprintf("/%s/%s.tpl", repo.bucket, objectName)
+// Get the content of a .tpl file from the storage.
+// objectName can be passed with or without .tpl extension - it will be normalized.
+func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
+	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
+	objectName = strings.TrimSuffix(objectName, ".tpl")
+	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
-	data, err := repo.client.DownloadFile(ctx, path)
+	reader, err := repo.storage.Download(ctx, key)
+	if err != nil {
+		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
@@ -44,15 +53,18 @@ func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byt
 	return data, nil
 }
 
-// Put uploads data to the SeaweedFS storage with the given object name and content type.
-func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
+// Put uploads data to the storage with the given object name and content type.
+// objectName can be passed with or without .tpl extension - it will be normalized.
+func (repo *StorageRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
 	logger := pkg.NewLoggerFromContext(ctx)
 
-	path := fmt.Sprintf("/%s/%s", repo.bucket, objectName)
+	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
+	objectName = strings.TrimSuffix(objectName, ".tpl")
+	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
-	err := repo.client.UploadFile(ctx, path, data)
+	_, err := repo.storage.Upload(ctx, key, bytes.NewReader(data), contentType)
 	if err != nil {
-		logger.Errorf("Error communicating with SeaweedFS: %v", err)
+		logger.Errorf("Error communicating with storage: %v", err)
 		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 

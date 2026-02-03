@@ -5,10 +5,6 @@ FROM golang:1.25-alpine AS builder
 # Install required packages: git is needed for private modules
 RUN apk add --no-cache git
 
-# Install garble separately to improve layer caching build times
-RUN go install mvdan.cc/garble@latest
-
-
 # Set the working directory for the build
 WORKDIR /reporter
 
@@ -25,10 +21,8 @@ RUN --mount=type=secret,id=github_token \
 COPY pkg/ pkg/
 COPY components/manager/ components/manager/
 
-# Build the binary with garble for code obfuscation
-# Exclude problematic packages using GOGARBLE with ! prefix
-RUN GOGARBLE="!github.com/go-json-experiment/json,!github.com/chromedp/cdproto,!github.com/chromedp/chromedp" \
-  CGO_ENABLED=0 GOOS=linux garble -tiny build -tags netgo \
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo \
   -ldflags='-w -s -extldflags "-static"' \
   -o /manager ./components/manager/cmd/app/main.go
 

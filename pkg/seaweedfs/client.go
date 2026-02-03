@@ -130,3 +130,8 @@ func (c *SeaweedFSClient) HealthCheck(ctx context.Context) error {
 
 	return nil
 }
+
+// GetBaseURL returns the base URL of the SeaweedFS server
+func (c *SeaweedFSClient) GetBaseURL() string {
+	return c.baseURL
+}

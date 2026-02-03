@@ -400,6 +400,77 @@ func TestIsFilterConditionEmpty(t *testing.T) {
 	}
 }
 
+func TestFilterNestedFields(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "no nested fields",
+			input:    []string{"name", "age", "active"},
+			expected: []string{"active", "age", "name"},
+		},
+		{
+			name:     "nested fields with parent present",
+			input:    []string{"related_parties", "related_parties.document", "related_parties.name", "related_parties.role"},
+			expected: []string{"related_parties"},
+		},
+		{
+			name:     "nested fields without parent",
+			input:    []string{"related_parties.document", "related_parties.name", "other_field"},
+			expected: []string{"other_field", "related_parties.document", "related_parties.name"},
+		},
+		{
+			name:     "mixed fields - some parents present",
+			input:    []string{"banking_details", "banking_details.account", "related_parties.document", "name"},
+			expected: []string{"banking_details", "name", "related_parties.document"},
+		},
+		{
+			name:     "deeply nested fields",
+			input:    []string{"contact", "contact.email", "contact.address.city", "other"},
+			expected: []string{"contact", "other"},
+		},
+		{
+			name:     "empty input",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "real scenario - aliases collection",
+			input:    []string{"account_id", "holder_id", "banking_details", "related_parties", "related_parties.document", "related_parties.name", "related_parties.role", "related_parties.start_date", "related_parties.end_date"},
+			expected: []string{"account_id", "banking_details", "holder_id", "related_parties"},
+		},
+		{
+			name:     "nested parent with nested children - path collision prevention",
+			input:    []string{"contact.address", "contact.address.city", "contact.address.zip", "contact.phone"},
+			expected: []string{"contact.address", "contact.phone"},
+		},
+		{
+			name:     "multiple levels of nesting",
+			input:    []string{"a.b", "a.b.c", "a.b.c.d", "a.b.c.d.e"},
+			expected: []string{"a.b"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := FilterNestedFields(tc.input)
+
+			if len(result) != len(tc.expected) {
+				t.Errorf("Expected %d fields, got %d. Expected: %v, Got: %v", len(tc.expected), len(result), tc.expected, result)
+				return
+			}
+
+			for i, field := range tc.expected {
+				if result[i] != field {
+					t.Errorf("Expected field %d to be '%s', got '%s'", i, field, result[i])
+				}
+			}
+		})
+	}
+}
+
 func TestValidateFieldsInSchemaMongo(t *testing.T) {
 	schema := CollectionSchema{
 		CollectionName: "test_collection",
@@ -411,6 +482,7 @@ func TestValidateFieldsInSchemaMongo(t *testing.T) {
 			{Name: "legal_person.name", DataType: "string"},
 			{Name: "addresses", DataType: "array"},
 			{Name: "addresses.0.type", DataType: "string"},
+			{Name: "related_parties", DataType: "array"},
 		},
 	}
 
@@ -443,6 +515,24 @@ func TestValidateFieldsInSchemaMongo(t *testing.T) {
 			expectedFields:  []string{"NAME", "Age", "ACTIVE"},
 			expectedCount:   3,
 			expectedMissing: []string{},
+		},
+		{
+			name:            "nested fields validated by parent - related_parties scenario",
+			expectedFields:  []string{"related_parties", "related_parties.document", "related_parties.name", "related_parties.role", "related_parties.start_date", "related_parties.end_date"},
+			expectedCount:   6,
+			expectedMissing: []string{},
+		},
+		{
+			name:            "deeply nested fields validated by parent",
+			expectedFields:  []string{"related_parties.contact.email", "related_parties.address.city"},
+			expectedCount:   2,
+			expectedMissing: []string{},
+		},
+		{
+			name:            "nested field with nonexistent parent should fail",
+			expectedFields:  []string{"nonexistent_parent.child_field"},
+			expectedCount:   1,
+			expectedMissing: []string{"nonexistent_parent.child_field"},
 		},
 	}
 
