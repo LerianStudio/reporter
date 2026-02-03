@@ -238,7 +238,6 @@ func containsDIMPFilter(expr string) bool {
 	return strings.Contains(expr, "|where:") || strings.Contains(expr, "|sum:") || strings.Contains(expr, "|count:")
 }
 
-// extractDIMPBasePath extracts the base path from a DIMP filter expression
 func extractDIMPBasePath(expr string, variableMap map[string][]string) []string {
 	parts := strings.Split(expr, "|")
 	if len(parts) < 2 {
@@ -247,6 +246,10 @@ func extractDIMPBasePath(expr string, variableMap map[string][]string) []string 
 
 	baseCollection := strings.TrimSpace(parts[0])
 	collectionParts := CleanPath(baseCollection)
+
+	if len(collectionParts) == 0 {
+		return nil
+	}
 
 	if loopPath, ok := variableMap[collectionParts[0]]; ok {
 		return loopPath

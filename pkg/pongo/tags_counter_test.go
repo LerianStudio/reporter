@@ -8,55 +8,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCounterTag_BasicIncrement(t *testing.T) {
-	ResetCounters()
+// newTestContext creates a pongo2.Context with counter storage for testing
+func newTestContext() pongo2.Context {
+	return pongo2.Context{
+		CounterContextKey: NewCounterStorage(),
+	}
+}
 
+func TestCounterTag_BasicIncrement(t *testing.T) {
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1100" %}{% counter_show "1100" %}`)
 	require.NoError(t, err)
 
-	result, err := tpl.Execute(nil)
+	result, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 
 	assert.Equal(t, "3", result)
 }
 
 func TestCounterTag_MultipleCounters(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1101" %}{% counter "1101" %}{% counter "1101" %}{% counter_show "1100" %}-{% counter_show "1101" %}`)
 	require.NoError(t, err)
 
-	result, err := tpl.Execute(nil)
+	result, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 
 	assert.Equal(t, "2-3", result)
 }
 
 func TestCounterTag_SumMultipleCounters(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1101" %}{% counter "1101" %}{% counter "1101" %}{% counter_show "1100" "1101" %}`)
 	require.NoError(t, err)
 
-	result, err := tpl.Execute(nil)
+	result, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 
 	assert.Equal(t, "5", result) // 2 + 3 = 5
 }
 
 func TestCounterTag_InLoop(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% for i in items %}|1100|{% counter "1100" %}{{ i.name }}|
 {% endfor %}Total: {% counter_show "1100" %}`)
 	require.NoError(t, err)
 
-	ctx := pongo2.Context{
-		"items": []map[string]any{
-			{"name": "Item1"},
-			{"name": "Item2"},
-			{"name": "Item3"},
-		},
+	ctx := newTestContext()
+	ctx["items"] = []map[string]any{
+		{"name": "Item1"},
+		{"name": "Item2"},
+		{"name": "Item3"},
 	}
 
 	result, err := tpl.Execute(ctx)
@@ -70,8 +68,6 @@ Total: 3`
 }
 
 func TestCounterTag_NestedLoops(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% for acc in accounts %}|1100|{% counter "1100" %}{{ acc.id }}|
 {% for det in acc.details %}|1101|{% counter "1101" %}{{ det.value }}|
 {% endfor %}{% endfor %}|9900|1100|{% counter_show "1100" %}|
@@ -79,20 +75,19 @@ func TestCounterTag_NestedLoops(t *testing.T) {
 |9900|TOTAL|{% counter_show "1100" "1101" %}|`)
 	require.NoError(t, err)
 
-	ctx := pongo2.Context{
-		"accounts": []map[string]any{
-			{
-				"id": "ACC1",
-				"details": []map[string]any{
-					{"value": "D1"},
-					{"value": "D2"},
-				},
+	ctx := newTestContext()
+	ctx["accounts"] = []map[string]any{
+		{
+			"id": "ACC1",
+			"details": []map[string]any{
+				{"value": "D1"},
+				{"value": "D2"},
 			},
-			{
-				"id": "ACC2",
-				"details": []map[string]any{
-					{"value": "D3"},
-				},
+		},
+		{
+			"id": "ACC2",
+			"details": []map[string]any{
+				{"value": "D3"},
 			},
 		},
 	}
@@ -106,39 +101,32 @@ func TestCounterTag_NestedLoops(t *testing.T) {
 }
 
 func TestCounterTag_ZeroCounter(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% counter_show "nonexistent" %}`)
 	require.NoError(t, err)
 
-	result, err := tpl.Execute(nil)
+	result, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 
 	assert.Equal(t, "0", result)
 }
 
-func TestCounterTag_ResetBetweenRenders(t *testing.T) {
-	ResetCounters()
-
-	// First render
+func TestCounterTag_IsolatedBetweenRenders(t *testing.T) {
+	// Each render has its own counter storage, so counters don't leak between renders
 	tpl, err := pongo2.FromString(`{% counter "test" %}{% counter "test" %}{% counter_show "test" %}`)
 	require.NoError(t, err)
 
-	result1, err := tpl.Execute(nil)
+	// First render with its own context
+	result1, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 	assert.Equal(t, "2", result1)
 
-	// Reset and second render
-	ResetCounters()
-
-	result2, err := tpl.Execute(nil)
+	// Second render with a fresh context - should also be "2", not "4"
+	result2, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 	assert.Equal(t, "2", result2)
 }
 
 func TestCounterTag_DIMPExample(t *testing.T) {
-	ResetCounters()
-
 	// Simulates a DIMP report structure
 	tpl, err := pongo2.FromString(`|0000|12345678901234|EMPRESA|
 {% for acc in accounts %}|1100|{% counter "1100" %}SP|{{ acc.id }}|{{ acc.alias }}|
@@ -148,16 +136,15 @@ func TestCounterTag_DIMPExample(t *testing.T) {
 |9900|1102|{% counter_show "1102" %}|`)
 	require.NoError(t, err)
 
-	ctx := pongo2.Context{
-		"accounts": []map[string]any{
-			{"id": "ACC001", "alias": "account/123"},
-			{"id": "ACC002", "alias": "account/456"},
-			{"id": "ACC003", "alias": "account/789"},
-		},
-		"transactions": []map[string]any{
-			{"id": "TX001", "amount": "500.00"},
-			{"id": "TX002", "amount": "1000.00"},
-		},
+	ctx := newTestContext()
+	ctx["accounts"] = []map[string]any{
+		{"id": "ACC001", "alias": "account/123"},
+		{"id": "ACC002", "alias": "account/456"},
+		{"id": "ACC003", "alias": "account/789"},
+	}
+	ctx["transactions"] = []map[string]any{
+		{"id": "TX001", "amount": "500.00"},
+		{"id": "TX002", "amount": "1000.00"},
 	}
 
 	result, err := tpl.Execute(ctx)
@@ -168,26 +155,36 @@ func TestCounterTag_DIMPExample(t *testing.T) {
 }
 
 func TestCounterTag_SumThreeCounters(t *testing.T) {
-	ResetCounters()
-
 	tpl, err := pongo2.FromString(`{% counter "A" %}{% counter "A" %}{% counter "B" %}{% counter "B" %}{% counter "B" %}{% counter "C" %}{% counter_show "A" "B" "C" %}`)
 	require.NoError(t, err)
 
-	result, err := tpl.Execute(nil)
+	result, err := tpl.Execute(newTestContext())
 	require.NoError(t, err)
 
 	assert.Equal(t, "6", result) // 2 + 3 + 1 = 6
 }
 
-func TestGetCounter(t *testing.T) {
-	ResetCounters()
-
-	tpl, err := pongo2.FromString(`{% counter "test" %}{% counter "test" %}{% counter "test" %}`)
+func TestCounterTag_ConcurrentRendersSafe(t *testing.T) {
+	// This test verifies that concurrent renders don't interfere with each other
+	tpl, err := pongo2.FromString(`{% counter "x" %}{% counter "x" %}{% counter "x" %}{% counter_show "x" %}`)
 	require.NoError(t, err)
 
-	_, err = tpl.Execute(nil)
-	require.NoError(t, err)
+	// Run many concurrent renders
+	done := make(chan string, 100)
+	for i := 0; i < 100; i++ {
+		go func() {
+			result, err := tpl.Execute(newTestContext())
+			if err != nil {
+				done <- "error"
+				return
+			}
+			done <- result
+		}()
+	}
 
-	assert.Equal(t, 3, GetCounter("test"))
-	assert.Equal(t, 0, GetCounter("nonexistent"))
+	// All results should be "3" (isolated counters)
+	for i := 0; i < 100; i++ {
+		result := <-done
+		assert.Equal(t, "3", result, "concurrent render produced wrong result")
+	}
 }

@@ -22,9 +22,6 @@ func NewTemplateRenderer() *TemplateRenderer {
 
 // RenderFromBytes renders a template from bytes using the provided data context
 func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any, logger log.Logger) (string, error) {
-	// Reset counters before each render to ensure clean state
-	ResetCounters()
-
 	tpl, err := pongo2.FromBytes(templateBytes)
 	if err != nil {
 		logger.Errorf("Error parsing template: %s", err.Error())
@@ -32,6 +29,8 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 	}
 
 	pongoCtx := pongo2.Context{
+		// Counter storage scoped to this render (prevents race conditions between concurrent renders)
+		CounterContextKey: NewCounterStorage(),
 		"filter": func(collection any, field string, value any) []map[string]any {
 			var result []map[string]any
 

@@ -2,17 +2,12 @@ package pongo
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/flosch/pongo2/v6"
 )
 
-// counterStorage stores the counters for counter tags
-// Uses a map with mutex for thread-safety across template executions
-var (
-	counterStorage = make(map[string]int)
-	counterMutex   sync.RWMutex
-)
+// CounterContextKey is the key used to store counters in the pongo2 context
+const CounterContextKey = "_counters"
 
 // counterNode represents the counter tag that increments a named counter
 type counterNode struct {
@@ -24,20 +19,18 @@ type counterShowNode struct {
 	names []string
 }
 
-// ResetCounters resets all counters (call before each template render)
-func ResetCounters() {
-	counterMutex.Lock()
-	defer counterMutex.Unlock()
-
-	counterStorage = make(map[string]int)
+// NewCounterStorage creates a new counter storage map for a render context
+func NewCounterStorage() map[string]int {
+	return make(map[string]int)
 }
 
-// GetCounter returns the current value of a named counter
-func GetCounter(name string) int {
-	counterMutex.RLock()
-	defer counterMutex.RUnlock()
-
-	return counterStorage[name]
+// getCounterStorage retrieves the counter storage from the execution context
+func getCounterStorage(ctx *pongo2.ExecutionContext) map[string]int {
+	if storage, ok := ctx.Public[CounterContextKey].(map[string]int); ok {
+		return storage
+	}
+	// Fallback: create new storage if not found (shouldn't happen in normal use)
+	return make(map[string]int)
 }
 
 // makeCounterTag creates the counter tag parser with expression support
@@ -62,12 +55,10 @@ func makeCounterTag() pongo2.TagParser {
 	}
 }
 
-// Execute increments the named counter
-func (node *counterNode) Execute(_ *pongo2.ExecutionContext, _ pongo2.TemplateWriter) *pongo2.Error {
-	counterMutex.Lock()
-	defer counterMutex.Unlock()
-
-	counterStorage[node.name]++
+// Execute increments the named counter using the render-scoped storage
+func (node *counterNode) Execute(ctx *pongo2.ExecutionContext, _ pongo2.TemplateWriter) *pongo2.Error {
+	storage := getCounterStorage(ctx)
+	storage[node.name]++
 
 	return nil
 }
@@ -102,14 +93,13 @@ func makeCounterShowTag() pongo2.TagParser {
 	}
 }
 
-// Execute displays the sum of all named counters
-func (node *counterShowNode) Execute(_ *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
-	counterMutex.RLock()
-	defer counterMutex.RUnlock()
+// Execute displays the sum of all named counters using render-scoped storage
+func (node *counterShowNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+	storage := getCounterStorage(ctx)
 
 	total := 0
 	for _, name := range node.names {
-		total += counterStorage[name]
+		total += storage[name]
 	}
 
 	if _, err := fmt.Fprintf(writer, "%d", total); err != nil {
