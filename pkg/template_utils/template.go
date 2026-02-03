@@ -38,6 +38,22 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range fieldMatches {
 		expr := match[1]
+
+		// Skip expressions that contain DIMP filters - they will be processed by regexBlockDIMPFiltersOnPlaceholder
+		if strings.Contains(expr, "|where:") || strings.Contains(expr, "|sum:") || strings.Contains(expr, "|count:") {
+			// For DIMP filter expressions, only extract the base path fields (before the pipe)
+			// The filter fields will be extracted by regexBlockDIMPFiltersOnPlaceholder
+			basePart := strings.Split(expr, "|")[0]
+			basePart = strings.TrimSpace(basePart)
+
+			// Don't process if it's just a collection path (will be handled by DIMP function)
+			basePathParts := CleanPath(basePart)
+			if len(basePathParts) == 2 {
+				// This is just datasource.collection, skip it - DIMP function will handle
+				continue
+			}
+		}
+
 		fieldPaths := extractFieldsFromExpression(expr)
 
 		for _, fieldExpr := range fieldPaths {
@@ -59,6 +75,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockAggregationBlocksOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockCalcOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockDIMPFiltersOnPlaceholder(templateFile, resultRegex, variableMap)
 
 	return normalizeStructure(resultRegex)
 }
@@ -145,6 +162,12 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		variableMap[mainPath[1]] = mainPath
 
 		for _, arg := range args[1:] {
+			// Skip quoted string literals (values like "cacc", 'value', etc.)
+			trimmedArg := strings.TrimSpace(arg)
+			if isQuotedString(trimmedArg) {
+				continue
+			}
+
 			argPath := CleanPath(arg)
 
 			switch {
@@ -156,6 +179,170 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 				insertField(resultRegex, argPath[:len(argPath)-1], argPath[len(argPath)-1])
 			}
 		}
+	}
+}
+
+// regexBlockDIMPFiltersOnPlaceholder parses a template file to process DIMP filters (where, sum, count)
+// and updates the nested map with extracted field mappings.
+// It identifies fields used in filter expressions like |where:"field:value", |sum:"field", |count:"field:value"
+func regexBlockDIMPFiltersOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	processDIMPExpressions(templateFile, resultRegex, variableMap)
+	processDIMPForLoops(templateFile, resultRegex)
+}
+
+// processDIMPExpressions processes {{ }} expressions containing DIMP filters
+func processDIMPExpressions(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	exprRegex := regexp.MustCompile(`\{\{\s*([^}]+)\s*\}\}`)
+	exprMatches := exprRegex.FindAllStringSubmatch(templateFile, -1)
+
+	for _, exprMatch := range exprMatches {
+		expr := exprMatch[1]
+
+		if !containsDIMPFilter(expr) {
+			continue
+		}
+
+		basePath := extractDIMPBasePath(expr, variableMap)
+		if basePath == nil {
+			continue
+		}
+
+		ensureMapStructure(resultRegex, basePath)
+		extractFieldsFromDIMPFilters(expr, resultRegex, basePath)
+	}
+}
+
+// processDIMPForLoops processes for loops containing DIMP filters
+func processDIMPForLoops(templateFile string, resultRegex map[string]any) {
+	forFilterRegex := regexp.MustCompile(`{%-?\s*for\s+\w+\s+in\s+([a-zA-Z_][\w.]*)\s*\|\s*(where|sum|count)\s*:\s*"([^"]+)"`)
+	forMatches := forFilterRegex.FindAllStringSubmatch(templateFile, -1)
+
+	for _, match := range forMatches {
+		collection := match[1]
+		filterType := match[2]
+		filterArg := match[3]
+
+		collectionParts := CleanPath(collection)
+		if len(collectionParts) < 2 {
+			continue
+		}
+
+		basePath := collectionParts[:2]
+		ensureMapStructure(resultRegex, basePath)
+		extractFieldFromFilterArg(resultRegex, basePath, filterType, filterArg)
+	}
+}
+
+// containsDIMPFilter checks if an expression contains DIMP filters
+func containsDIMPFilter(expr string) bool {
+	return strings.Contains(expr, "|where:") || strings.Contains(expr, "|sum:") || strings.Contains(expr, "|count:")
+}
+
+// extractDIMPBasePath extracts the base path from a DIMP filter expression
+func extractDIMPBasePath(expr string, variableMap map[string][]string) []string {
+	parts := strings.Split(expr, "|")
+	if len(parts) < 2 {
+		return nil
+	}
+
+	baseCollection := strings.TrimSpace(parts[0])
+	collectionParts := CleanPath(baseCollection)
+
+	if loopPath, ok := variableMap[collectionParts[0]]; ok {
+		return loopPath
+	}
+
+	if len(collectionParts) >= 2 {
+		return collectionParts[:2]
+	}
+
+	return nil
+}
+
+// extractFieldsFromDIMPFilters extracts fields from all DIMP filters in an expression
+func extractFieldsFromDIMPFilters(expr string, resultRegex map[string]any, basePath []string) {
+	parts := strings.Split(expr, "|")
+	filterArgRegex := regexp.MustCompile(`^(where|sum|count)\s*:\s*"([^"]+)"`)
+
+	for _, part := range parts[1:] {
+		part = strings.TrimSpace(part)
+		filterMatch := filterArgRegex.FindStringSubmatch(part)
+
+		if filterMatch == nil {
+			continue
+		}
+
+		extractFieldFromFilterArg(resultRegex, basePath, filterMatch[1], filterMatch[2])
+	}
+}
+
+// extractFieldFromFilterArg extracts a field from a filter argument and inserts it into the result
+func extractFieldFromFilterArg(resultRegex map[string]any, basePath []string, filterType, filterArg string) {
+	switch filterType {
+	case "where", "count":
+		colonIdx := strings.Index(filterArg, ":")
+		if colonIdx > 0 {
+			field := filterArg[:colonIdx]
+			insertFieldToPath(resultRegex, basePath, field)
+		}
+	case "sum":
+		field := strings.Trim(filterArg, `"' `)
+		if field != "" {
+			insertFieldToPath(resultRegex, basePath, field)
+		}
+	}
+}
+
+// ensureMapStructure ensures that the nested map structure exists for the given path
+// For path ["datasource", "collection"], it creates: resultRegex["datasource"]["collection"] = []any{}
+func ensureMapStructure(m map[string]any, path []string) {
+	if len(path) < 2 {
+		return
+	}
+
+	datasource := path[0]
+	collection := path[1]
+
+	// Ensure datasource map exists
+	if _, ok := m[datasource]; !ok {
+		m[datasource] = map[string]any{}
+	}
+
+	// Get or create the datasource map
+	dsMap, ok := m[datasource].(map[string]any)
+	if !ok {
+		dsMap = map[string]any{}
+		m[datasource] = dsMap
+	}
+
+	// Ensure collection array exists
+	if _, ok := dsMap[collection]; !ok {
+		dsMap[collection] = []any{}
+	}
+}
+
+// insertFieldToPath inserts a field into the nested structure at the given path
+// For path ["datasource", "collection"] and field "status", it adds "status" to the collection's field list
+func insertFieldToPath(m map[string]any, path []string, field string) {
+	if len(path) < 2 {
+		return
+	}
+
+	datasource := path[0]
+	collection := path[1]
+
+	// Get the datasource map
+	dsMap, ok := m[datasource].(map[string]any)
+	if !ok {
+		return
+	}
+
+	// Get the collection's field list and append
+	switch v := dsMap[collection].(type) {
+	case []any:
+		dsMap[collection] = appendIfMissingAny(v, field)
+	case nil:
+		dsMap[collection] = []any{field}
 	}
 }
 
@@ -186,16 +373,23 @@ func regexBlockCalcOnPlaceholder(templateFile string, resultRegex map[string]any
 
 // regexBlockForOnPlaceholder parses a template file to extract variable mappings defined in for-loop blocks.
 // It returns a map where keys are variables from the for loop, and values are their corresponding path segments.
+// It also handles for loops with filters like: {% for acc in collection|where:"field:value" %}
 func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 	variableMap := map[string][]string{}
 
-	// Regex for block for
-	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+	// Regex for block for - updated to capture collection with optional filters
+	// Matches: {% for var in collection %} or {% for var in collection|filter:"arg" %}
+	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([a-zA-Z_][\w.]*(?:\s*\|[^%]+)?)\s*-?%}`)
 
 	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range forMatches {
 		variable := match[1]
-		path := CleanPath(match[2])
+		fullExpr := match[2]
+
+		// Extract base collection path (before any filter)
+		// e.g., "midaz_onboarding.account|where:\"type:cacc\"" -> "midaz_onboarding.account"
+		basePath := extractBasePathFromFilterExpr(fullExpr)
+		path := CleanPath(basePath)
 
 		if len(path) == 2 {
 			variableMap[variable] = []string{path[0], path[1]}
@@ -243,6 +437,18 @@ func resolveNestedVariables(variableMap map[string][]string) {
 			break
 		}
 	}
+}
+
+// extractBasePathFromFilterExpr extracts the base collection path from an expression that may contain filters.
+// e.g., "midaz_onboarding.account|where:\"type:cacc\"" -> "midaz_onboarding.account"
+func extractBasePathFromFilterExpr(expr string) string {
+	// Find the first pipe character (filter separator)
+	pipeIdx := strings.Index(expr, "|")
+	if pipeIdx > 0 {
+		return strings.TrimSpace(expr[:pipeIdx])
+	}
+
+	return strings.TrimSpace(expr)
 }
 
 // regexBlockForWithFilterOnPlaceholder processes "for" loops with the filter function in a template file, updating nested data structures.
@@ -494,6 +700,11 @@ func extractFieldsFromExpression(expr string) []string {
 
 		for _, sub := range subParts {
 			sub = strings.TrimSpace(sub)
+			// Skip if it looks like a filter argument (contains quotes) or is too short
+			if strings.Contains(sub, `"`) || strings.Contains(sub, `'`) {
+				continue
+			}
+
 			if strings.Contains(sub, ".") {
 				fields = append(fields, sub)
 			}
@@ -598,6 +809,15 @@ func CleanPath(path string) []string {
 	}
 
 	return clean
+}
+
+// isQuotedString checks if a string is a quoted literal (starts and ends with quotes)
+func isQuotedString(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
+
+	return (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'')
 }
 
 // ValidateNoScriptTag checks if the template contains <script> tags (case-insensitive) and returns an error if found.
