@@ -20,6 +20,22 @@ func init() {
 		panic("Failed to register strip_zeros filter: " + err.Error())
 	}
 
+	if err := pongo2.RegisterFilter("replace", replaceFilter); err != nil {
+		panic("Failed to register replace filter: " + err.Error())
+	}
+
+	if err := pongo2.RegisterFilter("where", whereFilter); err != nil {
+		panic("Failed to register where filter: " + err.Error())
+	}
+
+	if err := pongo2.RegisterFilter("sum", sumFilter); err != nil {
+		panic("Failed to register sum filter: " + err.Error())
+	}
+
+	if err := pongo2.RegisterFilter("count", countFilter); err != nil {
+		panic("Failed to register count filter: " + err.Error())
+	}
+
 	tags := []struct {
 		name string
 		op   string
@@ -52,5 +68,14 @@ func init() {
 
 	if err := pongo2.RegisterTag("aggregate_balance", makeAggregateBalanceTag()); err != nil {
 		panic("Failed to register aggregate_balance tag: " + err.Error())
+	}
+
+	// Register counter tags for counting blocks during rendering
+	if err := pongo2.RegisterTag("counter", makeCounterTag()); err != nil {
+		panic("Failed to register counter tag: " + err.Error())
+	}
+
+	if err := pongo2.RegisterTag("counter_show", makeCounterShowTag()); err != nil {
+		panic("Failed to register counter_show tag: " + err.Error())
 	}
 }

@@ -22,6 +22,9 @@ func NewTemplateRenderer() *TemplateRenderer {
 
 // RenderFromBytes renders a template from bytes using the provided data context
 func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any, logger log.Logger) (string, error) {
+	// Reset counters before each render to ensure clean state
+	ResetCounters()
+
 	tpl, err := pongo2.FromBytes(templateBytes)
 	if err != nil {
 		logger.Errorf("Error parsing template: %s", err.Error())
