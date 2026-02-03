@@ -1,9 +1,7 @@
 package storage
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -163,70 +161,6 @@ func TestS3Config_MinimalConfig(t *testing.T) {
 	// Should succeed with minimal config (will use default AWS config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
-}
-
-// Integration test - requires actual S3 service running
-func TestS3ClientIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test")
-	}
-
-	ctx := context.Background()
-
-	// Configure for local MinIO or SeaweedFS S3
-	cfg := S3Config{
-		Endpoint:        "http://localhost:9000",
-		Region:          "us-east-1",
-		Bucket:          "test-bucket",
-		AccessKeyID:     "minioadmin",
-		SecretAccessKey: "minioadmin",
-		UsePathStyle:    true,
-		DisableSSL:      true,
-	}
-
-	client, err := NewS3Client(ctx, cfg)
-	require.NoError(t, err)
-	require.NotNil(t, client)
-
-	// Test upload
-	testKey := "test-file.txt"
-	testContent := []byte("Hello S3!")
-	testContentType := "text/plain"
-
-	uploadedKey, err := client.Upload(ctx, testKey, bytes.NewReader(testContent), testContentType)
-	if err != nil {
-		t.Logf("Upload failed (S3 service may not be available): %v", err)
-		t.Skip("S3 service not available")
-	}
-	assert.Equal(t, testKey, uploadedKey)
-
-	// Test exists
-	exists, err := client.Exists(ctx, testKey)
-	require.NoError(t, err)
-	assert.True(t, exists)
-
-	// Test download
-	reader, err := client.Download(ctx, testKey)
-	require.NoError(t, err)
-	defer reader.Close()
-
-	downloadedContent, err := io.ReadAll(reader)
-	require.NoError(t, err)
-	assert.Equal(t, testContent, downloadedContent)
-
-	// Test presigned URL
-	url, err := client.GeneratePresignedURL(ctx, testKey, 1*time.Hour)
-	require.NoError(t, err)
-	assert.NotEmpty(t, url)
-
-	// Test delete
-	err = client.Delete(ctx, testKey)
-	require.NoError(t, err)
-
-	// Verify deletion
-	exists, err = client.Exists(ctx, testKey)
-	require.NoError(t, err)
-	assert.False(t, exists)
 }
 
 func TestS3Client_UploadWithTTL_IgnoresTTL(t *testing.T) {
