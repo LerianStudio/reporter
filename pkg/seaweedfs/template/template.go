@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
@@ -32,8 +33,10 @@ func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepositor
 }
 
 // Get the content of a .tpl file from the storage.
+// objectName can be passed with or without .tpl extension - it will be normalized.
 func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	// Add templates prefix and .tpl extension
+	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
+	objectName = strings.TrimSuffix(objectName, ".tpl")
 	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
 	reader, err := repo.storage.Download(ctx, key)
@@ -51,11 +54,13 @@ func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]by
 }
 
 // Put uploads data to the storage with the given object name and content type.
+// objectName can be passed with or without .tpl extension - it will be normalized.
 func (repo *StorageRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
 	logger := pkg.NewLoggerFromContext(ctx)
 
-	// Add templates prefix
-	key := fmt.Sprintf("templates/%s", objectName)
+	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
+	objectName = strings.TrimSuffix(objectName, ".tpl")
+	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
 	_, err := repo.storage.Upload(ctx, key, bytes.NewReader(data), contentType)
 	if err != nil {
