@@ -1,0 +1,54 @@
+# Auto-label PRs based on changed files
+# Monorepo structure with multiple components
+
+# Component-specific labels
+'area: manager':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'components/manager/**/*'
+
+'area: worker':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'components/worker/**/*'
+
+'area: infra':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'components/infra/**/*'
+
+# Cross-cutting concerns
+'area: documentation':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+'area: ci/cd':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+          - '.golangci.yml'
+          - '.releaserc.yml'
+
+'area: dependencies':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'go.mod'
+          - 'go.sum'
+          - '**/package.json'
+          - '**/package-lock.json'
+
+'area: build':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Makefile'
+          - '**/Dockerfile'
+
+'area: tests':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*_test.go'
+          - 'tests/**/*'
+          - '**/*.test.ts'
+          - '**/*.test.tsx'

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pongo
 
 import (
@@ -29,6 +33,8 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 	}
 
 	pongoCtx := pongo2.Context{
+		// Counter storage scoped to this render (prevents race conditions between concurrent renders)
+		CounterContextKey: NewCounterStorage(),
 		"filter": func(collection any, field string, value any) []map[string]any {
 			var result []map[string]any
 

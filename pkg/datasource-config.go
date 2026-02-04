@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pkg
 
 import (
@@ -5,6 +9,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"sync"
 	"time"
 
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
@@ -19,6 +25,60 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// registeredDataSourceIDs holds the immutable set of valid datasource IDs.
+// This is populated once at startup and never modified, providing a source of truth
+// for validating datasource names and preventing map corruption from invalid IDs.
+var (
+	registeredDataSourceIDs     = make(map[string]struct{})
+	registeredDataSourceIDsOnce sync.Once
+	registeredDataSourceIDsLock sync.RWMutex
+)
+
+// initRegisteredDataSourceIDs initializes the immutable set of valid datasource IDs.
+// This should be called once at startup before any datasource operations.
+func initRegisteredDataSourceIDs(ids []string) {
+	registeredDataSourceIDsOnce.Do(func() {
+		registeredDataSourceIDsLock.Lock()
+		defer registeredDataSourceIDsLock.Unlock()
+
+		for _, id := range ids {
+			registeredDataSourceIDs[id] = struct{}{}
+		}
+	})
+}
+
+// RegisterDataSourceIDsForTesting allows tests to register datasource IDs.
+// This should ONLY be used in tests. In production, IDs are registered at startup.
+func RegisterDataSourceIDsForTesting(ids []string) {
+	registeredDataSourceIDsLock.Lock()
+	defer registeredDataSourceIDsLock.Unlock()
+
+	for _, id := range ids {
+		registeredDataSourceIDs[id] = struct{}{}
+	}
+}
+
+// ResetRegisteredDataSourceIDsForTesting clears all registered IDs and resets the sync.Once.
+// This should ONLY be used in tests to ensure test isolation.
+func ResetRegisteredDataSourceIDsForTesting() {
+	registeredDataSourceIDsLock.Lock()
+	defer registeredDataSourceIDsLock.Unlock()
+
+	registeredDataSourceIDs = make(map[string]struct{})
+	registeredDataSourceIDsOnce = sync.Once{}
+}
+
+// IsValidDataSourceID checks if a datasource ID was registered at startup.
+// This is the authoritative check for valid datasource names.
+func IsValidDataSourceID(id string) bool {
+	registeredDataSourceIDsLock.RLock()
+	defer registeredDataSourceIDsLock.RUnlock()
+
+	_, exists := registeredDataSourceIDs[id]
+
+	return exists
+}
 
 // DataSourceConfig represents the configuration required to establish a connection to a data source.
 // Fields include name, connection details, authentication, database, type, and SSL mode.
@@ -80,6 +140,18 @@ type DataSource struct {
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
 func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger, externalDataSources map[string]DataSource) error {
+	// Primary validation: check against immutable set of registered IDs (source of truth)
+	if !IsValidDataSourceID(databaseName) {
+		logger.Errorf("Attempted to connect to unregistered datasource: %s - not in immutable registry, operation rejected", databaseName)
+		return fmt.Errorf("cannot connect to unregistered datasource: %s", databaseName)
+	}
+
+	// Secondary validation: ensure datasource exists in the runtime map
+	if _, exists := externalDataSources[databaseName]; !exists {
+		logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
+		return fmt.Errorf("datasource %s not found in runtime map", databaseName)
+	}
+
 	dataSource.LastAttempt = time.Now()
 	dataSource.RetryCount++
 
@@ -208,6 +280,16 @@ func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource 
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
+
+	// Collect valid IDs and register them in the immutable set
+	validIDs := make([]string, 0, len(dataSourceConfigs))
+	for _, dataSource := range dataSourceConfigs {
+		validIDs = append(validIDs, dataSource.ConfigName)
+	}
+
+	initRegisteredDataSourceIDs(validIDs)
+	logger.Infof("Registered %d immutable datasource IDs: %v", len(validIDs), validIDs)
+
 	for _, dataSource := range dataSourceConfigs {
 		var ds DataSource
 
@@ -223,7 +305,7 @@ func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource 
 
 		// Add datasource WITHOUT attempting connection
 		externalDataSources[dataSource.ConfigName] = ds
-		logger.Infof("📦 Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
+		logger.Infof("Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
 	}
 
 	logger.Infof("Datasource lazy initialization complete: %d configured", len(externalDataSources))
@@ -238,6 +320,16 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
+
+	// Collect valid IDs and register them in the immutable set
+	validIDs := make([]string, 0, len(dataSourceConfigs))
+	for _, dataSource := range dataSourceConfigs {
+		validIDs = append(validIDs, dataSource.ConfigName)
+	}
+
+	initRegisteredDataSourceIDs(validIDs)
+	logger.Infof("Registered %d immutable datasource IDs: %v", len(validIDs), validIDs)
+
 	for _, dataSource := range dataSourceConfigs {
 		var ds DataSource
 
@@ -256,10 +348,10 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 		// Attempt connection with retry
 		err := ConnectToDataSourceWithRetry(dataSource.ConfigName, &ds, logger, externalDataSources)
 		if err != nil {
-			logger.Errorf("⚠️  Datasource '%s' is UNAVAILABLE - system will continue without it: %v", dataSource.ConfigName, err)
+			logger.Errorf("Datasource '%s' is UNAVAILABLE - system will continue without it: %v", dataSource.ConfigName, err)
 			externalDataSources[dataSource.ConfigName] = ds
 		} else {
-			logger.Infof("✅  Datasource '%s' initialized successfully", dataSource.ConfigName)
+			logger.Infof("Datasource '%s' initialized successfully", dataSource.ConfigName)
 			externalDataSources[dataSource.ConfigName] = ds
 		}
 	}

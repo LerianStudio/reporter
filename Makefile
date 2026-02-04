@@ -33,11 +33,10 @@ DOCKER_CMD := $(shell \
 INFRA_DIR := ./components/infra
 MANAGER_DIR := ./components/manager
 WORKER_DIR := ./components/worker
-FRONT_END_DIR := ./components/frontend
 
 # Define a list of all component directories for easier iteration
 BACKEND_COMPONENTS := $(WORKER_DIR) $(MANAGER_DIR)
-COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR) $(FRONT_END_DIR)
+COMPONENTS := $(INFRA_DIR) $(WORKER_DIR) $(MANAGER_DIR)
 
 # Include shared utility functions
 # Define common utility functions

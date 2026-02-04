@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package template_utils
 
 import (
@@ -38,6 +42,22 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	fieldMatches := fieldRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range fieldMatches {
 		expr := match[1]
+
+		// Skip expressions that contain DIMP filters - they will be processed by regexBlockDIMPFiltersOnPlaceholder
+		if strings.Contains(expr, "|where:") || strings.Contains(expr, "|sum:") || strings.Contains(expr, "|count:") {
+			// For DIMP filter expressions, only extract the base path fields (before the pipe)
+			// The filter fields will be extracted by regexBlockDIMPFiltersOnPlaceholder
+			basePart := strings.Split(expr, "|")[0]
+			basePart = strings.TrimSpace(basePart)
+
+			// Don't process if it's just a collection path (will be handled by DIMP function)
+			basePathParts := CleanPath(basePart)
+			if len(basePathParts) == 2 {
+				// This is just datasource.collection, skip it - DIMP function will handle
+				continue
+			}
+		}
+
 		fieldPaths := extractFieldsFromExpression(expr)
 
 		for _, fieldExpr := range fieldPaths {
@@ -59,6 +79,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockAggregationBlocksOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockCalcOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockDIMPFiltersOnPlaceholder(templateFile, resultRegex, variableMap)
 
 	return normalizeStructure(resultRegex)
 }
@@ -145,6 +166,12 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		variableMap[mainPath[1]] = mainPath
 
 		for _, arg := range args[1:] {
+			// Skip quoted string literals (values like "cacc", 'value', etc.)
+			trimmedArg := strings.TrimSpace(arg)
+			if isQuotedString(trimmedArg) {
+				continue
+			}
+
 			argPath := CleanPath(arg)
 
 			switch {
@@ -156,6 +183,173 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 				insertField(resultRegex, argPath[:len(argPath)-1], argPath[len(argPath)-1])
 			}
 		}
+	}
+}
+
+// regexBlockDIMPFiltersOnPlaceholder parses a template file to process DIMP filters (where, sum, count)
+// and updates the nested map with extracted field mappings.
+// It identifies fields used in filter expressions like |where:"field:value", |sum:"field", |count:"field:value"
+func regexBlockDIMPFiltersOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	processDIMPExpressions(templateFile, resultRegex, variableMap)
+	processDIMPForLoops(templateFile, resultRegex)
+}
+
+// processDIMPExpressions processes {{ }} expressions containing DIMP filters
+func processDIMPExpressions(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	exprRegex := regexp.MustCompile(`\{\{\s*([^}]+)\s*\}\}`)
+	exprMatches := exprRegex.FindAllStringSubmatch(templateFile, -1)
+
+	for _, exprMatch := range exprMatches {
+		expr := exprMatch[1]
+
+		if !containsDIMPFilter(expr) {
+			continue
+		}
+
+		basePath := extractDIMPBasePath(expr, variableMap)
+		if basePath == nil {
+			continue
+		}
+
+		ensureMapStructure(resultRegex, basePath)
+		extractFieldsFromDIMPFilters(expr, resultRegex, basePath)
+	}
+}
+
+// processDIMPForLoops processes for loops containing DIMP filters
+func processDIMPForLoops(templateFile string, resultRegex map[string]any) {
+	forFilterRegex := regexp.MustCompile(`{%-?\s*for\s+\w+\s+in\s+([a-zA-Z_][\w.]*)\s*\|\s*(where|sum|count)\s*:\s*"([^"]+)"`)
+	forMatches := forFilterRegex.FindAllStringSubmatch(templateFile, -1)
+
+	for _, match := range forMatches {
+		collection := match[1]
+		filterType := match[2]
+		filterArg := match[3]
+
+		collectionParts := CleanPath(collection)
+		if len(collectionParts) < 2 {
+			continue
+		}
+
+		basePath := collectionParts[:2]
+		ensureMapStructure(resultRegex, basePath)
+		extractFieldFromFilterArg(resultRegex, basePath, filterType, filterArg)
+	}
+}
+
+// containsDIMPFilter checks if an expression contains DIMP filters
+func containsDIMPFilter(expr string) bool {
+	return strings.Contains(expr, "|where:") || strings.Contains(expr, "|sum:") || strings.Contains(expr, "|count:")
+}
+
+func extractDIMPBasePath(expr string, variableMap map[string][]string) []string {
+	parts := strings.Split(expr, "|")
+	if len(parts) < 2 {
+		return nil
+	}
+
+	baseCollection := strings.TrimSpace(parts[0])
+	collectionParts := CleanPath(baseCollection)
+
+	if len(collectionParts) == 0 {
+		return nil
+	}
+
+	if loopPath, ok := variableMap[collectionParts[0]]; ok {
+		return loopPath
+	}
+
+	if len(collectionParts) >= 2 {
+		return collectionParts[:2]
+	}
+
+	return nil
+}
+
+// extractFieldsFromDIMPFilters extracts fields from all DIMP filters in an expression
+func extractFieldsFromDIMPFilters(expr string, resultRegex map[string]any, basePath []string) {
+	parts := strings.Split(expr, "|")
+	filterArgRegex := regexp.MustCompile(`^(where|sum|count)\s*:\s*"([^"]+)"`)
+
+	for _, part := range parts[1:] {
+		part = strings.TrimSpace(part)
+		filterMatch := filterArgRegex.FindStringSubmatch(part)
+
+		if filterMatch == nil {
+			continue
+		}
+
+		extractFieldFromFilterArg(resultRegex, basePath, filterMatch[1], filterMatch[2])
+	}
+}
+
+// extractFieldFromFilterArg extracts a field from a filter argument and inserts it into the result
+func extractFieldFromFilterArg(resultRegex map[string]any, basePath []string, filterType, filterArg string) {
+	switch filterType {
+	case "where", "count":
+		colonIdx := strings.Index(filterArg, ":")
+		if colonIdx > 0 {
+			field := filterArg[:colonIdx]
+			insertFieldToPath(resultRegex, basePath, field)
+		}
+	case "sum":
+		field := strings.Trim(filterArg, `"' `)
+		if field != "" {
+			insertFieldToPath(resultRegex, basePath, field)
+		}
+	}
+}
+
+// ensureMapStructure ensures that the nested map structure exists for the given path
+// For path ["datasource", "collection"], it creates: resultRegex["datasource"]["collection"] = []any{}
+func ensureMapStructure(m map[string]any, path []string) {
+	if len(path) < 2 {
+		return
+	}
+
+	datasource := path[0]
+	collection := path[1]
+
+	// Ensure datasource map exists
+	if _, ok := m[datasource]; !ok {
+		m[datasource] = map[string]any{}
+	}
+
+	// Get or create the datasource map
+	dsMap, ok := m[datasource].(map[string]any)
+	if !ok {
+		dsMap = map[string]any{}
+		m[datasource] = dsMap
+	}
+
+	// Ensure collection array exists
+	if _, ok := dsMap[collection]; !ok {
+		dsMap[collection] = []any{}
+	}
+}
+
+// insertFieldToPath inserts a field into the nested structure at the given path
+// For path ["datasource", "collection"] and field "status", it adds "status" to the collection's field list
+func insertFieldToPath(m map[string]any, path []string, field string) {
+	if len(path) < 2 {
+		return
+	}
+
+	datasource := path[0]
+	collection := path[1]
+
+	// Get the datasource map
+	dsMap, ok := m[datasource].(map[string]any)
+	if !ok {
+		return
+	}
+
+	// Get the collection's field list and append
+	switch v := dsMap[collection].(type) {
+	case []any:
+		dsMap[collection] = appendIfMissingAny(v, field)
+	case nil:
+		dsMap[collection] = []any{field}
 	}
 }
 
@@ -186,16 +380,23 @@ func regexBlockCalcOnPlaceholder(templateFile string, resultRegex map[string]any
 
 // regexBlockForOnPlaceholder parses a template file to extract variable mappings defined in for-loop blocks.
 // It returns a map where keys are variables from the for loop, and values are their corresponding path segments.
+// It also handles for loops with filters like: {% for acc in collection|where:"field:value" %}
 func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 	variableMap := map[string][]string{}
 
-	// Regex for block for
-	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([^\s%]+)\s*-?%}`)
+	// Regex for block for - updated to capture collection with optional filters
+	// Matches: {% for var in collection %} or {% for var in collection|filter:"arg" %}
+	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([a-zA-Z_][\w.]*(?:\s*\|[^%]+)?)\s*-?%}`)
 
 	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range forMatches {
 		variable := match[1]
-		path := CleanPath(match[2])
+		fullExpr := match[2]
+
+		// Extract base collection path (before any filter)
+		// e.g., "midaz_onboarding.account|where:\"type:cacc\"" -> "midaz_onboarding.account"
+		basePath := extractBasePathFromFilterExpr(fullExpr)
+		path := CleanPath(basePath)
 
 		if len(path) == 2 {
 			variableMap[variable] = []string{path[0], path[1]}
@@ -206,7 +407,55 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 		}
 	}
 
+	// Resolve nested variable references (e.g., when inner loop iterates over parent loop variable's field)
+	resolveNestedVariables(variableMap)
+
 	return variableMap
+}
+
+// resolveNestedVariables resolves nested loop variable references in variableMap.
+// When a variable's path starts with another loop variable, it expands the full path.
+// Example: if variableMap["alias"] = ["plugin_crm", "aliases"] and
+// variableMap["related_party"] = ["alias", "related_parties"], this function
+// resolves it to variableMap["related_party"] = ["plugin_crm", "aliases", "related_parties"]
+func resolveNestedVariables(variableMap map[string][]string) {
+	maxIterations := len(variableMap) // Prevent infinite loops
+
+	for i := 0; i < maxIterations; i++ {
+		resolved := true
+
+		for varName, path := range variableMap {
+			if len(path) == 0 {
+				continue
+			}
+
+			// Check if first element of path is another loop variable
+			if parentPath, exists := variableMap[path[0]]; exists && path[0] != varName {
+				// Expand: replace path[0] with parentPath, keep rest
+				newPath := make([]string, 0, len(parentPath)+len(path)-1)
+				newPath = append(newPath, parentPath...)
+				newPath = append(newPath, path[1:]...)
+				variableMap[varName] = newPath
+				resolved = false
+			}
+		}
+
+		if resolved {
+			break
+		}
+	}
+}
+
+// extractBasePathFromFilterExpr extracts the base collection path from an expression that may contain filters.
+// e.g., "midaz_onboarding.account|where:\"type:cacc\"" -> "midaz_onboarding.account"
+func extractBasePathFromFilterExpr(expr string) string {
+	// Find the first pipe character (filter separator)
+	pipeIdx := strings.Index(expr, "|")
+	if pipeIdx > 0 {
+		return strings.TrimSpace(expr[:pipeIdx])
+	}
+
+	return strings.TrimSpace(expr)
 }
 
 // regexBlockForWithFilterOnPlaceholder processes "for" loops with the filter function in a template file, updating nested data structures.
@@ -382,9 +631,9 @@ func normalizeStructure(input map[string]any) map[string]map[string][]string {
 						case string:
 							section[subKey] = append(section[subKey], itemVal)
 						case map[string]any:
-							for nestedKey := range itemVal {
-								section[subKey] = append(section[subKey], nestedKey)
-							}
+							// Recursively flatten nested fields with prefix
+							nestedFields := flattenNestedFields(itemVal, "")
+							section[subKey] = append(section[subKey], nestedFields...)
 						}
 					}
 				case map[string]any: // Caso especial como em "transaction": { "metadata": [...] }
@@ -399,6 +648,44 @@ func normalizeStructure(input map[string]any) map[string]map[string][]string {
 	return result
 }
 
+// flattenNestedFields recursively extracts all fields from a nested map structure,
+// prefixing nested field names with their parent keys (e.g., "related_parties.role").
+func flattenNestedFields(m map[string]any, prefix string) []string {
+	var fields []string
+
+	for key, val := range m {
+		fieldName := key
+		if prefix != "" {
+			fieldName = prefix + "." + key
+		}
+
+		switch v := val.(type) {
+		case []any:
+			// Add the key itself as a field
+			fields = append(fields, fieldName)
+			// Also extract nested string fields
+			for _, item := range v {
+				switch itemVal := item.(type) {
+				case string:
+					fields = append(fields, fieldName+"."+itemVal)
+				case map[string]any:
+					// Recursively flatten deeper nested structures
+					nested := flattenNestedFields(itemVal, fieldName)
+					fields = append(fields, nested...)
+				}
+			}
+		case map[string]any:
+			// Recursively process nested maps
+			nested := flattenNestedFields(v, fieldName)
+			fields = append(fields, nested...)
+		case string:
+			fields = append(fields, fieldName)
+		}
+	}
+
+	return fields
+}
+
 // getMapKeys retrieves all keys from a given map and returns them as a slice of strings.
 func getMapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
@@ -407,76 +694,6 @@ func getMapKeys(m map[string]any) []string {
 	}
 
 	return keys
-}
-
-// HydrateMappedFields Adjust the map[string]any if the value be an object, (ex: [ { "address": ["city"] } ])
-func HydrateMappedFields(m map[string]any) map[string]any {
-	result := make(map[string]any)
-
-	for k, v := range m {
-		switch val := v.(type) {
-		case map[string]any:
-			// If is a map with only one key, and value of the key is []any of strings, can collapse
-			if len(val) == 1 && isSingleKeyWithStringArray(val) {
-				for key := range val {
-					result[k] = []string{key}
-				}
-			} else {
-				// Uses recursion normally
-				result[k] = HydrateMappedFields(val)
-			}
-
-		case []any:
-			// Hydrate arrays with recursion
-			result[k] = hydrateArray(val)
-
-		default:
-			result[k] = val
-		}
-	}
-
-	return result
-}
-
-// hydrateArray Adjust an array of any if you have a metadata like this, (ex: "transaction": { "metadata": [ "message" ] })
-func hydrateArray(arr []any) []any {
-	var result []any
-
-	for _, item := range arr {
-		switch v := item.(type) {
-		case map[string]any:
-			// Apply logic of collapse only if map has a key of []string
-			if len(v) == 1 && isSingleKeyWithStringArray(v) {
-				for key := range v {
-					result = append(result, key)
-				}
-			} else {
-				result = append(result, HydrateMappedFields(v))
-			}
-		default:
-			result = append(result, v)
-		}
-	}
-
-	return result
-}
-
-// isSingleKeyWithStringArray Validate if map is a string[] or any[]
-func isSingleKeyWithStringArray(m map[string]any) bool {
-	for _, v := range m {
-		arr, ok := v.([]any)
-		if !ok {
-			return false
-		}
-
-		for _, item := range arr {
-			if _, ok := item.(string); !ok {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 // extractFieldsFromExpression Get all valid object.property fields from expression
@@ -490,6 +707,11 @@ func extractFieldsFromExpression(expr string) []string {
 
 		for _, sub := range subParts {
 			sub = strings.TrimSpace(sub)
+			// Skip if it looks like a filter argument (contains quotes) or is too short
+			if strings.Contains(sub, `"`) || strings.Contains(sub, `'`) {
+				continue
+			}
+
 			if strings.Contains(sub, ".") {
 				fields = append(fields, sub)
 			}
@@ -594,6 +816,15 @@ func CleanPath(path string) []string {
 	}
 
 	return clean
+}
+
+// isQuotedString checks if a string is a quoted literal (starts and ends with quotes)
+func isQuotedString(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
+
+	return (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'')
 }
 
 // ValidateNoScriptTag checks if the template contains <script> tags (case-insensitive) and returns an error if found.

@@ -1,15 +1,21 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package report
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/v4/pkg/storage"
 )
 
-// Repository provides an interface for SeaweedFS storage operations
+// Repository provides an interface for storage operations
 //
 //go:generate mockgen --destination=report.mock.go --package=report . Repository
 type Repository interface {
@@ -17,27 +23,26 @@ type Repository interface {
 	Get(ctx context.Context, objectName string) ([]byte, error)
 }
 
-// SimpleRepository provides access to SeaweedFS storage for file operations using direct HTTP.
-type SimpleRepository struct {
-	client *seaweedfs.SeaweedFSClient
-	bucket string
+// StorageRepository provides access to object storage for report operations.
+type StorageRepository struct {
+	storage storage.ObjectStorage
 }
 
-// NewSimpleRepository creates a new instance of SimpleRepository with the given HTTP client and bucket name.
-func NewSimpleRepository(client *seaweedfs.SeaweedFSClient, bucket string) *SimpleRepository {
-	return &SimpleRepository{
-		client: client,
-		bucket: bucket,
+// NewStorageRepository creates a new instance of StorageRepository with the given storage client.
+func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepository {
+	return &StorageRepository{
+		storage: storageClient,
 	}
 }
 
-// Put uploads data to the SeaweedFS storage with the given object name, content type, and optional TTL.
+// Put uploads data to the storage with the given object name, content type, and optional TTL.
 // TTL format: 3m (3 minutes), 4h (4 hours), 5d (5 days), 6w (6 weeks), 7M (7 months), 8y (8 years)
 // If ttl is empty string, no TTL is applied and the file will be stored permanently
-func (repo *SimpleRepository) Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error {
-	path := fmt.Sprintf("/%s/%s", repo.bucket, objectName)
+func (repo *StorageRepository) Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error {
+	// Add reports prefix
+	key := fmt.Sprintf("reports/%s", objectName)
 
-	err := repo.client.UploadFileWithTTL(ctx, path, data, ttl)
+	_, err := repo.storage.UploadWithTTL(ctx, key, bytes.NewReader(data), contentType, ttl)
 	if err != nil {
 		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
@@ -45,11 +50,18 @@ func (repo *SimpleRepository) Put(ctx context.Context, objectName string, conten
 	return nil
 }
 
-// Get download data from SeaweedFS storage with the given object name
-func (repo *SimpleRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
-	path := fmt.Sprintf("/%s/%s", repo.bucket, objectName)
+// Get download data from storage with the given object name
+func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
+	// Add reports prefix
+	key := fmt.Sprintf("reports/%s", objectName)
 
-	data, err := repo.client.DownloadFile(ctx, path)
+	reader, err := repo.storage.Download(ctx, key)
+	if err != nil {
+		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}

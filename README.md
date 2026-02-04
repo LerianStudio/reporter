@@ -1,5 +1,7 @@
 # Reporter
 
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-4c1.svg)](LICENSE)
+
 ## Overview
 
 The Reporter is a service designed to manage and generate customizable reports using predefined templates.
@@ -95,3 +97,9 @@ The Plugin includes Swagger documentation that helps in visualizing and interact
 ## References
 
 - https://github.com/flosch/pongo2/blob/master/template_tests/filters.tpl
+
+## License
+
+This project is licensed under the Elastic License 2.0.
+You are free to use, modify, and distribute this software, but you may not provide it to third parties as a hosted or managed service.
+See the [LICENSE](LICENSE) file for details.

@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package template
 
 import (
@@ -81,7 +85,6 @@ func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 			},
 			Options: options.Index().
 				SetName("idx_template_description_text").
-				SetDefaultLanguage("portuguese").
 				SetWeights(bson.D{
 					{Key: "description", Value: 10},
 				}),

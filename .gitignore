@@ -39,6 +39,7 @@ scripts/node_modules
 .idea
 .vscode
 .windsurf
+.claude
 
 # ----------------------------------------
 # Reports packages

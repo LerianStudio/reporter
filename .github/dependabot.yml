@@ -1,7 +1,70 @@
 version: 2
 updates:
+  # Go modules - manager component
   - package-ecosystem: "gomod"
+    directory: "/components/manager"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "develop"
+    open-pull-requests-limit: 10
+    labels:
+      - "area: dependencies"
+      - "component: manager"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Go modules - worker component
+  - package-ecosystem: "gomod"
+    directory: "/components/worker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "develop"
+    open-pull-requests-limit: 10
+    labels:
+      - "area: dependencies"
+      - "component: worker"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     target-branch: "develop"
+    open-pull-requests-limit: 5
+    labels:
+      - "area: ci/cd"
+    commit-message:
+      prefix: "ci(deps)"
+
+  # Docker - manager
+  - package-ecosystem: "docker"
+    directory: "/components/manager"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    labels:
+      - "area: build"
+      - "component: manager"
+    commit-message:
+      prefix: "build(deps)"
+
+  # Docker - worker
+  - package-ecosystem: "docker"
+    directory: "/components/worker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    labels:
+      - "area: build"
+      - "component: worker"
+    commit-message:
+      prefix: "build(deps)"

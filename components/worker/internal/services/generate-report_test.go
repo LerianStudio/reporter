@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
@@ -454,5 +458,288 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	err = useCase.GenerateReport(context.Background(), bodyBytes)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestDecryptRegulatoryFieldsFields(t *testing.T) {
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	err := crypto.InitializeCipher()
+	if err != nil {
+		t.Fatalf("Failed to initialize cipher: %v", err)
+	}
+
+	useCase := &UseCase{}
+
+	tests := []struct {
+		name           string
+		record         map[string]any
+		expectedDoc    string
+		expectNoChange bool
+	}{
+		{
+			name: "decrypt regulatory_fields.participant_document",
+			record: func() map[string]any {
+				doc := "12345678901234"
+				encrypted, _ := crypto.Encrypt(&doc)
+				return map[string]any{
+					"regulatory_fields": map[string]any{
+						"participant_document": *encrypted,
+					},
+				}
+			}(),
+			expectedDoc: "12345678901234",
+		},
+		{
+			name: "no regulatory_fields present",
+			record: map[string]any{
+				"id": "test-id",
+			},
+			expectNoChange: true,
+		},
+		{
+			name: "regulatory_fields without participant_document",
+			record: map[string]any{
+				"regulatory_fields": map[string]any{
+					"other_field": "value",
+				},
+			},
+			expectNoChange: true,
+		},
+		{
+			name: "regulatory_fields with nil participant_document",
+			record: map[string]any{
+				"regulatory_fields": map[string]any{
+					"participant_document": nil,
+				},
+			},
+			expectNoChange: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := useCase.decryptRegulatoryFieldsFields(tt.record, crypto)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !tt.expectNoChange {
+				regulatoryFields, ok := tt.record["regulatory_fields"].(map[string]any)
+				if !ok {
+					t.Fatal("regulatory_fields not found or wrong type")
+				}
+				if regulatoryFields["participant_document"] != tt.expectedDoc {
+					t.Errorf("expected participant_document = %q, got %q", tt.expectedDoc, regulatoryFields["participant_document"])
+				}
+			}
+		})
+	}
+}
+
+func TestDecryptRelatedPartiesFields(t *testing.T) {
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	err := crypto.InitializeCipher()
+	if err != nil {
+		t.Fatalf("Failed to initialize cipher: %v", err)
+	}
+
+	useCase := &UseCase{}
+
+	tests := []struct {
+		name           string
+		record         map[string]any
+		expectedDocs   []string
+		expectNoChange bool
+	}{
+		{
+			name: "decrypt multiple related_parties documents",
+			record: func() map[string]any {
+				doc1 := "11111111111"
+				doc2 := "22222222222"
+				encrypted1, _ := crypto.Encrypt(&doc1)
+				encrypted2, _ := crypto.Encrypt(&doc2)
+				return map[string]any{
+					"related_parties": []any{
+						map[string]any{
+							"_id":      "party-1",
+							"document": *encrypted1,
+							"name":     "Party One",
+							"role":     "PRIMARY_HOLDER",
+						},
+						map[string]any{
+							"_id":      "party-2",
+							"document": *encrypted2,
+							"name":     "Party Two",
+							"role":     "LEGAL_REPRESENTATIVE",
+						},
+					},
+				}
+			}(),
+			expectedDocs: []string{"11111111111", "22222222222"},
+		},
+		{
+			name: "no related_parties present",
+			record: map[string]any{
+				"id": "test-id",
+			},
+			expectNoChange: true,
+		},
+		{
+			name: "empty related_parties array",
+			record: map[string]any{
+				"related_parties": []any{},
+			},
+			expectNoChange: true,
+		},
+		{
+			name: "related_parties with nil document",
+			record: map[string]any{
+				"related_parties": []any{
+					map[string]any{
+						"_id":      "party-1",
+						"document": nil,
+						"name":     "Party One",
+					},
+				},
+			},
+			expectNoChange: true,
+		},
+		{
+			name: "related_parties with mixed valid and nil documents",
+			record: func() map[string]any {
+				doc1 := "33333333333"
+				encrypted1, _ := crypto.Encrypt(&doc1)
+				return map[string]any{
+					"related_parties": []any{
+						map[string]any{
+							"_id":      "party-1",
+							"document": *encrypted1,
+							"name":     "Party One",
+						},
+						map[string]any{
+							"_id":      "party-2",
+							"document": nil,
+							"name":     "Party Two",
+						},
+					},
+				}
+			}(),
+			expectedDocs: []string{"33333333333"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := useCase.decryptRelatedPartiesFields(tt.record, crypto)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !tt.expectNoChange && len(tt.expectedDocs) > 0 {
+				relatedParties, ok := tt.record["related_parties"].([]any)
+				if !ok {
+					t.Fatal("related_parties not found or wrong type")
+				}
+
+				docIndex := 0
+				for i, party := range relatedParties {
+					partyMap, ok := party.(map[string]any)
+					if !ok {
+						t.Fatalf("related_parties[%d] is not a map", i)
+					}
+
+					if partyMap["document"] != nil && docIndex < len(tt.expectedDocs) {
+						if partyMap["document"] != tt.expectedDocs[docIndex] {
+							t.Errorf("expected related_parties[%d].document = %q, got %q", i, tt.expectedDocs[docIndex], partyMap["document"])
+						}
+						docIndex++
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
+	defer os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey: hashKey,
+		Logger:        logger,
+	}
+
+	useCase := &UseCase{}
+
+	tests := []struct {
+		name          string
+		inputField    string
+		expectedField string
+		inputValue    string
+	}{
+		{
+			name:          "transform regulatory_fields.participant_document",
+			inputField:    "regulatory_fields.participant_document",
+			expectedField: "search.regulatory_fields_participant_document",
+			inputValue:    "12345678901234",
+		},
+		{
+			name:          "transform related_parties.document",
+			inputField:    "related_parties.document",
+			expectedField: "search.related_party_documents",
+			inputValue:    "11111111111",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filter := map[string]model.FilterCondition{
+				tt.inputField: {
+					Equals: []any{tt.inputValue},
+				},
+			}
+
+			transformedFilter, err := useCase.transformPluginCRMAdvancedFilters(filter, logger)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Verify the field was transformed
+			if _, exists := transformedFilter[tt.expectedField]; !exists {
+				t.Errorf("expected field %q not found in transformed filter", tt.expectedField)
+			}
+
+			// Verify the original field was removed
+			if _, exists := transformedFilter[tt.inputField]; exists {
+				t.Errorf("original field %q should not exist in transformed filter", tt.inputField)
+			}
+
+			// Verify the value was hashed
+			expectedHash := crypto.GenerateHash(&tt.inputValue)
+			if transformedFilter[tt.expectedField].Equals[0] != expectedHash {
+				t.Errorf("expected hashed value %q, got %q", expectedHash, transformedFilter[tt.expectedField].Equals[0])
+			}
+		})
 	}
 }

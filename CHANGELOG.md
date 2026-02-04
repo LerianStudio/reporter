@@ -2,35 +2,120 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v4.0.0] - 2025-11-03
-
-[Compare changes](https://github.com/LerianStudio/reporter/compare/v3.0.0...v4.0.0)
-Contributors: Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
-
-### ⚠️ Breaking Changes
-- **Backend/Config:** The project has been renamed to 'reporter' and updated to use SeaweedFS. Ensure your configurations and integrations are compatible with the new system and update any references to the project name.
-- **Backend/Frontend:** The error return for the delete endpoint has been modified, which may affect integrations relying on previous error handling. Review and update dependent systems to align with the new error response format.
-
-### ✨ Features
-- **Scalable Storage System:** Migrated to SeaweedFS, enhancing scalability and performance for handling large files. This change improves data management and retrieval efficiency.
-- **Reliable Message Processing:** Implemented a Dead Letter Queue (DLQ) system, preventing retry loops and improving system stability.
-- **Resilient Database Connections:** Introduced a retry mechanism with circuit breaker functionality, increasing resilience against transient failures.
-
-### 🐛 Bug Fixes
-- **PDF Reports:** Resolved issues with binary file downloads, ensuring correct file handling and improved user accessibility.
-- **Security Enhancements:** Fixed vulnerabilities in frontend dependencies, enhancing overall security and stability.
-- **Datasource Configurations:** Corrected initialization issues, preventing potential misconfigurations and runtime errors.
-
-### ⚡ Performance
-- **Query Optimization:** Added indexes to template and report collections, significantly reducing data retrieval times and improving query performance.
-- **Dynamic File Formats:** Enhanced report download functionality to support dynamic file formats, offering greater flexibility and user experience.
+## [v4.0.1-beta.8] - 2026-01-15
 
 ### 📚 Documentation
-- **Updated Guides:** Documentation has been updated to reflect recent changes and improvements, ensuring users have access to accurate and up-to-date information.
+- add security policy with GitHub advisory reporting
+
+### 👷 CI/CD
+- add paths-ignore for docs files
+- add issue templates and funding file
+- standardize dependabot.yml and CODEOWNERS for monorepo
+- fail on coverage below threshold
+- increase coverage threshold to 85%
+- enable private Go modules for lib-commons access
+- trigger security scan test
+- trigger workflow test for security scan fix
+- migrate to shared workflows with secrets inherit pattern
 
 ### 🔧 Maintenance
-- **Network Standardization:** Standardized network configurations across the application, ensuring consistent and reliable interactions.
-- **Security Compliance:** Conducted a comprehensive security scan and updated libraries to address vulnerabilities, maintaining system integrity.
+- Update CHANGELOG
+- update shared workflows to v1.3.5, fix discussions link and CODEOWNERS
+- use firmino-lxc-runners for api-dog-e2e-tests
+- change runner from firmino-lxc-runners to blacksmith-4vcpu-ubuntu-2404
+- update shared workflows to v1.3.3
+- add explicit runner_type parameter to all shared workflow calls
+- use firmino-lxc-runners for all shared workflows
+- use firmino-lxc-runners instead of ubuntu
+- Update CHANGELOG
+
+
+## [v4.0.1-beta.7] - 2025-12-29
+
+### 🐛 Bug Fixes
+- add header parameter validation to data source endpoint
+
+### 🔧 Maintenance
+- Update CHANGELOG
+
+
+## [v4.0.1-beta.6] - 2025-12-19
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.5...v4.0.1-beta.6)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Improved Data Integrity**: Resolved an issue where duplicate entries appeared in the `plugin_crm` collections. This fix ensures data is accurately filtered by organization ID, providing users with more reliable and consistent data handling.
+
+### 📚 Documentation
+- **Updated Changelog**: The changelog has been updated to include recent changes and improvements. This ensures users have access to the latest information about software updates, fostering transparency and keeping users informed about the project's progress.
+
+### 🔧 Maintenance
+- **Release Management**: Continued efforts in maintaining project documentation and release management practices to ensure clarity and transparency for all users.
+
+
+## [v4.0.1-beta.5] - 2025-12-18
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.4...v4.0.1-beta.5)
+Contributors: arthurkz, lerian-studio
+
+### ✨ Features
+- **Immutable Datasource ID Registry**: We've introduced an immutable datasource ID registry across the Authentication, Backend, Config, Database, and Test components. This improvement significantly enhances system reliability by preventing data listing corruption, ensuring consistent data handling, and reducing potential disruptions. Users will benefit from fewer data integrity issues and a smoother overall experience.
+
+### 🔧 Maintenance
+- **Changelog Update**: Our release management process has been refined with an updated changelog. This ensures users have a clear and organized history of system modifications, helping them stay informed about the latest updates and enhancements.
+
+
+## [v4.0.1-beta.4] - 2025-12-12
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.3...v4.0.1-beta.4)
+Contributors: arthurkz, lerian-studio
+
+### 📚 Documentation
+- **Enhanced Visual Clarity**: We've added images to our backend documentation. This visual enhancement helps developers and stakeholders better understand the system architecture, making it easier to visualize component interactions and dependencies. This is particularly beneficial for onboarding new team members and improving overall collaboration.
+
+### 🔧 Maintenance
+- **Updated Changelog**: We've ensured that the changelog accurately reflects the latest updates, maintaining transparency and keeping all users informed about the software's evolution. This helps users stay aligned with the project's progress and any changes that may affect them.
+
+
+## [v4.0.1-beta.3] - 2025-12-12
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.2...v4.0.1-beta.3)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Database Workflow Reliability**: We've resolved an issue that previously affected the listing functionality within the database workflow. This fix enhances the consistency and reliability of database operations, leading to a more seamless experience when managing your data. Say goodbye to previous disruptions and enjoy a more stable environment.
+
+### 🔧 Maintenance
+- **Changelog Update**: The CHANGELOG has been updated to include the latest fixes and improvements. This ensures transparency and aids users in easily tracking the evolution of the software, providing a clear history of updates and enhancements.
+
+
+## [v4.0.1-beta.2] - 2025-12-05
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.1-beta.1...v4.0.1-beta.2)
+Contributors: arthurkz, lerian-studio
+
+### 🐛 Bug Fixes
+- **Security Enhancements**: Resolved vulnerabilities in the frontend and dependencies, significantly improving application safety and protecting user data.
+- **Data Filtering Reliability**: Fixed an issue with backend list data sources that affected filtering functionality. Users can now accurately filter lists, enhancing overall reliability and satisfaction.
+
+### 📚 Documentation
+- **Image Generation Guidance**: Updated documentation to include detailed instructions on generating images for workers, providing clearer guidance for developers and users.
+
+### 🔧 Maintenance
+- **Changelog Updates**: Refreshed the CHANGELOG file to reflect recent changes and improvements, ensuring transparency and accessibility for users and developers.
+
+
+## [v4.0.1-beta.1] - 2025-11-27
+
+[Compare changes](https://github.com/LerianStudio/reporter/compare/v4.0.0...v4.0.1-beta.1)
+Contributors: Gabriel Castro
+
+### 🐛 Bug Fixes
+- **Improved Filter Handling**: Enhanced the parsing of multi-value operators in filters, ensuring accurate application of multiple criteria in searches and queries. This improvement affects the database and frontend, providing users with more reliable and precise filtering capabilities.
+
+### 🔧 Maintenance
+- **Dependency Updates**: Updated project dependencies to enhance security and compatibility. This ensures the application remains stable and benefits from the latest improvements in third-party libraries.
 
 
 ## [v4.0.0-beta.9] - 2025-10-31
@@ -298,7 +383,7 @@ Contributors: arthurkz
 - **Build Process Improvements**: Routine updates have been applied to the build process, incorporating the latest dependency versions to maintain an up-to-date and secure development environment.
 
 
-## [v3.0.0] - 2025-10-02
+## [v4.0.1-beta.7] - 2025-12-29
 
 [Compare changes](https://github.com/LerianStudio/plugin-smart-templates/compare/v2.0.0...v3.0.0)
 Contributors: Augusto Alvarenga, Gabriel Castro, Gabriel Ferreira, arthurkz, lerian-studio
@@ -893,7 +978,7 @@ This release introduces a major update to the worker process API, enhancing scal
 This changelog is structured to clearly communicate the key updates in version 3.0.0, focusing on the impact and benefits for users. Breaking changes are prominently highlighted with guidance for migration, while new features and performance improvements are described in terms of user value. Documentation updates and maintenance improvements are also noted to ensure users are well-informed about the changes.
 
 
-## [v2.0.0] - 2025-08-08
+## [v4.0.1-beta.8] - 2026-01-15
 
 This major release of plugin-smart-templates introduces enhanced security, improved performance, and significant updates to monitoring capabilities. Users should review breaking changes to ensure smooth integration.
 
