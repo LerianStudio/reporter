@@ -16,7 +16,6 @@ import (
 	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
@@ -29,7 +28,6 @@ import (
 	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
-	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -86,9 +84,6 @@ type Config struct {
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
-	// License configuration envs
-	LicenseKey      string `env:"LICENSE_KEY"`
-	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -239,15 +234,8 @@ func InitServers() *Service {
 		Service: dataSourceService,
 	}
 
-	licenseClient := libLicense.NewLicenseClient(
-		constant.ApplicationName,
-		cfg.LicenseKey,
-		cfg.OrganizationIDs,
-		&logger,
-	)
-
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, licenseClient)
-	serverAPI := NewServer(cfg, httpApp, logger, telemetry, licenseClient)
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient)
+	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{
 		Server: serverAPI,

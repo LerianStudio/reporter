@@ -13,7 +13,6 @@ import (
 	"github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/v4/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/v4/pkg/pdf"
 	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
@@ -25,7 +24,6 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
-	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -64,9 +62,6 @@ type Config struct {
 	MongoDBPort       string `env:"MONGO_PORT"`
 	MongoDBParameters string `env:"MONGO_PARAMETERS"`
 	MaxPoolSize       int    `env:"MONGO_MAX_POOL_SIZE"`
-	// License configuration envs
-	LicenseKey      string `env:"LICENSE_KEY"`
-	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
@@ -193,18 +188,11 @@ func InitWorker() *Service {
 	// Start health checker in background
 	healthChecker.Start()
 
-	licenseClient := libLicense.NewLicenseClient(
-		constant.ApplicationName,
-		cfg.LicenseKey,
-		cfg.OrganizationIDs,
-		&logger,
-	)
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
-		licenseShutdown:    licenseClient.GetLicenseManagerShutdown(),
 		healthChecker:      healthChecker,
 	}
 }

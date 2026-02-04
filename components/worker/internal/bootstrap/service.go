@@ -8,7 +8,6 @@ import (
 	"github.com/LerianStudio/reporter/v4/pkg"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
-	libCommonsLicense "github.com/LerianStudio/lib-commons/v2/commons/license"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
@@ -16,8 +15,7 @@ import (
 type Service struct {
 	*MultiQueueConsumer
 	log.Logger
-	licenseShutdown *libCommonsLicense.ManagerShutdown
-	healthChecker   *pkg.HealthChecker
+	healthChecker *pkg.HealthChecker
 }
 
 // Run starts the application.
@@ -35,11 +33,6 @@ func (app *Service) Run() {
 	if app.healthChecker != nil {
 		app.Info("Stopping health checker...")
 		app.healthChecker.Stop()
-	}
-
-	// After all consumers are done, shutdown license
-	if app.licenseShutdown != nil {
-		app.licenseShutdown.Terminate("Consumers are done.")
 	}
 
 	app.Info("Graceful shutdown complete")
