@@ -400,9 +400,17 @@ func (uc *UseCase) queryPostgresDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	// Use configured schemas or default to public
+	configuredSchemas := dataSource.Schemas
+	if len(configuredSchemas) == 0 {
+		configuredSchemas = []string{"public"}
+	}
+
+	logger.Infof("Querying database %s with schemas: %v", databaseName, configuredSchemas)
+
 	// Execute schema query with circuit breaker protection
 	schemaResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
-		return dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+		return dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	})
 	if err != nil {
 		logger.Errorf("Error getting database schema for %s (circuit breaker): %s", databaseName, err.Error())
@@ -411,35 +419,77 @@ func (uc *UseCase) queryPostgresDatabase(
 
 	schema := schemaResult.([]postgres.TableSchema)
 
-	for table, fields := range tables {
-		tableFilters := getTableFilters(databaseFilters, table)
+	// Initialize SchemaResolver with discovered tables
+	resolver := pkg.NewSchemaResolver()
+	resolver.RegisterDatabase(databaseName, schema)
+
+	for tableKey, fields := range tables {
+		tableFilters := getTableFilters(databaseFilters, tableKey)
+
+		// Parse table key to extract explicit schema if present
+		// Supports multiple formats:
+		// - "schema__table" (Pongo2 compatible format from CleanPath)
+		// - "schema.table" (explicit qualified format)
+		// - "table" (autodiscovery)
+		var explicitSchema, tableName string
+
+		if strings.Contains(tableKey, "__") {
+			// Pongo2 format: schema__table -> split by double underscore
+			parts := strings.SplitN(tableKey, "__", 2)
+			explicitSchema = parts[0]
+			tableName = parts[1]
+		} else if strings.Contains(tableKey, ".") {
+			// Qualified format: schema.table -> split by dot
+			parts := strings.SplitN(tableKey, ".", 2)
+			explicitSchema = parts[0]
+			tableName = parts[1]
+		} else {
+			tableName = tableKey
+		}
+
+		// Resolve schema name for this table
+		schemaName, err := resolver.ResolveSchema(databaseName, explicitSchema, tableName)
+		if err != nil {
+			// Check if it's an ambiguity error for actionable message
+			if ambiguityErr, ok := err.(*pkg.SchemaAmbiguityError); ok {
+				logger.Errorf("Schema ambiguity for table %s in %s: %s", tableName, databaseName, ambiguityErr.Error())
+			} else {
+				logger.Errorf("Error resolving schema for table %s in %s: %s", tableName, databaseName, err.Error())
+			}
+
+			return err
+		}
+
+		logger.Infof("Resolved schema '%s' for table '%s' in database '%s'", schemaName, tableName, databaseName)
 
 		// Execute query with circuit breaker protection
 		var tableResult []map[string]any
 
 		queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
 			if len(tableFilters) > 0 {
-				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
+				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, schemaName, tableName, fields, tableFilters)
 			}
 
-			return dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
+			return dataSource.PostgresRepository.Query(ctx, schema, schemaName, tableName, fields, nil)
 		})
 		if err != nil {
-			logger.Errorf("Error querying table %s in %s (circuit breaker): %s", table, databaseName, err.Error())
+			logger.Errorf("Error querying table %s.%s in %s (circuit breaker): %s", schemaName, tableName, databaseName, err.Error())
 			return err
 		}
 
 		tableResult = queryResult.([]map[string]any)
 
 		if len(tableFilters) > 0 {
-			logger.Infof("Successfully queried table %s with advanced filters (circuit breaker: %s)",
-				table, uc.CircuitBreakerManager.GetState(databaseName))
+			logger.Infof("Successfully queried table %s.%s with advanced filters (circuit breaker: %s)",
+				schemaName, tableName, uc.CircuitBreakerManager.GetState(databaseName))
 		} else {
-			logger.Infof("Successfully queried table %s (circuit breaker: %s)",
-				table, uc.CircuitBreakerManager.GetState(databaseName))
+			logger.Infof("Successfully queried table %s.%s (circuit breaker: %s)",
+				schemaName, tableName, uc.CircuitBreakerManager.GetState(databaseName))
 		}
 
-		result[databaseName][table] = tableResult
+		// Store result using the original tableKey which is already in Pongo2-compatible format
+		// (schema__table from CleanPath) for dot notation access in templates
+		result[databaseName][tableKey] = tableResult
 	}
 
 	return nil
@@ -639,16 +689,16 @@ func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.Fil
 
 	// Define field mappings: encrypted field -> search field
 	fieldMappings := map[string]string{
-		"document":                                "search.document",
-		"name":                                    "search.name",
-		"banking_details.account":                 "search.banking_details_account",
-		"banking_details.iban":                    "search.banking_details_iban",
-		"contact.primary_email":                   "search.contact_primary_email",
-		"contact.secondary_email":                 "search.contact_secondary_email",
-		"contact.mobile_phone":                    "search.contact_mobile_phone",
-		"contact.other_phone":                     "search.contact_other_phone",
-		"regulatory_fields.participant_document":  "search.regulatory_fields_participant_document",
-		"related_parties.document":                "search.related_party_documents",
+		"document":                               "search.document",
+		"name":                                   "search.name",
+		"banking_details.account":                "search.banking_details_account",
+		"banking_details.iban":                   "search.banking_details_iban",
+		"contact.primary_email":                  "search.contact_primary_email",
+		"contact.secondary_email":                "search.contact_secondary_email",
+		"contact.mobile_phone":                   "search.contact_mobile_phone",
+		"contact.other_phone":                    "search.contact_other_phone",
+		"regulatory_fields.participant_document": "search.regulatory_fields_participant_document",
+		"related_parties.document":               "search.related_party_documents",
 	}
 
 	for fieldName, condition := range filter {

@@ -206,7 +206,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 			},
@@ -271,7 +271,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(nil, errors.New("db error"))
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 			},
 			expectErr:    true,

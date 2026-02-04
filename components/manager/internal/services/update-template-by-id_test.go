@@ -198,7 +198,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
@@ -227,7 +227,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
@@ -257,7 +257,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
@@ -287,7 +287,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
@@ -313,7 +313,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
@@ -339,7 +339,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockDataSourcePostgres.EXPECT().
-					GetDatabaseSchema(gomock.Any()).
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
 					Return(postgresSchemas, nil)
 
 				mockDataSourcePostgres.EXPECT().
