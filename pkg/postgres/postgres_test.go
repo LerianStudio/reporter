@@ -1,0 +1,191 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
+package postgres
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestValidateFieldsInSchemaPostgres_AllFieldsExist(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "name", DataType: "varchar"},
+			{Name: "email", DataType: "varchar"},
+			{Name: "created_at", DataType: "timestamp"},
+		},
+	}
+
+	expectedFields := []string{"id", "name", "email"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Empty(t, missing)
+	assert.Equal(t, int32(3), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_SomeMissing(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "name", DataType: "varchar"},
+		},
+	}
+
+	expectedFields := []string{"id", "name", "email", "phone"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Len(t, missing, 2)
+	assert.Contains(t, missing, "email")
+	assert.Contains(t, missing, "phone")
+	assert.Equal(t, int32(4), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_AllMissing(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+		},
+	}
+
+	expectedFields := []string{"foo", "bar", "baz"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Len(t, missing, 3)
+	assert.Equal(t, int32(3), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_EmptyFields(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+		},
+	}
+
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres([]string{}, schema, &count)
+
+	assert.Empty(t, missing)
+	assert.Equal(t, int32(0), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_EmptySchema(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "empty_table",
+		Columns:    []ColumnInformation{},
+	}
+
+	expectedFields := []string{"id", "name"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Len(t, missing, 2)
+	assert.Equal(t, int32(2), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_CaseInsensitive(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "ID", DataType: "uuid"},
+			{Name: "Name", DataType: "varchar"},
+			{Name: "EMAIL", DataType: "varchar"},
+		},
+	}
+
+	// Lowercase expected fields should match uppercase schema columns
+	expectedFields := []string{"id", "name", "email"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Empty(t, missing)
+	assert.Equal(t, int32(3), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_CountAccumulation(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+		},
+	}
+
+	var count int32 = 10 // Start with existing count
+
+	_ = ValidateFieldsInSchemaPostgres([]string{"id", "name"}, schema, &count)
+
+	assert.Equal(t, int32(12), count) // 10 + 2
+}
+
+func TestColumnInformation_Struct(t *testing.T) {
+	col := ColumnInformation{
+		Name:         "user_id",
+		DataType:     "uuid",
+		IsNullable:   false,
+		IsPrimaryKey: true,
+	}
+
+	assert.Equal(t, "user_id", col.Name)
+	assert.Equal(t, "uuid", col.DataType)
+	assert.False(t, col.IsNullable)
+	assert.True(t, col.IsPrimaryKey)
+}
+
+func TestConnection_Struct(t *testing.T) {
+	conn := Connection{
+		ConnectionString:   "postgres://user:pass@localhost:5432/db",
+		DBName:             "testdb",
+		Connected:          false,
+		MaxOpenConnections: 10,
+		MaxIdleConnections: 5,
+	}
+
+	assert.Equal(t, "postgres://user:pass@localhost:5432/db", conn.ConnectionString)
+	assert.Equal(t, "testdb", conn.DBName)
+	assert.False(t, conn.Connected)
+	assert.Equal(t, 10, conn.MaxOpenConnections)
+	assert.Equal(t, 5, conn.MaxIdleConnections)
+	assert.Nil(t, conn.ConnectionDB)
+}
+
+func TestTableSchema_Struct(t *testing.T) {
+	columns := []ColumnInformation{
+		{Name: "id", DataType: "uuid", IsPrimaryKey: true},
+		{Name: "name", DataType: "varchar", IsNullable: true},
+	}
+
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns:    columns,
+	}
+
+	assert.Equal(t, "public", schema.SchemaName)
+	assert.Equal(t, "users", schema.TableName)
+	assert.Len(t, schema.Columns, 2)
+	assert.Equal(t, "id", schema.Columns[0].Name)
+	assert.Equal(t, "name", schema.Columns[1].Name)
+}
