@@ -16,12 +16,9 @@ import (
 func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	q := "/v1/reports?status=Finished&limit=2&page=1"
 	code, body, err := cli.Request(ctx, "GET", q, headers, nil)
@@ -38,12 +35,9 @@ func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 func TestIntegration_Reports_Create_MinimalValidation(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	payload := map[string]any{
 		"templateId": "00000000-0000-0000-0000-000000000000",

@@ -27,14 +27,9 @@ func FuzzReportFilters(f *testing.F) {
 	f.Add(`{"eq": ["\u0000\u0001\u0002"]}`)
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Use a fixed template ID for testing (will return 404 but that's ok, we're testing filter validation)
 	templateID := "00000000-0000-0000-0000-000000000000"

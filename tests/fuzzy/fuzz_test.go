@@ -24,7 +24,7 @@ func FuzzCreateReportInput(f *testing.F) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg("00000000-0000-0000-0000-000000000000")
+	headers := h.AuthHeaders()
 	reCtl := regexp.MustCompile(`[\x00-\x1F\x7F]`)
 
 	f.Fuzz(func(t *testing.T, tplID string) {

@@ -16,13 +16,10 @@ import (
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
 func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🎯 Starting Circuit Breaker chaos test...")
 

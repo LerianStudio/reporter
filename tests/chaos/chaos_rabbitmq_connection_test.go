@@ -17,13 +17,10 @@ import (
 // a message to RabbitMQ but the connection is closed
 func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔧 Starting RabbitMQ connection chaos test...")
 
@@ -95,16 +92,13 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 // TestChaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
 func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Give time for Manager and RabbitMQ to fully stabilize
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔧 Starting RabbitMQ channel chaos test...")
 
@@ -167,16 +161,13 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 // TestChaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
 func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Increased from 15s to 30s for datasource reconnection
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Verifying system health before queue chaos test...")
 	if err := h.WaitForSystemHealth(ctx, cli, 90*time.Second); err != nil {

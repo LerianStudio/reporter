@@ -16,12 +16,9 @@ import (
 func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Step 1: Get initial data sources to establish baseline
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
@@ -109,12 +106,9 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Get initial state
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)

@@ -89,14 +89,9 @@ func FuzzTemplateSyntaxErrors(f *testing.F) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	f.Fuzz(func(t *testing.T, templateContent string) {
 		// Limit template size to prevent DoS
@@ -161,14 +156,9 @@ func FuzzTemplateOutputFormats(f *testing.F) {
 	f.Add(strings.Repeat("A", 1000))
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	simpleTemplate := "Test Template"
 
@@ -220,14 +210,9 @@ func FuzzTemplateDescription(f *testing.F) {
 	f.Add("{% if true %}injection{% endif %}")
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	simpleTemplate := "Test Template"
 
@@ -282,12 +267,10 @@ func FuzzTemplateSize(f *testing.F) {
 	f.Add(10000000)
 
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, 30*time.Second) // Longer timeout for large uploads
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+	_ = env // Use env variable to avoid unused warning
 
 	f.Fuzz(func(t *testing.T, size int) {
 		// Cap at 50MB to prevent test runner OOM

@@ -16,12 +16,9 @@ import (
 func TestIntegration_DataSources_CacheBehavior(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
 	if err != nil || code != 200 {

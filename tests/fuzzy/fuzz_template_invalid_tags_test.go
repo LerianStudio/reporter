@@ -32,14 +32,11 @@ func FuzzTemplateInvalidTags(f *testing.F) {
 	f.Add("{% %}")
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	f.Fuzz(func(t *testing.T, templateContent string) {
 		// Limit template size
@@ -89,7 +86,7 @@ func FuzzTemplateInvalidTags(f *testing.F) {
 						"midaz_onboarding": map[string]any{
 							"organization": map[string]any{
 								"id": map[string]any{
-									"eq": []string{env.DefaultOrgID},
+									"eq": []string{testOrgID},
 								},
 							},
 						},

@@ -16,16 +16,13 @@ import (
 // TestChaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
 func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	t.Log("⏳ Waiting for system stability...")
 	time.Sleep(5 * time.Second)
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Step 1: Verifying system health...")
 	if err := h.WaitForSystemHealth(ctx, cli, 70*time.Second); err != nil {
@@ -61,13 +58,14 @@ func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	t.Logf("✅ Using existing template: %s", templateID)
 
 	// Step 3: Create report with proper filters
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 	payload := map[string]any{
 		"templateId": templateID,
 		"filters": map[string]any{
 			"midaz_onboarding": map[string]any{
 				"organization": map[string]any{
 					"id": map[string]any{
-						"eq": []any{env.DefaultOrgID},
+						"eq": []any{testOrgID},
 					},
 				},
 			},

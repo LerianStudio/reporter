@@ -21,9 +21,6 @@ type Environment struct {
 	MongoContainer     string
 	RedisContainer     string
 	SeaweedFSContainer string
-
-	// Domain/testing context
-	DefaultOrgID string
 }
 
 func LoadEnvironment() Environment {
@@ -47,12 +44,6 @@ func LoadEnvironment() Environment {
 		MongoContainer:     getenvDefault("MONGO_CONTAINER", "reporter-mongodb"),
 		RedisContainer:     getenvDefault("REDIS_CONTAINER", "reporter-valkey"),
 		SeaweedFSContainer: getenvDefault("SEAWEEDFS_CONTAINER", "reporter-seaweedfs-filer"),
-
-		DefaultOrgID: firstNonEmpty(
-			os.Getenv("X_ORGANIZATION_ID"),
-			os.Getenv("ORGANIZATION_ID"),
-			os.Getenv("ORG_ID"),
-		),
 	}
 
 	return env
@@ -66,12 +57,3 @@ func getenvDefault(key, def string) string {
 	return def
 }
 
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-
-	return ""
-}

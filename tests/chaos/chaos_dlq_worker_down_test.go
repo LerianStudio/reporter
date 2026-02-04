@@ -16,16 +16,13 @@ import (
 // TestChaos_DLQ_WorkerDownThenRabbitMQCrash tests message persistence when both Worker and RabbitMQ fail
 func TestChaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	t.Log("⏳ Waiting for system stability...")
 	time.Sleep(5 * time.Second)
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Step 1: Verifying system health...")
 	if err := h.WaitForSystemHealth(ctx, cli, 70*time.Second); err != nil {
@@ -82,13 +79,14 @@ func TestChaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Step 4: Create report (Worker is down, so message will sit in queue)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 	payload := map[string]any{
 		"templateId": templateID,
 		"filters": map[string]any{
 			"midaz_onboarding": map[string]any{
 				"organization": map[string]any{
 					"id": map[string]any{
-						"eq": []any{env.DefaultOrgID},
+						"eq": []any{testOrgID},
 					},
 				},
 			},

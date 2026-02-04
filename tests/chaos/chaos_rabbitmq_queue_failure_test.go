@@ -17,16 +17,13 @@ import (
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation
 func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	t.Log("⏳ Waiting for system stability after previous chaos tests...")
 	time.Sleep(10 * time.Second)
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Verifying system health before chaos test...")
 	if err := h.WaitForSystemHealth(ctx, cli, 30*time.Second); err != nil {
@@ -143,13 +140,10 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 // TestChaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
 func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	t.Log("🧪 Simulating message loss scenario...")
 
