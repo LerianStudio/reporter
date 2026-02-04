@@ -8,12 +8,11 @@ import (
 	"os"
 )
 
-// AuthHeadersWithOrg returns default headers including Authorization and X-Request-Id.
+// AuthHeaders returns default headers including Authorization.
 // If TEST_AUTH_HEADER is set, its value is used for Authorization.
-func AuthHeadersWithOrg(orgID string) map[string]string {
+func AuthHeaders() map[string]string {
 	hdr := map[string]string{
-		"Content-Type":      "application/json",
-		"X-Organization-Id": orgID,
+		"Content-Type": "application/json",
 	}
 	if v := os.Getenv("TEST_AUTH_HEADER"); v != "" {
 		hdr["Authorization"] = v
@@ -22,4 +21,10 @@ func AuthHeadersWithOrg(orgID string) map[string]string {
 	}
 
 	return hdr
+}
+
+// AuthHeadersWithOrg returns default headers including Authorization.
+// Deprecated: X-Organization-Id is no longer required. Use AuthHeaders() instead.
+func AuthHeadersWithOrg(orgID string) map[string]string {
+	return AuthHeaders()
 }

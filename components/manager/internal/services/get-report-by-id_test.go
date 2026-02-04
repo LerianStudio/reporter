@@ -25,7 +25,6 @@ func Test_getReportById(t *testing.T) {
 	mockReportRepo := report.NewMockRepository(ctrl)
 	reportId := uuid.New()
 	tempId := uuid.New()
-	orgId := uuid.New()
 	timeNow := time.Now()
 
 	reportSvc := &UseCase{
@@ -45,7 +44,6 @@ func Test_getReportById(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		orgId          uuid.UUID
 		tempId         uuid.UUID
 		reportId       uuid.UUID
 		mockSetup      func()
@@ -54,11 +52,10 @@ func Test_getReportById(t *testing.T) {
 	}{
 		{
 			name:   "Success - Get a report by id",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(reportModel, nil)
 			},
 			expectErr: false,
@@ -75,11 +72,10 @@ func Test_getReportById(t *testing.T) {
 		},
 		{
 			name:   "Error - Get a report by id",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -87,11 +83,10 @@ func Test_getReportById(t *testing.T) {
 		},
 		{
 			name:   "Error - Get a report by id not found",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
@@ -104,7 +99,7 @@ func Test_getReportById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.GetReportByID(ctx, tt.reportId, tt.orgId)
+			result, err := reportSvc.GetReportByID(ctx, tt.reportId)
 
 			if tt.expectErr {
 				assert.Error(t, err)

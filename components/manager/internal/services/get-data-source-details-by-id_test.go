@@ -53,9 +53,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 		},
 	}
 
-	testOrgID := "test-org-123"
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds:" + testOrgID
-	cacheKeyPG := constant.DataSourceDetailsKeyPrefix + ":pg_ds:" + testOrgID
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds"
+	cacheKeyPG := constant.DataSourceDetailsKeyPrefix + ":pg_ds"
 
 	mongoResult := &model.DataSourceDetails{
 		Id:           "mongo_ds",
@@ -79,18 +78,16 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 	pgResultJSON, _ := json.Marshal(pgResult)
 
 	tests := []struct {
-		name           string
-		setupSvc       func() *UseCase
-		dataSourceID   string
-		organizationID string
-		mockSetup      func()
-		expectErr      bool
-		expectResult   *model.DataSourceDetails
+		name         string
+		setupSvc     func() *UseCase
+		dataSourceID string
+		mockSetup    func()
+		expectErr    bool
+		expectResult *model.DataSourceDetails
 	}{
 		{
-			name:           "Cache hit - MongoDB",
-			dataSourceID:   "mongo_ds",
-			organizationID: testOrgID,
+			name:         "Cache hit - MongoDB",
+			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -111,9 +108,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: mongoResult,
 		},
 		{
-			name:           "Cache miss - MongoDB, sets cache",
-			dataSourceID:   "mongo_ds",
-			organizationID: testOrgID,
+			name:         "Cache miss - MongoDB, sets cache",
+			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -137,9 +133,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: mongoResult,
 		},
 		{
-			name:           "Cache error - MongoDB, acts as miss",
-			dataSourceID:   "mongo_ds",
-			organizationID: testOrgID,
+			name:         "Cache error - MongoDB, acts as miss",
+			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -163,9 +158,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: mongoResult,
 		},
 		{
-			name:           "Cache hit - PostgreSQL",
-			dataSourceID:   "pg_ds",
-			organizationID: testOrgID,
+			name:         "Cache hit - PostgreSQL",
+			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -187,9 +181,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: pgResult,
 		},
 		{
-			name:           "Cache miss - PostgreSQL, sets cache",
-			dataSourceID:   "pg_ds",
-			organizationID: testOrgID,
+			name:         "Cache miss - PostgreSQL, sets cache",
+			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -214,22 +207,20 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: pgResult,
 		},
 		{
-			name:           "Error - Data source not found",
-			dataSourceID:   "not_found",
-			organizationID: testOrgID,
+			name:         "Error - Data source not found",
+			dataSourceID: "not_found",
 			setupSvc: func() *UseCase {
 				return &UseCase{ExternalDataSources: map[string]pkg.DataSource{}, RedisRepo: mockRedisRepo}
 			},
 			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":not_found:"+testOrgID).Return("", nil)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":not_found").Return("", nil)
 			},
 			expectErr:    true,
 			expectResult: nil,
 		},
 		{
-			name:           "Error - MongoDB repo returns error",
-			dataSourceID:   "mongo_ds",
-			organizationID: testOrgID,
+			name:         "Error - MongoDB repo returns error",
+			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -252,9 +243,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			expectResult: nil,
 		},
 		{
-			name:           "Error - PostgreSQL repo returns error",
-			dataSourceID:   "pg_ds",
-			organizationID: testOrgID,
+			name:         "Error - PostgreSQL repo returns error",
+			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
 					ExternalDataSources: map[string]pkg.DataSource{
@@ -283,7 +273,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := tt.setupSvc()
 			tt.mockSetup()
-			result, err := svc.GetDataSourceDetailsByID(ctx, tt.dataSourceID, tt.organizationID)
+			result, err := svc.GetDataSourceDetailsByID(ctx, tt.dataSourceID)
 			if tt.expectErr {
 				assert.Error(t, err)
 				assert.Nil(t, result)

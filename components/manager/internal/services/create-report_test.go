@@ -28,7 +28,6 @@ func Test_createReport(t *testing.T) {
 	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 	reportId := uuid.New()
 	tempId := uuid.New()
-	orgId := uuid.New()
 
 	reportSvc := &UseCase{
 		TemplateRepo: mockTempRepo,
@@ -64,7 +63,6 @@ func Test_createReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		reportInput    *model.CreateReportInput
-		orgId          uuid.UUID
 		mockSetup      func()
 		expectErr      bool
 		expectedResult *report.Report
@@ -72,14 +70,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Success - Create a report",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -97,10 +94,9 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Find mapped fields and output format",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(nil, nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -109,14 +105,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Create report",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -126,14 +121,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Send message on RabbitMQ",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -155,7 +149,7 @@ func Test_createReport(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.CreateReport(ctx, tt.reportInput, tt.orgId)
+			result, err := reportSvc.CreateReport(ctx, tt.reportInput)
 
 			if tt.expectErr {
 				assert.Error(t, err)

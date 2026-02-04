@@ -71,7 +71,6 @@ func Test_updateTemplateById(t *testing.T) {
 	mockTempRepo := template.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
-	orgId := uuid.New()
 	htmlType := "html"
 
 	mongoSchemas := []mongodb.CollectionSchema{
@@ -160,7 +159,7 @@ func Test_updateTemplateById(t *testing.T) {
 			<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
 		</Organizacao>
 		{% endfor %}
-	
+
 		{% for l in midaz_onboarding.ledger %}
 		<Ledger>
 			<Nome>{{ l.name }}</Nome>
@@ -175,7 +174,6 @@ func Test_updateTemplateById(t *testing.T) {
 		templateFile *multipart.FileHeader
 		outFormat    string
 		description  string
-		orgId        uuid.UUID
 		tempId       uuid.UUID
 		mockSetup    func()
 		expectErr    bool
@@ -185,7 +183,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "xml",
 			description:  "Template Atualizado",
-			orgId:        uuid.New(),
 			tempId:       uuid.New(),
 			mockSetup: func() {
 
@@ -206,7 +203,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr: false,
@@ -215,7 +212,6 @@ func Test_updateTemplateById(t *testing.T) {
 			name:         "Error - Update all template fail to find ouputFormat",
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -235,7 +231,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -244,7 +240,6 @@ func Test_updateTemplateById(t *testing.T) {
 			name:         "Error - Update all template fail to outputFormat is not equal update file content",
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				htmlTypeP := &htmlType
@@ -265,7 +260,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(htmlTypeP, nil)
 			},
 			expectErr: true,
@@ -275,7 +270,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "json",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -301,7 +295,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "html",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -327,7 +320,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "xml",
 			description:  "Template Atualizado",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -347,7 +339,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -360,7 +352,6 @@ func Test_updateTemplateById(t *testing.T) {
 			}(),
 			outFormat:   "html",
 			description: "Malicious Template",
-			orgId:       orgId,
 			tempId:      uuid.New(),
 			mockSetup:   func() {},
 			expectErr:   true,
@@ -372,7 +363,7 @@ func Test_updateTemplateById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.orgId, tt.tempId, tt.templateFile)
+			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
 
 			if tt.expectErr {
 				assert.Error(t, err)

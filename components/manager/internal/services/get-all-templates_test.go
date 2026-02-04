@@ -22,7 +22,6 @@ func Test_getAllTemplates(t *testing.T) {
 	defer ctrl.Finish()
 
 	tempID := uuid.New()
-	orgId := uuid.New()
 	resultEntity := []*template.Template{
 		{
 			ID:           tempID,
@@ -35,9 +34,8 @@ func Test_getAllTemplates(t *testing.T) {
 	mockTempRepo := template.NewMockRepository(ctrl)
 
 	filter := httpUtils.QueryHeader{
-		Limit:          10,
-		Page:           1,
-		OrganizationID: orgId,
+		Limit: 10,
+		Page:  1,
 	}
 
 	tempSvc := &UseCase{
@@ -87,7 +85,7 @@ func Test_getAllTemplates(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.GetAllTemplates(ctx, tt.filter, orgId)
+			result, err := tempSvc.GetAllTemplates(ctx, tt.filter)
 
 			if tt.expectErr {
 				assert.Error(t, err)

@@ -21,7 +21,7 @@ import (
 )
 
 // CreateReport create a new report
-func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput, organizationID uuid.UUID) (*report.Report, error) {
+func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput) (*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.create_report")
@@ -29,7 +29,6 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 		attribute.String("app.request.template_id", reportInput.TemplateID),
 	)
 
@@ -51,7 +50,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	}
 
 	// Find a template to generate a report
-	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, templateId, organizationID)
+	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, templateId)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to find template by ID", err)
 
@@ -66,7 +65,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, filtersMapped); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, "", logger, filtersMapped); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
 
 			return nil, errValidateFields
@@ -81,7 +80,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		Status:     constant.ProcessingStatus,
 	}
 
-	result, err := uc.ReportRepo.Create(ctx, reportModel, organizationID)
+	result, err := uc.ReportRepo.Create(ctx, reportModel)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create report in repository", err)
 

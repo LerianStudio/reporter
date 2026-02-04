@@ -33,13 +33,12 @@ type ReportHandler struct {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string					true	"Organization ID"
-//	@Param			reports				body		model.CreateReportInput	true	"Report Input"
-//	@Success		201					{object}	report.Report
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			reports			body		model.CreateReportInput	true	"Report Input"
+//	@Success		201				{object}	report.Report
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [post]
 func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -50,13 +49,11 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	c.SetUserContext(ctx)
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
 	payload := p.(*model.CreateReportInput)
 	logger.Infof("Request to create a report with details: %#v", payload)
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", payload)
@@ -64,7 +61,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
 	}
 
-	reportOut, err := rh.Service.CreateReport(ctx, payload, organizationID)
+	reportOut, err := rh.Service.CreateReport(ctx, payload)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
@@ -83,13 +80,12 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			id					path		string	true	"Report ID"
-//	@Success		200					{file}		any
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			id				path		string	true	"Report ID"
+//	@Success		200				{file}		any
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}/download [get]
 func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -101,15 +97,12 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	id := c.Locals("id").(uuid.UUID)
 	logger.Infof("Initiating get a Report with ID: %s", id)
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
+	reportModel, err := rh.Service.GetReportByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
@@ -127,7 +120,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		return http.WithError(c, errStatus)
 	}
 
-	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID, organizationID)
+	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
@@ -163,13 +156,12 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			id					path		string	true	"Report ID"
-//	@Success		200					{object}	report.Report
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			id				path		string	true	"Report ID"
+//	@Success		200				{object}	report.Report
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}																			 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -182,15 +174,12 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	id := c.Locals("id").(uuid.UUID)
 	logger.Infof("Initiating get a Report with ID: %s", id)
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id, organizationID)
+	reportModel, err := rh.Service.GetReportByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
@@ -208,16 +197,15 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 //	@Description	List all the reports
 //	@Tags			Reports
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			status				query		string	false	"Report status (processing, finished, error)"
-//	@Param			templateId			query		string	false	"Template ID"
-//	@Param			createdAt			query		string	false	"Created at date (YYYY-MM-DD)"
-//	@Param			limit				query		int		false	"Limit"	default(10)
-//	@Param			page				query		int		false	"Page"	default(1)
-//	@Success		200					{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			status			query		string	false	"Report status (processing, finished, error)"
+//	@Param			templateId		query		string	false	"Template ID"
+//	@Param			createdAt		query		string	false	"Created at date (YYYY-MM-DD)"
+//	@Param			limit			query		int		false	"Limit"	default(10)
+//	@Param			page			query		int		false	"Page"	default(1)
+//	@Success		200				{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [get]
 func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -243,11 +231,8 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	logger.Infof("Initiating retrieval all reports")
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.query_params", headerParams)
@@ -255,7 +240,7 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	reports, err := rh.Service.GetAllReports(ctx, *headerParams, organizationID)
+	reports, err := rh.Service.GetAllReports(ctx, *headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
 

@@ -21,20 +21,19 @@ import (
 
 // QueryHeader entity from query parameter from get apis
 type QueryHeader struct {
-	Metadata       *bson.M
-	OutputFormat   string
-	Description    string
-	Status         string
-	TemplateID     uuid.UUID
-	Limit          int
-	Page           int
-	Cursor         string
-	SortOrder      string
-	CreatedAt      time.Time
-	OrganizationID uuid.UUID
-	Alias          string
-	UseMetadata    bool
-	ToAssetCodes   []string
+	Metadata     *bson.M
+	OutputFormat string
+	Description  string
+	Status       string
+	TemplateID   uuid.UUID
+	Limit        int
+	Page         int
+	Cursor       string
+	SortOrder    string
+	CreatedAt    time.Time
+	Alias        string
+	UseMetadata  bool
+	ToAssetCodes []string
 }
 
 // Pagination entity from query parameter from get apis

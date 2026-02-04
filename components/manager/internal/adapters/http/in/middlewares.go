@@ -15,8 +15,7 @@ import (
 )
 
 var (
-	UUIDPathParameter    = "id"
-	OrgIDHeaderParameter = "X-Organization-Id"
+	UUIDPathParameter = "id"
 )
 
 // ParsePathParametersUUID convert and validate if the path parameter is UUID
@@ -35,26 +34,6 @@ func ParsePathParametersUUID(c *fiber.Ctx) error {
 	}
 
 	c.Locals(UUIDPathParameter, parsedPathUUID)
-
-	return c.Next()
-}
-
-// ParseHeaderParameters convert and validate if the header parameters is UUID
-func ParseHeaderParameters(c *fiber.Ctx) error {
-	headerParam := c.Get(OrgIDHeaderParameter)
-
-	if commons.IsNilOrEmpty(&headerParam) {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
-		return http.WithError(c, err)
-	}
-
-	parsedHeaderUUID, errHeader := uuid.Parse(headerParam)
-	if errHeader != nil {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
-		return http.WithError(c, err)
-	}
-
-	c.Locals(OrgIDHeaderParameter, parsedHeaderUUID)
 
 	return c.Next()
 }

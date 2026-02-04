@@ -22,15 +22,14 @@ type Template struct {
 
 // TemplateMongoDBModel represents the MongoDB model for a template
 type TemplateMongoDBModel struct {
-	ID             uuid.UUID                      `bson:"_id"`
-	OrganizationID uuid.UUID                      `bson:"organization_id"`
-	OutputFormat   string                         `bson:"output_format"`
-	Description    string                         `bson:"description"`
-	FileName       string                         `bson:"filename"`
-	MappedFields   map[string]map[string][]string `bson:"mapped_fields"`
-	CreatedAt      time.Time                      `bson:"created_at"`
-	UpdatedAt      time.Time                      `bson:"updated_at"`
-	DeletedAt      *time.Time                     `bson:"deleted_at"`
+	ID           uuid.UUID                      `bson:"_id"`
+	OutputFormat string                         `bson:"output_format"`
+	Description  string                         `bson:"description"`
+	FileName     string                         `bson:"filename"`
+	MappedFields map[string]map[string][]string `bson:"mapped_fields"`
+	CreatedAt    time.Time                      `bson:"created_at"`
+	UpdatedAt    time.Time                      `bson:"updated_at"`
+	DeletedAt    *time.Time                     `bson:"deleted_at"`
 }
 
 // ToEntity converts TemplateMongoDBModel to Template

@@ -33,7 +33,6 @@ func Test_createTemplate(t *testing.T) {
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
 	tempId := uuid.New()
-	orgId := uuid.New()
 
 	mongoSchemas := []mongodb.CollectionSchema{
 		{
@@ -129,7 +128,7 @@ func Test_createTemplate(t *testing.T) {
 			<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
 		</Organizacao>
 		{% endfor %}
-	
+
 		{% for l in midaz_onboarding.ledger %}
 		<Ledger>
 			<Nome>{{ l.name }}</Nome>
@@ -143,7 +142,6 @@ func Test_createTemplate(t *testing.T) {
 		templateFile   string
 		outFormat      string
 		description    string
-		orgId          uuid.UUID
 		mockSetup      func()
 		expectErr      bool
 		expectedResult *template.Template
@@ -153,7 +151,6 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			mockSetup: func() {
 
 				mockDataSourceMongo.EXPECT().
@@ -190,7 +187,6 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -220,7 +216,6 @@ func Test_createTemplate(t *testing.T) {
 			templateFile:   `<html><script>alert('x')</script></html>`,
 			outFormat:      "html",
 			description:    "Malicious Template",
-			orgId:          orgId,
 			mockSetup:      func() {},
 			expectErr:      true,
 			expectedResult: nil,
@@ -232,7 +227,7 @@ func Test_createTemplate(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description, tt.orgId)
+			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description)
 
 			if tt.expectErr {
 				assert.Error(t, err)

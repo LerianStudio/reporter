@@ -12,12 +12,11 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetAllTemplates fetch all Templates from the repository
-func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader, organizationID uuid.UUID) ([]*template.Template, error) {
+func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader) ([]*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_all_templates")
@@ -25,7 +24,6 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	err := opentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", filters)
@@ -34,8 +32,6 @@ func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader
 	}
 
 	logger.Infof("Retrieving templates")
-
-	filters.OrganizationID = organizationID
 
 	templates, errFind := uc.TemplateRepo.FindList(ctx, filters)
 	if errFind != nil {

@@ -92,7 +92,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockReportDataRepo.
 		EXPECT().
-		FindByID(gomock.Any(), reportID, gomock.Any()).
+		FindByID(gomock.Any(), reportID).
 		Return(&reportData.Report{
 			ID:     reportID,
 			Status: "processing",
@@ -181,7 +181,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 
 	mockReportDataRepo.
 		EXPECT().
-		FindByID(gomock.Any(), reportID, gomock.Any()).
+		FindByID(gomock.Any(), reportID).
 		Return(&reportData.Report{
 			ID:     reportID,
 			Status: "processing",
@@ -372,7 +372,7 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 
 	mockReportDataRepo.
 		EXPECT().
-		FindByID(gomock.Any(), reportID, gomock.Any()).
+		FindByID(gomock.Any(), reportID).
 		Return(&reportData.Report{
 			ID:     reportID,
 			Status: "processing",

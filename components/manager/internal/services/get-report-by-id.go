@@ -20,7 +20,7 @@ import (
 )
 
 // GetReportByID recover a report by ID
-func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UUID) (*report.Report, error) {
+func (uc *UseCase) GetReportByID(ctx context.Context, id uuid.UUID) (*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_report_by_id")
@@ -29,12 +29,11 @@ func (uc *UseCase) GetReportByID(ctx context.Context, id, organizationID uuid.UU
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	logger.Infof("Retrieving report for id %v and organizationId %v.", id, organizationID)
+	logger.Infof("Retrieving report for id %v.", id)
 
-	reportModel, err := uc.ReportRepo.FindByID(ctx, id, organizationID)
+	reportModel, err := uc.ReportRepo.FindByID(ctx, id)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
 

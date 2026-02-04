@@ -1072,9 +1072,7 @@ func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string,
 
 // checkReportStatus checks the current status of a report to implement idempotency.
 func (uc *UseCase) checkReportStatus(ctx context.Context, reportID uuid.UUID, logger log.Logger) (string, error) {
-	zeroUUID := uuid.UUID{}
-
-	report, err := uc.ReportDataRepo.FindByID(ctx, reportID, zeroUUID)
+	report, err := uc.ReportDataRepo.FindByID(ctx, reportID)
 	if err != nil {
 		logger.Debugf("Could not check report status for %s (may be first attempt): %v", reportID, err)
 		return "", err

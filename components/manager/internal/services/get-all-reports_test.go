@@ -23,7 +23,6 @@ func Test_getAllReports(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
-	orgId := uuid.New()
 	templateId := uuid.New()
 	reportId1 := uuid.New()
 	reportId2 := uuid.New()
@@ -34,10 +33,9 @@ func Test_getAllReports(t *testing.T) {
 	}
 
 	filters := http.QueryHeader{
-		Limit:          10,
-		Page:           1,
-		Status:         constant.FinishedStatus,
-		OrganizationID: orgId,
+		Limit:  10,
+		Page:   1,
+		Status: constant.FinishedStatus,
 	}
 
 	mockReports := []*report.Report{
@@ -127,7 +125,7 @@ func Test_getAllReports(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.GetAllReports(ctx, tt.filters, orgId)
+			result, err := reportSvc.GetAllReports(ctx, tt.filters)
 
 			if tt.expectErr {
 				assert.Error(t, err)
