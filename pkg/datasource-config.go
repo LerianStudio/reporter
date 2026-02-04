@@ -99,6 +99,26 @@ type DataSourceConfig struct {
 	Options     string
 }
 
+// GetSchemas returns the configured schemas for this datasource.
+// It reads from the environment variable DATASOURCE_{NAME}_SCHEMAS.
+// If not configured, it defaults to ["public"].
+func (c *DataSourceConfig) GetSchemas() []string {
+	envKey := "DATASOURCE_" + strings.ToUpper(strings.ReplaceAll(c.ConfigName, "-", "_")) + "_SCHEMAS"
+	schemasStr := os.Getenv(envKey)
+
+	if schemasStr == "" {
+		return []string{"public"}
+	}
+
+	schemas := strings.Split(schemasStr, ",")
+	// Trim whitespace from each schema name
+	for i, s := range schemas {
+		schemas[i] = strings.TrimSpace(s)
+	}
+
+	return schemas
+}
+
 // DataSource represents a configuration for an external data source, specifying the database type and repository used.
 type DataSource struct {
 	// DatabaseType specifies the type of database being used, such as "postgresql" or "mongodb".
@@ -136,6 +156,10 @@ type DataSource struct {
 
 	// RetryCount tracks how many times we've attempted to connect
 	RetryCount int
+
+	// Schemas holds the list of database schemas to query (PostgreSQL only)
+	// Defaults to ["public"] if not configured
+	Schemas []string
 }
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
@@ -464,6 +488,7 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		Status:         libConstant.DataSourceStatusUnknown,
 		LastAttempt:    time.Time{},
 		RetryCount:     0,
+		Schemas:        dataSource.GetSchemas(),
 	}
 }
 

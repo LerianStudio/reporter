@@ -197,7 +197,13 @@ func (hc *HealthChecker) pingDataSource(ctx context.Context, name string, ds *Da
 			return false
 		}
 		// Try to get schema as a ping (lightweight operation)
-		_, err := ds.PostgresRepository.GetDatabaseSchema(ctx)
+		// Use configured schemas or default to public for health check
+		schemas := ds.Schemas
+		if len(schemas) == 0 {
+			schemas = []string{"public"}
+		}
+
+		_, err := ds.PostgresRepository.GetDatabaseSchema(ctx, schemas)
 
 		return err == nil
 
