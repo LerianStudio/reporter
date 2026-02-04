@@ -26,7 +26,10 @@ func NewTemplateRenderer() *TemplateRenderer {
 
 // RenderFromBytes renders a template from bytes using the provided data context
 func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []byte, data map[string]map[string][]map[string]any, logger log.Logger) (string, error) {
-	tpl, err := pongo2.FromBytes(templateBytes)
+	// Pre-process template to convert schema syntax (database:schema.table) to Pongo2 compatible syntax
+	processedTemplate := preprocessSchemaReferences(string(templateBytes))
+
+	tpl, err := pongo2.FromString(processedTemplate)
 	if err != nil {
 		logger.Errorf("Error parsing template: %s", err.Error())
 		return "", err
@@ -70,6 +73,20 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 	cleaned := cleanNumericOutput(out)
 
 	return cleaned, nil
+}
+
+// preprocessSchemaReferences converts explicit schema syntax (database:schema.table) to Pongo2 dot notation.
+// Example: "mydb:sales.orders" becomes "mydb.sales__orders"
+// The schema.table is converted to schema__table (double underscore) to create a valid Pongo2 identifier.
+// This requires the data storage to use the same key format (schema__table).
+func preprocessSchemaReferences(template string) string {
+	// Pattern matches: word:word.word (database:schema.table pattern)
+	// Captures: (database):(schema).(table)
+	schemaPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*):([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)`)
+
+	// Replace database:schema.table with database.schema__table
+	// Note: Use ${n} syntax to avoid Go interpreting $2__ as a named group
+	return schemaPattern.ReplaceAllString(template, `${1}.${2}__${3}`)
 }
 
 // cleanNumericOutput removes trailing zeros from numeric values in the output

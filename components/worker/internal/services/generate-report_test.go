@@ -105,7 +105,7 @@ func TestGenerateReport_Success(t *testing.T) {
 
 	mockPostgresRepo.
 		EXPECT().
-		GetDatabaseSchema(gomock.Any()).
+		GetDatabaseSchema(gomock.Any(), gomock.Any()).
 		Return([]postgres2.TableSchema{
 			{
 				TableName: "organization",
@@ -121,6 +121,7 @@ func TestGenerateReport_Success(t *testing.T) {
 		QueryWithAdvancedFilters(
 			gomock.Any(),
 			gomock.Any(),
+			gomock.Any(), // schemaName
 			"organization",
 			[]string{"name"},
 			gomock.Any(),

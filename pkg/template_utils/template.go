@@ -5,6 +5,7 @@
 package template_utils
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -217,8 +218,9 @@ func processDIMPExpressions(templateFile string, resultRegex map[string]any, var
 }
 
 // processDIMPForLoops processes for loops containing DIMP filters
+// Supports both legacy format (database.table) and explicit schema format (database:schema.table)
 func processDIMPForLoops(templateFile string, resultRegex map[string]any) {
-	forFilterRegex := regexp.MustCompile(`{%-?\s*for\s+\w+\s+in\s+([a-zA-Z_][\w.]*)\s*\|\s*(where|sum|count)\s*:\s*"([^"]+)"`)
+	forFilterRegex := regexp.MustCompile(`{%-?\s*for\s+\w+\s+in\s+([a-zA-Z_][\w.:]*)\s*\|\s*(where|sum|count)\s*:\s*"([^"]+)"`)
 	forMatches := forFilterRegex.FindAllStringSubmatch(templateFile, -1)
 
 	for _, match := range forMatches {
@@ -386,7 +388,8 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 
 	// Regex for block for - updated to capture collection with optional filters
 	// Matches: {% for var in collection %} or {% for var in collection|filter:"arg" %}
-	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([a-zA-Z_][\w.]*(?:\s*\|[^%]+)?)\s*-?%}`)
+	// Also supports explicit schema syntax: {% for var in database:schema.table %}
+	forRegex := regexp.MustCompile(`{%-?\s*for\s+(\w+)\s+in\s+([a-zA-Z_][\w.:]*(?:\s*\|[^%]+)?)\s*-?%}`)
 
 	forMatches := forRegex.FindAllStringSubmatch(templateFile, -1)
 	for _, match := range forMatches {
@@ -581,14 +584,25 @@ func extractFieldsFromExpressionOfAggregation(expr string) []string {
 
 // extractIfFromExpression extracts object.field patterns from a string expression,
 // skipping numerical indices like `.0` in midaz_transaction.transaction.0.id.
+// Supports both legacy format (database.table.field) and explicit schema format (database:schema.table.field).
 func extractIfFromExpression(expr string) []string {
-	// Regex: matches paths like `foo.bar.baz`, optionally with `.0` etc., but filters them after
-	identifierRegex := regexp.MustCompile(`\b(?:[a-zA-Z_]\w*)(?:\.(?:[a-zA-Z_]\w*|\d+))+\b`)
+	// Regex: matches paths like:
+	// - `foo.bar.baz` (legacy format)
+	// - `foo:bar.baz.qux` (explicit schema format - database:schema.table.field)
+	// Optionally with `.0` etc., but filters them after
+	identifierRegex := regexp.MustCompile(`\b(?:[a-zA-Z_]\w*)(?::[a-zA-Z_]\w*)?(?:\.(?:[a-zA-Z_]\w*|\d+))+\b`)
 	matches := identifierRegex.FindAllString(expr, -1)
 
 	var results []string
 
 	for _, match := range matches {
+		// For explicit schema syntax, return the full match to be processed by CleanPath
+		if strings.Contains(match, ":") {
+			results = append(results, match)
+			continue
+		}
+
+		// Legacy format: split by dot and filter numeric indices
 		parts := strings.Split(match, ".")
 
 		var cleaned []string
@@ -697,14 +711,34 @@ func getMapKeys(m map[string]any) []string {
 }
 
 // extractFieldsFromExpression Get all valid object.property fields from expression
+// Supports both legacy format (database.table.field) and explicit schema format (database:schema.table.field)
 func extractFieldsFromExpression(expr string) []string {
 	fields := []string{}
 
+	// Split by pipe to separate base expression from filters
 	parts := strings.Split(expr, "|")
-	for _, part := range parts {
+	for i, part := range parts {
 		part = strings.TrimSpace(part)
-		subParts := strings.Split(part, ":")
 
+		// First part (before any pipe) is the main expression
+		if i == 0 {
+			// Check for explicit schema syntax (database:schema.table.field)
+			if strings.Contains(part, ":") && strings.Contains(part, ".") {
+				// Don't split by colon for explicit schema syntax
+				fields = append(fields, part)
+				continue
+			}
+
+			// Legacy format: just add if it has a dot
+			if strings.Contains(part, ".") {
+				fields = append(fields, part)
+			}
+
+			continue
+		}
+
+		// For filter parts, split by colon to handle filter arguments
+		subParts := strings.Split(part, ":")
 		for _, sub := range subParts {
 			sub = strings.TrimSpace(sub)
 			// Skip if it looks like a filter argument (contains quotes) or is too short
@@ -800,8 +834,49 @@ func appendIfMissingAny(slice []any, val any) []any {
 	return append(slice, val)
 }
 
-// CleanPath remove indexes and brackets of paths like foo[0].bar or foo.0.bar
+// CleanPath removes indexes and brackets from paths like foo[0].bar or foo.0.bar.
+// It also handles the explicit schema syntax (database:schema.table.field) where
+// the colon indicates an explicit schema reference. In this case, it returns:
+// [database, schema__table, field1, field2, ...] using double underscore to create
+// a Pongo2-compatible identifier that can be accessed via dot notation.
 func CleanPath(path string) []string {
+	// Check for explicit schema syntax (database:schema.table.field)
+	if colonIdx := strings.Index(path, ":"); colonIdx != -1 {
+		database := path[:colonIdx]
+		rest := path[colonIdx+1:]
+
+		// Split the rest by dots
+		restParts := strings.Split(rest, ".")
+		if len(restParts) < 2 {
+			// Invalid format, fall back to legacy behavior
+			return cleanPathLegacy(path)
+		}
+
+		// First two parts form schema__table (double underscore for Pongo2 compatibility)
+		schema := restParts[0]
+		table := strings.Split(restParts[1], "[")[0] // Remove array bracket if present
+
+		clean := []string{database, schema + "__" + table}
+
+		// Add remaining fields (skip numeric indices)
+		for i := 2; i < len(restParts); i++ {
+			base := strings.Split(restParts[i], "[")[0]
+			if _, err := strconv.Atoi(base); err == nil {
+				continue
+			}
+
+			clean = append(clean, base)
+		}
+
+		return clean
+	}
+
+	// Legacy format: database.table.field
+	return cleanPathLegacy(path)
+}
+
+// cleanPathLegacy handles the original path format without explicit schema.
+func cleanPathLegacy(path string) []string {
 	parts := strings.Split(path, ".")
 
 	clean := make([]string, 0, len(parts))
@@ -835,4 +910,37 @@ func ValidateNoScriptTag(templateFile string) error {
 	}
 
 	return nil
+}
+
+// ParseDatabaseReference parses a database reference string and returns the database, schema, and table components.
+// It supports two formats:
+//   - Legacy format: "database.table" -> returns (database, "", table, nil)
+//   - New format: "database:schema.table" -> returns (database, schema, table, nil)
+//
+// Returns an error if the format is invalid.
+func ParseDatabaseReference(ref string) (database, schema, table string, err error) {
+	// Check for new format with colon (database:schema.table)
+	if strings.Contains(ref, ":") {
+		colonIdx := strings.Index(ref, ":")
+		database = ref[:colonIdx]
+		rest := ref[colonIdx+1:]
+
+		dotIdx := strings.Index(rest, ".")
+		if dotIdx == -1 {
+			return "", "", "", fmt.Errorf("invalid format: expected schema.table after ':', got %q", rest)
+		}
+
+		schema = rest[:dotIdx]
+		table = rest[dotIdx+1:]
+
+		return database, schema, table, nil
+	}
+
+	// Legacy format: database.table
+	parts := strings.SplitN(ref, ".", 2)
+	if len(parts) != 2 {
+		return "", "", "", fmt.Errorf("invalid format: expected database.table, got %q", ref)
+	}
+
+	return parts[0], "", parts[1], nil
 }

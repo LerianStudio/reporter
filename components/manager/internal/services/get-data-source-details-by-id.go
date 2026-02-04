@@ -397,7 +397,13 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database
 func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
-	schemas, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	// Use configured schemas or default to public
+	configuredSchemas := dataSource.Schemas
+	if len(configuredSchemas) == 0 {
+		configuredSchemas = []string{"public"}
+	}
+
+	schemas, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	if err != nil {
 		logger.Errorf("Error get schemas of postgres: %s", err.Error())
 
