@@ -363,6 +363,7 @@ func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting column names: %w", err)
 	}
+
 	values := make([]any, len(columns))
 	pointers := make([]any, len(columns))
 

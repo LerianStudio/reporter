@@ -8,7 +8,7 @@ import (
 func TestDataSourceConfig_GetSchemas(t *testing.T) {
 	// Clean up any existing env vars after tests
 	defer func() {
-		os.Unsetenv("DATASOURCE_PIX_BTG_SCHEMAS")
+		os.Unsetenv("DATASOURCE_EXTERNAL_DB_SCHEMAS")
 		os.Unsetenv("DATASOURCE_MIDAZ_ONBOARDING_SCHEMAS")
 	}()
 
@@ -20,9 +20,9 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 	}{
 		{
 			name:       "returns configured schemas from environment",
-			configName: "pix_btg",
-			envValue:   "payment,transfer,dict",
-			want:       []string{"payment", "transfer", "dict"},
+			configName: "external_db",
+			envValue:   "sales,inventory,reporting",
+			want:       []string{"sales", "inventory", "reporting"},
 		},
 		{
 			name:       "returns default public schema when not configured",
@@ -32,22 +32,22 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 		},
 		{
 			name:       "returns single schema when only one configured",
-			configName: "pix_btg",
-			envValue:   "payment",
-			want:       []string{"payment"},
+			configName: "external_db",
+			envValue:   "sales",
+			want:       []string{"sales"},
 		},
 		{
 			name:       "handles schema with spaces in comma-separated list",
-			configName: "pix_btg",
-			envValue:   "payment, transfer, dict",
-			want:       []string{"payment", "transfer", "dict"},
+			configName: "external_db",
+			envValue:   "sales, inventory, reporting",
+			want:       []string{"sales", "inventory", "reporting"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset env for each test
-			os.Unsetenv("DATASOURCE_PIX_BTG_SCHEMAS")
+			os.Unsetenv("DATASOURCE_EXTERNAL_DB_SCHEMAS")
 			os.Unsetenv("DATASOURCE_MIDAZ_ONBOARDING_SCHEMAS")
 
 			if tt.envValue != "" {
@@ -78,20 +78,20 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 func TestDataSource_SchemasField(t *testing.T) {
 	ds := DataSource{
 		DatabaseType: PostgreSQLType,
-		Schemas:      []string{"payment", "transfer"},
+		Schemas:      []string{"sales", "inventory"},
 	}
 
 	if len(ds.Schemas) != 2 {
 		t.Errorf("Schemas length = %d, want 2", len(ds.Schemas))
 	}
 
-	if ds.Schemas[0] != "payment" {
-		t.Errorf("Schemas[0] = %q, want %q", ds.Schemas[0], "payment")
+	if ds.Schemas[0] != "sales" {
+		t.Errorf("Schemas[0] = %q, want %q", ds.Schemas[0], "sales")
 	}
 }
 
 // toEnvFormat converts a config name to environment variable format
-// e.g., "pix_btg" -> "PIX_BTG", "midaz-onboarding" -> "MIDAZ_ONBOARDING"
+// e.g., "external_db" -> "EXTERNAL_DB", "midaz-onboarding" -> "MIDAZ_ONBOARDING"
 func toEnvFormat(name string) string {
 	result := ""
 	for _, c := range name {

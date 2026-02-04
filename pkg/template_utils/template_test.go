@@ -225,10 +225,10 @@ func TestParseDatabaseReference(t *testing.T) {
 		},
 		{
 			name:         "new format - database:schema.table",
-			ref:          "pix_btg:payment.transactions",
-			wantDatabase: "pix_btg",
-			wantSchema:   "payment",
-			wantTable:    "transactions",
+			ref:          "external_db:sales.orders",
+			wantDatabase: "external_db",
+			wantSchema:   "sales",
+			wantTable:    "orders",
 			wantErr:      false,
 		},
 		{
@@ -368,13 +368,13 @@ func TestCleanPath(t *testing.T) {
 		},
 		{
 			name:     "schema format - database:schema.table.field",
-			path:     "pix_btg:payment.transactions.amount",
-			expected: []string{"pix_btg", "payment__transactions", "amount"},
+			path:     "external_db:sales.orders.amount",
+			expected: []string{"external_db", "sales__orders", "amount"},
 		},
 		{
 			name:     "schema format with array index",
-			path:     "pix_btg:payment.transactions.0.amount",
-			expected: []string{"pix_btg", "payment__transactions", "amount"},
+			path:     "external_db:sales.orders.0.amount",
+			expected: []string{"external_db", "sales__orders", "amount"},
 		},
 		{
 			name:     "schema format - public schema",
@@ -402,7 +402,7 @@ func TestCleanPath(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_SchemaFormat(t *testing.T) {
-	template := `{% for tx in pix_btg:payment.transactions %}
+	template := `{% for tx in external_db:sales.orders %}
 Transaction ID: {{ tx.id }}
 Amount: {{ tx.amount }}
 Status: {{ tx.status }}
@@ -411,12 +411,12 @@ Status: {{ tx.status }}
 	result := MappedFieldsOfTemplate(template)
 
 	assert.NotNil(t, result)
-	assert.Contains(t, result, "pix_btg")
+	assert.Contains(t, result, "external_db")
 
-	pixBtg := result["pix_btg"]
-	assert.Contains(t, pixBtg, "payment__transactions")
+	externalDB := result["external_db"]
+	assert.Contains(t, externalDB, "sales__orders")
 
-	txFields := pixBtg["payment__transactions"]
+	txFields := externalDB["sales__orders"]
 	assert.Contains(t, txFields, "id")
 	assert.Contains(t, txFields, "amount")
 	assert.Contains(t, txFields, "status")
@@ -428,7 +428,7 @@ func TestMappedFieldsOfTemplate_MixedFormats(t *testing.T) {
 Account: {{ acc.alias }}
 {% endfor %}
 
-{% for tx in pix_btg:payment.transactions %}
+{% for tx in external_db:sales.orders %}
 Amount: {{ tx.amount }}
 {% endfor %}`
 
@@ -440,35 +440,35 @@ Amount: {{ tx.amount }}
 	assert.Contains(t, result["midaz_onboarding"]["account"], "alias")
 
 	// Check schema format (schema.table becomes schema__table internally)
-	assert.Contains(t, result, "pix_btg")
-	assert.Contains(t, result["pix_btg"], "payment__transactions")
-	assert.Contains(t, result["pix_btg"]["payment__transactions"], "amount")
+	assert.Contains(t, result, "external_db")
+	assert.Contains(t, result["external_db"], "sales__orders")
+	assert.Contains(t, result["external_db"]["sales__orders"], "amount")
 }
 
 func TestMappedFieldsOfTemplate_ExplicitSchemaCalcTag(t *testing.T) {
-	template := `{% for tx in pix_btg:payment.transfers %}
+	template := `{% for tx in external_db:sales.orders %}
 Amount: {{ tx.amount }}
 {% endfor %}
-Total: {% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}`
+Total: {% calc external_db:sales.orders.0.amount + external_db:sales.orders.1.amount %}`
 
 	result := MappedFieldsOfTemplate(template)
 
-	assert.Contains(t, result, "pix_btg")
-	assert.Contains(t, result["pix_btg"], "payment__transfers")
-	assert.Contains(t, result["pix_btg"]["payment__transfers"], "amount")
+	assert.Contains(t, result, "external_db")
+	assert.Contains(t, result["external_db"], "sales__orders")
+	assert.Contains(t, result["external_db"]["sales__orders"], "amount")
 }
 
 func TestMappedFieldsOfTemplate_ExplicitSchemaIfTag(t *testing.T) {
-	template := `{% if pix_btg:payment.transfers.0.status == "completed" %}
-Completed: {{ pix_btg:payment.transfers.0.amount }}
+	template := `{% if external_db:sales.orders.0.status == "completed" %}
+Completed: {{ external_db:sales.orders.0.amount }}
 {% endif %}`
 
 	result := MappedFieldsOfTemplate(template)
 
-	assert.Contains(t, result, "pix_btg")
-	assert.Contains(t, result["pix_btg"], "payment__transfers")
-	assert.Contains(t, result["pix_btg"]["payment__transfers"], "status")
-	assert.Contains(t, result["pix_btg"]["payment__transfers"], "amount")
+	assert.Contains(t, result, "external_db")
+	assert.Contains(t, result["external_db"], "sales__orders")
+	assert.Contains(t, result["external_db"]["sales__orders"], "status")
+	assert.Contains(t, result["external_db"]["sales__orders"], "amount")
 }
 
 func TestExtractIfFromExpression_ExplicitSchemaSyntax(t *testing.T) {
@@ -479,18 +479,18 @@ func TestExtractIfFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 	}{
 		{
 			name:     "explicit schema path",
-			expr:     "pix_btg:payment.transfers.0.amount",
-			expected: []string{"pix_btg:payment.transfers.0.amount"},
+			expr:     "external_db:sales.orders.0.amount",
+			expected: []string{"external_db:sales.orders.0.amount"},
 		},
 		{
 			name:     "explicit schema in comparison",
-			expr:     "pix_btg:payment.transfers.0.status == 'completed'",
-			expected: []string{"pix_btg:payment.transfers.0.status"},
+			expr:     "external_db:sales.orders.0.status == 'completed'",
+			expected: []string{"external_db:sales.orders.0.status"},
 		},
 		{
 			name:     "mixed formats",
-			expr:     "pix_btg:payment.transfers.0.amount + midaz.balance.0.value",
-			expected: []string{"pix_btg:payment.transfers.0.amount", "midaz.balance.value"},
+			expr:     "external_db:sales.orders.0.amount + midaz.balance.0.value",
+			expected: []string{"external_db:sales.orders.0.amount", "midaz.balance.value"},
 		},
 		{
 			name:     "legacy format preserved",
@@ -515,13 +515,13 @@ func TestExtractFieldsFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 	}{
 		{
 			name:     "explicit schema path",
-			expr:     "pix_btg:payment.transfers.0.amount",
-			expected: []string{"pix_btg:payment.transfers.0.amount"},
+			expr:     "external_db:sales.orders.0.amount",
+			expected: []string{"external_db:sales.orders.0.amount"},
 		},
 		{
 			name:     "explicit schema with filter",
-			expr:     `pix_btg:payment.transfers|where:"status:completed"`,
-			expected: []string{"pix_btg:payment.transfers"},
+			expr:     `external_db:sales.orders|where:"status:completed"`,
+			expected: []string{"external_db:sales.orders"},
 		},
 		{
 			name:     "legacy format preserved",
@@ -542,35 +542,35 @@ func TestMappedFieldsOfTemplate_AllTagsWithExplicitSchema(t *testing.T) {
 	// Test all template tags with explicit schema syntax
 	template := `
 {# For loop with schema #}
-{% for tx in pix_btg:payment.transfers %}
+{% for tx in external_db:sales.orders %}
 	ID: {{ tx.id }}
 	Amount: {{ tx.amount }}
 {% endfor %}
 
 {# Variable expression with schema #}
-First Transfer: {{ pix_btg:payment.transfers.0.reference_id }}
+First Order: {{ external_db:sales.orders.0.reference_id }}
 
 {# Calc tag with schema #}
-Total: {% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}
+Total: {% calc external_db:sales.orders.0.amount + external_db:sales.orders.1.amount %}
 
 {# If tag with schema #}
-{% if pix_btg:payment.transfers.0.status == "completed" %}
+{% if external_db:sales.orders.0.status == "completed" %}
 Completed!
 {% endif %}
 
 {# Set tag with schema #}
-{% set total = pix_btg:payment.transfers.0.fee %}
+{% set total = external_db:sales.orders.0.fee %}
 
 {# For loop with DIMP filter and schema #}
-{% for tx in pix_btg:payment.transfers|where:"status:completed" %}
+{% for tx in external_db:sales.orders|where:"status:completed" %}
 	{{ tx.description }}
 {% endfor %}
 
 {# Sum_by aggregation with schema #}
-{% sum_by pix_btg:payment.transfers.amount if tx.status == "completed" %}
+{% sum_by external_db:sales.orders.amount if tx.status == "completed" %}
 
 {# With tag and filter function #}
-{% with filtered = filter(pix_btg:payment.transfers, "status", "completed") %}
+{% with filtered = filter(external_db:sales.orders, "status", "completed") %}
 	{{ filtered }}
 {% endwith %}
 `
@@ -579,14 +579,14 @@ Completed!
 
 	// Verify all fields are extracted for the explicit schema datasource
 	// Note: schema.table becomes schema__table for Pongo2 compatibility
-	assert.Contains(t, result, "pix_btg", "Should contain pix_btg datasource")
-	assert.Contains(t, result["pix_btg"], "payment__transfers", "Should contain payment__transfers table")
+	assert.Contains(t, result, "external_db", "Should contain external_db datasource")
+	assert.Contains(t, result["external_db"], "sales__orders", "Should contain sales__orders table")
 
-	transferFields := result["pix_btg"]["payment__transfers"]
+	orderFields := result["external_db"]["sales__orders"]
 
 	expectedFields := []string{"id", "amount", "reference_id", "status", "fee", "description"}
 	for _, field := range expectedFields {
-		assert.Contains(t, transferFields, field, "Field %s should be mapped", field)
+		assert.Contains(t, orderFields, field, "Field %s should be mapped", field)
 	}
 }
 
@@ -599,12 +599,12 @@ func TestMappedFieldsOfTemplate_MixedLegacyAndSchemaFormats(t *testing.T) {
 {% endfor %}
 
 {# Explicit schema format - user writes schema.table with dot #}
-{% for tx in pix_direct:payment.transactions %}
+{% for tx in external_db:sales.orders %}
 	{{ tx.amount }}
 {% endfor %}
 
 {# Both in same calc expression #}
-{% calc midaz_onboarding.account.0.balance + pix_direct:payment.transactions.0.amount %}
+{% calc midaz_onboarding.account.0.balance + external_db:sales.orders.0.amount %}
 `
 
 	result := MappedFieldsOfTemplate(template)
@@ -616,7 +616,7 @@ func TestMappedFieldsOfTemplate_MixedLegacyAndSchemaFormats(t *testing.T) {
 	assert.Contains(t, result["midaz_onboarding"]["account"], "balance")
 
 	// Check schema format (schema.table becomes schema__table internally)
-	assert.Contains(t, result, "pix_direct")
-	assert.Contains(t, result["pix_direct"], "payment__transactions")
-	assert.Contains(t, result["pix_direct"]["payment__transactions"], "amount")
+	assert.Contains(t, result, "external_db")
+	assert.Contains(t, result["external_db"], "sales__orders")
+	assert.Contains(t, result["external_db"]["sales__orders"], "amount")
 }

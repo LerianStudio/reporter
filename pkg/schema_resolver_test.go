@@ -20,43 +20,43 @@ func TestSchemaResolver_ResolveSchema(t *testing.T) {
 		{
 			name: "explicit schema - valid",
 			setup: func(r *SchemaResolver) {
-				r.RegisterDatabase("pix_btg", []postgres.TableSchema{
-					{SchemaName: "payment", TableName: "transactions"},
-					{SchemaName: "transfer", TableName: "orders"},
+				r.RegisterDatabase("external_db", []postgres.TableSchema{
+					{SchemaName: "sales", TableName: "orders"},
+					{SchemaName: "inventory", TableName: "products"},
 				})
 			},
-			database:       "pix_btg",
-			explicitSchema: "payment",
-			table:          "transactions",
-			wantSchema:     "payment",
+			database:       "external_db",
+			explicitSchema: "sales",
+			table:          "orders",
+			wantSchema:     "sales",
 			wantErr:        false,
 		},
 		{
 			name: "explicit schema - table not in schema",
 			setup: func(r *SchemaResolver) {
-				r.RegisterDatabase("pix_btg", []postgres.TableSchema{
-					{SchemaName: "payment", TableName: "transactions"},
-					{SchemaName: "transfer", TableName: "orders"},
+				r.RegisterDatabase("external_db", []postgres.TableSchema{
+					{SchemaName: "sales", TableName: "orders"},
+					{SchemaName: "inventory", TableName: "products"},
 				})
 			},
-			database:       "pix_btg",
-			explicitSchema: "payment",
-			table:          "orders",
+			database:       "external_db",
+			explicitSchema: "sales",
+			table:          "products",
 			wantErr:        true,
 			wantErrType:    "not found",
 		},
 		{
 			name: "implicit schema - single match",
 			setup: func(r *SchemaResolver) {
-				r.RegisterDatabase("pix_btg", []postgres.TableSchema{
-					{SchemaName: "payment", TableName: "transactions"},
-					{SchemaName: "transfer", TableName: "orders"},
+				r.RegisterDatabase("external_db", []postgres.TableSchema{
+					{SchemaName: "sales", TableName: "orders"},
+					{SchemaName: "inventory", TableName: "products"},
 				})
 			},
-			database:       "pix_btg",
+			database:       "external_db",
 			explicitSchema: "",
-			table:          "transactions",
-			wantSchema:     "payment",
+			table:          "orders",
+			wantSchema:     "sales",
 			wantErr:        false,
 		},
 		{
@@ -76,25 +76,25 @@ func TestSchemaResolver_ResolveSchema(t *testing.T) {
 		{
 			name: "implicit schema - multiple matches without public",
 			setup: func(r *SchemaResolver) {
-				r.RegisterDatabase("pix_btg", []postgres.TableSchema{
-					{SchemaName: "payment", TableName: "transactions"},
-					{SchemaName: "transfer", TableName: "transactions"},
+				r.RegisterDatabase("external_db", []postgres.TableSchema{
+					{SchemaName: "sales", TableName: "orders"},
+					{SchemaName: "inventory", TableName: "orders"},
 				})
 			},
-			database:       "pix_btg",
+			database:       "external_db",
 			explicitSchema: "",
-			table:          "transactions",
+			table:          "orders",
 			wantErr:        true,
 			wantErrType:    "ambiguous",
 		},
 		{
 			name: "table not found in any schema",
 			setup: func(r *SchemaResolver) {
-				r.RegisterDatabase("pix_btg", []postgres.TableSchema{
-					{SchemaName: "payment", TableName: "transactions"},
+				r.RegisterDatabase("external_db", []postgres.TableSchema{
+					{SchemaName: "sales", TableName: "orders"},
 				})
 			},
-			database:       "pix_btg",
+			database:       "external_db",
 			explicitSchema: "",
 			table:          "nonexistent",
 			wantErr:        true,
@@ -156,9 +156,9 @@ func TestSchemaResolver_ResolveSchema(t *testing.T) {
 
 func TestSchemaAmbiguityError_Error(t *testing.T) {
 	err := &SchemaAmbiguityError{
-		Database: "pix_btg",
-		Table:    "transactions",
-		Schemas:  []string{"payment", "transfer"},
+		Database: "external_db",
+		Table:    "orders",
+		Schemas:  []string{"sales", "inventory"},
 	}
 
 	errMsg := err.Error()
@@ -169,12 +169,12 @@ func TestSchemaAmbiguityError_Error(t *testing.T) {
 	}
 
 	// Should mention the table
-	if !contains(errMsg, "transactions") {
+	if !contains(errMsg, "orders") {
 		t.Errorf("Error() should mention table name, got: %s", errMsg)
 	}
 
 	// Should mention the schemas
-	if !contains(errMsg, "payment") || !contains(errMsg, "transfer") {
+	if !contains(errMsg, "sales") || !contains(errMsg, "inventory") {
 		t.Errorf("Error() should mention available schemas, got: %s", errMsg)
 	}
 

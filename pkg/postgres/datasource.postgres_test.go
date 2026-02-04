@@ -13,10 +13,10 @@ func TestTableSchema_QualifiedName(t *testing.T) {
 		{
 			name: "returns qualified name with schema and table",
 			schema: TableSchema{
-				SchemaName: "payment",
-				TableName:  "transactions",
+				SchemaName: "sales",
+				TableName:  "orders",
 			},
-			wantResult: "payment.transactions",
+			wantResult: "sales.orders",
 		},
 		{
 			name: "returns qualified name for public schema",
@@ -49,17 +49,17 @@ func TestTableSchema_QualifiedName(t *testing.T) {
 func TestTableSchema_SchemaNameField(t *testing.T) {
 	// Test that SchemaName field exists and can be set
 	ts := TableSchema{
-		SchemaName: "payment",
-		TableName:  "transactions",
+		SchemaName: "sales",
+		TableName:  "orders",
 		Columns:    []ColumnInformation{},
 	}
 
-	if ts.SchemaName != "payment" {
-		t.Errorf("SchemaName = %q, want %q", ts.SchemaName, "payment")
+	if ts.SchemaName != "sales" {
+		t.Errorf("SchemaName = %q, want %q", ts.SchemaName, "sales")
 	}
 
-	if ts.TableName != "transactions" {
-		t.Errorf("TableName = %q, want %q", ts.TableName, "transactions")
+	if ts.TableName != "orders" {
+		t.Errorf("TableName = %q, want %q", ts.TableName, "orders")
 	}
 }
 
@@ -72,9 +72,9 @@ func TestQualifyTableName(t *testing.T) {
 	}{
 		{
 			name:       "with schema name",
-			schemaName: "payment",
-			tableName:  "transactions",
-			want:       `"payment"."transactions"`,
+			schemaName: "sales",
+			tableName:  "orders",
+			want:       `"sales"."orders"`,
 		},
 		{
 			name:       "with public schema",

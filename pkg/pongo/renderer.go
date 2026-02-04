@@ -76,7 +76,7 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 }
 
 // preprocessSchemaReferences converts explicit schema syntax (database:schema.table) to Pongo2 dot notation.
-// Example: "pix_btg:payment.transfers" becomes "pix_btg.payment__transfers"
+// Example: "mydb:sales.orders" becomes "mydb.sales__orders"
 // The schema.table is converted to schema__table (double underscore) to create a valid Pongo2 identifier.
 // This requires the data storage to use the same key format (schema__table).
 func preprocessSchemaReferences(template string) string {

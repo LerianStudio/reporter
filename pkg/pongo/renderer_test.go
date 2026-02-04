@@ -265,8 +265,8 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 	}{
 		{
 			name:     "converts schema syntax in for loop",
-			input:    `{% for tx in pix_btg:payment.transfers %}{{ tx.id }}{% endfor %}`,
-			expected: `{% for tx in pix_btg.payment__transfers %}{{ tx.id }}{% endfor %}`,
+			input:    `{% for tx in external_db:sales.orders %}{{ tx.id }}{% endfor %}`,
+			expected: `{% for tx in external_db.sales__orders %}{{ tx.id }}{% endfor %}`,
 		},
 		{
 			name:     "converts multiple schema references",
@@ -280,18 +280,18 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 		},
 		{
 			name:     "handles mixed formats",
-			input:    `{% for tx in pix_btg:payment.transfers %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
-			expected: `{% for tx in pix_btg.payment__transfers %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
+			input:    `{% for tx in external_db:sales.orders %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
+			expected: `{% for tx in external_db.sales__orders %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
 		},
 		{
 			name:     "converts direct access with index",
-			input:    `{{ pix_btg:payment.transfers.0.id }}`,
-			expected: `{{ pix_btg.payment__transfers.0.id }}`,
+			input:    `{{ external_db:sales.orders.0.id }}`,
+			expected: `{{ external_db.sales__orders.0.id }}`,
 		},
 		{
 			name:     "handles schema in calc expression",
-			input:    `{% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}`,
-			expected: `{% calc pix_btg.payment__transfers.0.amount + pix_btg.payment__transfers.1.amount %}`,
+			input:    `{% calc external_db:sales.orders.0.amount + external_db:sales.orders.1.amount %}`,
+			expected: `{% calc external_db.sales__orders.0.amount + external_db.sales__orders.1.amount %}`,
 		},
 	}
 
@@ -307,15 +307,15 @@ func TestRender_ExplicitSchemaFormat(t *testing.T) {
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
-	// Template uses explicit schema syntax that will be preprocessed to payment__transfers
-	tpl := []byte(`{% for transfer in pix_btg:payment.transfers %}
-ID: {{ transfer.id }}, Amount: {{ transfer.amount }}
+	// Template uses explicit schema syntax that will be preprocessed to sales__orders
+	tpl := []byte(`{% for order in external_db:sales.orders %}
+ID: {{ order.id }}, Amount: {{ order.amount }}
 {% endfor %}`)
 
 	// Data is stored using double underscore key (schema__table) for Pongo2 compatibility
 	data := map[string]map[string][]map[string]any{
-		"pix_btg": {
-			"payment__transfers": {
+		"external_db": {
+			"sales__orders": {
 				{"id": "TX001", "amount": 100.50},
 				{"id": "TX002", "amount": 200.00},
 			},
@@ -333,12 +333,12 @@ func TestRender_ExplicitSchemaDirectAccess(t *testing.T) {
 	logger := zap.InitializeLogger()
 
 	// Direct access to schema-qualified data with index
-	tpl := []byte(`First Transfer ID: {{ pix_btg:payment.transfers.0.id }}
-First Amount: {{ pix_btg:payment.transfers.0.amount }}`)
+	tpl := []byte(`First Order ID: {{ external_db:sales.orders.0.id }}
+First Amount: {{ external_db:sales.orders.0.amount }}`)
 
 	data := map[string]map[string][]map[string]any{
-		"pix_btg": {
-			"payment__transfers": {
+		"external_db": {
+			"sales__orders": {
 				{"id": "TX001", "amount": 100.50},
 				{"id": "TX002", "amount": 200.00},
 			},
@@ -347,7 +347,7 @@ First Amount: {{ pix_btg:payment.transfers.0.amount }}`)
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
 	assert.NoError(t, err)
-	assert.Contains(t, out, "First Transfer ID: TX001")
+	assert.Contains(t, out, "First Order ID: TX001")
 	assert.Contains(t, out, "First Amount: 100.5")
 }
 
@@ -355,11 +355,11 @@ func TestRender_ExplicitSchemaIfTag(t *testing.T) {
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
-	tpl := []byte(`{% if pix_btg:payment.transfers %}Has transfers{% endif %}`)
+	tpl := []byte(`{% if external_db:sales.orders %}Has orders{% endif %}`)
 
 	data := map[string]map[string][]map[string]any{
-		"pix_btg": {
-			"payment__transfers": {
+		"external_db": {
+			"sales__orders": {
 				{"id": "TX001", "amount": 100.50},
 			},
 		},
@@ -367,18 +367,18 @@ func TestRender_ExplicitSchemaIfTag(t *testing.T) {
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
 	assert.NoError(t, err)
-	assert.Contains(t, out, "Has transfers")
+	assert.Contains(t, out, "Has orders")
 }
 
 func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
-	tpl := []byte(`Total: {% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}`)
+	tpl := []byte(`Total: {% calc external_db:sales.orders.0.amount + external_db:sales.orders.1.amount %}`)
 
 	data := map[string]map[string][]map[string]any{
-		"pix_btg": {
-			"payment__transfers": {
+		"external_db": {
+			"sales__orders": {
 				{"id": "TX001", "amount": 100.50},
 				{"id": "TX002", "amount": 200.00},
 			},
@@ -395,7 +395,7 @@ func TestRender_MixedLegacyAndSchemaFormats(t *testing.T) {
 	logger := zap.InitializeLogger()
 
 	tpl := []byte(`Legacy: {{ midaz.account.0.alias }}
-Schema: {{ pix_btg:payment.transfers.0.id }}`)
+Schema: {{ external_db:sales.orders.0.id }}`)
 
 	data := map[string]map[string][]map[string]any{
 		"midaz": {
@@ -403,8 +403,8 @@ Schema: {{ pix_btg:payment.transfers.0.id }}`)
 				{"alias": "ACCT001"},
 			},
 		},
-		"pix_btg": {
-			"payment__transfers": {
+		"external_db": {
+			"sales__orders": {
 				{"id": "TX001"},
 			},
 		},
