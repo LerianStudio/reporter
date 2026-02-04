@@ -1,0 +1,671 @@
+// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
+package services
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+)
+
+// mockLogger is a simple no-op logger for testing
+type mockLogger struct{}
+
+func (m *mockLogger) Info(args ...any)                                {}
+func (m *mockLogger) Infof(format string, args ...any)                {}
+func (m *mockLogger) Infoln(args ...any)                              {}
+func (m *mockLogger) Warn(args ...any)                                {}
+func (m *mockLogger) Warnf(format string, args ...any)                {}
+func (m *mockLogger) Warnln(args ...any)                              {}
+func (m *mockLogger) Error(args ...any)                               {}
+func (m *mockLogger) Errorf(format string, args ...any)               {}
+func (m *mockLogger) Errorln(args ...any)                             {}
+func (m *mockLogger) Debug(args ...any)                               {}
+func (m *mockLogger) Debugf(format string, args ...any)               {}
+func (m *mockLogger) Debugln(args ...any)                             {}
+func (m *mockLogger) Fatal(args ...any)                               {}
+func (m *mockLogger) Fatalf(format string, args ...any)               {}
+func (m *mockLogger) Fatalln(args ...any)                             {}
+func (m *mockLogger) WithFields(fields ...any) log.Logger             { return m }
+func (m *mockLogger) Sync() error                                     { return nil }
+func (m *mockLogger) WithDefaultMessageTemplate(s string) log.Logger { return m }
+
+func newMockLogger() *mockLogger {
+	return &mockLogger{}
+}
+
+func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockPostgresRepo := postgres.NewMockRepository(ctrl)
+	logger := newMockLogger()
+
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"test_postgres_db"})
+
+	postgresSchema := []postgres.TableSchema{
+		{
+			SchemaName: "public",
+			TableName:  "users",
+			Columns: []postgres.ColumnInformation{
+				{Name: "id", DataType: "uuid"},
+				{Name: "name", DataType: "varchar"},
+				{Name: "email", DataType: "varchar"},
+			},
+		},
+		{
+			SchemaName: "public",
+			TableName:  "accounts",
+			Columns: []postgres.ColumnInformation{
+				{Name: "id", DataType: "uuid"},
+				{Name: "balance", DataType: "numeric"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		mappedFields map[string]map[string][]string
+		mockSetup    func()
+		expectErr    bool
+		errContains  string
+	}{
+		{
+			name: "Success - All fields exist",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"users": {"id", "name", "email"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public"}).
+					Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: false,
+		},
+		{
+			name: "Error - Missing fields in table",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"users": {"id", "name", "nonexistent_field"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public"}).
+					Return(postgresSchema, nil)
+				// CloseConnection is NOT called because validation fails before reaching it
+			},
+			expectErr:   true,
+			errContains: "nonexistent_field",
+		},
+		{
+			name: "Error - Table does not exist",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"nonexistent_table": {"id", "name"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public"}).
+					Return(postgresSchema, nil)
+				// CloseConnection is NOT called because table doesn't exist
+			},
+			expectErr:   true,
+			errContains: "nonexistent_table",
+		},
+		{
+			name: "Error - Database schema retrieval fails",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"users": {"id", "name"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public"}).
+					Return(nil, errors.New("database connection error"))
+				// CloseConnection is NOT called because schema retrieval fails
+			},
+			expectErr:   true,
+			errContains: "database connection error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+
+			svc := &UseCase{
+				ExternalDataSources: map[string]pkg.DataSource{
+					"test_postgres_db": {
+						DatabaseType:       pkg.PostgreSQLType,
+						PostgresRepository: mockPostgresRepo,
+						Initialized:        true,
+						Schemas:            []string{"public"},
+						DatabaseConfig: &postgres.Connection{
+							Connected: true,
+						},
+					},
+				},
+			}
+
+			ctx := context.Background()
+			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMongoRepo := mongodb.NewMockRepository(ctrl)
+	logger := newMockLogger()
+
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"test_mongo_db"})
+
+	mongoSchema := []mongodb.CollectionSchema{
+		{
+			CollectionName: "transactions",
+			Fields: []mongodb.FieldInformation{
+				{Name: "_id", DataType: "objectId"},
+				{Name: "amount", DataType: "number"},
+				{Name: "status", DataType: "string"},
+			},
+		},
+		{
+			CollectionName: "accounts",
+			Fields: []mongodb.FieldInformation{
+				{Name: "_id", DataType: "objectId"},
+				{Name: "balance", DataType: "number"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		mappedFields map[string]map[string][]string
+		mockSetup    func()
+		expectErr    bool
+		errContains  string
+	}{
+		{
+			name: "Success - All fields exist",
+			mappedFields: map[string]map[string][]string{
+				"test_mongo_db": {
+					"transactions": {"_id", "amount", "status"},
+				},
+			},
+			mockSetup: func() {
+				mockMongoRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchema, nil)
+				mockMongoRepo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+			},
+			expectErr: false,
+		},
+		{
+			name: "Error - Missing fields in collection",
+			mappedFields: map[string]map[string][]string{
+				"test_mongo_db": {
+					"transactions": {"_id", "amount", "nonexistent_field"},
+				},
+			},
+			mockSetup: func() {
+				mockMongoRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchema, nil)
+				// CloseConnection is NOT called because validation fails
+			},
+			expectErr:   true,
+			errContains: "nonexistent_field",
+		},
+		{
+			name: "Error - Collection does not exist",
+			mappedFields: map[string]map[string][]string{
+				"test_mongo_db": {
+					"nonexistent_collection": {"_id"},
+				},
+			},
+			mockSetup: func() {
+				mockMongoRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchema, nil)
+				// CloseConnection is NOT called because collection doesn't exist
+			},
+			expectErr:   true,
+			errContains: "nonexistent_collection",
+		},
+		{
+			name: "Error - Database schema retrieval fails",
+			mappedFields: map[string]map[string][]string{
+				"test_mongo_db": {
+					"transactions": {"_id"},
+				},
+			},
+			mockSetup: func() {
+				mockMongoRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(nil, errors.New("mongodb connection error"))
+				// CloseConnection is NOT called because schema retrieval fails
+			},
+			expectErr:   true,
+			errContains: "mongodb connection error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+
+			svc := &UseCase{
+				ExternalDataSources: map[string]pkg.DataSource{
+					"test_mongo_db": {
+						DatabaseType:      pkg.MongoDBType,
+						MongoDBRepository: mockMongoRepo,
+						Initialized:       true,
+					},
+				},
+			}
+
+			ctx := context.Background()
+			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
+	logger := newMockLogger()
+
+	// Register datasource IDs for testing - NOT including "unregistered_db"
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"registered_db"})
+
+	tests := []struct {
+		name         string
+		mappedFields map[string]map[string][]string
+		dataSources  map[string]pkg.DataSource
+		expectErr    bool
+		errContains  string
+	}{
+		{
+			name: "Error - Unregistered data source ID",
+			mappedFields: map[string]map[string][]string{
+				"unregistered_db": {
+					"users": {"id"},
+				},
+			},
+			dataSources: map[string]pkg.DataSource{},
+			expectErr:   true,
+			errContains: "unregistered_db",
+		},
+		{
+			name: "Error - Data source ID registered but not in runtime map",
+			mappedFields: map[string]map[string][]string{
+				"registered_db": {
+					"users": {"id"},
+				},
+			},
+			dataSources: map[string]pkg.DataSource{
+				// Data source is not in the map
+			},
+			expectErr:   true,
+			errContains: "registered_db",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &UseCase{
+				ExternalDataSources: tt.dataSources,
+			}
+
+			ctx := context.Background()
+			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
+	logger := newMockLogger()
+
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"unknown_db"})
+
+	svc := &UseCase{
+		ExternalDataSources: map[string]pkg.DataSource{
+			"unknown_db": {
+				DatabaseType: "unsupported_type",
+				Initialized:  true,
+			},
+		},
+	}
+
+	mappedFields := map[string]map[string][]string{
+		"unknown_db": {
+			"users": {"id"},
+		},
+	}
+
+	ctx := context.Background()
+	err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, mappedFields)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported database type")
+}
+
+func TestTransformMappedFieldsForStorage(t *testing.T) {
+	tests := []struct {
+		name           string
+		mappedFields   map[string]map[string][]string
+		organizationID string
+		expected       map[string]map[string][]string
+	}{
+		{
+			name: "Regular database - no transformation",
+			mappedFields: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"users":    {"id", "name"},
+					"accounts": {"id", "balance"},
+				},
+			},
+			organizationID: "org-123",
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"users":    {"id", "name"},
+					"accounts": {"id", "balance"},
+				},
+			},
+		},
+		{
+			name: "Plugin CRM database - adds organization mapping",
+			mappedFields: map[string]map[string][]string{
+				"plugin_crm": {
+					"contacts": {"id", "name"},
+				},
+			},
+			organizationID: "org-456",
+			expected: map[string]map[string][]string{
+				"plugin_crm": {
+					"contacts":     {"id", "name"},
+					"organization": {"org-456"},
+				},
+			},
+		},
+		{
+			name: "Multiple databases - mixed transformation",
+			mappedFields: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"users": {"id"},
+				},
+				"plugin_crm": {
+					"leads": {"name", "email"},
+				},
+			},
+			organizationID: "org-789",
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"users": {"id"},
+				},
+				"plugin_crm": {
+					"leads":        {"name", "email"},
+					"organization": {"org-789"},
+				},
+			},
+		},
+		{
+			name:           "Empty mapped fields",
+			mappedFields:   map[string]map[string][]string{},
+			organizationID: "org-123",
+			expected:       map[string]map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := TransformMappedFieldsForStorage(tt.mappedFields, tt.organizationID)
+
+			// Check database count
+			assert.Equal(t, len(tt.expected), len(result))
+
+			// Check each database's tables
+			for dbName, expectedTables := range tt.expected {
+				resultTables, exists := result[dbName]
+				require.True(t, exists, "Expected database %s to exist in result", dbName)
+				assert.Equal(t, len(expectedTables), len(resultTables), "Table count mismatch for database %s", dbName)
+
+				for tableName, expectedFields := range expectedTables {
+					resultFields, tableExists := resultTables[tableName]
+					require.True(t, tableExists, "Expected table %s to exist in database %s", tableName, dbName)
+					assert.ElementsMatch(t, expectedFields, resultFields, "Fields mismatch for table %s in database %s", tableName, dbName)
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateCopyOfMappedFields(t *testing.T) {
+	tests := []struct {
+		name           string
+		original       map[string]map[string][]string
+		organizationID string
+		checkModified  func(t *testing.T, original, copy map[string]map[string][]string)
+	}{
+		{
+			name: "Creates deep copy - regular database",
+			original: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"users": {"id", "name"},
+				},
+			},
+			organizationID: "org-123",
+			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
+				// Verify copy has same structure
+				assert.Contains(t, copiedFields, "midaz_onboarding")
+				assert.Contains(t, copiedFields["midaz_onboarding"], "users")
+				assert.ElementsMatch(t, []string{"id", "name"}, copiedFields["midaz_onboarding"]["users"])
+
+				// Modify copy and verify original is unchanged
+				copiedFields["midaz_onboarding"]["users"] = append(copiedFields["midaz_onboarding"]["users"], "modified")
+				assert.NotContains(t, original["midaz_onboarding"]["users"], "modified")
+			},
+		},
+		{
+			name: "Plugin CRM - appends organization ID to table names",
+			original: map[string]map[string][]string{
+				"plugin_crm": {
+					"contacts": {"id", "name"},
+				},
+			},
+			organizationID: "org-456",
+			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
+				// Verify copy has modified table name with organization ID
+				assert.Contains(t, copiedFields, "plugin_crm")
+				assert.Contains(t, copiedFields["plugin_crm"], "contacts_org-456")
+				assert.ElementsMatch(t, []string{"id", "name"}, copiedFields["plugin_crm"]["contacts_org-456"])
+
+				// Verify original is unchanged
+				assert.Contains(t, original["plugin_crm"], "contacts")
+				assert.NotContains(t, original["plugin_crm"], "contacts_org-456")
+			},
+		},
+		{
+			name:           "Empty mapped fields",
+			original:       map[string]map[string][]string{},
+			organizationID: "org-123",
+			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
+				assert.Empty(t, copiedFields)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			copiedFields := generateCopyOfMappedFields(tt.original, tt.organizationID)
+			tt.checkModified(t, tt.original, copiedFields)
+		})
+	}
+}
+
+func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockPostgresRepo := postgres.NewMockRepository(ctrl)
+	logger := newMockLogger()
+
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"test_postgres_db"})
+
+	postgresSchema := []postgres.TableSchema{
+		{
+			SchemaName: "payment",
+			TableName:  "transfers",
+			Columns: []postgres.ColumnInformation{
+				{Name: "id", DataType: "uuid"},
+				{Name: "amount", DataType: "numeric"},
+				{Name: "status", DataType: "varchar"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		mappedFields map[string]map[string][]string
+		mockSetup    func()
+		expectErr    bool
+	}{
+		{
+			name: "Success - Pongo2 format (schema__table)",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"payment__transfers": {"id", "amount"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: false,
+		},
+		{
+			name: "Success - Qualified format (schema.table)",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"payment.transfers": {"id", "amount"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: false,
+		},
+		{
+			name: "Success - Legacy format (just table name)",
+			mappedFields: map[string]map[string][]string{
+				"test_postgres_db": {
+					"transfers": {"id", "amount"},
+				},
+			},
+			mockSetup: func() {
+				mockPostgresRepo.EXPECT().
+					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().
+					CloseConnection().
+					Return(nil)
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+
+			svc := &UseCase{
+				ExternalDataSources: map[string]pkg.DataSource{
+					"test_postgres_db": {
+						DatabaseType:       pkg.PostgreSQLType,
+						PostgresRepository: mockPostgresRepo,
+						Initialized:        true,
+						Schemas:            []string{"public", "payment"},
+						DatabaseConfig: &postgres.Connection{
+							Connected: true,
+						},
+					},
+				},
+			}
+
+			ctx := context.Background()
+			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+
+			if tt.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
