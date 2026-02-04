@@ -256,3 +256,162 @@ Power Fractional: {% calc 2.5 ** 0.5 %}`)
 	assert.Contains(t, out, "Power Large: 1000000")
 	assert.Contains(t, out, "Power Fractional: 1.5811388301")
 }
+
+func TestPreprocessSchemaReferences(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "converts schema syntax in for loop",
+			input:    `{% for tx in pix_btg:payment.transfers %}{{ tx.id }}{% endfor %}`,
+			expected: `{% for tx in pix_btg.payment__transfers %}{{ tx.id }}{% endfor %}`,
+		},
+		{
+			name:     "converts multiple schema references",
+			input:    `{% for tx in db1:schema1.table1 %}{% endfor %}{% for acc in db2:schema2.table2 %}{% endfor %}`,
+			expected: `{% for tx in db1.schema1__table1 %}{% endfor %}{% for acc in db2.schema2__table2 %}{% endfor %}`,
+		},
+		{
+			name:     "preserves legacy format",
+			input:    `{% for tx in midaz_transaction.balance %}{{ tx.amount }}{% endfor %}`,
+			expected: `{% for tx in midaz_transaction.balance %}{{ tx.amount }}{% endfor %}`,
+		},
+		{
+			name:     "handles mixed formats",
+			input:    `{% for tx in pix_btg:payment.transfers %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
+			expected: `{% for tx in pix_btg.payment__transfers %}{% endfor %}{% for acc in midaz.account %}{% endfor %}`,
+		},
+		{
+			name:     "converts direct access with index",
+			input:    `{{ pix_btg:payment.transfers.0.id }}`,
+			expected: `{{ pix_btg.payment__transfers.0.id }}`,
+		},
+		{
+			name:     "handles schema in calc expression",
+			input:    `{% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}`,
+			expected: `{% calc pix_btg.payment__transfers.0.amount + pix_btg.payment__transfers.1.amount %}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := preprocessSchemaReferences(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestRender_ExplicitSchemaFormat(t *testing.T) {
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	// Template uses explicit schema syntax that will be preprocessed to payment__transfers
+	tpl := []byte(`{% for transfer in pix_btg:payment.transfers %}
+ID: {{ transfer.id }}, Amount: {{ transfer.amount }}
+{% endfor %}`)
+
+	// Data is stored using double underscore key (schema__table) for Pongo2 compatibility
+	data := map[string]map[string][]map[string]any{
+		"pix_btg": {
+			"payment__transfers": {
+				{"id": "TX001", "amount": 100.50},
+				{"id": "TX002", "amount": 200.00},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	assert.NoError(t, err)
+	assert.Contains(t, out, "ID: TX001, Amount: 100.5")
+	assert.Contains(t, out, "ID: TX002, Amount: 200")
+}
+
+func TestRender_ExplicitSchemaDirectAccess(t *testing.T) {
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	// Direct access to schema-qualified data with index
+	tpl := []byte(`First Transfer ID: {{ pix_btg:payment.transfers.0.id }}
+First Amount: {{ pix_btg:payment.transfers.0.amount }}`)
+
+	data := map[string]map[string][]map[string]any{
+		"pix_btg": {
+			"payment__transfers": {
+				{"id": "TX001", "amount": 100.50},
+				{"id": "TX002", "amount": 200.00},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	assert.NoError(t, err)
+	assert.Contains(t, out, "First Transfer ID: TX001")
+	assert.Contains(t, out, "First Amount: 100.5")
+}
+
+func TestRender_ExplicitSchemaIfTag(t *testing.T) {
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% if pix_btg:payment.transfers %}Has transfers{% endif %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"pix_btg": {
+			"payment__transfers": {
+				{"id": "TX001", "amount": 100.50},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	assert.NoError(t, err)
+	assert.Contains(t, out, "Has transfers")
+}
+
+func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`Total: {% calc pix_btg:payment.transfers.0.amount + pix_btg:payment.transfers.1.amount %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"pix_btg": {
+			"payment__transfers": {
+				{"id": "TX001", "amount": 100.50},
+				{"id": "TX002", "amount": 200.00},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	assert.NoError(t, err)
+	assert.Contains(t, out, "Total: 300.5")
+}
+
+func TestRender_MixedLegacyAndSchemaFormats(t *testing.T) {
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`Legacy: {{ midaz.account.0.alias }}
+Schema: {{ pix_btg:payment.transfers.0.id }}`)
+
+	data := map[string]map[string][]map[string]any{
+		"midaz": {
+			"account": {
+				{"alias": "ACCT001"},
+			},
+		},
+		"pix_btg": {
+			"payment__transfers": {
+				{"id": "TX001"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	assert.NoError(t, err)
+	assert.Contains(t, out, "Legacy: ACCT001")
+	assert.Contains(t, out, "Schema: TX001")
+}
