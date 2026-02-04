@@ -239,6 +239,10 @@ func (ds *ExternalDataSource) queryTables(ctx context.Context, schemas []string)
 		tables = append(tables, info)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating tables: %w", err)
+	}
+
 	return tables, nil
 }
 
@@ -279,6 +283,10 @@ func (ds *ExternalDataSource) queryPrimaryKeys(ctx context.Context, schemas []st
 		}
 
 		primaryKeys[key][columnName] = true
+	}
+
+	if err := pkRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating primary keys: %w", err)
 	}
 
 	return primaryKeys, nil
@@ -342,6 +350,10 @@ func (ds *ExternalDataSource) queryTableColumns(ctx context.Context, tbl tableIn
 		columns = append(columns, col)
 	}
 
+	if err := colRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating columns: %w", err)
+	}
+
 	return columns, nil
 }
 
@@ -364,6 +376,10 @@ func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 
 		rowMap := createRowMap(columns, values, logger)
 		result = append(result, rowMap)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
 	return result, nil

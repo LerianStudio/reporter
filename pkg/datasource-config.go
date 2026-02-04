@@ -110,10 +110,18 @@ func (c *DataSourceConfig) GetSchemas() []string {
 		return []string{"public"}
 	}
 
-	schemas := strings.Split(schemasStr, ",")
-	// Trim whitespace from each schema name
-	for i, s := range schemas {
-		schemas[i] = strings.TrimSpace(s)
+	rawSchemas := strings.Split(schemasStr, ",")
+	schemas := make([]string, 0, len(rawSchemas))
+
+	for _, s := range rawSchemas {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			schemas = append(schemas, s)
+		}
+	}
+
+	if len(schemas) == 0 {
+		return []string{"public"}
 	}
 
 	return schemas

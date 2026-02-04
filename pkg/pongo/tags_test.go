@@ -1,3 +1,5 @@
+//go:build unit
+
 // Copyright (c) 2025 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -181,6 +183,14 @@ func TestCalcTag_NegativeNumbers(t *testing.T) {
 			assert.Equal(t, tt.expected, out)
 		})
 	}
+}
+
+func TestCalcTag_DivisionByZero(t *testing.T) {
+	tpl, err := pongo2.FromString(`{% calc 10 / 0 %}`)
+	assert.NoError(t, err, "template parsing should not fail")
+
+	_, err = tpl.Execute(pongo2.Context{})
+	assert.Error(t, err, "division by zero should return an error")
 }
 
 func TestCalcTag_NegativeWithVariables(t *testing.T) {
