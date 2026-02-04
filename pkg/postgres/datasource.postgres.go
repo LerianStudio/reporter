@@ -359,7 +359,10 @@ func (ds *ExternalDataSource) queryTableColumns(ctx context.Context, tbl tableIn
 
 // scanRows processes the query rows and creates the resulting slice of maps.
 func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
-	columns, _ := rows.Columns()
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("error getting column names: %w", err)
+	}
 	values := make([]any, len(columns))
 	pointers := make([]any, len(columns))
 
