@@ -7,6 +7,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/LerianStudio/reporter/v4/pkg"
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
@@ -74,23 +75,58 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizati
 
 // validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
 func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
-	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	// Use configured schemas or default to public
+	configuredSchemas := dataSource.Schemas
+	if len(configuredSchemas) == 0 {
+		configuredSchemas = []string{"public"}
+	}
+
+	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	if err != nil {
 		return err
 	}
 
 	for _, s := range schema {
 		countIfTableExist := int32(0)
-		fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(mappedFields[databaseName][s.TableName], s, &countIfTableExist)
-		// Remove of mappedFields copies the table if exist on a schema list
-		if countIfTableExist > 0 {
-			if mt, ok := mappedFields[databaseName]; ok {
-				delete(mt, s.TableName)
-			}
+
+		// Support multiple formats:
+		// - Legacy: mappedFields[database][table] (e.g., "transfers")
+		// - Qualified with dot: mappedFields[database][schema.table] (e.g., "payment.transfers")
+		// - Pongo2 compatible: mappedFields[database][schema__table] (e.g., "payment__transfers")
+		qualifiedTableName := s.QualifiedName()                              // "schema.table" format
+		pongo2TableName := strings.Replace(qualifiedTableName, ".", "__", 1) // "schema__table" format for Pongo2
+		tableKey := s.TableName                                              // legacy format
+
+		// Check if fields exist for any of the supported formats
+		var (
+			fieldsToValidate []string
+			keyToDelete      string
+		)
+
+		switch {
+		case mappedFields[databaseName][pongo2TableName] != nil:
+			fieldsToValidate = mappedFields[databaseName][pongo2TableName]
+			keyToDelete = pongo2TableName
+		case mappedFields[databaseName][qualifiedTableName] != nil:
+			fieldsToValidate = mappedFields[databaseName][qualifiedTableName]
+			keyToDelete = qualifiedTableName
+		case mappedFields[databaseName][tableKey] != nil:
+			fieldsToValidate = mappedFields[databaseName][tableKey]
+			keyToDelete = tableKey
 		}
 
-		if len(fieldsMissing) > 0 {
-			return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+		if len(fieldsToValidate) > 0 {
+			fieldsMissing := postgres.ValidateFieldsInSchemaPostgres(fieldsToValidate, s, &countIfTableExist)
+			// Remove of mappedFields copies the table if exist on a schema list
+			if countIfTableExist > 0 {
+				if mt, ok := mappedFields[databaseName]; ok {
+					delete(mt, keyToDelete)
+				}
+			}
+
+			if len(fieldsMissing) > 0 {
+				return pkg.ValidateBusinessError(constant.ErrMissingTableFields, "", fieldsMissing)
+			}
 		}
 	}
 
