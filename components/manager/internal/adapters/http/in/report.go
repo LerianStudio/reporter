@@ -156,13 +156,13 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			id				path		string	true	"Report ID"
-//	@Success		200				{object}	report.Report
-//	@Failure		400				{object}	pkg.HTTPError
-//	@Failure		404				{object}	pkg.HTTPError
-//	@Failure		500				{object}	pkg.HTTPError
-//	@Router			/v1/reports/{id}																			 [get]
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			id					path		string	true	"Report ID"
+//	@Success		200					{object}	report.Report
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		404					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
+//	@Router			/v1/reports/{id}																					 [get]
 func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 

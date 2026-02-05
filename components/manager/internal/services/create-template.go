@@ -55,7 +55,15 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	}
 
 	// Transform mapped fields for storage
-	transformedMappedFields := TransformMappedFieldsForStorage(mappedFields, "")
+	// Get MidazOrganizationID from plugin_crm datasource if template uses it
+	var midazOrgID string
+	if _, hasPluginCRM := mappedFields["plugin_crm"]; hasPluginCRM {
+		if ds, exists := uc.ExternalDataSources["plugin_crm"]; exists {
+			midazOrgID = ds.MidazOrganizationID
+		}
+	}
+
+	transformedMappedFields := TransformMappedFieldsForStorage(mappedFields, midazOrgID)
 	logger.Infof("Transformed Mapped Fields for storage %v", transformedMappedFields)
 
 	templateId := commons.GenerateUUIDv7()

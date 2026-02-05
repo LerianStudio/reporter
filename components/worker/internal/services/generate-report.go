@@ -518,7 +518,7 @@ func (uc *UseCase) queryMongoDatabase(
 	for collection, fields := range collections {
 		collectionFilters := getTableFilters(databaseFilters, collection)
 
-		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, collections, result, logger); err != nil {
+		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, result, logger); err != nil {
 			return err
 		}
 	}
@@ -533,13 +533,18 @@ func (uc *UseCase) processMongoCollection(
 	databaseName, collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Handle plugin_crm special case
-	if databaseName == "plugin_crm" && collection != "organization" {
-		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, allCollections, result, logger)
+	// Handle plugin_crm special cases
+	if databaseName == "plugin_crm" {
+		// Skip "organization" collection - it's not a real collection, just stores the organizationID for template context
+		if collection == "organization" {
+			logger.Debugf("Skipping organization collection for plugin_crm - it's a metadata field, not a queryable collection")
+			return nil
+		}
+
+		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
 	}
 
 	// Handle regular collections
@@ -553,18 +558,16 @@ func (uc *UseCase) processPluginCRMCollection(
 	collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Get organization field to create collection name
-	orgFields, exists := allCollections["organization"]
-	if !exists || len(orgFields) == 0 {
-		logger.Errorf("Organization field not found for plugin_crm collection %s", collection)
+	// Get Midaz organization ID from datasource configuration (DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID)
+	if dataSource.MidazOrganizationID == "" {
+		logger.Errorf("Midaz Organization ID not configured for plugin_crm datasource. Set DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable.")
 		return nil
 	}
 
-	newCollection := collection + "_" + orgFields[0]
+	newCollection := collection + "_" + dataSource.MidazOrganizationID
 
 	// Query the collection
 	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger, "plugin_crm")

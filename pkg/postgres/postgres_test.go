@@ -231,18 +231,18 @@ func TestValidateFieldsInSchemaPostgres_DottedPathOnNonJSONBColumn(t *testing.T)
 		TableName:  "users",
 		Columns: []ColumnInformation{
 			{Name: "id", DataType: "uuid"},
-			{Name: "name", DataType: "varchar"},     // Not JSONB
-			{Name: "settings", DataType: "jsonb"},   // JSONB
+			{Name: "name", DataType: "varchar"},   // Not JSONB
+			{Name: "settings", DataType: "jsonb"}, // JSONB
 			{Name: "created_at", DataType: "timestamp"},
 		},
 	}
 
 	expectedFields := []string{
-		"id",                  // Simple - exists
-		"name.first",          // Dotted path on varchar - root column exists (passes validation)
-		"settings.theme",      // Dotted path on jsonb - root column exists
-		"created_at.year",     // Dotted path on timestamp - root column exists
-		"nonexistent.field",   // Dotted path where root doesn't exist - should be missing
+		"id",                // Simple - exists
+		"name.first",        // Dotted path on varchar - root column exists (passes validation)
+		"settings.theme",    // Dotted path on jsonb - root column exists
+		"created_at.year",   // Dotted path on timestamp - root column exists
+		"nonexistent.field", // Dotted path where root doesn't exist - should be missing
 	}
 	var count int32 = 0
 

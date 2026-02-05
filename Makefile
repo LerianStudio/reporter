@@ -469,50 +469,6 @@ ps:
 # Docs Commands
 #-------------------------------------------------------
 
-.PHONY: generate-docs-all
-generate-docs-all:
-	$(call print_title,"Generating Swagger documentation for all services")
-	$(call check_command,swag,"go install github.com/swaggo/swag/cmd/swag@latest")
-	@echo "Verifying API documentation coverage..."
-	@sh ./scripts/verify-api-docs.sh 2>/dev/null || echo "Warning: Some API endpoints may not be properly documented. Continuing with documentation generation..."
-	@echo "Generating documentation for plugin component..."
-	$(MAKE) generate-docs 2>&1 | grep -v "warning: "
-	@echo "[ok] Swagger documentation generated successfully ✔️"
-
-
-.PHONY: verify-api-docs
-verify-api-docs:
-	$(call print_title,"Verifying API documentation coverage")
-	@if [ -f "./scripts/package.json" ]; then \
-		echo "Installing npm dependencies..."; \
-		cd ./scripts && npm install; \
-	fi
-	@sh ./scripts/verify-api-docs.sh
-	@echo "[ok] API documentation verification completed ✔️"
-
-.PHONY: validate-api-docs-legacy
-validate-api-docs-legacy:
-	$(call print_title,"Validating API documentation structure and implementation")
-	@if [ -f "./scripts/package.json" ]; then \
-		echo "Using npm to run validation..."; \
-		cd ./scripts && npm run validate-all; \
-	else \
-		echo "No package.json found in scripts directory. Running traditional validation..."; \
-		$(MAKE) verify-api-docs; \
-	fi
-	@echo "[ok] API documentation validation completed ✔️"
-
-.PHONY: validate-plugin
-validate-plugin:
-	$(call print_title,"Validating pluginAPI documentation")
-	@if [ -f "./scripts/package.json" ]; then \
-		echo "Installing npm dependencies..."; \
-		cd ./scripts && npm install; \
-	fi
-	make validate-api-docs
-	@echo "[ok] plugin API validation completed ✔️"
-
-
 .PHONY: generate-docs
 generate-docs:
 	$(call print_title,"Generating Swagger API documentation")

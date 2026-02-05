@@ -194,7 +194,7 @@ func (r *RabbitMQContainer) setupTopology(amqpURL string) error {
 	return nil
 }
 
-// Restart stops and starts the RabbitMQ container.
+// Restart stops and starts the RabbitMQ container, refreshing connection info.
 func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) error {
 	if err := r.Stop(ctx, nil); err != nil {
 		return fmt.Errorf("stop rabbitmq: %w", err)
@@ -208,7 +208,33 @@ func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) er
 		return fmt.Errorf("start rabbitmq: %w", err)
 	}
 
-	// Re-setup topology after restart
+	// Refresh connection info after restart (port mappings may change)
+	amqpURL, err := r.RabbitMQContainer.AmqpURL(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq amqp url: %w", err)
+	}
+
+	host, err := r.RabbitMQContainer.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq host: %w", err)
+	}
+
+	amqpPort, err := r.RabbitMQContainer.MappedPort(ctx, "5672")
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq amqp port: %w", err)
+	}
+
+	mgmtPort, err := r.RabbitMQContainer.MappedPort(ctx, "15672")
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq management port: %w", err)
+	}
+
+	r.AmqpURL = amqpURL
+	r.Host = host
+	r.AmqpPort = amqpPort.Port()
+	r.MgmtPort = mgmtPort.Port()
+
+	// Re-setup topology after restart with refreshed URL
 	if err := r.setupTopology(r.AmqpURL); err != nil {
 		return fmt.Errorf("re-setup topology: %w", err)
 	}

@@ -77,7 +77,7 @@ func StartValkey(ctx context.Context, networkName, image string) (*ValkeyContain
 	}, nil
 }
 
-// Restart stops and starts the Valkey container.
+// Restart stops and starts the Valkey container, refreshing connection info.
 func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) error {
 	if err := v.Stop(ctx, nil); err != nil {
 		return fmt.Errorf("stop valkey: %w", err)
@@ -90,6 +90,26 @@ func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) erro
 	if err := v.Start(ctx); err != nil {
 		return fmt.Errorf("start valkey: %w", err)
 	}
+
+	// Refresh connection info after restart (port mappings may change)
+	connStr, err := v.RedisContainer.ConnectionString(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh valkey connection string: %w", err)
+	}
+
+	host, err := v.RedisContainer.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh valkey host: %w", err)
+	}
+
+	mappedPort, err := v.RedisContainer.MappedPort(ctx, "6379")
+	if err != nil {
+		return fmt.Errorf("refresh valkey port: %w", err)
+	}
+
+	v.Address = connStr
+	v.Host = host
+	v.Port = mappedPort.Port()
 
 	return nil
 }

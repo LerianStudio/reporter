@@ -354,8 +354,7 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		OutputFormat: "html",
 		DataQueries: map[string]map[string][]string{
 			"plugin_crm": {
-				"organization": {organizationID},
-				"holders":      {"name", "document", "contact.primary_email", "banking_details.account"},
+				"holders": {"name", "document", "contact.primary_email", "banking_details.account"},
 			},
 		},
 		Filters: map[string]map[string]map[string]model.FilterCondition{
@@ -382,16 +381,6 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		EXPECT().
 		Get(gomock.Any(), templateID.String()).
 		Return([]byte(templateContent), nil)
-
-	mockMongoRepo.
-		EXPECT().
-		Query(
-			gomock.Any(),
-			"organization",
-			[]string{organizationID},
-			nil,
-		).
-		Return([]map[string]any{{"id": organizationID}}, nil)
 
 	mockMongoRepo.
 		EXPECT().
@@ -449,9 +438,10 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		CircuitBreakerManager: circuitBreakerManager,
 		ExternalDataSources: map[string]pkg.DataSource{
 			"plugin_crm": {
-				Initialized:       true,
-				DatabaseType:      "mongodb",
-				MongoDBRepository: mockMongoRepo,
+				Initialized:         true,
+				DatabaseType:        "mongodb",
+				MongoDBRepository:   mockMongoRepo,
+				MidazOrganizationID: organizationID,
 			},
 		},
 	}

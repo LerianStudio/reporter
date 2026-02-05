@@ -18,7 +18,7 @@ import (
 )
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
-func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizationID string, logger log.Logger, mappedFields map[string]map[string][]string) error {
+func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, _ string, logger log.Logger, mappedFields map[string]map[string][]string) error {
 	for databaseName := range mappedFields {
 		if !pkg.IsValidDataSourceID(databaseName) {
 			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
@@ -31,7 +31,7 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizati
 		}
 	}
 
-	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, organizationID)
+	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, uc.ExternalDataSources)
 
 	for databaseName := range mappedFields {
 		dataSource := uc.ExternalDataSources[databaseName]
@@ -156,7 +156,18 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 
 // validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
 func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
-	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	var (
+		schema []mongodb.CollectionSchema
+		err    error
+	)
+
+	// For plugin_crm with MidazOrganizationID, fetch only collections for that organization
+	if dataSource.MidazOrganizationID != "" {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, dataSource.MidazOrganizationID)
+	} else {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -195,8 +206,8 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 }
 
 // generateCopyOfMappedFields generate a copy of mapped fields to make a deep copy of the original
-// For plugin_crm database, table names are appended with organizationID
-func generateCopyOfMappedFields(orig map[string]map[string][]string, organizationID string) map[string]map[string][]string {
+// For plugin_crm database, table names are appended with MidazOrganizationID from datasource config
+func generateCopyOfMappedFields(orig map[string]map[string][]string, dataSources map[string]pkg.DataSource) map[string]map[string][]string {
 	copyMappedFields := make(map[string]map[string][]string)
 
 	for k, v := range orig {
@@ -206,10 +217,14 @@ func generateCopyOfMappedFields(orig map[string]map[string][]string, organizatio
 			newSlice := make([]string, len(subV))
 			copy(newSlice, subV)
 
-			// For plugin_crm database, append organizationID to table names
+			// For plugin_crm database, append MidazOrganizationID to table names
 			if k == "plugin_crm" {
-				newTableName := subK + "_" + organizationID
-				sub[newTableName] = newSlice
+				if ds, exists := dataSources[k]; exists && ds.MidazOrganizationID != "" {
+					newTableName := subK + "_" + ds.MidazOrganizationID
+					sub[newTableName] = newSlice
+				} else {
+					sub[subK] = newSlice
+				}
 			} else {
 				sub[subK] = newSlice
 			}
@@ -239,8 +254,8 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 			}
 		}
 
-		// For plugin_crm database, always add organization mapping
-		if databaseName == "plugin_crm" {
+		// For plugin_crm database, add organization mapping only if organizationID is provided
+		if databaseName == "plugin_crm" && organizationID != "" {
 			transformedTables["organization"] = []string{organizationID}
 		}
 

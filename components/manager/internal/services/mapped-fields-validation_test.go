@@ -497,10 +497,10 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 
 func TestGenerateCopyOfMappedFields(t *testing.T) {
 	tests := []struct {
-		name           string
-		original       map[string]map[string][]string
-		organizationID string
-		checkModified  func(t *testing.T, original, copy map[string]map[string][]string)
+		name          string
+		original      map[string]map[string][]string
+		dataSources   map[string]pkg.DataSource
+		checkModified func(t *testing.T, original, copy map[string]map[string][]string)
 	}{
 		{
 			name: "Creates deep copy - regular database",
@@ -509,7 +509,9 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 					"users": {"id", "name"},
 				},
 			},
-			organizationID: "org-123",
+			dataSources: map[string]pkg.DataSource{
+				"midaz_onboarding": {},
+			},
 			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
 				// Verify copy has same structure
 				assert.Contains(t, copiedFields, "midaz_onboarding")
@@ -522,13 +524,15 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 			},
 		},
 		{
-			name: "Plugin CRM - appends organization ID to table names",
+			name: "Plugin CRM - appends MidazOrganizationID to table names",
 			original: map[string]map[string][]string{
 				"plugin_crm": {
 					"contacts": {"id", "name"},
 				},
 			},
-			organizationID: "org-456",
+			dataSources: map[string]pkg.DataSource{
+				"plugin_crm": {MidazOrganizationID: "org-456"},
+			},
 			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
 				// Verify copy has modified table name with organization ID
 				assert.Contains(t, copiedFields, "plugin_crm")
@@ -541,9 +545,26 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 			},
 		},
 		{
-			name:           "Empty mapped fields",
-			original:       map[string]map[string][]string{},
-			organizationID: "org-123",
+			name: "Plugin CRM - no MidazOrganizationID keeps original table names",
+			original: map[string]map[string][]string{
+				"plugin_crm": {
+					"contacts": {"id", "name"},
+				},
+			},
+			dataSources: map[string]pkg.DataSource{
+				"plugin_crm": {},
+			},
+			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
+				// Verify copy keeps original table name when no MidazOrganizationID
+				assert.Contains(t, copiedFields, "plugin_crm")
+				assert.Contains(t, copiedFields["plugin_crm"], "contacts")
+				assert.ElementsMatch(t, []string{"id", "name"}, copiedFields["plugin_crm"]["contacts"])
+			},
+		},
+		{
+			name:        "Empty mapped fields",
+			original:    map[string]map[string][]string{},
+			dataSources: map[string]pkg.DataSource{},
 			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
 				assert.Empty(t, copiedFields)
 			},
@@ -552,7 +573,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			copiedFields := generateCopyOfMappedFields(tt.original, tt.organizationID)
+			copiedFields := generateCopyOfMappedFields(tt.original, tt.dataSources)
 			tt.checkModified(t, tt.original, copiedFields)
 		})
 	}

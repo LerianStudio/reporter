@@ -194,7 +194,14 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 		err    error
 	)
 
-	schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	// If MidazOrganizationID is configured (e.g., for plugin_crm), fetch only collections for that organization
+	if dataSource.MidazOrganizationID != "" {
+		logger.Infof("Fetching schema for Midaz organization %s in datasource %s", dataSource.MidazOrganizationID, dataSourceID)
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, dataSource.MidazOrganizationID)
+	} else {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	}
+
 	if err != nil {
 		logger.Errorf("Error get schemas of mongo db: %s", err.Error())
 		return nil, err

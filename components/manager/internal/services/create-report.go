@@ -7,7 +7,6 @@ package services
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
@@ -64,11 +63,8 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		return nil, err
 	}
 
-	// Normalize filters to include schema (default to "public" if not specified)
-	normalizedFilters := normalizeFiltersWithSchema(reportInput.Filters)
-
-	if normalizedFilters != nil {
-		filtersMapped := uc.convertFiltersToMappedFieldsType(normalizedFilters)
+	if reportInput.Filters != nil {
+		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
 		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, "", logger, filtersMapped); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
 
@@ -80,7 +76,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	reportModel := &report.Report{
 		ID:         commons.GenerateUUIDv7(),
 		TemplateID: templateId,
-		Filters:    normalizedFilters,
+		Filters:    reportInput.Filters,
 		Status:     constant.ProcessingStatus,
 	}
 
@@ -97,7 +93,7 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	reportMessage := model.ReportMessage{
 		TemplateID:   templateId,
 		ReportID:     result.ID,
-		Filters:      normalizedFilters,
+		Filters:      reportInput.Filters,
 		OutputFormat: *tOutputFormat,
 		MappedFields: tMappedFields,
 	}
@@ -134,41 +130,4 @@ func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[strin
 	}
 
 	return output
-}
-
-// normalizeFiltersWithSchema normalizes filter table names to include schema.
-// If a table name doesn't have a schema prefix (no "." or "__"), it defaults to "public.table".
-// This ensures consistent handling of filters in both validation and worker processing.
-//
-// Examples:
-//   - "organization" -> "public.organization"
-//   - "public.ledger" -> "public.ledger" (unchanged)
-//   - "payment.account" -> "payment.account" (unchanged)
-//   - "payment__transfers" -> "payment__transfers" (unchanged, Pongo2 format)
-func normalizeFiltersWithSchema(filters map[string]map[string]map[string]model.FilterCondition) map[string]map[string]map[string]model.FilterCondition {
-	if filters == nil {
-		return nil
-	}
-
-	normalized := make(map[string]map[string]map[string]model.FilterCondition)
-
-	for datasource, tables := range filters {
-		normalized[datasource] = make(map[string]map[string]model.FilterCondition)
-
-		for tableName, fields := range tables {
-			// Check if table name already has a schema
-			// Formats with schema: "schema.table" or "schema__table" (Pongo2)
-			hasSchema := strings.Contains(tableName, ".") || strings.Contains(tableName, "__")
-
-			normalizedTableName := tableName
-			if !hasSchema {
-				// Default to public schema
-				normalizedTableName = "public." + tableName
-			}
-
-			normalized[datasource][normalizedTableName] = fields
-		}
-	}
-
-	return normalized
 }
