@@ -359,7 +359,6 @@ func TestReportHandler_GetAllReports(t *testing.T) {
 	}
 }
 
-
 func TestReportHandler_GetDownloadReport(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

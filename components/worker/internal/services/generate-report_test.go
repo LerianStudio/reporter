@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -1420,7 +1420,6 @@ func TestQueryDatabase_UnknownDataSource(t *testing.T) {
 		logger,
 		tracer,
 	)
-
 	// Unknown data source should not return error, just skip
 	if err != nil {
 		t.Errorf("expected nil error for unknown data source, got: %v", err)
@@ -1555,14 +1554,14 @@ func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 
 	filter := map[string]model.FilterCondition{
 		"document": {
-			Equals:        []any{"value1"},
-			GreaterThan:   []any{"value2"},
+			Equals:         []any{"value1"},
+			GreaterThan:    []any{"value2"},
 			GreaterOrEqual: []any{"value3"},
-			LessThan:      []any{"value4"},
-			LessOrEqual:   []any{"value5"},
-			Between:       []any{"value6", "value7"},
-			In:            []any{"value8"},
-			NotIn:         []any{"value9"},
+			LessThan:       []any{"value4"},
+			LessOrEqual:    []any{"value5"},
+			Between:        []any{"value6", "value7"},
+			In:             []any{"value8"},
+			NotIn:          []any{"value9"},
 		},
 	}
 
@@ -2006,7 +2005,6 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 				result,
 				logger,
 			)
-
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -2421,7 +2419,6 @@ func TestQueryMongoDatabase_Success(t *testing.T) {
 		result,
 		logger,
 	)
-
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -2476,7 +2473,6 @@ func TestQueryMongoDatabase_WithFilters(t *testing.T) {
 		result,
 		logger,
 	)
-
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -2519,7 +2515,6 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 		result,
 		logger,
 	)
-
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

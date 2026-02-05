@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -34,7 +34,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 	logger.Infof("Getting data source information")
 
-	var result = make([]*model.DataSourceInformation, 0)
+	result := make([]*model.DataSourceInformation, 0)
 
 	for key, dataSource := range uc.ExternalDataSources {
 		if !pkg.IsValidDataSourceID(key) {

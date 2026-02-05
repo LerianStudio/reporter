@@ -14,9 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	UUIDPathParameter = "id"
-)
+var UUIDPathParameter = "id"
 
 // ParsePathParametersUUID convert and validate if the path parameter is UUID
 func ParsePathParametersUUID(c *fiber.Ctx) error {

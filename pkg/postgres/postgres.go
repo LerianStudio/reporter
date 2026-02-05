@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -6,10 +6,9 @@ package postgres
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/LerianStudio/reporter/v4/pkg/constant"
-
-	"strings"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	_ "github.com/jackc/pgx/v5/stdlib" // Registers the "pgx" driver with database/sql via init() – required for sql.Open("pgx", ...)

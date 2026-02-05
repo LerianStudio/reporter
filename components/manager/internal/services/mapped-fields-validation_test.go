@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -22,23 +22,23 @@ import (
 // mockLogger is a simple no-op logger for testing
 type mockLogger struct{}
 
-func (m *mockLogger) Info(args ...any)                                {}
-func (m *mockLogger) Infof(format string, args ...any)                {}
-func (m *mockLogger) Infoln(args ...any)                              {}
-func (m *mockLogger) Warn(args ...any)                                {}
-func (m *mockLogger) Warnf(format string, args ...any)                {}
-func (m *mockLogger) Warnln(args ...any)                              {}
-func (m *mockLogger) Error(args ...any)                               {}
-func (m *mockLogger) Errorf(format string, args ...any)               {}
-func (m *mockLogger) Errorln(args ...any)                             {}
-func (m *mockLogger) Debug(args ...any)                               {}
-func (m *mockLogger) Debugf(format string, args ...any)               {}
-func (m *mockLogger) Debugln(args ...any)                             {}
-func (m *mockLogger) Fatal(args ...any)                               {}
-func (m *mockLogger) Fatalf(format string, args ...any)               {}
-func (m *mockLogger) Fatalln(args ...any)                             {}
-func (m *mockLogger) WithFields(fields ...any) log.Logger             { return m }
-func (m *mockLogger) Sync() error                                     { return nil }
+func (m *mockLogger) Info(args ...any)                               {}
+func (m *mockLogger) Infof(format string, args ...any)               {}
+func (m *mockLogger) Infoln(args ...any)                             {}
+func (m *mockLogger) Warn(args ...any)                               {}
+func (m *mockLogger) Warnf(format string, args ...any)               {}
+func (m *mockLogger) Warnln(args ...any)                             {}
+func (m *mockLogger) Error(args ...any)                              {}
+func (m *mockLogger) Errorf(format string, args ...any)              {}
+func (m *mockLogger) Errorln(args ...any)                            {}
+func (m *mockLogger) Debug(args ...any)                              {}
+func (m *mockLogger) Debugf(format string, args ...any)              {}
+func (m *mockLogger) Debugln(args ...any)                            {}
+func (m *mockLogger) Fatal(args ...any)                              {}
+func (m *mockLogger) Fatalf(format string, args ...any)              {}
+func (m *mockLogger) Fatalln(args ...any)                            {}
+func (m *mockLogger) WithFields(fields ...any) log.Logger            { return m }
+func (m *mockLogger) Sync() error                                    { return nil }
 func (m *mockLogger) WithDefaultMessageTemplate(s string) log.Logger { return m }
 
 func newMockLogger() *mockLogger {

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -16,9 +16,9 @@ import (
 
 func TestNewLoggerFromContext(t *testing.T) {
 	tests := []struct {
-		name        string
-		setupCtx    func() context.Context
-		expectNone  bool
+		name       string
+		setupCtx   func() context.Context
+		expectNone bool
 	}{
 		{
 			name: "Context with logger",

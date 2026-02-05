@@ -356,10 +356,10 @@ func TestSumFilter_MissingField(t *testing.T) {
 func TestSumFilter_MixedTypes(t *testing.T) {
 	// int, int64, float64, string numeric values
 	input := []map[string]any{
-		{"value": 100},           // int
-		{"value": int64(200)},    // int64
-		{"value": 300.50},        // float64
-		{"value": "400.25"},      // string
+		{"value": 100},        // int
+		{"value": int64(200)}, // int64
+		{"value": 300.50},     // float64
+		{"value": "400.25"},   // string
 	}
 
 	val, err := sumFilter(pongo2.AsValue(input), pongo2.AsValue("value"))
