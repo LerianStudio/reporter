@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 )
 
 // GetMapNumKinds get the map of numeric kinds to use in validations and conversions.

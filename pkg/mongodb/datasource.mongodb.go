@@ -9,8 +9,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 

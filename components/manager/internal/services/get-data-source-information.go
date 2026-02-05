@@ -8,8 +8,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

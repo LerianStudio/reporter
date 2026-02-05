@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestNullPayloadValidation tests that null payloads are properly rejected with 400

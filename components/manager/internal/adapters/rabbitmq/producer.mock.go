@@ -12,7 +12,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	model "github.com/LerianStudio/reporter/v4/pkg/model"
+	model "github.com/LerianStudio/reporter/pkg/model"
 
 	gomock "go.uber.org/mock/gomock"
 )

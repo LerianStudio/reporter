@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // FuzzCreateReportInput — Fuzz test for create report input

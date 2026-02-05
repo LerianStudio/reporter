@@ -11,17 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	_ "github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	_ "github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
 func Test_GetDataSourceDetailsByID(t *testing.T) {

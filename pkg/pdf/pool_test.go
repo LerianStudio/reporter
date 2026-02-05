@@ -5,7 +5,6 @@
 package pdf
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -14,10 +13,6 @@ import (
 
 // Note: Tests that require Chrome are skipped in CI environments.
 // Use SKIP_CHROME_TESTS=1 to skip Chrome-dependent tests.
-
-func shouldSkipChromeTests() bool {
-	return os.Getenv("SKIP_CHROME_TESTS") == "1"
-}
 
 func TestTask_Struct(t *testing.T) {
 	resultChan := make(chan error, 1)

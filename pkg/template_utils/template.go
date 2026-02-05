@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 )
 
 // GetMimeType return a MIME type correctly based with outputFormat
@@ -166,10 +166,12 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 
 		variableMap[mainPath[1]] = mainPath
 
-		// Detect if this is a "by" expression (4 args: mainPath, byField, ifField, value)
-		// In this case, args[1] is the "by" field which is a nested JSON field path,
+		// Detect if this is a "by" expression using parity:
+		// - With "by": mainPath(1) + byField(1) + conditionPairs(2n) = even number
+		// - Without "by": mainPath(1) + conditionPairs(2n) = odd number
+		// In "by" expressions, args[1] is a nested JSON field path (e.g., "fee_charge.totalAmount"),
 		// NOT a datasource reference. It should be preserved as-is.
-		hasByClause := len(args) == 4
+		hasByClause := len(args) >= 4 && len(args)%2 == 0
 
 		for i, arg := range args[1:] {
 			// Skip quoted string literals (values like "cacc", 'value', etc.)

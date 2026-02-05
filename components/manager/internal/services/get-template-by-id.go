@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

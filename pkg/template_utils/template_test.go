@@ -733,6 +733,33 @@ func TestMappedFieldsOfTemplate_AggregationCompoundConditions(t *testing.T) {
 	assert.Contains(t, tableFields, "status", "Field 'status' from third condition should be mapped")
 }
 
+func TestMappedFieldsOfTemplate_AggregationNestedJSONBWithCompoundConditions(t *testing.T) {
+	// Regression test: nested JSONB field path in "by" clause combined with compound conditions
+	// This was causing TPL-0031 error because fee_charge.totalAmount was incorrectly treated as a datasource
+	template := `{% sum_by pix_direct_jd:payment.transfers by "fee_charge.totalAmount" if transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED" %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	t.Logf("Result: %+v", result)
+
+	// Should have "pix_direct_jd" as datasource
+	assert.Contains(t, result, "pix_direct_jd")
+
+	// Should have "payment__transfers" as collection
+	assert.Contains(t, result["pix_direct_jd"], "payment__transfers")
+
+	// Should NOT have "fee_charge" as a separate datasource
+	_, hasFeeCharge := result["fee_charge"]
+	assert.False(t, hasFeeCharge, "fee_charge should NOT be treated as a datasource")
+
+	// The nested field should be preserved as-is
+	tableFields := result["pix_direct_jd"]["payment__transfers"]
+	assert.Contains(t, tableFields, "fee_charge.totalAmount", "Nested JSONB field should be preserved as complete path")
+	assert.Contains(t, tableFields, "transfer_type", "Condition field should be mapped")
+	assert.Contains(t, tableFields, "destination_person_type", "Condition field should be mapped")
+	assert.Contains(t, tableFields, "status", "Condition field should be mapped")
+}
+
 func TestExtractFieldsFromConditions(t *testing.T) {
 	tests := []struct {
 		name       string

@@ -472,12 +472,32 @@ func TestValidateServerAddress(t *testing.T) {
 			input:    "server:65535",
 			expected: "server:65535",
 		},
+		{
+			name:     "Valid - port zero",
+			input:    "server:0",
+			expected: "server:0",
+		},
+		{
+			name:     "Valid - port 1",
+			input:    "server:1",
+			expected: "server:1",
+		},
+		{
+			name:     "Invalid - port out of range (too high)",
+			input:    "server:65536",
+			expected: "server:65536", // Note: ValidateServerAddress only validates format, not port range
+		},
+		{
+			name:     "Invalid - negative port",
+			input:    "server:-1",
+			expected: "", // Regex doesn't match negative numbers
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := ValidateServerAddress(tt.input)
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expected, result, "For input %q", tt.input)
 		})
 	}
 }

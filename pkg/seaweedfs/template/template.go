@@ -11,9 +11,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/storage"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/storage"
 )
 
 // Repository provides an interface for storage operations

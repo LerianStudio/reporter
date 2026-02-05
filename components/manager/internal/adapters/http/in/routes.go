@@ -5,8 +5,8 @@
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	middlewareAuth "github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

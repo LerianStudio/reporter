@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestPredefinedInvalidTemplates tests pre-defined templates that should fail gracefully

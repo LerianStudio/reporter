@@ -220,6 +220,41 @@ func TestValidateFieldsInSchemaPostgres_MixedSimpleAndNested(t *testing.T) {
 	assert.Contains(t, missing, "invalid.path")
 }
 
+func TestValidateFieldsInSchemaPostgres_DottedPathOnNonJSONBColumn(t *testing.T) {
+	// Test that dotted paths are validated based on root column existence only.
+	// Note: The current implementation does NOT check if the column type is JSONB.
+	// It only validates that the root column exists, regardless of type.
+	// This is a design decision - the database query will fail at runtime if
+	// the column doesn't support nested access.
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "users",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "name", DataType: "varchar"},     // Not JSONB
+			{Name: "settings", DataType: "jsonb"},   // JSONB
+			{Name: "created_at", DataType: "timestamp"},
+		},
+	}
+
+	expectedFields := []string{
+		"id",                  // Simple - exists
+		"name.first",          // Dotted path on varchar - root column exists (passes validation)
+		"settings.theme",      // Dotted path on jsonb - root column exists
+		"created_at.year",     // Dotted path on timestamp - root column exists
+		"nonexistent.field",   // Dotted path where root doesn't exist - should be missing
+	}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	// Current behavior: Only validates root column existence, not type
+	// Only "nonexistent.field" should be missing because "nonexistent" column doesn't exist
+	assert.Len(t, missing, 1, "Only dotted paths with non-existent root columns should be missing")
+	assert.Contains(t, missing, "nonexistent.field", "Dotted path with non-existent root should be missing")
+	assert.Equal(t, int32(5), count)
+}
+
 func TestColumnInformation_Struct(t *testing.T) {
 	col := ColumnInformation{
 		Name:         "user_id",

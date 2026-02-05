@@ -15,25 +15,28 @@ import (
 )
 
 func TestNewLoggerFromContext(t *testing.T) {
+	// Create a shared logger instance for the "with logger" test case
+	sharedLogger := &log.NoneLogger{}
+
 	tests := []struct {
-		name       string
-		setupCtx   func() context.Context
-		expectNone bool
+		name         string
+		setupCtx     func() context.Context
+		expectSame   log.Logger // If non-nil, expect this exact logger instance
+		expectIsNone bool       // If true, expect result to be *log.NoneLogger type
 	}{
 		{
 			name: "Context with logger",
 			setupCtx: func() context.Context {
-				logger := &log.NoneLogger{}
-				return ContextWithLogger(context.Background(), logger)
+				return ContextWithLogger(context.Background(), sharedLogger)
 			},
-			expectNone: true, // We expect the logger we set
+			expectSame: sharedLogger,
 		},
 		{
 			name: "Empty context - returns NoneLogger",
 			setupCtx: func() context.Context {
 				return context.Background()
 			},
-			expectNone: true,
+			expectIsNone: true,
 		},
 		{
 			name: "Context with CustomContextKeyValue but nil logger",
@@ -42,7 +45,7 @@ func TestNewLoggerFromContext(t *testing.T) {
 					Logger: nil,
 				})
 			},
-			expectNone: true,
+			expectIsNone: true,
 		},
 	}
 
@@ -52,32 +55,39 @@ func TestNewLoggerFromContext(t *testing.T) {
 			logger := NewLoggerFromContext(ctx)
 
 			assert.NotNil(t, logger)
-			if tt.expectNone {
+
+			if tt.expectSame != nil {
+				assert.Equal(t, tt.expectSame, logger, "Expected the exact logger instance that was set")
+			} else if tt.expectIsNone {
 				_, isNoneLogger := logger.(*log.NoneLogger)
-				// Either it's a NoneLogger or it's the logger we set
-				assert.True(t, isNoneLogger || logger != nil)
+				assert.True(t, isNoneLogger, "Expected logger to be *log.NoneLogger type")
 			}
 		})
 	}
 }
 
 func TestNewTracerFromContext(t *testing.T) {
+	// Create a shared tracer instance for the "with tracer" test case
+	sharedTracer := otel.Tracer("test-shared")
+
 	tests := []struct {
-		name     string
-		setupCtx func() context.Context
+		name       string
+		setupCtx   func() context.Context
+		expectSame trace.Tracer // If non-nil, expect this exact tracer instance
 	}{
 		{
 			name: "Context with tracer",
 			setupCtx: func() context.Context {
-				tracer := otel.Tracer("test")
-				return ContextWithTracer(context.Background(), tracer)
+				return ContextWithTracer(context.Background(), sharedTracer)
 			},
+			expectSame: sharedTracer,
 		},
 		{
 			name: "Empty context - returns default tracer",
 			setupCtx: func() context.Context {
 				return context.Background()
 			},
+			expectSame: nil, // Just verify not nil
 		},
 		{
 			name: "Context with CustomContextKeyValue but nil tracer",
@@ -86,6 +96,7 @@ func TestNewTracerFromContext(t *testing.T) {
 					Tracer: nil,
 				})
 			},
+			expectSame: nil, // Just verify not nil
 		},
 	}
 
@@ -96,6 +107,10 @@ func TestNewTracerFromContext(t *testing.T) {
 
 			// Tracer should never be nil
 			assert.NotNil(t, tracer)
+
+			if tt.expectSame != nil {
+				assert.Equal(t, tt.expectSame, tracer, "Expected the exact tracer instance that was set")
+			}
 		})
 	}
 }

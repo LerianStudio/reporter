@@ -8,11 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"

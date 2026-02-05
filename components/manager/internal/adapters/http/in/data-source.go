@@ -5,10 +5,10 @@
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	_ "github.com/LerianStudio/reporter/v4/pkg"
-	_ "github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	_ "github.com/LerianStudio/reporter/pkg"
+	_ "github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"

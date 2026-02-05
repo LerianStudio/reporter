@@ -8,7 +8,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/stretchr/testify/assert"
 )
 

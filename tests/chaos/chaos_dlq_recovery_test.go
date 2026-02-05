@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestChaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

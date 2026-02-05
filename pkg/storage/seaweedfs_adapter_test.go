@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/seaweedfs"
+	"github.com/LerianStudio/reporter/pkg/seaweedfs"
 	"github.com/stretchr/testify/assert"
 )
 

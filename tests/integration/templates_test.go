@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // GET /v1/templates — filters and pagination

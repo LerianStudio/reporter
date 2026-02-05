@@ -5,8 +5,8 @@
 package main
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/bootstrap"
-	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
+	"github.com/LerianStudio/reporter/pkg"
 )
 
 // @title			Reporter

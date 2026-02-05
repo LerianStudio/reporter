@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )

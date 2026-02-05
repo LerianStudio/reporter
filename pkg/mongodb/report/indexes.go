@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

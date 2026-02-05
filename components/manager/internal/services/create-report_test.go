@@ -8,11 +8,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

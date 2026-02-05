@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"

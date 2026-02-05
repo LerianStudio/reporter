@@ -286,10 +286,11 @@ func TestSeaweedFSClient_LargeFile(t *testing.T) {
 		largeContent[i] = byte(i % 256)
 	}
 
-	var receivedSize int
+	// Use a channel to safely communicate the received size from the handler goroutine
+	receivedSizeChan := make(chan int, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		receivedSize = len(body)
+		receivedSizeChan <- len(body)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -297,5 +298,7 @@ func TestSeaweedFSClient_LargeFile(t *testing.T) {
 	client := NewSeaweedFSClient(server.URL)
 	err := client.UploadFile(context.Background(), "/large-file", largeContent)
 	assert.NoError(t, err)
+
+	receivedSize := <-receivedSizeChan
 	assert.Equal(t, len(largeContent), receivedSize)
 }

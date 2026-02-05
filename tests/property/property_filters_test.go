@@ -9,7 +9,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/model"
 )
 
 // Property 1: Filtros vazios devem ter todos os campos vazios

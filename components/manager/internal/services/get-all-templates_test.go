@@ -8,9 +8,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	httpUtils "github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	httpUtils "github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

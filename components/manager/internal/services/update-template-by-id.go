@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
-	templateUtils "github.com/LerianStudio/reporter/v4/pkg/template_utils"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/net/http"
+	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

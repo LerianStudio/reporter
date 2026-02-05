@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	pg "github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/pkg/postgres"
 
 	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

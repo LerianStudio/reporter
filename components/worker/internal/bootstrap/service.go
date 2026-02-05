@@ -5,7 +5,7 @@
 package bootstrap
 
 import (
-	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/pkg"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/LerianStudio/reporter/v4/pkg/template_utils"
+	"github.com/LerianStudio/reporter/pkg/template_utils"
 )
 
 // Property 1: Template parsing deve ser determinístico

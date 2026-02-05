@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/tests/helpers/containers"
-	"github.com/LerianStudio/reporter/v4/tests/helpers/services"
+	"github.com/LerianStudio/reporter/tests/helpers/containers"
+	"github.com/LerianStudio/reporter/tests/helpers/services"
 )
 
 var (

@@ -3,7 +3,7 @@ package pkg
 import (
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
 func TestSchemaResolver_ResolveSchema(t *testing.T) {

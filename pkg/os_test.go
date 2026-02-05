@@ -56,11 +56,11 @@ func TestGetEnvOrDefault(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up
-			defer os.Unsetenv(tt.envKey)
+			// Ensure clean state before test
+			os.Unsetenv(tt.envKey)
 
 			if tt.setEnv {
-				os.Setenv(tt.envKey, tt.envValue)
+				t.Setenv(tt.envKey, tt.envValue)
 			}
 
 			result := GetEnvOrDefault(tt.envKey, tt.defaultValue)
@@ -146,10 +146,11 @@ func TestGetenvBoolOrDefault(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer os.Unsetenv(tt.envKey)
+			// Ensure clean state before test
+			os.Unsetenv(tt.envKey)
 
 			if tt.setEnv {
-				os.Setenv(tt.envKey, tt.envValue)
+				t.Setenv(tt.envKey, tt.envValue)
 			}
 
 			result := GetenvBoolOrDefault(tt.envKey, tt.defaultValue)
@@ -235,10 +236,11 @@ func TestGetenvIntOrDefault(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer os.Unsetenv(tt.envKey)
+			// Ensure clean state before test
+			os.Unsetenv(tt.envKey)
 
 			if tt.setEnv {
-				os.Setenv(tt.envKey, tt.envValue)
+				t.Setenv(tt.envKey, tt.envValue)
 			}
 
 			result := GetenvIntOrDefault(tt.envKey, tt.defaultValue)
@@ -256,14 +258,9 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	}
 
 	t.Run("Set all fields from env vars", func(t *testing.T) {
-		os.Setenv("TEST_STRING_FIELD", "test_string")
-		os.Setenv("TEST_INT_FIELD", "42")
-		os.Setenv("TEST_BOOL_FIELD", "true")
-		defer func() {
-			os.Unsetenv("TEST_STRING_FIELD")
-			os.Unsetenv("TEST_INT_FIELD")
-			os.Unsetenv("TEST_BOOL_FIELD")
-		}()
+		t.Setenv("TEST_STRING_FIELD", "test_string")
+		t.Setenv("TEST_INT_FIELD", "42")
+		t.Setenv("TEST_BOOL_FIELD", "true")
 
 		config := &TestConfig{}
 		err := SetConfigFromEnvVars(config)
@@ -283,8 +280,7 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	})
 
 	t.Run("Fields without env tag are not modified", func(t *testing.T) {
-		os.Setenv("TEST_STRING_FIELD", "value")
-		defer os.Unsetenv("TEST_STRING_FIELD")
+		t.Setenv("TEST_STRING_FIELD", "value")
 
 		config := &TestConfig{NoTagField: "original"}
 		err := SetConfigFromEnvVars(config)
@@ -318,18 +314,11 @@ func TestSetConfigFromEnvVars_AllIntTypes(t *testing.T) {
 		Int64 int64 `env:"TEST_INT64"`
 	}
 
-	os.Setenv("TEST_INT", "1")
-	os.Setenv("TEST_INT8", "8")
-	os.Setenv("TEST_INT16", "16")
-	os.Setenv("TEST_INT32", "32")
-	os.Setenv("TEST_INT64", "64")
-	defer func() {
-		os.Unsetenv("TEST_INT")
-		os.Unsetenv("TEST_INT8")
-		os.Unsetenv("TEST_INT16")
-		os.Unsetenv("TEST_INT32")
-		os.Unsetenv("TEST_INT64")
-	}()
+	t.Setenv("TEST_INT", "1")
+	t.Setenv("TEST_INT8", "8")
+	t.Setenv("TEST_INT16", "16")
+	t.Setenv("TEST_INT32", "32")
+	t.Setenv("TEST_INT64", "64")
 
 	config := &IntTypesConfig{}
 	err := SetConfigFromEnvVars(config)
@@ -348,8 +337,7 @@ func TestEnsureConfigFromEnvVars(t *testing.T) {
 	}
 
 	t.Run("Valid pointer - returns config", func(t *testing.T) {
-		os.Setenv("TEST_ENSURE_FIELD", "value")
-		defer os.Unsetenv("TEST_ENSURE_FIELD")
+		t.Setenv("TEST_ENSURE_FIELD", "value")
 
 		config := &TestConfig{}
 		result := EnsureConfigFromEnvVars(config)
@@ -372,9 +360,15 @@ func TestLocalEnvConfig(t *testing.T) {
 	// The test will depend on whether a .env file exists in the current directory
 
 	t.Run("Initialize local env config", func(t *testing.T) {
-		// Save original ENV_NAME
-		originalEnvName := os.Getenv("ENV_NAME")
-		defer os.Setenv("ENV_NAME", originalEnvName)
+		// Save original ENV_NAME and restore correctly based on whether it was set
+		originalEnvName, wasSet := os.LookupEnv("ENV_NAME")
+		defer func() {
+			if wasSet {
+				os.Setenv("ENV_NAME", originalEnvName)
+			} else {
+				os.Unsetenv("ENV_NAME")
+			}
+		}()
 
 		// Set ENV_NAME to something other than "local" to skip .env loading
 		os.Setenv("ENV_NAME", "test")

@@ -1,4 +1,4 @@
-module github.com/LerianStudio/reporter/v4
+module github.com/LerianStudio/reporter
 
 go 1.25
 

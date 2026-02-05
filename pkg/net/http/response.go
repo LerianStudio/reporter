@@ -7,7 +7,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/pkg"
 
 	"github.com/gofiber/fiber/v2"
 )

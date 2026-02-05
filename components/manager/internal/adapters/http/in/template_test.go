@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

@@ -5,12 +5,12 @@
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	_ "github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	_ "github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"

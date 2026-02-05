@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -499,7 +499,14 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 	var invalidFields []string
 
 	for _, field := range requestedFields {
-		if validColumns[field] {
+		// Handle nested JSONB field paths (e.g., "fee_charge.totalAmount")
+		// For nested paths, validate that the root column exists
+		fieldToCheck := field
+		if dotIdx := strings.Index(field, "."); dotIdx != -1 {
+			fieldToCheck = field[:dotIdx]
+		}
+
+		if validColumns[fieldToCheck] {
 			validFields = append(validFields, field)
 		} else {
 			invalidFields = append(invalidFields, field)
