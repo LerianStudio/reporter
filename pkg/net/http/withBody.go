@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -13,14 +13,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/pkg"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/gofiber/fiber/v2"
 	"gopkg.in/go-playground/validator.v9"
 
-	cn "github.com/LerianStudio/reporter/v4/pkg/constant"
+	cn "github.com/LerianStudio/reporter/pkg/constant"
 
 	en2 "github.com/go-playground/validator/translations/en"
 )

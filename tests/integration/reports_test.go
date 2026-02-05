@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,19 +9,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // GET /v1/reports — filters (status, templateId, createdAt)
 func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	q := "/v1/reports?status=Finished&limit=2&page=1"
 	code, body, err := cli.Request(ctx, "GET", q, headers, nil)
@@ -38,12 +35,9 @@ func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 func TestIntegration_Reports_Create_MinimalValidation(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	payload := map[string]any{
 		"templateId": "00000000-0000-0000-0000-000000000000",

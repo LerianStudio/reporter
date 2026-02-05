@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@ import (
 	"testing/quick"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // Property 1: Report criado deve sempre existir no MongoDB
@@ -21,16 +21,12 @@ func TestProperty_Report_ExistsAfterCreation(t *testing.T) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, env.DefaultOrgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		payload := map[string]any{
@@ -39,7 +35,7 @@ func TestProperty_Report_ExistsAfterCreation(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},
@@ -90,16 +86,12 @@ func TestProperty_Report_RequiredMetadata(t *testing.T) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, env.DefaultOrgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		payload := map[string]any{
@@ -108,7 +100,7 @@ func TestProperty_Report_RequiredMetadata(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},
@@ -149,16 +141,12 @@ func TestProperty_Report_AppearsInList(t *testing.T) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, env.DefaultOrgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		// Create report
@@ -168,7 +156,7 @@ func TestProperty_Report_AppearsInList(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},
@@ -232,14 +220,9 @@ func TestProperty_Report_OutputFormatMatches(t *testing.T) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	outputFormats := []string{"TXT", "HTML", "CSV", "XML"}
 
@@ -296,16 +279,12 @@ func TestProperty_Report_TimestampOrdering(t *testing.T) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, env.DefaultOrgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		payload := map[string]any{
@@ -314,7 +293,7 @@ func TestProperty_Report_TimestampOrdering(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},

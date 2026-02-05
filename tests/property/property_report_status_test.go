@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -13,24 +13,21 @@ import (
 
 	"github.com/google/uuid"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // Property 1: Report status deve sempre progredir de Processing → Finished ou Error
 // Nunca deve regredir ou ter estados inválidos
 func TestProperty_ReportStatus_ValidProgression(t *testing.T) {
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	// Create a valid template first
-	templateID := createTestTemplate(t, ctx, cli, headers, env.DefaultOrgID)
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		// Create report
@@ -40,7 +37,7 @@ func TestProperty_ReportStatus_ValidProgression(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},
@@ -117,10 +114,10 @@ func TestProperty_ReportID_Uniqueness(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	orgID := "06c4f684-19b0-449a-81f4-f9a4e503db83"
-	headers := h.AuthHeadersWithOrg(orgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, orgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(iterations uint8) bool {
 		if iterations == 0 || iterations > 20 {
@@ -136,7 +133,7 @@ func TestProperty_ReportID_Uniqueness(t *testing.T) {
 					"midaz_onboarding": map[string]any{
 						"organization": map[string]any{
 							"id": map[string]any{
-								"eq": []string{env.DefaultOrgID},
+								"eq": []string{testOrgID},
 							},
 						},
 					},
@@ -188,10 +185,10 @@ func TestProperty_ReportStatus_EventuallyTerminates(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	orgID := "06c4f684-19b0-449a-81f4-f9a4e503db83"
-	headers := h.AuthHeadersWithOrg(orgID)
+	headers := h.AuthHeaders()
 
-	templateID := createTestTemplate(t, ctx, cli, headers, orgID)
+	testOrgID := "00000000-0000-0000-0000-000000000001"
+	templateID := createTestTemplate(t, ctx, cli, headers, testOrgID)
 
 	property := func(seed uint32) bool {
 		payload := map[string]any{
@@ -200,7 +197,7 @@ func TestProperty_ReportStatus_EventuallyTerminates(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},

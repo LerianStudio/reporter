@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +33,6 @@ func Test_createTemplate(t *testing.T) {
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
 	tempId := uuid.New()
-	orgId := uuid.New()
 
 	mongoSchemas := []mongodb.CollectionSchema{
 		{
@@ -129,7 +128,7 @@ func Test_createTemplate(t *testing.T) {
 			<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
 		</Organizacao>
 		{% endfor %}
-	
+
 		{% for l in midaz_onboarding.ledger %}
 		<Ledger>
 			<Nome>{{ l.name }}</Nome>
@@ -143,7 +142,6 @@ func Test_createTemplate(t *testing.T) {
 		templateFile   string
 		outFormat      string
 		description    string
-		orgId          uuid.UUID
 		mockSetup      func()
 		expectErr      bool
 		expectedResult *template.Template
@@ -153,9 +151,7 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			mockSetup: func() {
-
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
 					Return(mongoSchemas, nil)
@@ -190,7 +186,6 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -220,7 +215,6 @@ func Test_createTemplate(t *testing.T) {
 			templateFile:   `<html><script>alert('x')</script></html>`,
 			outFormat:      "html",
 			description:    "Malicious Template",
-			orgId:          orgId,
 			mockSetup:      func() {},
 			expectErr:      true,
 			expectedResult: nil,
@@ -232,7 +226,7 @@ func Test_createTemplate(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description, tt.orgId)
+			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description)
 
 			if tt.expectErr {
 				assert.Error(t, err)

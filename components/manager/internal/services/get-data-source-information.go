@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -8,8 +8,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -34,7 +34,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 	logger.Infof("Getting data source information")
 
-	var result = make([]*model.DataSourceInformation, 0)
+	result := make([]*model.DataSourceInformation, 0)
 
 	for key, dataSource := range uc.ExternalDataSources {
 		if !pkg.IsValidDataSourceID(key) {

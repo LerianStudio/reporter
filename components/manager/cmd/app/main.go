@@ -1,16 +1,16 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
 package main
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/bootstrap"
-	"github.com/LerianStudio/reporter/v4/pkg"
+	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
+	"github.com/LerianStudio/reporter/pkg"
 )
 
 // @title			Reporter
-// @version		4.0.0
+// @version		1.0.0
 // @description	This is a swagger documentation for Reporter
 // @termsOfService	http://swagger.io/terms/
 // @host			localhost:4005

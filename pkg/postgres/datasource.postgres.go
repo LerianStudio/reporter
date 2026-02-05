@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -137,8 +137,11 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, s
 		return nil, err
 	}
 
+	// Transform nested JSONB fields to proper PostgreSQL accessor syntax
+	selectFields := transformFieldsForSelect(queriedFields)
+
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(queriedFields...).From(qualifiedTable)
+	queryBuilder := psql.Select(selectFields...).From(qualifiedTable)
 
 	// Apply filters, but only if they correspond to valid columns
 	queryBuilder = buildDynamicFilters(queryBuilder, schema, table, filter)
@@ -435,6 +438,40 @@ func parseJSONBField(value any, logger log.Logger) any {
 	return value
 }
 
+// extractRootColumn extracts the root column name from a potentially nested JSONB field path.
+// For example: "fee_charge.totalAmount" returns "fee_charge"
+// Simple fields (without dots) are returned as-is.
+// This allows the entire JSONB column to be selected, which is then parsed by parseJSONBField
+// into a nested map structure that the template engine can traverse.
+func extractRootColumn(field string) string {
+	if dotIdx := strings.Index(field, "."); dotIdx != -1 {
+		return field[:dotIdx]
+	}
+
+	return field
+}
+
+// transformFieldsForSelect converts a list of fields to SQL-safe column names.
+// For nested JSONB field paths (e.g., "fee_charge.totalAmount"), only the root column
+// is included in the SELECT. The JSONB column will be parsed into a nested map by
+// parseJSONBField, allowing the template engine to access nested values.
+// This also deduplicates columns to avoid selecting the same column multiple times.
+func transformFieldsForSelect(fields []string) []string {
+	seen := make(map[string]bool)
+
+	var result []string
+
+	for _, field := range fields {
+		rootColumn := extractRootColumn(field)
+		if !seen[rootColumn] {
+			seen[rootColumn] = true
+			result = append(result, rootColumn)
+		}
+	}
+
+	return result
+}
+
 // ValidateTableAndFields checks if the specified table exists and validates that
 // all requested fields exist in that table.
 // It returns a list of valid fields and an error if the table doesn't exist or fields are invalid.
@@ -499,7 +536,14 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 	var invalidFields []string
 
 	for _, field := range requestedFields {
-		if validColumns[field] {
+		// Handle nested JSONB field paths (e.g., "fee_charge.totalAmount")
+		// For nested paths, validate that the root column exists
+		fieldToCheck := field
+		if dotIdx := strings.Index(field, "."); dotIdx != -1 {
+			fieldToCheck = field[:dotIdx]
+		}
+
+		if validColumns[fieldToCheck] {
 			validFields = append(validFields, field)
 		} else {
 			invalidFields = append(invalidFields, field)
@@ -591,8 +635,11 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		return nil, err
 	}
 
+	// Transform nested JSONB fields to proper PostgreSQL accessor syntax
+	selectFields := transformFieldsForSelect(queriedFields)
+
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(queriedFields...).From(qualifiedTable)
+	queryBuilder := psql.Select(selectFields...).From(qualifiedTable)
 
 	// Apply advanced filters
 	queryBuilder, err = ds.buildAdvancedFilters(queryBuilder, schema, table, filter)

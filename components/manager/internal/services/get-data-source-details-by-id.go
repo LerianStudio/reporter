@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -60,7 +60,7 @@ var (
 )
 
 // GetDataSourceDetailsByID retrieves the data source information by data source id
-func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID, organizationID string) (*model.DataSourceDetails, error) {
+func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
@@ -69,13 +69,11 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID, o
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.data_source_id", dataSourceID),
-		attribute.String("app.request.organization_id", organizationID),
 	)
 
-	logger.Infof("Retrieving data source details for id %v and organization %v", dataSourceID, organizationID)
+	logger.Infof("Retrieving data source details for id %v", dataSourceID)
 
-	// Include organizationID in cache key to separate cache per organization
-	cacheKey := constant.DataSourceDetailsKeyPrefix + ":" + dataSourceID + ":" + organizationID
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":" + dataSourceID
 	if cached, ok := uc.getDataSourceDetailsFromCache(ctx, cacheKey); ok {
 		logger.Infof("Cache hit for data source details id %v", dataSourceID)
 		return cached, nil
@@ -106,7 +104,7 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID, o
 			return nil, errClose
 		}
 	case pkg.MongoDBType:
-		result, errGetDataSource = uc.getDataSourceDetailsOfMongoDBDatabase(ctx, logger, dataSourceID, organizationID, dataSource)
+		result, errGetDataSource = uc.getDataSourceDetailsOfMongoDBDatabase(ctx, logger, dataSourceID, dataSource)
 
 		errClose := dataSource.MongoDBRepository.CloseConnection(ctx)
 		if errClose != nil {
@@ -190,16 +188,16 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 }
 
 // getDataSourceDetailsOfMongoDBDatabase retrieves the data source information of a MongoDB database
-func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, logger log.Logger, dataSourceID, organizationID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
+func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
 	var (
 		schema []mongodb.CollectionSchema
 		err    error
 	)
 
-	// For plugin_crm, filter collections by organization ID suffix
-
-	if dataSourceID == "plugin_crm" {
-		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, organizationID)
+	// If MidazOrganizationID is configured (e.g., for plugin_crm), fetch only collections for that organization
+	if dataSource.MidazOrganizationID != "" {
+		logger.Infof("Fetching schema for Midaz organization %s in datasource %s", dataSource.MidazOrganizationID, dataSourceID)
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, dataSource.MidazOrganizationID)
 	} else {
 		schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
 	}
@@ -419,7 +417,7 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 		}
 
 		tableDetail := model.TableDetails{
-			Name:   tableSchema.TableName,
+			Name:   tableSchema.QualifiedName(), // Returns "schema.table" format
 			Fields: fields,
 		}
 

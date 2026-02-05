@@ -98,7 +98,7 @@ func TestAggregateBalance_MissingFields(t *testing.T) {
 	ctx := pongo2.Context{
 		"data": []map[string]any{
 			{"route_id": "route-1", "cosif_code": "1.1.1", "balance": 1000.0, "date": "2026-01-15"},
-			{"route_id": "route-2", "balance": 500.0, "date": "2026-01-20"}, // missing cosif_code
+			{"route_id": "route-2", "balance": 500.0, "date": "2026-01-20"},      // missing cosif_code
 			{"route_id": "route-3", "cosif_code": "1.1.1", "date": "2026-01-25"}, // missing balance
 		},
 	}
@@ -405,9 +405,9 @@ func TestAggregateBalance_MultipleGroups(t *testing.T) {
 	out, err := tpl.Execute(ctx)
 	require.NoError(t, err)
 	// Results are sorted alphabetically by group_value
-	assert.Contains(t, out, "A:250:2;")  // id-1 last: 100, id-4 last: 150 = 250, count: 2
-	assert.Contains(t, out, "B:200:1;")  // id-2: 200
-	assert.Contains(t, out, "C:300:1;")  // id-3: 300
+	assert.Contains(t, out, "A:250:2;") // id-1 last: 100, id-4 last: 150 = 250, count: 2
+	assert.Contains(t, out, "B:200:1;") // id-2: 200
+	assert.Contains(t, out, "C:300:1;") // id-3: 300
 }
 
 func TestAggregateBalance_AllItemsFiltered(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,19 +9,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap tests that sending
 func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Step 1: Get initial data sources to establish baseline
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
@@ -109,12 +106,9 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Get initial state
 	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)

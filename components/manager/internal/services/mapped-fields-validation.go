@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,16 +9,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
-func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizationID string, logger log.Logger, mappedFields map[string]map[string][]string) error {
+func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, _ string, logger log.Logger, mappedFields map[string]map[string][]string) error {
 	for databaseName := range mappedFields {
 		if !pkg.IsValidDataSourceID(databaseName) {
 			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
@@ -31,7 +31,7 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, organizati
 		}
 	}
 
-	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, organizationID)
+	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, uc.ExternalDataSources)
 
 	for databaseName := range mappedFields {
 		dataSource := uc.ExternalDataSources[databaseName]
@@ -83,6 +83,12 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 
 	schema, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	if err != nil {
+		return err
+	}
+
+	// Early-fail validation: check for schema ambiguity on tables without explicit schema
+	// This prevents templates from being saved with ambiguous references that would fail at report generation
+	if err := validateSchemaAmbiguity(databaseName, schema, mappedFields); err != nil {
 		return err
 	}
 
@@ -150,7 +156,18 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 
 // validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
 func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
-	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	var (
+		schema []mongodb.CollectionSchema
+		err    error
+	)
+
+	// For plugin_crm with MidazOrganizationID, fetch only collections for that organization
+	if dataSource.MidazOrganizationID != "" {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, dataSource.MidazOrganizationID)
+	} else {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -189,8 +206,8 @@ func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string
 }
 
 // generateCopyOfMappedFields generate a copy of mapped fields to make a deep copy of the original
-// For plugin_crm database, table names are appended with organizationID
-func generateCopyOfMappedFields(orig map[string]map[string][]string, organizationID string) map[string]map[string][]string {
+// For plugin_crm database, table names are appended with MidazOrganizationID from datasource config
+func generateCopyOfMappedFields(orig map[string]map[string][]string, dataSources map[string]pkg.DataSource) map[string]map[string][]string {
 	copyMappedFields := make(map[string]map[string][]string)
 
 	for k, v := range orig {
@@ -200,10 +217,14 @@ func generateCopyOfMappedFields(orig map[string]map[string][]string, organizatio
 			newSlice := make([]string, len(subV))
 			copy(newSlice, subV)
 
-			// For plugin_crm database, append organizationID to table names
+			// For plugin_crm database, append MidazOrganizationID to table names
 			if k == "plugin_crm" {
-				newTableName := subK + "_" + organizationID
-				sub[newTableName] = newSlice
+				if ds, exists := dataSources[k]; exists && ds.MidazOrganizationID != "" {
+					newTableName := subK + "_" + ds.MidazOrganizationID
+					sub[newTableName] = newSlice
+				} else {
+					sub[subK] = newSlice
+				}
 			} else {
 				sub[subK] = newSlice
 			}
@@ -233,8 +254,8 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 			}
 		}
 
-		// For plugin_crm database, always add organization mapping
-		if databaseName == "plugin_crm" {
+		// For plugin_crm database, add organization mapping only if organizationID is provided
+		if databaseName == "plugin_crm" && organizationID != "" {
 			transformedTables["organization"] = []string{organizationID}
 		}
 
@@ -242,4 +263,57 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 	}
 
 	return transformedFields
+}
+
+// validateSchemaAmbiguity checks for schema ambiguity on tables without explicit schema reference.
+// This is an early-fail validation that prevents templates with ambiguous table references from being saved.
+// A table reference is ambiguous when:
+//   - The table name has no explicit schema (no "__" separator in Pongo2 format)
+//   - The table exists in multiple schemas
+//   - None of those schemas is "public" (which would be used as default)
+func validateSchemaAmbiguity(databaseName string, schema []postgres.TableSchema, mappedFields map[string]map[string][]string) error {
+	// Build a map of table name -> list of schemas where it exists
+	tableSchemas := make(map[string][]string)
+	for _, s := range schema {
+		tableSchemas[s.TableName] = append(tableSchemas[s.TableName], s.SchemaName)
+	}
+
+	// Check each table in mappedFields for this database
+	for tableKey := range mappedFields[databaseName] {
+		// Skip tables with explicit schema (Pongo2 format: schema__table)
+		if strings.Contains(tableKey, "__") {
+			continue
+		}
+
+		// Skip tables with qualified format (schema.table)
+		if strings.Contains(tableKey, ".") {
+			continue
+		}
+
+		// This is a table without explicit schema - check for ambiguity
+		schemas, exists := tableSchemas[tableKey]
+		if !exists {
+			// Table doesn't exist - will be caught by existing validation
+			continue
+		}
+
+		if len(schemas) > 1 {
+			// Table exists in multiple schemas - check if "public" is one of them
+			hasPublic := false
+
+			for _, s := range schemas {
+				if s == "public" {
+					hasPublic = true
+					break
+				}
+			}
+
+			if !hasPublic {
+				// Ambiguous reference: table exists in multiple schemas, none is "public"
+				return pkg.ValidateBusinessError(constant.ErrSchemaAmbiguous, "", tableKey, schemas)
+			}
+		}
+	}
+
+	return nil
 }

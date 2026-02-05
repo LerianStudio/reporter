@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,6 @@ func Test_getAllReports(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockReportRepo := report.NewMockRepository(ctrl)
-	orgId := uuid.New()
 	templateId := uuid.New()
 	reportId1 := uuid.New()
 	reportId2 := uuid.New()
@@ -34,10 +33,9 @@ func Test_getAllReports(t *testing.T) {
 	}
 
 	filters := http.QueryHeader{
-		Limit:          10,
-		Page:           1,
-		Status:         constant.FinishedStatus,
-		OrganizationID: orgId,
+		Limit:  10,
+		Page:   1,
+		Status: constant.FinishedStatus,
 	}
 
 	mockReports := []*report.Report{
@@ -127,7 +125,7 @@ func Test_getAllReports(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.GetAllReports(ctx, tt.filters, orgId)
+			result, err := reportSvc.GetAllReports(ctx, tt.filters)
 
 			if tt.expectErr {
 				assert.Error(t, err)

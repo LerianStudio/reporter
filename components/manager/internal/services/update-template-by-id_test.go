@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -14,11 +14,11 @@ import (
 	"net/textproto"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +71,6 @@ func Test_updateTemplateById(t *testing.T) {
 	mockTempRepo := template.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
-	orgId := uuid.New()
 	htmlType := "html"
 
 	mongoSchemas := []mongodb.CollectionSchema{
@@ -160,7 +159,7 @@ func Test_updateTemplateById(t *testing.T) {
 			<Endereco>{{ org.address.line1 }}, {{ org.address.city }} - {{ org.address.state }}</Endereco>
 		</Organizacao>
 		{% endfor %}
-	
+
 		{% for l in midaz_onboarding.ledger %}
 		<Ledger>
 			<Nome>{{ l.name }}</Nome>
@@ -175,7 +174,6 @@ func Test_updateTemplateById(t *testing.T) {
 		templateFile *multipart.FileHeader
 		outFormat    string
 		description  string
-		orgId        uuid.UUID
 		tempId       uuid.UUID
 		mockSetup    func()
 		expectErr    bool
@@ -185,10 +183,8 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "xml",
 			description:  "Template Atualizado",
-			orgId:        uuid.New(),
 			tempId:       uuid.New(),
 			mockSetup: func() {
-
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
 					Return(mongoSchemas, nil)
@@ -206,7 +202,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr: false,
@@ -215,7 +211,6 @@ func Test_updateTemplateById(t *testing.T) {
 			name:         "Error - Update all template fail to find ouputFormat",
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -235,7 +230,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -244,7 +239,6 @@ func Test_updateTemplateById(t *testing.T) {
 			name:         "Error - Update all template fail to outputFormat is not equal update file content",
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				htmlTypeP := &htmlType
@@ -265,7 +259,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					FindOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(htmlTypeP, nil)
 			},
 			expectErr: true,
@@ -275,7 +269,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "json",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -301,7 +294,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "html",
 			description:  "Template Financeiro",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -327,7 +319,6 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			outFormat:    "xml",
 			description:  "Template Atualizado",
-			orgId:        orgId,
 			tempId:       uuid.New(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
@@ -347,7 +338,7 @@ func Test_updateTemplateById(t *testing.T) {
 					Return(nil)
 
 				mockTempRepo.EXPECT().
-					Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrInternalServer)
 			},
 			expectErr: true,
@@ -360,7 +351,6 @@ func Test_updateTemplateById(t *testing.T) {
 			}(),
 			outFormat:   "html",
 			description: "Malicious Template",
-			orgId:       orgId,
 			tempId:      uuid.New(),
 			mockSetup:   func() {},
 			expectErr:   true,
@@ -372,7 +362,7 @@ func Test_updateTemplateById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.orgId, tt.tempId, tt.templateFile)
+			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
 
 			if tt.expectErr {
 				assert.Error(t, err)

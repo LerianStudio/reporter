@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/pongo"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/pongo"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -518,7 +518,7 @@ func (uc *UseCase) queryMongoDatabase(
 	for collection, fields := range collections {
 		collectionFilters := getTableFilters(databaseFilters, collection)
 
-		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, collections, result, logger); err != nil {
+		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, result, logger); err != nil {
 			return err
 		}
 	}
@@ -533,13 +533,18 @@ func (uc *UseCase) processMongoCollection(
 	databaseName, collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Handle plugin_crm special case
-	if databaseName == "plugin_crm" && collection != "organization" {
-		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, allCollections, result, logger)
+	// Handle plugin_crm special cases
+	if databaseName == "plugin_crm" {
+		// Skip "organization" collection - it's not a real collection, just stores the organizationID for template context
+		if collection == "organization" {
+			logger.Debugf("Skipping organization collection for plugin_crm - it's a metadata field, not a queryable collection")
+			return nil
+		}
+
+		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
 	}
 
 	// Handle regular collections
@@ -553,18 +558,16 @@ func (uc *UseCase) processPluginCRMCollection(
 	collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Get organization field to create collection name
-	orgFields, exists := allCollections["organization"]
-	if !exists || len(orgFields) == 0 {
-		logger.Errorf("Organization field not found for plugin_crm collection %s", collection)
-		return nil
+	// Get Midaz organization ID from datasource configuration (DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID)
+	if dataSource.MidazOrganizationID == "" {
+		logger.Errorf("Midaz Organization ID not configured for plugin_crm datasource. Set DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable.")
+		return fmt.Errorf("plugin_crm datasource requires DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable to be configured")
 	}
 
-	newCollection := collection + "_" + orgFields[0]
+	newCollection := collection + "_" + dataSource.MidazOrganizationID
 
 	// Query the collection
 	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger, "plugin_crm")
@@ -661,12 +664,43 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 }
 
 // getTableFilters extracts filters for a specific table/collection
+// Supports multiple table name formats:
+// - "schema__table" (Pongo2 format)
+// - "schema.table" (qualified format)
+// - "table" (simple format, will try with "public." prefix)
 func getTableFilters(databaseFilters map[string]map[string]model.FilterCondition, tableName string) map[string]model.FilterCondition {
 	if databaseFilters == nil {
 		return nil
 	}
 
-	return databaseFilters[tableName]
+	// Try exact match first
+	if filters, ok := databaseFilters[tableName]; ok {
+		return filters
+	}
+
+	// Try alternative formats
+	var alternativeKeys []string
+
+	if strings.Contains(tableName, "__") {
+		// Pongo2 format: schema__table -> try schema.table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, "__", ".", 1))
+	} else if strings.Contains(tableName, ".") {
+		// Qualified format: schema.table -> try schema__table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, ".", "__", 1))
+	} else {
+		// Simple table name without schema -> try with public schema
+		// This handles the case where template has "organization" but filter has "public.organization"
+		alternativeKeys = append(alternativeKeys, "public."+tableName)
+		alternativeKeys = append(alternativeKeys, "public__"+tableName)
+	}
+
+	for _, altKey := range alternativeKeys {
+		if filters, ok := databaseFilters[altKey]; ok {
+			return filters
+		}
+	}
+
+	return nil
 }
 
 // transformPluginCRMAdvancedFilters transforms advanced FilterCondition filters for plugin_crm to use search fields
@@ -1072,9 +1106,7 @@ func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string,
 
 // checkReportStatus checks the current status of a report to implement idempotency.
 func (uc *UseCase) checkReportStatus(ctx context.Context, reportID uuid.UUID, logger log.Logger) (string, error) {
-	zeroUUID := uuid.UUID{}
-
-	report, err := uc.ReportDataRepo.FindByID(ctx, reportID, zeroUUID)
+	report, err := uc.ReportDataRepo.FindByID(ctx, reportID)
 	if err != nil {
 		logger.Debugf("Could not check report status for %s (may be first attempt): %v", reportID, err)
 		return "", err

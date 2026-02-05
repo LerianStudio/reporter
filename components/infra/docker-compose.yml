@@ -1,7 +1,7 @@
 services:
   reporter-mongodb:
     container_name: reporter-mongodb
-    image: mongo:latest
+    image: mongo:8
     env_file:
       - .env
     restart: always

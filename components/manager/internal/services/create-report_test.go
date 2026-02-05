@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -8,11 +8,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,6 @@ func Test_createReport(t *testing.T) {
 	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 	reportId := uuid.New()
 	tempId := uuid.New()
-	orgId := uuid.New()
 
 	reportSvc := &UseCase{
 		TemplateRepo: mockTempRepo,
@@ -64,7 +63,6 @@ func Test_createReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		reportInput    *model.CreateReportInput
-		orgId          uuid.UUID
 		mockSetup      func()
 		expectErr      bool
 		expectedResult *report.Report
@@ -72,14 +70,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Success - Create a report",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -97,10 +94,9 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Find mapped fields and output format",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(nil, nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -109,14 +105,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Create report",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -126,14 +121,13 @@ func Test_createReport(t *testing.T) {
 		{
 			name:        "Error - Send message on RabbitMQ",
 			reportInput: reportInput,
-			orgId:       orgId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
 				mockReportRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any(), gomock.Any()).
+					Create(gomock.Any(), gomock.Any()).
 					Return(reportEntity, nil)
 
 				mockRabbitMQ.EXPECT().
@@ -155,7 +149,7 @@ func Test_createReport(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.CreateReport(ctx, tt.reportInput, tt.orgId)
+			result, err := reportSvc.CreateReport(ctx, tt.reportInput)
 
 			if tt.expectErr {
 				assert.Error(t, err)
@@ -163,6 +157,94 @@ func Test_createReport(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestConvertFiltersToMappedFieldsType(t *testing.T) {
+	uc := &UseCase{}
+
+	tests := []struct {
+		name     string
+		input    map[string]map[string]map[string]model.FilterCondition
+		expected map[string]map[string][]string
+	}{
+		{
+			name: "Single datasource, single table, single field",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"organization": {"id"},
+				},
+			},
+		},
+		{
+			name: "Single datasource, single table, multiple fields (max 3)",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id":     {Equals: []any{"123"}},
+						"name":   {In: []any{"Test"}},
+						"status": {Equals: []any{"active"}},
+						"extra":  {Equals: []any{"ignored"}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"organization": {"id", "name", "status"},
+				},
+			},
+		},
+		{
+			name: "Multiple datasources and tables",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"datasource_one": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+					"ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+				},
+				"datasource_two": {
+					"analytics.transfers": {
+						"amount": {GreaterThan: []any{100}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"datasource_one": {
+					"organization": {"id"},
+					"ledger":       {"status"},
+				},
+				"datasource_two": {
+					"analytics.transfers": {"amount"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := uc.convertFiltersToMappedFieldsType(tt.input)
+
+			// Verify structure matches (can't guarantee order of keys in maps)
+			assert.Equal(t, len(tt.expected), len(result))
+			for datasource, tables := range tt.expected {
+				assert.Contains(t, result, datasource)
+				assert.Equal(t, len(tables), len(result[datasource]))
+				for table, fields := range tables {
+					assert.Contains(t, result[datasource], table)
+					assert.Equal(t, len(fields), len(result[datasource][table]))
+				}
 			}
 		})
 	}

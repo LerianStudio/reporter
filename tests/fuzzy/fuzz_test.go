@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // FuzzCreateReportInput — Fuzz test for create report input
@@ -24,7 +24,7 @@ func FuzzCreateReportInput(f *testing.F) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg("00000000-0000-0000-0000-000000000000")
+	headers := h.AuthHeaders()
 	reCtl := regexp.MustCompile(`[\x00-\x1F\x7F]`)
 
 	f.Fuzz(func(t *testing.T, tplID string) {

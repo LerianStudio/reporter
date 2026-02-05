@@ -1,23 +1,20 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
-var (
-	UUIDPathParameter    = "id"
-	OrgIDHeaderParameter = "X-Organization-Id"
-)
+var UUIDPathParameter = "id"
 
 // ParsePathParametersUUID convert and validate if the path parameter is UUID
 func ParsePathParametersUUID(c *fiber.Ctx) error {
@@ -35,26 +32,6 @@ func ParsePathParametersUUID(c *fiber.Ctx) error {
 	}
 
 	c.Locals(UUIDPathParameter, parsedPathUUID)
-
-	return c.Next()
-}
-
-// ParseHeaderParameters convert and validate if the header parameters is UUID
-func ParseHeaderParameters(c *fiber.Ctx) error {
-	headerParam := c.Get(OrgIDHeaderParameter)
-
-	if commons.IsNilOrEmpty(&headerParam) {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
-		return http.WithError(c, err)
-	}
-
-	parsedHeaderUUID, errHeader := uuid.Parse(headerParam)
-	if errHeader != nil {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidHeaderParameter, "", OrgIDHeaderParameter)
-		return http.WithError(c, err)
-	}
-
-	c.Locals(OrgIDHeaderParameter, parsedHeaderUUID)
 
 	return c.Next()
 }

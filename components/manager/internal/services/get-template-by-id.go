@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -20,7 +20,7 @@ import (
 )
 
 // GetTemplateByID recover a package by ID
-func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.UUID) (*template.Template, error) {
+func (uc *UseCase) GetTemplateByID(ctx context.Context, id uuid.UUID) (*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_template_by_id")
@@ -29,12 +29,11 @@ func (uc *UseCase) GetTemplateByID(ctx context.Context, id, organizationID uuid.
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.template_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	logger.Infof("Retrieving template for id %v and organizationId %v.", id, organizationID)
+	logger.Infof("Retrieving template for id %v.", id)
 
-	templateModel, err := uc.TemplateRepo.FindByID(ctx, id, organizationID)
+	templateModel, err := uc.TemplateRepo.FindByID(ctx, id)
 	if err != nil {
 		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
 

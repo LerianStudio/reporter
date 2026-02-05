@@ -1,14 +1,12 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
-
-	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	middlewareAuth "github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -27,7 +25,7 @@ const (
 )
 
 // NewRoutes creates a new fiber router with the specified handlers and middleware.
-func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, licenseClient *libLicense.LicenseClient) *fiber.App {
+func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient) *fiber.App {
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
@@ -39,25 +37,24 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	f.Use(tlMid.WithTelemetry(tl))
 	f.Use(cors.New())
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
-	f.Use(licenseClient.Middleware())
 
 	// Plugin templates routes
 	// Template routes
-	f.Post("/v1/templates", auth.Authorize(applicationName, templateResource, "post"), ParseHeaderParameters, templateHandler.CreateTemplate)
-	f.Patch("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "patch"), ParseHeaderParameters, ParsePathParametersUUID, templateHandler.UpdateTemplateByID)
-	f.Get("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "get"), ParseHeaderParameters, ParsePathParametersUUID, templateHandler.GetTemplateByID)
-	f.Get("/v1/templates", auth.Authorize(applicationName, templateResource, "get"), ParseHeaderParameters, templateHandler.GetAllTemplates)
-	f.Delete("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "delete"), ParseHeaderParameters, ParsePathParametersUUID, templateHandler.DeleteTemplateByID)
+	f.Post("/v1/templates", auth.Authorize(applicationName, templateResource, "post"), templateHandler.CreateTemplate)
+	f.Patch("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "patch"), ParsePathParametersUUID, templateHandler.UpdateTemplateByID)
+	f.Get("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "get"), ParsePathParametersUUID, templateHandler.GetTemplateByID)
+	f.Get("/v1/templates", auth.Authorize(applicationName, templateResource, "get"), templateHandler.GetAllTemplates)
+	f.Delete("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "delete"), ParsePathParametersUUID, templateHandler.DeleteTemplateByID)
 
 	// Report routes
-	f.Post("/v1/reports", auth.Authorize(applicationName, reportResource, "post"), ParseHeaderParameters, http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
-	f.Get("/v1/reports/:id/download", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, ParsePathParametersUUID, reportHandler.GetDownloadReport)
-	f.Get("/v1/reports/:id", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, ParsePathParametersUUID, reportHandler.GetReport)
-	f.Get("/v1/reports", auth.Authorize(applicationName, reportResource, "get"), ParseHeaderParameters, reportHandler.GetAllReports)
+	f.Post("/v1/reports", auth.Authorize(applicationName, reportResource, "post"), http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
+	f.Get("/v1/reports/:id/download", auth.Authorize(applicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetDownloadReport)
+	f.Get("/v1/reports/:id", auth.Authorize(applicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetReport)
+	f.Get("/v1/reports", auth.Authorize(applicationName, reportResource, "get"), reportHandler.GetAllReports)
 
 	// Data source routes
 	f.Get("/v1/data-sources", auth.Authorize(applicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformation)
-	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(applicationName, dataSourceResource, "get"), ParseHeaderParameters, dataSourceHandler.GetDataSourceInformationByID)
+	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(applicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformationByID)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)

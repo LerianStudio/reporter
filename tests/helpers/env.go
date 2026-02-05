@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -21,9 +21,6 @@ type Environment struct {
 	MongoContainer     string
 	RedisContainer     string
 	SeaweedFSContainer string
-
-	// Domain/testing context
-	DefaultOrgID string
 }
 
 func LoadEnvironment() Environment {
@@ -47,12 +44,6 @@ func LoadEnvironment() Environment {
 		MongoContainer:     getenvDefault("MONGO_CONTAINER", "reporter-mongodb"),
 		RedisContainer:     getenvDefault("REDIS_CONTAINER", "reporter-valkey"),
 		SeaweedFSContainer: getenvDefault("SEAWEEDFS_CONTAINER", "reporter-seaweedfs-filer"),
-
-		DefaultOrgID: firstNonEmpty(
-			os.Getenv("X_ORGANIZATION_ID"),
-			os.Getenv("ORGANIZATION_ID"),
-			os.Getenv("ORG_ID"),
-		),
 	}
 
 	return env
@@ -64,14 +55,4 @@ func getenvDefault(key, def string) string {
 	}
 
 	return def
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-
-	return ""
 }

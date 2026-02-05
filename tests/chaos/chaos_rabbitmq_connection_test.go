@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -10,20 +10,15 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestChaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
 // a message to RabbitMQ but the connection is closed
 func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🔧 Starting RabbitMQ connection chaos test...")
 
@@ -35,7 +30,7 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	t.Logf("Using template ID: %s", templateID)
 
 	t.Log("Step 2: Closing RabbitMQ connection (stopping container)...")
-	err := h.RestartWithWait(env.RabbitContainer, 5*time.Second)
+	err := RestartRabbitMQ(5 * time.Second)
 	if err != nil {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
@@ -72,7 +67,7 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	}
 
 	t.Log("Step 6: Restoring RabbitMQ connection...")
-	err = h.RestartWithWait(env.RabbitContainer, 10*time.Second)
+	err = RestartRabbitMQ(10 * time.Second)
 	if err != nil {
 		t.Fatalf("Failed to restore RabbitMQ: %v", err)
 	}
@@ -94,17 +89,12 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
 func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Give time for Manager and RabbitMQ to fully stabilize
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🔧 Starting RabbitMQ channel chaos test...")
 
@@ -121,7 +111,7 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	}
 
 	t.Log("Step 2: Simulating channel closure (quick RabbitMQ restart)...")
-	err := h.RestartWithWait(env.RabbitContainer, 2*time.Second)
+	err := RestartRabbitMQ(2 * time.Second)
 	if err != nil {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
@@ -166,17 +156,12 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
 func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Increased from 15s to 30s for datasource reconnection
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Verifying system health before queue chaos test...")
 	if err := h.WaitForSystemHealth(ctx, cli, 90*time.Second); err != nil {
@@ -195,7 +180,7 @@ func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 	}
 
 	t.Log("Step 2: Simulating queue unavailability...")
-	err := h.RestartWithWait(env.RabbitContainer, 1*time.Second)
+	err := RestartRabbitMQ(1 * time.Second)
 	if err != nil {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
@@ -238,7 +223,7 @@ func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
 	}
 
 	t.Log("Step 5: Restoring RabbitMQ...")
-	err = h.RestartWithWait(env.RabbitContainer, 5*time.Second)
+	err = RestartRabbitMQ(5 * time.Second)
 	if err != nil {
 		t.Fatalf("Failed to restore RabbitMQ: %v", err)
 	}

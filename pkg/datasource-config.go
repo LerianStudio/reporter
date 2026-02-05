@@ -1,23 +1,21 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
-
 	"sync"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	pg "github.com/LerianStudio/reporter/v4/pkg/postgres"
-
-	"context"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/pkg/postgres"
 
 	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -83,20 +81,21 @@ func IsValidDataSourceID(id string) bool {
 // DataSourceConfig represents the configuration required to establish a connection to a data source.
 // Fields include name, connection details, authentication, database, type, and SSL mode.
 type DataSourceConfig struct {
-	ConfigName  string
-	Name        string
-	Host        string
-	Port        string
-	User        string
-	Password    string
-	Database    string
-	Type        string
-	SSLMode     string
-	SSLCert     string
-	SSLRootCert string
-	SSL         string
-	SSLCA       string
-	Options     string
+	ConfigName          string
+	Name                string
+	Host                string
+	Port                string
+	User                string
+	Password            string
+	Database            string
+	Type                string
+	SSLMode             string
+	SSLCert             string
+	SSLRootCert         string
+	SSL                 string
+	SSLCA               string
+	Options             string
+	MidazOrganizationID string // Used for CRM datasources to construct collection names
 }
 
 // GetSchemas returns the configured schemas for this datasource.
@@ -168,6 +167,10 @@ type DataSource struct {
 	// Schemas holds the list of database schemas to query (PostgreSQL only)
 	// Defaults to ["public"] if not configured
 	Schemas []string
+
+	// MidazOrganizationID holds the Midaz organization ID for CRM datasources
+	// Used to construct collection names like "holder_{org_id}"
+	MidazOrganizationID string
 }
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
@@ -458,13 +461,14 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 	}
 
 	return DataSource{
-		DatabaseType: MongoDBType,
-		MongoURI:     mongoURI,
-		MongoDBName:  dataSource.Database,
-		Initialized:  false,
-		Status:       libConstant.DataSourceStatusUnknown,
-		LastAttempt:  time.Time{},
-		RetryCount:   0,
+		DatabaseType:        MongoDBType,
+		MongoURI:            mongoURI,
+		MongoDBName:         dataSource.Database,
+		Initialized:         false,
+		Status:              libConstant.DataSourceStatusUnknown,
+		LastAttempt:         time.Time{},
+		RetryCount:          0,
+		MidazOrganizationID: dataSource.MidazOrganizationID,
 	}
 }
 
@@ -552,34 +556,36 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 	upperName := strings.ToUpper(name)
 
 	configFields := map[string]string{
-		"CONFIG_NAME": os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
-		"HOST":        os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
-		"PORT":        os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
-		"USER":        os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
-		"PASSWORD":    os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
-		"DATABASE":    os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
-		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
-		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
-		"SSLROOTCERT": os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
-		"SSL":         os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),     // For MongoDB SSL
-		"SSLCA":       os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),   // For MongoDB CA file
-		"OPTIONS":     os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)), // For MongoDB URI options
+		"CONFIG_NAME":           os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
+		"HOST":                  os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
+		"PORT":                  os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
+		"USER":                  os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
+		"PASSWORD":              os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
+		"DATABASE":              os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
+		"TYPE":                  os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
+		"SSLMODE":               os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
+		"SSLROOTCERT":           os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
+		"SSL":                   os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),                   // For MongoDB SSL
+		"SSLCA":                 os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),                 // For MongoDB CA file
+		"OPTIONS":               os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)),               // For MongoDB URI options
+		"MIDAZ_ORGANIZATION_ID": os.Getenv(fmt.Sprintf("%s%s_MIDAZ_ORGANIZATION_ID", prefixPattern, upperName)), // For CRM collection names
 	}
 
 	dataSource := DataSourceConfig{
-		Name:        name,
-		ConfigName:  configFields["CONFIG_NAME"],
-		Host:        configFields["HOST"],
-		Port:        configFields["PORT"],
-		User:        configFields["USER"],
-		Password:    configFields["PASSWORD"],
-		Database:    configFields["DATABASE"],
-		Type:        configFields["TYPE"],
-		SSLMode:     configFields["SSLMODE"],
-		SSLRootCert: configFields["SSLROOTCERT"],
-		SSL:         configFields["SSL"],
-		SSLCA:       configFields["SSLCA"],
-		Options:     configFields["OPTIONS"],
+		Name:                name,
+		ConfigName:          configFields["CONFIG_NAME"],
+		Host:                configFields["HOST"],
+		Port:                configFields["PORT"],
+		User:                configFields["USER"],
+		Password:            configFields["PASSWORD"],
+		Database:            configFields["DATABASE"],
+		Type:                configFields["TYPE"],
+		SSLMode:             configFields["SSLMODE"],
+		SSLRootCert:         configFields["SSLROOTCERT"],
+		SSL:                 configFields["SSL"],
+		SSLCA:               configFields["SSLCA"],
+		Options:             configFields["OPTIONS"],
+		MidazOrganizationID: configFields["MIDAZ_ORGANIZATION_ID"],
 	}
 
 	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -45,16 +45,14 @@ func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{
 				{Key: "_id", Value: 1},
-				{Key: "organization_id", Value: 1},
 				{Key: "deleted_at", Value: 1},
 			},
 			Options: options.Index().
-				SetName("idx_template_id_org_deleted"),
+				SetName("idx_template_id_deleted"),
 		},
 
 		{
 			Keys: bson.D{
-				{Key: "organization_id", Value: 1},
 				{Key: "deleted_at", Value: 1},
 				{Key: "created_at", Value: -1},
 			},
@@ -67,7 +65,6 @@ func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 
 		{
 			Keys: bson.D{
-				{Key: "organization_id", Value: 1},
 				{Key: "deleted_at", Value: 1},
 				{Key: "output_format", Value: 1},
 				{Key: "created_at", Value: -1},

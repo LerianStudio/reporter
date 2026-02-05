@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // FuzzReportFilters tests report generation with various malformed filter inputs
@@ -27,14 +27,9 @@ func FuzzReportFilters(f *testing.F) {
 	f.Add(`{"eq": ["\u0000\u0001\u0002"]}`)
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	// Use a fixed template ID for testing (will return 404 but that's ok, we're testing filter validation)
 	templateID := "00000000-0000-0000-0000-000000000000"

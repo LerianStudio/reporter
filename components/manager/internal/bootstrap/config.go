@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -11,17 +11,16 @@ import (
 	"strings"
 	"time"
 
-	in2 "github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/http/in"
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	reportSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/report"
-	templateSeaweedFS "github.com/LerianStudio/reporter/v4/pkg/seaweedfs/template"
-	"github.com/LerianStudio/reporter/v4/pkg/storage"
+	in2 "github.com/LerianStudio/reporter/components/manager/internal/adapters/http/in"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
+	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
+	"github.com/LerianStudio/reporter/pkg/storage"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -29,7 +28,6 @@ import (
 	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
-	libLicense "github.com/LerianStudio/lib-license-go/v2/middleware"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -86,9 +84,6 @@ type Config struct {
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
-	// License configuration envs
-	LicenseKey      string `env:"LICENSE_KEY"`
-	OrganizationIDs string `env:"ORGANIZATION_IDS"`
 }
 
 // InitServers initiate http and grpc servers.
@@ -239,15 +234,8 @@ func InitServers() *Service {
 		Service: dataSourceService,
 	}
 
-	licenseClient := libLicense.NewLicenseClient(
-		constant.ApplicationName,
-		cfg.LicenseKey,
-		cfg.OrganizationIDs,
-		&logger,
-	)
-
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, licenseClient)
-	serverAPI := NewServer(cfg, httpApp, logger, telemetry, licenseClient)
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient)
+	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{
 		Server: serverAPI,

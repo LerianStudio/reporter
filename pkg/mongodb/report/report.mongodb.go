@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Lerian Studio. All rights reserved.
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
@@ -27,8 +27,8 @@ import (
 //go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
 type Repository interface {
 	UpdateReportStatusById(ctx context.Context, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
-	Create(ctx context.Context, record *Report, organizationID uuid.UUID) (*Report, error)
-	FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Report, error)
+	Create(ctx context.Context, record *Report) (*Report, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*Report, error)
 	FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error)
 }
 
@@ -130,7 +130,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 }
 
 // Create inserts a new report entity into mongo.
-func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, organizationID uuid.UUID) (*Report, error) {
+func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongo.create_report")
@@ -138,7 +138,6 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, o
 
 	attributes := []attribute.KeyValue{
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	}
 
 	span.SetAttributes(attributes...)
@@ -158,7 +157,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, o
 	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 	record := &ReportMongoDBModel{}
 
-	if err := record.FromEntity(report, organizationID); err != nil {
+	if err := record.FromEntity(report); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert report to model", err)
 
 		return nil, err
@@ -186,7 +185,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report, o
 }
 
 // FindByID retrieves a report from the mongodb using the provided entity_id.
-func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizationID uuid.UUID) (*Report, error) {
+func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
@@ -195,7 +194,6 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizatio
 	attributes := []attribute.KeyValue{
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	}
 
 	span.SetAttributes(attributes...)
@@ -215,8 +213,10 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id, organizatio
 
 	spanFindOne.SetAttributes(attributes...)
 
+	filter := bson.M{"_id": id, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}
+
 	if err = coll.
-		FindOne(ctx, bson.M{"_id": id, "organization_id": organizationID, "deleted_at": bson.D{{Key: "$eq", Value: nil}}}).
+		FindOne(ctx, filter).
 		Decode(&record); err != nil {
 		libOpentelemetry.HandleSpanError(&spanFindOne, "Failed to find report by entity", err)
 		return nil, err
@@ -279,8 +279,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 		}
 	}
 
-	// Always filter by organization and non-deleted records
-	queryFilter["organization_id"] = filters.OrganizationID
+	// Filter non-deleted records
 	queryFilter["deleted_at"] = bson.D{{Key: "$eq", Value: nil}}
 
 	// Pagination
