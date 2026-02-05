@@ -27,7 +27,7 @@ Reporter is a report generation service that:
 - **Connects to multiple databases** (PostgreSQL and MongoDB) configured via environment variables
 - **Generates reports** in various formats: HTML, PDF, CSV, XML, TXT
 - **Processes asynchronously** using RabbitMQ for scalable report generation
-- **Stores files** in SeaweedFS (templates and generated reports)
+- **Stores files** in S3-compatible storage (AWS S3, SeaweedFS, MinIO)
 
 ## Architecture
 
@@ -51,8 +51,8 @@ Reporter is a report generation service that:
 │         │                                                │          │
 │         ▼                                                ▼          │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                        SeaweedFS                             │   │
-│  │              (Templates & Generated Reports)                 │   │
+│  │                    Object Storage (S3)                       │   │
+│  │         AWS S3 / SeaweedFS / MinIO (Templates & Reports)     │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
@@ -66,14 +66,14 @@ Reporter is a report generation service that:
 | **Worker** | Consumes messages from RabbitMQ, queries data sources, renders templates, and stores results. |
 | **MongoDB** | Stores metadata for templates and reports. |
 | **RabbitMQ** | Message queue for asynchronous report generation. |
-| **SeaweedFS** | Distributed file storage for templates and generated reports. |
+| **Object Storage** | S3-compatible storage (AWS S3, SeaweedFS, MinIO) for templates and generated reports. |
 | **Redis/Valkey** | Caching layer for data source schemas. |
 
 ## Quick Start
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.25+
 - Docker and Docker Compose
 - Make
 
@@ -98,7 +98,6 @@ Reporter is a report generation service that:
 4. **Access the API:**
    - API: http://localhost:4005
    - Swagger UI: http://localhost:4005/swagger/index.html
-   - SeaweedFS UI: http://localhost:8888
 
 ## Configuration
 
@@ -118,8 +117,23 @@ Key configurations:
 | `SERVER_PORT` | Manager API port | `4005` |
 | `MONGO_HOST` | MongoDB hostname | `reporter-mongodb` |
 | `RABBITMQ_HOST` | RabbitMQ hostname | `reporter-rabbitmq` |
-| `SEAWEEDFS_HOST` | SeaweedFS Filer hostname | `reporter-seaweedfs-filer` |
 | `LOG_LEVEL` | Log verbosity | `debug` |
+
+### Object Storage (S3-compatible)
+
+Reporter supports S3-compatible object storage for templates and generated reports:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OBJECT_STORAGE_ENDPOINT` | S3 endpoint URL | `http://reporter-seaweedfs:8333` |
+| `OBJECT_STORAGE_REGION` | AWS region | `us-east-1` |
+| `OBJECT_STORAGE_ACCESS_KEY_ID` | Access key ID | - |
+| `OBJECT_STORAGE_SECRET_KEY` | Secret access key | - |
+| `OBJECT_STORAGE_BUCKET` | Bucket name | `reporter-storage` |
+| `OBJECT_STORAGE_USE_PATH_STYLE` | Use path-style URLs | `true` |
+| `OBJECT_STORAGE_DISABLE_SSL` | Disable SSL | `true` |
+
+**Supported providers:** AWS S3, SeaweedFS S3, MinIO, and other S3-compatible services.
 
 ## Data Sources
 
@@ -137,6 +151,7 @@ DATASOURCE_MYDB_PASSWORD=password
 DATASOURCE_MYDB_DATABASE=dbname
 DATASOURCE_MYDB_TYPE=postgresql
 DATASOURCE_MYDB_SSLMODE=disable
+DATASOURCE_MYDB_SCHEMAS=public,sales,inventory  # Multi-schema support
 
 # MongoDB Example
 DATASOURCE_MYMONGO_CONFIG_NAME=my_mongo
@@ -159,6 +174,7 @@ DATASOURCE_MYMONGO_SSL=false
 ### Features
 
 - **Automatic schema discovery** - Reporter introspects database schemas
+- **Multi-schema support** - Query tables across multiple PostgreSQL schemas (e.g., `public`, `sales`, `inventory`)
 - **Connection pooling** - Configurable pool sizes for performance
 - **Circuit breaker** - Automatic failover for unavailable data sources
 - **Health checking** - Background monitoring of data source availability
@@ -181,6 +197,24 @@ Email: {{ row.email }}
 Data is available in templates using the pattern:
 ```
 {{ datasource_config_name.table_name }}
+```
+
+For multi-schema databases, use explicit schema syntax:
+```
+{{ datasource_config_name:schema_name.table_name }}
+```
+
+Example with multiple schemas:
+```django
+{# Access table from public schema #}
+{% for account in midaz_onboarding:public.account %}
+  Account: {{ account.id }} - {{ account.name }}
+{% endfor %}
+
+{# Access table from payment schema #}
+{% for transfer in midaz_onboarding:payment.transfers %}
+  Transfer: {{ transfer.id }} - {{ transfer.amount }}
+{% endfor %}
 ```
 
 ### Output Formats
@@ -254,6 +288,43 @@ Reports are generated asynchronously via RabbitMQ:
 }
 ```
 
+### Report Request with Filters
+
+You can filter data when generating reports. The filter supports multi-schema references:
+
+```json
+{
+  "templateId": "019538ee-deee-769c-8859-cbe84fce9af7",
+  "filters": {
+    "midaz_onboarding": {
+      "organization": {
+        "id": {
+          "eq": ["019c10b7-073e-7056-a494-40f54a838404"]
+        }
+      },
+      "public.account": {
+        "organization_id": {
+          "eq": ["019c10b7-073e-7056-a494-40f54a838404"]
+        }
+      }
+    }
+  }
+}
+```
+
+#### Filter Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `eq` | Equals (supports multiple values as OR) | `{"eq": ["value1", "value2"]}` |
+| `gt` | Greater than | `{"gt": [100]}` |
+| `gte` | Greater than or equal | `{"gte": [100]}` |
+| `lt` | Less than | `{"lt": [100]}` |
+| `lte` | Less than or equal | `{"lte": [100]}` |
+| `in` | In list | `{"in": ["a", "b", "c"]}` |
+| `notIn` | Not in list | `{"notIn": ["x", "y"]}` |
+| `between` | Between two values | `{"between": [10, 100]}` |
+
 ### Swagger Documentation
 
 Full API documentation is available at:
@@ -270,13 +341,13 @@ reporter/
 ├── components/
 │   ├── manager/          # REST API service
 │   ├── worker/           # Report generation worker
-│   ├── frontend/         # Web UI (Next.js)
 │   └── infra/            # Infrastructure (Docker Compose)
 ├── pkg/                  # Shared packages
 │   ├── pongo/            # Template engine extensions
 │   ├── postgres/         # PostgreSQL adapter
 │   ├── mongodb/          # MongoDB adapter
-│   └── seaweedfs/        # File storage adapter
+│   ├── seaweedfs/        # Legacy SeaweedFS HTTP adapter
+│   └── storage/          # S3-compatible storage adapter
 ├── docs/                 # Documentation
 └── tests/                # Test suites
 ```
@@ -291,7 +362,7 @@ make up
 make down
 
 # Run tests
-make test
+make test-unit
 
 # Run linters
 make lint
@@ -312,8 +383,11 @@ make test-unit
 # Integration tests
 make test-integration
 
-# E2E tests
-make test-e2e
+# Property tests
+make test-property
+
+# Fuzzy tests
+make test-fuzzy
 ```
 
 ## Contributing
@@ -407,5 +481,3 @@ See the [LICENSE](LICENSE) file for full details.
 - [RabbitMQ Documentation](https://www.rabbitmq.com/documentation.html)
 - [Reporter Guide](https://docs.lerian.studio/en/reporter/what-is-reporter) 
 - [API Guide Reporter](https://docs.lerian.studio/en/reference/reporter/upload-template)
-
-**Desenvolvido com ❤️ por [Lerian Studio](https://lerian.io)**
