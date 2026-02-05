@@ -166,10 +166,25 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 
 		variableMap[mainPath[1]] = mainPath
 
-		for _, arg := range args[1:] {
+		// Detect if this is a "by" expression (4 args: mainPath, byField, ifField, value)
+		// In this case, args[1] is the "by" field which is a nested JSON field path,
+		// NOT a datasource reference. It should be preserved as-is.
+		hasByClause := len(args) == 4
+
+		for i, arg := range args[1:] {
 			// Skip quoted string literals (values like "cacc", 'value', etc.)
 			trimmedArg := strings.TrimSpace(arg)
 			if isQuotedString(trimmedArg) {
+				continue
+			}
+
+			// If this is the "by" field (first arg after mainPath in a "by" expression),
+			// it's a nested JSON field path within the collection, not a datasource reference.
+			// Insert it directly without CleanPath processing.
+			if hasByClause && i == 0 {
+				// This is the "by" field (e.g., "fee_charge.totalAmount")
+				// It's a nested field path within the main collection
+				insertField(resultRegex, mainPath, trimmedArg)
 				continue
 			}
 
@@ -563,19 +578,62 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 }
 
 // extractFieldsFromExpressionOfAggregation parses an aggregation expression and extracts key fields as a slice of strings.
+// Supports compound conditions with "and" operator.
+// Examples:
+//   - "collection if field == value" -> [collection, field, value]
+//   - "collection by "byField" if field == value" -> [collection, byField, field, value]
+//   - "collection by "byField" if f1 == v1 and f2 == v2" -> [collection, byField, f1, v1, f2, v2]
 func extractFieldsFromExpressionOfAggregation(expr string) []string {
 	result := make([]string, 0)
-	re := regexp.MustCompile(`^\s*(\S+)\s+if\s+(\S+)\s*==\s*(\S+)\s*$`)
-	matches := re.FindStringSubmatch(expr)
 
-	if len(matches) == 4 {
-		result = []string{matches[1], matches[2], matches[3]}
-	} else {
-		re = regexp.MustCompile(`^\s*(\S+)\s+by\s+"([^"]+)"\s+if\s+(\S+)\s*==\s*(\S+)`)
-		matches = re.FindStringSubmatch(expr)
+	// Try to match expression with "by" clause
+	reWithBy := regexp.MustCompile(`^\s*(\S+)\s+by\s+"([^"]+)"\s+if\s+(.+)$`)
+	matchesWithBy := reWithBy.FindStringSubmatch(expr)
 
-		if len(matches) == 5 {
-			result = []string{matches[1], matches[2], matches[3], matches[4]}
+	if len(matchesWithBy) == 4 {
+		// Has "by" clause: collection, byField, conditions
+		result = append(result, matchesWithBy[1], matchesWithBy[2])
+		// Extract all fields from conditions (supports "and" compound conditions)
+		conditionFields := extractFieldsFromConditions(matchesWithBy[3])
+		result = append(result, conditionFields...)
+
+		return result
+	}
+
+	// Try to match simple expression without "by" clause
+	reSimple := regexp.MustCompile(`^\s*(\S+)\s+if\s+(.+)$`)
+	matchesSimple := reSimple.FindStringSubmatch(expr)
+
+	if len(matchesSimple) == 3 {
+		// No "by" clause: collection, conditions
+		result = append(result, matchesSimple[1])
+		// Extract all fields from conditions
+		conditionFields := extractFieldsFromConditions(matchesSimple[2])
+		result = append(result, conditionFields...)
+
+		return result
+	}
+
+	return result
+}
+
+// extractFieldsFromConditions extracts field names and values from condition expressions.
+// Supports compound conditions with "and" operator.
+// Example: "transfer_type == "CASHIN" and status == "COMPLETED"" -> [transfer_type, "CASHIN", status, "COMPLETED"]
+func extractFieldsFromConditions(conditions string) []string {
+	result := make([]string, 0)
+
+	// Split by "and" (case insensitive)
+	andRegex := regexp.MustCompile(`\s+and\s+`)
+	parts := andRegex.Split(conditions, -1)
+
+	// Extract field and value from each condition
+	conditionRegex := regexp.MustCompile(`^\s*(\S+)\s*==\s*(\S+)\s*$`)
+
+	for _, part := range parts {
+		matches := conditionRegex.FindStringSubmatch(strings.TrimSpace(part))
+		if len(matches) == 3 {
+			result = append(result, matches[1], matches[2])
 		}
 	}
 

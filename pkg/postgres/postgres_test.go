@@ -140,6 +140,86 @@ func TestValidateFieldsInSchemaPostgres_CountAccumulation(t *testing.T) {
 	assert.Equal(t, int32(12), count) // 10 + 2
 }
 
+func TestValidateFieldsInSchemaPostgres_NestedJSONBFields(t *testing.T) {
+	// Schema with a JSONB column called "fee_charge"
+	schema := TableSchema{
+		SchemaName: "payment",
+		TableName:  "transfers",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "amount", DataType: "numeric"},
+			{Name: "status", DataType: "varchar"},
+			{Name: "fee_charge", DataType: "jsonb"},
+			{Name: "metadata", DataType: "jsonb"},
+		},
+	}
+
+	// Test nested JSONB field paths like "fee_charge.totalAmount"
+	// These should validate successfully if the root column exists
+	expectedFields := []string{
+		"id",
+		"amount",
+		"fee_charge.totalAmount", // Nested JSONB path
+		"fee_charge.currency",    // Another nested path
+		"metadata.fees.amount",   // Deeply nested path
+		"status",
+	}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Empty(t, missing, "Nested JSONB field paths should not be reported as missing")
+	assert.Equal(t, int32(6), count)
+}
+
+func TestValidateFieldsInSchemaPostgres_NestedFieldMissingRootColumn(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "payment",
+		TableName:  "transfers",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "amount", DataType: "numeric"},
+		},
+	}
+
+	// "nonexistent.field" should be reported as missing because "nonexistent" column doesn't exist
+	expectedFields := []string{"id", "nonexistent.field", "another.nested.path"}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Len(t, missing, 2)
+	assert.Contains(t, missing, "nonexistent.field")
+	assert.Contains(t, missing, "another.nested.path")
+}
+
+func TestValidateFieldsInSchemaPostgres_MixedSimpleAndNested(t *testing.T) {
+	schema := TableSchema{
+		SchemaName: "public",
+		TableName:  "orders",
+		Columns: []ColumnInformation{
+			{Name: "id", DataType: "uuid"},
+			{Name: "customer", DataType: "jsonb"},
+			{Name: "total", DataType: "numeric"},
+		},
+	}
+
+	// Mix of simple fields, valid nested fields, and invalid nested fields
+	expectedFields := []string{
+		"id",                    // Simple - exists
+		"customer.name",         // Nested - root exists
+		"customer.address.city", // Deeply nested - root exists
+		"total",                 // Simple - exists
+		"invalid.path",          // Nested - root doesn't exist
+	}
+	var count int32 = 0
+
+	missing := ValidateFieldsInSchemaPostgres(expectedFields, schema, &count)
+
+	assert.Len(t, missing, 1)
+	assert.Contains(t, missing, "invalid.path")
+}
+
 func TestColumnInformation_Struct(t *testing.T) {
 	col := ColumnInformation{
 		Name:         "user_id",

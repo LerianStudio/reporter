@@ -237,3 +237,73 @@ func TestCalcTag_NegativeWithVariables(t *testing.T) {
 		})
 	}
 }
+
+func TestSumByTag_CompoundConditions(t *testing.T) {
+	// Test data matching the user's scenario
+	data := []map[string]any{
+		{
+			"amount":                  1.50,
+			"transfer_type":           "CASHIN",
+			"destination_person_type": "NATURAL_PERSON",
+			"status":                  "COMPLETED",
+		},
+		{
+			"amount":                  1.50,
+			"transfer_type":           "CASHIN",
+			"destination_person_type": "NATURAL_PERSON",
+			"status":                  "COMPLETED",
+		},
+		{
+			"amount":                  5.00,
+			"transfer_type":           "CASHOUT", // Different type - should be excluded
+			"destination_person_type": "NATURAL_PERSON",
+			"status":                  "COMPLETED",
+		},
+		{
+			"amount":                  10.00,
+			"transfer_type":           "CASHIN",
+			"destination_person_type": "LEGAL_PERSON", // Different person type - should be excluded
+			"status":                  "COMPLETED",
+		},
+		{
+			"amount":                  20.00,
+			"transfer_type":           "CASHIN",
+			"destination_person_type": "NATURAL_PERSON",
+			"status":                  "PENDING", // Different status - should be excluded
+		},
+	}
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "single_condition",
+			template: `{% sum_by data by "amount" if transfer_type == "CASHIN" %}`,
+			expected: "33", // 1.50 + 1.50 + 10.00 + 20.00 = 33
+		},
+		{
+			name:     "two_conditions_with_and",
+			template: `{% sum_by data by "amount" if transfer_type == "CASHIN" and status == "COMPLETED" %}`,
+			expected: "13", // 1.50 + 1.50 + 10.00 = 13
+		},
+		{
+			name:     "three_conditions_with_and",
+			template: `{% sum_by data by "amount" if transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED" %}`,
+			expected: "3", // 1.50 + 1.50 = 3
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			assert.NoError(t, err, "template parsing should not fail for: %s", tt.template)
+
+			ctx := pongo2.Context{"data": data}
+			out, err := tpl.Execute(ctx)
+			assert.NoError(t, err, "template execution should not fail")
+			assert.Equal(t, tt.expected, out, "expected sum to match")
+		})
+	}
+}

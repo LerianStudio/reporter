@@ -620,3 +620,146 @@ func TestMappedFieldsOfTemplate_MixedLegacyAndSchemaFormats(t *testing.T) {
 	assert.Contains(t, result["external_db"], "sales__orders")
 	assert.Contains(t, result["external_db"]["sales__orders"], "amount")
 }
+
+func TestMappedFieldsOfTemplate_AggregationNestedFields(t *testing.T) {
+	// Test that nested JSONB field paths in aggregation "by" clauses
+	// are correctly treated as field paths, not datasource references
+	template := `
+{# Aggregation with nested JSONB field in "by" clause #}
+<ValorReceita>{% sum_by external_db:analytics.transfers by "fee_charge.totalAmount" if status == "COMPLETED" %}</ValorReceita>
+
+{# Another aggregation with deeply nested field #}
+<TotalFees>{% sum_by external_db:analytics.transactions by "metadata.fees.amount" if type == "PAYMENT" %}</TotalFees>
+
+{# Count with nested field #}
+<Count>{% count_by datasource:public.orders by "customer.address.city" if active == "true" %}</Count>
+
+{# Avg with nested field #}
+<Average>{% avg_by datasource:public.products by "pricing.discount.percentage" if available == "true" %}</Average>
+
+{# Simple aggregation without nested field (should still work) #}
+<SimpleSum>{% sum_by external_db:analytics.sales by "amount" if region == "SOUTH" %}</SimpleSum>
+`
+
+	result := MappedFieldsOfTemplate(template)
+
+	t.Logf("Result: %+v", result)
+
+	// Check external_db datasource
+	assert.Contains(t, result, "external_db")
+
+	// analytics__transfers should contain the nested field path as-is
+	assert.Contains(t, result["external_db"], "analytics__transfers")
+	transfersFields := result["external_db"]["analytics__transfers"]
+	assert.Contains(t, transfersFields, "fee_charge.totalAmount", "Nested field 'fee_charge.totalAmount' should be preserved as-is")
+	assert.Contains(t, transfersFields, "status", "Condition field 'status' should be mapped")
+
+	// analytics__transactions should contain deeply nested field path
+	assert.Contains(t, result["external_db"], "analytics__transactions")
+	transactionsFields := result["external_db"]["analytics__transactions"]
+	assert.Contains(t, transactionsFields, "metadata.fees.amount", "Deeply nested field 'metadata.fees.amount' should be preserved as-is")
+	assert.Contains(t, transactionsFields, "type", "Condition field 'type' should be mapped")
+
+	// analytics__sales should contain simple field
+	assert.Contains(t, result["external_db"], "analytics__sales")
+	salesFields := result["external_db"]["analytics__sales"]
+	assert.Contains(t, salesFields, "amount", "Simple field 'amount' should be mapped")
+	assert.Contains(t, salesFields, "region", "Condition field 'region' should be mapped")
+
+	// Check datasource
+	assert.Contains(t, result, "datasource")
+
+	// public__orders should contain nested field
+	assert.Contains(t, result["datasource"], "public__orders")
+	ordersFields := result["datasource"]["public__orders"]
+	assert.Contains(t, ordersFields, "customer.address.city", "Nested field 'customer.address.city' should be preserved as-is")
+	assert.Contains(t, ordersFields, "active", "Condition field 'active' should be mapped")
+
+	// public__products should contain nested field
+	assert.Contains(t, result["datasource"], "public__products")
+	productsFields := result["datasource"]["public__products"]
+	assert.Contains(t, productsFields, "pricing.discount.percentage", "Nested field 'pricing.discount.percentage' should be preserved as-is")
+	assert.Contains(t, productsFields, "available", "Condition field 'available' should be mapped")
+}
+
+func TestMappedFieldsOfTemplate_AggregationNestedFieldsNotTreatedAsDatasource(t *testing.T) {
+	// Regression test: ensure nested field paths like "fee_charge.totalAmount"
+	// are NOT incorrectly split and treated as datasource references
+	template := `{% sum_by db:schema.table by "fee_charge.totalAmount" if status == "COMPLETED" %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	t.Logf("Result: %+v", result)
+
+	// Should have "db" as datasource
+	assert.Contains(t, result, "db")
+
+	// Should have "schema__table" as collection
+	assert.Contains(t, result["db"], "schema__table")
+
+	// Should NOT have "fee_charge" as a separate datasource or collection
+	// This was the bug: fee_charge.totalAmount was being split and fee_charge
+	// was treated as a datasource
+	_, hasFeeCharge := result["fee_charge"]
+	assert.False(t, hasFeeCharge, "fee_charge should NOT be treated as a datasource")
+
+	_, hasFeeChargeInDb := result["db"]["fee_charge"]
+	assert.False(t, hasFeeChargeInDb, "fee_charge should NOT be treated as a collection under db")
+
+	// The field should be preserved as-is in the correct collection
+	tableFields := result["db"]["schema__table"]
+	assert.Contains(t, tableFields, "fee_charge.totalAmount", "Nested field should be preserved as complete path")
+}
+
+func TestMappedFieldsOfTemplate_AggregationCompoundConditions(t *testing.T) {
+	// Test that compound conditions with "and" extract all field names
+	template := `{% sum_by db:schema.transfers by "amount" if transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED" %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	t.Logf("Result: %+v", result)
+
+	// Should have "db" as datasource
+	assert.Contains(t, result, "db")
+
+	// Should have "schema__transfers" as collection
+	assert.Contains(t, result["db"], "schema__transfers")
+
+	// All fields from the compound condition should be extracted
+	tableFields := result["db"]["schema__transfers"]
+	assert.Contains(t, tableFields, "amount", "Field 'amount' from 'by' clause should be mapped")
+	assert.Contains(t, tableFields, "transfer_type", "Field 'transfer_type' from first condition should be mapped")
+	assert.Contains(t, tableFields, "destination_person_type", "Field 'destination_person_type' from second condition should be mapped")
+	assert.Contains(t, tableFields, "status", "Field 'status' from third condition should be mapped")
+}
+
+func TestExtractFieldsFromConditions(t *testing.T) {
+	tests := []struct {
+		name       string
+		conditions string
+		expected   []string
+	}{
+		{
+			name:       "single_condition",
+			conditions: `transfer_type == "CASHIN"`,
+			expected:   []string{"transfer_type", `"CASHIN"`},
+		},
+		{
+			name:       "two_conditions",
+			conditions: `transfer_type == "CASHIN" and status == "COMPLETED"`,
+			expected:   []string{"transfer_type", `"CASHIN"`, "status", `"COMPLETED"`},
+		},
+		{
+			name:       "three_conditions",
+			conditions: `transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED"`,
+			expected:   []string{"transfer_type", `"CASHIN"`, "destination_person_type", `"NATURAL_PERSON"`, "status", `"COMPLETED"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractFieldsFromConditions(tt.conditions)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
