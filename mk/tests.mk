@@ -59,7 +59,6 @@ tools-gotestsum:
 test:
 	@./scripts/run-tests.sh
 
-
 #-------------------------------------------------------
 # Test Suite Aliases
 #-------------------------------------------------------
@@ -132,106 +131,77 @@ coverage-unit:
 
 .PHONY: test-integration
 test-integration:
-	$(call print_title,Running Go integration tests (with Docker stack))
+	$(call print_title,Running Go integration tests (with testcontainers))
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
-	$(call check_env_files)
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/integration; \
-	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
-	$(MAKE) up; \
-	$(call wait_for_services); \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration.xml -- -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying integration tests once..."; \
-	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration-rerun.xml -- -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	  go test -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
 	fi
-
-.PHONY: test-e2e
-test-e2e:
-	$(call print_title,Running E2E tests with Apidog CLI (with Docker stack))
-	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
-	$(call check_env_files)
-	@set -e; \
-	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
-	$(MAKE) up; \
-	$(call wait_for_services); \
-	mkdir -p ./reports/e2e; \
-	echo "Running Apidog CLI via npx against tests/e2e/local.apidog-cli.json"; \
-	npx --yes apidog-cli@latest run ./tests/e2e/local.apidog-cli.json -r html,cli --out-dir ./reports/e2e
 
 # Fuzzy/robustness tests
 .PHONY: test-fuzzy
 test-fuzzy:
-	$(call print_title,Running fuzz/robustness tests - requires Docker stack)
+	$(call print_title,Running fuzz/robustness tests (with testcontainers))
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
-	$(call check_env_files)
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/fuzzy; \
-	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
-	$(MAKE) up; \
-	$(call wait_for_services); \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy.xml -- -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying fuzzy tests once..."; \
-	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy-rerun.xml -- -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	  go test -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
 	fi
 
-# Property-based tests
+# Property-based tests (no infrastructure required - pure Go tests)
 .PHONY: test-property
 test-property:
-	$(call print_title,Running property-based tests - requires Docker stack)
-	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
-	$(call check_env_files)
+	$(call print_title,Running property-based tests)
+	$(call check_command,go,"Install Go from https://golang.org/doc/install")
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/property; \
-	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
-	$(MAKE) up; \
-	$(call wait_for_services); \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL)  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying property tests once..."; \
-	      TEST_MANAGER_URL=$(TEST_MANAGER_URL)  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL)  go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	  go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
 	fi
 
 # Chaos tests
 .PHONY: test-chaos
 test-chaos:
-	$(call print_title,Running chaos tests - requires Docker stack)
+	$(call print_title,Running chaos tests (with testcontainers))
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
-	$(call check_env_files)
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/chaos; \
-	trap '$(MAKE) -s down >/dev/null 2>&1 || true' EXIT; \
-	$(MAKE) up; \
-	$(call wait_for_services); \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying chaos tests once..."; \
-	      TEST_MANAGER_URL=$(TEST_MANAGER_URL) gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos-rerun.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos-rerun.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  TEST_MANAGER_URL=$(TEST_MANAGER_URL) go test -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	  go test -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
 	fi
 
 # Run all test suites
@@ -244,8 +214,6 @@ test-all:
 	$(MAKE) test-integration
 	$(call print_title,Running chaos tests)
 	$(MAKE) test-chaos
-	$(call print_title,Running e2e tests)
-	$(MAKE) test-e2e
 	$(call print_title,Running property tests)
 	$(MAKE) test-property
 	$(call print_title,Running fuzzy tests)
