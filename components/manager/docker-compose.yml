@@ -5,8 +5,6 @@ services:
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
-      secrets:
-        - github_token
     env_file:
       - .env
     ports:
@@ -35,6 +33,3 @@ networks:
   plugin-crm-network:
     external: true
 
-secrets:
-  github_token:
-    file: ../../.secrets/github_token.txt

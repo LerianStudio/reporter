@@ -10,8 +10,8 @@ import (
 )
 
 // @title			Reporter
-// @version		4.0.0
-// @description	This is a swagger documentation for Reporter
+// @version			1.0.0
+// @description		This is a swagger documentation for Reporter
 // @termsOfService	http://swagger.io/terms/
 // @host			localhost:4005
 // @BasePath		/

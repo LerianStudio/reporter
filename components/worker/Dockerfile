@@ -2,20 +2,14 @@
 
 FROM golang:1.25-alpine AS builder
 
-# Install required packages: git is needed for private modules (e.g., from GitHub)
-RUN apk add --no-cache git
-
 # Set the working directory for the build
 WORKDIR /reporter
 
 # Copy only go.mod and go.sum first to cache dependencies
 COPY go.mod go.sum ./
 
-# Download Go modules using GitHub token from BuildKit secret
-RUN --mount=type=secret,id=github_token \
-  GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
-  printf "machine github.com\nlogin x-oauth-basic\npassword %s\n" "$GITHUB_TOKEN" > ~/.netrc && \
-  go mod download && rm ~/.netrc
+# Download Go modules
+RUN go mod download
 
 # Copy only necessary source files for worker component
 COPY pkg/ pkg/
