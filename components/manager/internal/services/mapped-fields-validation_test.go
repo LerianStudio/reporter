@@ -558,6 +558,117 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 	}
 }
 
+func TestValidateSchemaAmbiguity(t *testing.T) {
+	tests := []struct {
+		name         string
+		databaseName string
+		schema       []postgres.TableSchema
+		mappedFields map[string]map[string][]string
+		expectErr    bool
+		errContains  string
+	}{
+		{
+			name:         "No ambiguity - table exists in single schema",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "public", TableName: "users"},
+				{SchemaName: "public", TableName: "accounts"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"users": {"id", "name"},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:         "No ambiguity - table in multiple schemas but has public",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "public", TableName: "users"},
+				{SchemaName: "billing", TableName: "users"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"users": {"id", "name"},
+				},
+			},
+			expectErr: false, // public exists, so no ambiguity
+		},
+		{
+			name:         "Ambiguity - table in multiple schemas without public",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "billing", TableName: "users"},
+				{SchemaName: "sales", TableName: "users"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"users": {"id", "name"},
+				},
+			},
+			expectErr:   true,
+			errContains: "users",
+		},
+		{
+			name:         "No ambiguity - explicit schema with Pongo2 format",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "billing", TableName: "users"},
+				{SchemaName: "sales", TableName: "users"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"billing__users": {"id", "name"}, // Explicit schema
+				},
+			},
+			expectErr: false, // explicit schema, no ambiguity check needed
+		},
+		{
+			name:         "No ambiguity - explicit schema with dot format",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "billing", TableName: "users"},
+				{SchemaName: "sales", TableName: "users"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"billing.users": {"id", "name"}, // Explicit schema
+				},
+			},
+			expectErr: false, // explicit schema, no ambiguity check needed
+		},
+		{
+			name:         "No error - table does not exist (caught by other validation)",
+			databaseName: "test_db",
+			schema: []postgres.TableSchema{
+				{SchemaName: "public", TableName: "accounts"},
+			},
+			mappedFields: map[string]map[string][]string{
+				"test_db": {
+					"nonexistent": {"id"},
+				},
+			},
+			expectErr: false, // this function doesn't validate existence
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSchemaAmbiguity(tt.databaseName, tt.schema, tt.mappedFields)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -571,7 +682,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 
 	postgresSchema := []postgres.TableSchema{
 		{
-			SchemaName: "payment",
+			SchemaName: "analytics",
 			TableName:  "transfers",
 			Columns: []postgres.ColumnInformation{
 				{Name: "id", DataType: "uuid"},
@@ -591,12 +702,12 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			name: "Success - Pongo2 format (schema__table)",
 			mappedFields: map[string]map[string][]string{
 				"test_postgres_db": {
-					"payment__transfers": {"id", "amount"},
+					"analytics__transfers": {"id", "amount"},
 				},
 			},
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
-					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					GetDatabaseSchema(gomock.Any(), []string{"public", "analytics"}).
 					Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().
 					CloseConnection().
@@ -608,12 +719,12 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			name: "Success - Qualified format (schema.table)",
 			mappedFields: map[string]map[string][]string{
 				"test_postgres_db": {
-					"payment.transfers": {"id", "amount"},
+					"analytics.transfers": {"id", "amount"},
 				},
 			},
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
-					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					GetDatabaseSchema(gomock.Any(), []string{"public", "analytics"}).
 					Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().
 					CloseConnection().
@@ -630,7 +741,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
-					GetDatabaseSchema(gomock.Any(), []string{"public", "payment"}).
+					GetDatabaseSchema(gomock.Any(), []string{"public", "analytics"}).
 					Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().
 					CloseConnection().
@@ -650,7 +761,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 						DatabaseType:       pkg.PostgreSQLType,
 						PostgresRepository: mockPostgresRepo,
 						Initialized:        true,
-						Schemas:            []string{"public", "payment"},
+						Schemas:            []string{"public", "analytics"},
 						DatabaseConfig: &postgres.Connection{
 							Connected: true,
 						},

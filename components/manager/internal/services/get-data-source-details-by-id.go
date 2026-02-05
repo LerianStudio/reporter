@@ -410,7 +410,7 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 		}
 
 		tableDetail := model.TableDetails{
-			Name:   tableSchema.TableName,
+			Name:   tableSchema.QualifiedName(), // Returns "schema.table" format
 			Fields: fields,
 		}
 

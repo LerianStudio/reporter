@@ -161,3 +161,236 @@ func Test_createReport(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeFiltersWithSchema(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]map[string]map[string]model.FilterCondition
+		expected map[string]map[string]map[string]model.FilterCondition
+	}{
+		{
+			name:     "Nil input returns nil",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name: "Table without schema gets public prefix",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"public.organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+			},
+		},
+		{
+			name: "Table with dot schema unchanged",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"public.ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"public.ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+				},
+			},
+		},
+		{
+			name: "Table with different schema unchanged",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"analytics.account": {
+						"balance": {GreaterOrEqual: []any{1000}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"analytics.account": {
+						"balance": {GreaterOrEqual: []any{1000}},
+					},
+				},
+			},
+		},
+		{
+			name: "Table with Pongo2 format unchanged",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"analytics__transfers": {
+						"amount": {GreaterThan: []any{500}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"external_datasource": {
+					"analytics__transfers": {
+						"amount": {GreaterThan: []any{500}},
+					},
+				},
+			},
+		},
+		{
+			name: "Mixed tables - some with schema, some without",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+					"public.ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+					"asset": {
+						"type": {Equals: []any{"crypto"}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"public.organization": {
+						"id": {Equals: []any{"123"}},
+					},
+					"public.ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+					"public.asset": {
+						"type": {Equals: []any{"crypto"}},
+					},
+				},
+			},
+		},
+		{
+			name: "Multiple datasources with mixed formats",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"datasource_one": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+				"datasource_two": {
+					"analytics.transfers": {
+						"amount": {GreaterThan: []any{100}},
+					},
+				},
+			},
+			expected: map[string]map[string]map[string]model.FilterCondition{
+				"datasource_one": {
+					"public.organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+				"datasource_two": {
+					"analytics.transfers": {
+						"amount": {GreaterThan: []any{100}},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := normalizeFiltersWithSchema(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestConvertFiltersToMappedFieldsType(t *testing.T) {
+	uc := &UseCase{}
+
+	tests := []struct {
+		name     string
+		input    map[string]map[string]map[string]model.FilterCondition
+		expected map[string]map[string][]string
+	}{
+		{
+			name: "Single datasource, single table, single field",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"organization": {"id"},
+				},
+			},
+		},
+		{
+			name: "Single datasource, single table, multiple fields (max 3)",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"midaz_onboarding": {
+					"organization": {
+						"id":     {Equals: []any{"123"}},
+						"name":   {In: []any{"Test"}},
+						"status": {Equals: []any{"active"}},
+						"extra":  {Equals: []any{"ignored"}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"midaz_onboarding": {
+					"organization": {"id", "name", "status"},
+				},
+			},
+		},
+		{
+			name: "Multiple datasources and tables",
+			input: map[string]map[string]map[string]model.FilterCondition{
+				"datasource_one": {
+					"organization": {
+						"id": {Equals: []any{"123"}},
+					},
+					"ledger": {
+						"status": {Equals: []any{"active"}},
+					},
+				},
+				"datasource_two": {
+					"analytics.transfers": {
+						"amount": {GreaterThan: []any{100}},
+					},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"datasource_one": {
+					"organization": {"id"},
+					"ledger":       {"status"},
+				},
+				"datasource_two": {
+					"analytics.transfers": {"amount"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := uc.convertFiltersToMappedFieldsType(tt.input)
+
+			// Verify structure matches (can't guarantee order of keys in maps)
+			assert.Equal(t, len(tt.expected), len(result))
+			for datasource, tables := range tt.expected {
+				assert.Contains(t, result, datasource)
+				assert.Equal(t, len(tables), len(result[datasource]))
+				for table, fields := range tables {
+					assert.Contains(t, result[datasource], table)
+					assert.Equal(t, len(fields), len(result[datasource][table]))
+				}
+			}
+		})
+	}
+}

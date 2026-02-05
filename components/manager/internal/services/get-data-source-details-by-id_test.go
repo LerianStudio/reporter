@@ -44,7 +44,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 	}
 	postgresSchema := []postgres.TableSchema{
 		{
-			TableName: "table1",
+			SchemaName: "public",
+			TableName:  "table1",
 			Columns: []postgres.ColumnInformation{
 				{Name: "col1", DataType: "string"},
 				{Name: "col2", DataType: "int"},
@@ -69,7 +70,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 		ExternalName: "pg_db",
 		Type:         pkg.PostgreSQLType,
 		Tables: []model.TableDetails{{
-			Name:   "table1",
+			Name:   "public.table1",
 			Fields: []string{"col1", "col2"},
 		}},
 	}

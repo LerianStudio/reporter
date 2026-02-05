@@ -86,6 +86,12 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 		return err
 	}
 
+	// Early-fail validation: check for schema ambiguity on tables without explicit schema
+	// This prevents templates from being saved with ambiguous references that would fail at report generation
+	if err := validateSchemaAmbiguity(databaseName, schema, mappedFields); err != nil {
+		return err
+	}
+
 	for _, s := range schema {
 		countIfTableExist := int32(0)
 
@@ -242,4 +248,57 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 	}
 
 	return transformedFields
+}
+
+// validateSchemaAmbiguity checks for schema ambiguity on tables without explicit schema reference.
+// This is an early-fail validation that prevents templates with ambiguous table references from being saved.
+// A table reference is ambiguous when:
+//   - The table name has no explicit schema (no "__" separator in Pongo2 format)
+//   - The table exists in multiple schemas
+//   - None of those schemas is "public" (which would be used as default)
+func validateSchemaAmbiguity(databaseName string, schema []postgres.TableSchema, mappedFields map[string]map[string][]string) error {
+	// Build a map of table name -> list of schemas where it exists
+	tableSchemas := make(map[string][]string)
+	for _, s := range schema {
+		tableSchemas[s.TableName] = append(tableSchemas[s.TableName], s.SchemaName)
+	}
+
+	// Check each table in mappedFields for this database
+	for tableKey := range mappedFields[databaseName] {
+		// Skip tables with explicit schema (Pongo2 format: schema__table)
+		if strings.Contains(tableKey, "__") {
+			continue
+		}
+
+		// Skip tables with qualified format (schema.table)
+		if strings.Contains(tableKey, ".") {
+			continue
+		}
+
+		// This is a table without explicit schema - check for ambiguity
+		schemas, exists := tableSchemas[tableKey]
+		if !exists {
+			// Table doesn't exist - will be caught by existing validation
+			continue
+		}
+
+		if len(schemas) > 1 {
+			// Table exists in multiple schemas - check if "public" is one of them
+			hasPublic := false
+
+			for _, s := range schemas {
+				if s == "public" {
+					hasPublic = true
+					break
+				}
+			}
+
+			if !hasPublic {
+				// Ambiguous reference: table exists in multiple schemas, none is "public"
+				return pkg.ValidateBusinessError(constant.ErrSchemaAmbiguous, "", tableKey, schemas)
+			}
+		}
+	}
+
+	return nil
 }
