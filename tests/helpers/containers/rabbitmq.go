@@ -66,26 +66,26 @@ func StartRabbitMQ(ctx context.Context, networkName, image string) (*RabbitMQCon
 	// Get AMQP URL
 	amqpURL, err := container.AmqpURL(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get rabbitmq amqp url: %w", err)
 	}
 
 	// Get host and ports
 	host, err := container.Host(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get rabbitmq host: %w", err)
 	}
 
 	amqpPort, err := container.MappedPort(ctx, "5672")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get rabbitmq amqp port: %w", err)
 	}
 
 	mgmtPort, err := container.MappedPort(ctx, "15672")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get rabbitmq management port: %w", err)
 	}
 
@@ -99,7 +99,7 @@ func StartRabbitMQ(ctx context.Context, networkName, image string) (*RabbitMQCon
 
 	// Setup topology (exchanges, queues, bindings)
 	if err := rc.setupTopology(amqpURL); err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("setup rabbitmq topology: %w", err)
 	}
 

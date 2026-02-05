@@ -70,7 +70,7 @@ func StartManager(ctx context.Context, cfg *ServiceConfig) (*ManagerService, err
 
 	// Wait for server to be ready
 	if err := waitForHealth(ctx, ms.addr, 60*time.Second); err != nil {
-		ms.Stop(ctx)
+		_ = ms.Stop(ctx)
 		return nil, fmt.Errorf("wait for manager health: %w", err)
 	}
 
@@ -100,11 +100,12 @@ func (m *ManagerService) Stop(ctx context.Context) error {
 	// Send SIGTERM for graceful shutdown
 	if err := m.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		// If SIGTERM fails, try SIGKILL
-		m.cmd.Process.Kill()
+		_ = m.cmd.Process.Kill()
 	}
 
 	// Wait for process to exit with timeout
 	done := make(chan error, 1)
+
 	go func() {
 		done <- m.cmd.Wait()
 	}()
@@ -113,10 +114,10 @@ func (m *ManagerService) Stop(ctx context.Context) error {
 	case <-done:
 		return nil
 	case <-time.After(10 * time.Second):
-		m.cmd.Process.Kill()
+		_ = m.cmd.Process.Kill()
 		return fmt.Errorf("timeout waiting for manager shutdown, killed")
 	case <-ctx.Done():
-		m.cmd.Process.Kill()
+		_ = m.cmd.Process.Kill()
 		return ctx.Err()
 	}
 }
@@ -146,7 +147,7 @@ func buildManagerEnv(cfg *ServiceConfig) []string {
 	env = append(env, "RABBITMQ_DEFAULT_USER="+cfg.RabbitUser)
 	env = append(env, "RABBITMQ_DEFAULT_PASS="+cfg.RabbitPassword)
 	env = append(env, "RABBITMQ_GENERATE_REPORT_QUEUE=reporter.generate-report.queue")
-	env = append(env, "RABBITMQ_HEALTH_CHECK_URL=http://"+cfg.RabbitHost+":"+cfg.RabbitMgmtPort+"/api/health/checks/alarms")
+	env = append(env, "RABBITMQ_HEALTH_CHECK_URL=http://"+cfg.RabbitHost+":"+cfg.RabbitMgmtPort)
 
 	// S3/SeaweedFS
 	env = append(env, "OBJECT_STORAGE_ENDPOINT="+cfg.S3Endpoint)
@@ -180,6 +181,7 @@ func findAvailablePort() (int, error) {
 	defer listener.Close()
 
 	addr := listener.Addr().(*net.TCPAddr)
+
 	return addr.Port, nil
 }
 
@@ -199,7 +201,7 @@ func waitForHealth(ctx context.Context, baseURL string, timeout time.Duration) e
 
 		resp, err := client.Get(healthURL)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return nil
 			}
@@ -228,6 +230,7 @@ func findProjectRoot() string {
 		if parent == dir {
 			return "."
 		}
+
 		dir = parent
 	}
 }

@@ -73,11 +73,12 @@ func (w *WorkerService) Stop(ctx context.Context) error {
 	// Send SIGTERM for graceful shutdown
 	if err := w.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		// If SIGTERM fails, try SIGKILL
-		w.cmd.Process.Kill()
+		_ = w.cmd.Process.Kill()
 	}
 
 	// Wait for process to exit with timeout
 	done := make(chan error, 1)
+
 	go func() {
 		done <- w.cmd.Wait()
 	}()
@@ -86,10 +87,10 @@ func (w *WorkerService) Stop(ctx context.Context) error {
 	case <-done:
 		return nil
 	case <-time.After(10 * time.Second):
-		w.cmd.Process.Kill()
+		_ = w.cmd.Process.Kill()
 		return fmt.Errorf("timeout waiting for worker shutdown, killed")
 	case <-ctx.Done():
-		w.cmd.Process.Kill()
+		_ = w.cmd.Process.Kill()
 		return ctx.Err()
 	}
 }
@@ -98,6 +99,7 @@ func (w *WorkerService) Stop(ctx context.Context) error {
 func (w *WorkerService) IsRunning() bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+
 	return w.started
 }
 
@@ -125,7 +127,7 @@ func buildWorkerEnv(cfg *ServiceConfig) []string {
 	env = append(env, "RABBITMQ_DEFAULT_USER="+cfg.RabbitUser)
 	env = append(env, "RABBITMQ_DEFAULT_PASS="+cfg.RabbitPassword)
 	env = append(env, "RABBITMQ_GENERATE_REPORT_QUEUE=reporter.generate-report.queue")
-	env = append(env, "RABBITMQ_HEALTH_CHECK_URL=http://"+cfg.RabbitHost+":"+cfg.RabbitMgmtPort+"/api/health/checks/alarms")
+	env = append(env, "RABBITMQ_HEALTH_CHECK_URL=http://"+cfg.RabbitHost+":"+cfg.RabbitMgmtPort)
 	env = append(env, "RABBITMQ_NUMBERS_OF_WORKERS=2") // Fewer workers for tests
 
 	// S3/SeaweedFS

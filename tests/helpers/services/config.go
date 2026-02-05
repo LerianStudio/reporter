@@ -48,18 +48,18 @@ type ServiceConfig struct {
 // NewConfigFromInfrastructure creates a ServiceConfig from running test containers.
 func NewConfigFromInfrastructure(infra *containers.TestInfrastructure) *ServiceConfig {
 	cfg := &ServiceConfig{
-		MongoUser:     containers.MongoUser,
-		MongoPassword: containers.MongoPassword,
-		MongoDatabase: containers.MongoDatabase,
-		RabbitUser:    containers.RabbitUser,
+		MongoUser:      containers.MongoUser,
+		MongoPassword:  containers.MongoPassword,
+		MongoDatabase:  containers.MongoDatabase,
+		RabbitUser:     containers.RabbitUser,
 		RabbitPassword: containers.RabbitPassword,
-		S3Region:      containers.SeaweedRegion,
-		S3AccessKey:   containers.SeaweedAccessKey,
-		S3SecretKey:   containers.SeaweedSecretKey,
-		S3Bucket:      containers.SeaweedBucket,
-		RedisPassword: containers.ValkeyPassword,
-		ServerAddress: "127.0.0.1:0", // Dynamic port
-		AuthEnabled:   false,         // Disable auth for tests
+		S3Region:       containers.SeaweedRegion,
+		S3AccessKey:    containers.SeaweedAccessKey,
+		S3SecretKey:    containers.SeaweedSecretKey,
+		S3Bucket:       containers.SeaweedBucket,
+		RedisPassword:  containers.ValkeyPassword,
+		ServerAddress:  "127.0.0.1:0", // Dynamic port
+		AuthEnabled:    false,         // Disable auth for tests
 	}
 
 	if infra.MongoDB != nil {
@@ -88,6 +88,8 @@ func NewConfigFromInfrastructure(infra *containers.TestInfrastructure) *ServiceC
 }
 
 // ApplyManagerEnv sets environment variables for Manager service.
+//
+
 func (c *ServiceConfig) ApplyManagerEnv() {
 	// Service
 	os.Setenv("ENV_NAME", "test")
@@ -110,7 +112,7 @@ func (c *ServiceConfig) ApplyManagerEnv() {
 	os.Setenv("RABBITMQ_DEFAULT_USER", c.RabbitUser)
 	os.Setenv("RABBITMQ_DEFAULT_PASS", c.RabbitPassword)
 	os.Setenv("RABBITMQ_GENERATE_REPORT_QUEUE", containers.QueueGenerateReport)
-	os.Setenv("RABBITMQ_HEALTH_CHECK_URL", "http://"+c.RabbitHost+":"+c.RabbitMgmtPort+"/api/health/checks/alarms")
+	os.Setenv("RABBITMQ_HEALTH_CHECK_URL", "http://"+c.RabbitHost+":"+c.RabbitMgmtPort)
 
 	// S3/SeaweedFS
 	os.Setenv("OBJECT_STORAGE_ENDPOINT", c.S3Endpoint)
@@ -135,6 +137,8 @@ func (c *ServiceConfig) ApplyManagerEnv() {
 }
 
 // ApplyWorkerEnv sets environment variables for Worker service.
+//
+
 func (c *ServiceConfig) ApplyWorkerEnv() {
 	// Service
 	os.Setenv("ENV_NAME", "test")
@@ -156,7 +160,7 @@ func (c *ServiceConfig) ApplyWorkerEnv() {
 	os.Setenv("RABBITMQ_DEFAULT_USER", c.RabbitUser)
 	os.Setenv("RABBITMQ_DEFAULT_PASS", c.RabbitPassword)
 	os.Setenv("RABBITMQ_GENERATE_REPORT_QUEUE", containers.QueueGenerateReport)
-	os.Setenv("RABBITMQ_HEALTH_CHECK_URL", "http://"+c.RabbitHost+":"+c.RabbitMgmtPort+"/api/health/checks/alarms")
+	os.Setenv("RABBITMQ_HEALTH_CHECK_URL", "http://"+c.RabbitHost+":"+c.RabbitMgmtPort)
 	os.Setenv("RABBITMQ_NUMBERS_OF_WORKERS", "2") // Fewer workers for tests
 
 	// S3/SeaweedFS
@@ -194,6 +198,6 @@ func ClearEnv() {
 	}
 
 	for _, v := range envVars {
-		os.Unsetenv(v)
+		_ = os.Unsetenv(v)
 	}
 }

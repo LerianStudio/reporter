@@ -50,7 +50,7 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 		WaitingFor: wait.ForAll(
 			wait.ForHTTP("/cluster/status").WithPort("9333/tcp"),
 			wait.ForListeningPort("8333/tcp"),
-		).WithStartupTimeout(60 * time.Second),
+		).WithDeadline(60 * time.Second),
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -64,19 +64,19 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 	// Get host and ports
 	host, err := container.Host(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get seaweedfs host: %w", err)
 	}
 
 	s3Port, err := container.MappedPort(ctx, "8333")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get seaweedfs s3 port: %w", err)
 	}
 
 	adminPort, err := container.MappedPort(ctx, "9333")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get seaweedfs admin port: %w", err)
 	}
 
@@ -92,28 +92,37 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 
 	// Create bucket
 	if err := sc.createBucket(ctx); err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("create bucket: %w", err)
 	}
 
 	return sc, nil
 }
 
-// createBucket creates the default storage bucket.
+// createBucket creates the default storage bucket with retry.
 func (s *SeaweedFSContainer) createBucket(ctx context.Context) error {
 	client, err := s.getS3Client(ctx)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
-		Bucket: aws.String(SeaweedBucket),
-	})
-	if err != nil {
-		return fmt.Errorf("create bucket %s: %w", SeaweedBucket, err)
+	// Retry bucket creation - S3 API may not be immediately ready
+	var lastErr error
+
+	for i := 0; i < 10; i++ {
+		_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
+			Bucket: aws.String(SeaweedBucket),
+		})
+		if err == nil {
+			return nil
+		}
+
+		lastErr = err
+
+		time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
 	}
 
-	return nil
+	return fmt.Errorf("create bucket %s after retries: %w", SeaweedBucket, lastErr)
 }
 
 // getS3Client creates an S3 client for the SeaweedFS container.

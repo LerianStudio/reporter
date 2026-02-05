@@ -27,12 +27,12 @@ type TestInfrastructure struct {
 
 // InfrastructureConfig holds configuration for container startup.
 type InfrastructureConfig struct {
-	MongoImage    string
-	RabbitImage   string
-	SeaweedImage  string
-	ValkeyImage   string
-	NetworkName   string
-	StartTimeout  time.Duration
+	MongoImage   string
+	RabbitImage  string
+	SeaweedImage string
+	ValkeyImage  string
+	NetworkName  string
+	StartTimeout time.Duration
 }
 
 // DefaultConfig returns default configuration for test infrastructure.
@@ -71,17 +71,21 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 
 	// Start containers in parallel
 	var wg sync.WaitGroup
+
 	errCh := make(chan error, 4)
 
 	// MongoDB
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		mongo, err := StartMongoDB(ctx, networkName, cfg.MongoImage)
 		if err != nil {
 			errCh <- fmt.Errorf("mongodb: %w", err)
 			return
 		}
+
 		infra.mu.Lock()
 		infra.MongoDB = mongo
 		infra.mu.Unlock()
@@ -89,13 +93,16 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 
 	// RabbitMQ
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		rabbit, err := StartRabbitMQ(ctx, networkName, cfg.RabbitImage)
 		if err != nil {
 			errCh <- fmt.Errorf("rabbitmq: %w", err)
 			return
 		}
+
 		infra.mu.Lock()
 		infra.RabbitMQ = rabbit
 		infra.mu.Unlock()
@@ -103,13 +110,16 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 
 	// SeaweedFS
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		seaweed, err := StartSeaweedFS(ctx, networkName, cfg.SeaweedImage)
 		if err != nil {
 			errCh <- fmt.Errorf("seaweedfs: %w", err)
 			return
 		}
+
 		infra.mu.Lock()
 		infra.SeaweedFS = seaweed
 		infra.mu.Unlock()
@@ -117,13 +127,16 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 
 	// Valkey
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		valkey, err := StartValkey(ctx, networkName, cfg.ValkeyImage)
 		if err != nil {
 			errCh <- fmt.Errorf("valkey: %w", err)
 			return
 		}
+
 		infra.mu.Lock()
 		infra.Valkey = valkey
 		infra.mu.Unlock()
@@ -134,14 +147,14 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 	close(errCh)
 
 	// Check for errors
-	var errs []error
+	errs := make([]error, 0, 4)
 	for err := range errCh {
 		errs = append(errs, err)
 	}
 
 	if len(errs) > 0 {
 		// Cleanup any started containers
-		infra.Stop(ctx)
+		_ = infra.Stop(ctx)
 		return nil, fmt.Errorf("failed to start containers: %v", errs)
 	}
 

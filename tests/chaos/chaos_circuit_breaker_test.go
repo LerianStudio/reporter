@@ -7,6 +7,7 @@ package chaos
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -15,10 +16,13 @@ import (
 
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
 func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
-	env := h.LoadEnvironment()
+	// Skip this test in testcontainers mode - requires external plugin_crm infrastructure
+	if os.Getenv("USE_EXISTING_INFRA") != "true" {
+		t.Skip("Skipping circuit breaker test - requires plugin_crm infrastructure (docker-compose)")
+	}
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
 	t.Log("🎯 Starting Circuit Breaker chaos test...")

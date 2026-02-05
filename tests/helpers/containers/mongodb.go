@@ -56,20 +56,20 @@ func StartMongoDB(ctx context.Context, networkName, image string) (*MongoDBConta
 	// Get connection string
 	connStr, err := container.ConnectionString(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get mongodb connection string: %w", err)
 	}
 
 	// Get host and port
 	host, err := container.Host(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get mongodb host: %w", err)
 	}
 
 	mappedPort, err := container.MappedPort(ctx, "27017")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get mongodb port: %w", err)
 	}
 

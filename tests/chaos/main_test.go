@@ -6,11 +6,14 @@ package chaos
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	h "github.com/LerianStudio/reporter/v4/tests/helpers"
 	"github.com/LerianStudio/reporter/v4/tests/helpers/containers"
 	"github.com/LerianStudio/reporter/v4/tests/helpers/services"
 )
@@ -22,10 +25,10 @@ var (
 	managerAddr string
 
 	// Expose containers for chaos test manipulation
-	MongoContainer    *containers.MongoDBContainer
-	RabbitContainer   *containers.RabbitMQContainer
-	SeaweedContainer  *containers.SeaweedFSContainer
-	ValkeyContainer   *containers.ValkeyContainer
+	MongoContainer   *containers.MongoDBContainer
+	RabbitContainer  *containers.RabbitMQContainer
+	SeaweedContainer *containers.SeaweedFSContainer
+	ValkeyContainer  *containers.ValkeyContainer
 )
 
 func TestMain(m *testing.M) {
@@ -81,6 +84,12 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Failed to start worker: %v", err)
 	}
 	log.Println("Worker started successfully")
+
+	// Upload test templates for chaos tests
+	log.Println("Uploading test templates...")
+	if err := uploadTestTemplates(ctx, managerAddr); err != nil {
+		log.Printf("Warning: Failed to upload test templates: %v", err)
+	}
 
 	// Run tests
 	log.Println("Running chaos tests...")
@@ -171,4 +180,78 @@ func StartRabbitMQ() error {
 		return nil
 	}
 	return RabbitContainer.Start(context.Background())
+}
+
+// uploadTestTemplates uploads templates from tests/chaos/templates directory.
+func uploadTestTemplates(ctx context.Context, managerURL string) error {
+	cli := h.NewHTTPClient(managerURL, 30*time.Second)
+	headers := h.AuthHeaders()
+
+	// Find template files
+	templatesDir := filepath.Join(findTestRoot(), "tests", "chaos", "templates")
+	templateFiles, err := filepath.Glob(filepath.Join(templatesDir, "*.tpl"))
+	if err != nil {
+		return err
+	}
+
+	if len(templateFiles) == 0 {
+		log.Println("No template files found in chaos/templates directory")
+		return nil
+	}
+
+	for _, tplFile := range templateFiles {
+		tplContent, err := os.ReadFile(tplFile)
+		if err != nil {
+			log.Printf("Failed to read template %s: %v", tplFile, err)
+			continue
+		}
+
+		tplName := filepath.Base(tplFile)
+		formData := map[string]string{
+			"outputFormat": "TXT",
+			"description":  "Chaos test template: " + tplName,
+		}
+		files := map[string][]byte{
+			"template": tplContent,
+		}
+
+		code, body, err := cli.UploadMultipartForm(ctx, "POST", "/v1/templates", headers, formData, files)
+		if err != nil {
+			log.Printf("Failed to upload template %s: %v", tplName, err)
+			continue
+		}
+
+		if code == 200 || code == 201 {
+			var resp struct {
+				ID string `json:"id"`
+			}
+			if json.Unmarshal(body, &resp) == nil {
+				log.Printf("Uploaded template %s with ID: %s", tplName, resp.ID)
+			}
+		} else {
+			log.Printf("Template upload returned %d: %s", code, string(body))
+		}
+	}
+
+	return nil
+}
+
+// findTestRoot finds the project root directory for locating test templates.
+func findTestRoot() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
+
+	// Walk up until we find go.mod
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "."
+		}
+		dir = parent
+	}
 }

@@ -15,13 +15,11 @@ import (
 
 // TestChaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
 func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
-	env := h.LoadEnvironment()
-
 	t.Log("⏳ Waiting for system stability...")
 	time.Sleep(5 * time.Second)
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
 	t.Log("🔍 Step 1: Verifying system health...")
@@ -57,19 +55,10 @@ func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	templateID := templateList.Items[0].ID
 	t.Logf("✅ Using existing template: %s", templateID)
 
-	// Step 3: Create report with proper filters
-	testOrgID := "00000000-0000-0000-0000-000000000001"
+	// Step 3: Create report (template may not require data sources)
 	payload := map[string]any{
 		"templateId": templateID,
-		"filters": map[string]any{
-			"midaz_onboarding": map[string]any{
-				"organization": map[string]any{
-					"id": map[string]any{
-						"eq": []any{testOrgID},
-					},
-				},
-			},
-		},
+		"filters":    map[string]any{},
 	}
 
 	t.Log("🚀 Step 3: Creating report via Manager...")
@@ -106,12 +95,7 @@ func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 
 	// CHAOS: Crash RabbitMQ
 	t.Log("💥 Step 4: CHAOS - Stopping RabbitMQ (simulating crash)...")
-	rabbitContainer := env.RabbitContainer
-	if rabbitContainer == "" {
-		rabbitContainer = "reporter-rabbitmq"
-	}
-
-	if err := h.StopContainer(rabbitContainer); err != nil {
+	if err := StopRabbitMQ(); err != nil {
 		t.Fatalf("❌ Failed to stop RabbitMQ: %v", err)
 	}
 	t.Log("✅ RabbitMQ stopped (simulating crash)")
@@ -134,9 +118,10 @@ func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 
 	// RECOVERY: Restart RabbitMQ
 	t.Log("🔄 Step 6: RECOVERY - Starting RabbitMQ...")
-	if err := h.StartWithWait(rabbitContainer, 15*time.Second); err != nil {
+	if err := StartRabbitMQ(); err != nil {
 		t.Fatalf("❌ Failed to start RabbitMQ: %v", err)
 	}
+	time.Sleep(15 * time.Second) // Wait for RabbitMQ to be ready
 	t.Log("✅ RabbitMQ started successfully")
 
 	// Wait for RabbitMQ to fully initialize and load definitions
