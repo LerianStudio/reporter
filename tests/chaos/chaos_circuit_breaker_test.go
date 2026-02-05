@@ -1,24 +1,29 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package chaos
 
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
 func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
+	// Skip this test in testcontainers mode - requires external plugin_crm infrastructure
+	if os.Getenv("USE_EXISTING_INFRA") != "true" {
+		t.Skip("Skipping circuit breaker test - requires plugin_crm infrastructure (docker-compose)")
 	}
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🎯 Starting Circuit Breaker chaos test...")
 

@@ -7,9 +7,6 @@ endif
 service_name := reporter-manager
 bin_dir := ./.bin
 
-BLUE := \033[36m
-NC := \033[0m
-
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
 DOCKER_MIN_VERSION := 20.10.13
 
@@ -54,9 +51,9 @@ info:
 # Docker Compose Commands
 .PHONY: up
 up:
-	@echo "$(BLUE)Starting all services...$(NC)"
+	@echo "Starting all services..."
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	@echo "All services started successfully"
 
 .PHONY: start
 start:
@@ -92,54 +89,54 @@ generate-docs:
 
 .PHONY: setup-git-hooks
 setup-git-hooks:
-	@echo "$(BLUE)Setting up git hooks...$(NC)"
+	@echo "Setting up git hooks..."
 	./make.sh "setupGitHooks"
 
 .PHONY: check-hooks
 check-hooks:
-	@echo "$(BLUE)Checking git hooks status...$(NC)"
+	@echo "Checking git hooks status..."
 	./make.sh "checkHooks"
 
 .PHONY: lint
 lint:
-	$(call title1,"Running linters")
+	@echo "Running linters..."
 	@if find . -name "*.go" -type f | grep -q .; then \
 		if ! command -v golangci-lint >/dev/null 2>&1; then \
-			echo "$(YELLOW)Installing golangci-lint...$(NC)"; \
+			echo "Installing golangci-lint..."; \
 			go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
 		fi; \
 		golangci-lint run --fix ./... --verbose; \
-		echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"; \
+		echo "[ok] Linting completed successfully"; \
 	else \
-		echo "$(YELLOW)No Go files found, skipping linting$(NC)"; \
+		echo "No Go files found, skipping linting"; \
 	fi
 
 .PHONY: tidy
 tidy:
-	@echo "$(BLUE)Running go mod tidy...$(NC)"
+	@echo "Running go mod tidy..."
 	go mod tidy
 
 .PHONY: sec
 sec:
-	@echo "$(BLUE)Running security checks...$(NC)"
+	@echo "Running security checks..."
 	@if ! command -v gosec >/dev/null 2>&1; then \
-		echo "$(RED)Error: gosec is not installed$(NC)"; \
-		echo "$(MAGENTA)To install: go install github.com/securego/gosec/v2/cmd/gosec@latest$(NC)"; \
+		echo "Error: gosec is not installed"; \
+		echo "To install: go install github.com/securego/gosec/v2/cmd/gosec@latest"; \
 		exit 1; \
 	fi
 	gosec ./...
 
 .PHONY: test
 test:
-	@echo "$(BLUE)Running tests...$(NC)"
-		@if ! command -v go >/dev/null 2>&1; then \
-		echo "$(RED)Error: go is not installed$(NC)"; \
+	@echo "Running tests..."
+	@if ! command -v go >/dev/null 2>&1; then \
+		echo "Error: go is not installed"; \
 		exit 1; \
 	fi
-	go test -v ./... ./...
+	go test -v ./...
 
 .PHONY: set-env
 set-env:
-	@echo "$(BLUE)Setting up environment files...$(NC)"
+	@echo "Setting up environment files..."
 	cp -r ./.env.example ./.env
-	@echo "$(BLUE)Environment files created successfully$(NC)"
+	@echo "Environment files created successfully"

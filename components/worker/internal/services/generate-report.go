@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
@@ -8,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/pongo"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/pongo"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -396,9 +400,17 @@ func (uc *UseCase) queryPostgresDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	// Use configured schemas or default to public
+	configuredSchemas := dataSource.Schemas
+	if len(configuredSchemas) == 0 {
+		configuredSchemas = []string{"public"}
+	}
+
+	logger.Infof("Querying database %s with schemas: %v", databaseName, configuredSchemas)
+
 	// Execute schema query with circuit breaker protection
 	schemaResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
-		return dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+		return dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	})
 	if err != nil {
 		logger.Errorf("Error getting database schema for %s (circuit breaker): %s", databaseName, err.Error())
@@ -407,35 +419,77 @@ func (uc *UseCase) queryPostgresDatabase(
 
 	schema := schemaResult.([]postgres.TableSchema)
 
-	for table, fields := range tables {
-		tableFilters := getTableFilters(databaseFilters, table)
+	// Initialize SchemaResolver with discovered tables
+	resolver := pkg.NewSchemaResolver()
+	resolver.RegisterDatabase(databaseName, schema)
+
+	for tableKey, fields := range tables {
+		tableFilters := getTableFilters(databaseFilters, tableKey)
+
+		// Parse table key to extract explicit schema if present
+		// Supports multiple formats:
+		// - "schema__table" (Pongo2 compatible format from CleanPath)
+		// - "schema.table" (explicit qualified format)
+		// - "table" (autodiscovery)
+		var explicitSchema, tableName string
+
+		if strings.Contains(tableKey, "__") {
+			// Pongo2 format: schema__table -> split by double underscore
+			parts := strings.SplitN(tableKey, "__", 2)
+			explicitSchema = parts[0]
+			tableName = parts[1]
+		} else if strings.Contains(tableKey, ".") {
+			// Qualified format: schema.table -> split by dot
+			parts := strings.SplitN(tableKey, ".", 2)
+			explicitSchema = parts[0]
+			tableName = parts[1]
+		} else {
+			tableName = tableKey
+		}
+
+		// Resolve schema name for this table
+		schemaName, err := resolver.ResolveSchema(databaseName, explicitSchema, tableName)
+		if err != nil {
+			// Check if it's an ambiguity error for actionable message
+			if ambiguityErr, ok := err.(*pkg.SchemaAmbiguityError); ok {
+				logger.Errorf("Schema ambiguity for table %s in %s: %s", tableName, databaseName, ambiguityErr.Error())
+			} else {
+				logger.Errorf("Error resolving schema for table %s in %s: %s", tableName, databaseName, err.Error())
+			}
+
+			return err
+		}
+
+		logger.Infof("Resolved schema '%s' for table '%s' in database '%s'", schemaName, tableName, databaseName)
 
 		// Execute query with circuit breaker protection
 		var tableResult []map[string]any
 
 		queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
 			if len(tableFilters) > 0 {
-				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, table, fields, tableFilters)
+				return dataSource.PostgresRepository.QueryWithAdvancedFilters(ctx, schema, schemaName, tableName, fields, tableFilters)
 			}
 
-			return dataSource.PostgresRepository.Query(ctx, schema, table, fields, nil)
+			return dataSource.PostgresRepository.Query(ctx, schema, schemaName, tableName, fields, nil)
 		})
 		if err != nil {
-			logger.Errorf("Error querying table %s in %s (circuit breaker): %s", table, databaseName, err.Error())
+			logger.Errorf("Error querying table %s.%s in %s (circuit breaker): %s", schemaName, tableName, databaseName, err.Error())
 			return err
 		}
 
 		tableResult = queryResult.([]map[string]any)
 
 		if len(tableFilters) > 0 {
-			logger.Infof("Successfully queried table %s with advanced filters (circuit breaker: %s)",
-				table, uc.CircuitBreakerManager.GetState(databaseName))
+			logger.Infof("Successfully queried table %s.%s with advanced filters (circuit breaker: %s)",
+				schemaName, tableName, uc.CircuitBreakerManager.GetState(databaseName))
 		} else {
-			logger.Infof("Successfully queried table %s (circuit breaker: %s)",
-				table, uc.CircuitBreakerManager.GetState(databaseName))
+			logger.Infof("Successfully queried table %s.%s (circuit breaker: %s)",
+				schemaName, tableName, uc.CircuitBreakerManager.GetState(databaseName))
 		}
 
-		result[databaseName][table] = tableResult
+		// Store result using the original tableKey which is already in Pongo2-compatible format
+		// (schema__table from CleanPath) for dot notation access in templates
+		result[databaseName][tableKey] = tableResult
 	}
 
 	return nil
@@ -464,7 +518,7 @@ func (uc *UseCase) queryMongoDatabase(
 	for collection, fields := range collections {
 		collectionFilters := getTableFilters(databaseFilters, collection)
 
-		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, collections, result, logger); err != nil {
+		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, result, logger); err != nil {
 			return err
 		}
 	}
@@ -479,13 +533,18 @@ func (uc *UseCase) processMongoCollection(
 	databaseName, collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Handle plugin_crm special case
-	if databaseName == "plugin_crm" && collection != "organization" {
-		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, allCollections, result, logger)
+	// Handle plugin_crm special cases
+	if databaseName == "plugin_crm" {
+		// Skip "organization" collection - it's not a real collection, just stores the organizationID for template context
+		if collection == "organization" {
+			logger.Debugf("Skipping organization collection for plugin_crm - it's a metadata field, not a queryable collection")
+			return nil
+		}
+
+		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
 	}
 
 	// Handle regular collections
@@ -499,18 +558,16 @@ func (uc *UseCase) processPluginCRMCollection(
 	collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
-	allCollections map[string][]string,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Get organization field to create collection name
-	orgFields, exists := allCollections["organization"]
-	if !exists || len(orgFields) == 0 {
-		logger.Errorf("Organization field not found for plugin_crm collection %s", collection)
-		return nil
+	// Get Midaz organization ID from datasource configuration (DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID)
+	if dataSource.MidazOrganizationID == "" {
+		logger.Errorf("Midaz Organization ID not configured for plugin_crm datasource. Set DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable.")
+		return fmt.Errorf("plugin_crm datasource requires DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable to be configured")
 	}
 
-	newCollection := collection + "_" + orgFields[0]
+	newCollection := collection + "_" + dataSource.MidazOrganizationID
 
 	// Query the collection
 	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, newCollection, fields, collectionFilters, logger, "plugin_crm")
@@ -607,12 +664,43 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 }
 
 // getTableFilters extracts filters for a specific table/collection
+// Supports multiple table name formats:
+// - "schema__table" (Pongo2 format)
+// - "schema.table" (qualified format)
+// - "table" (simple format, will try with "public." prefix)
 func getTableFilters(databaseFilters map[string]map[string]model.FilterCondition, tableName string) map[string]model.FilterCondition {
 	if databaseFilters == nil {
 		return nil
 	}
 
-	return databaseFilters[tableName]
+	// Try exact match first
+	if filters, ok := databaseFilters[tableName]; ok {
+		return filters
+	}
+
+	// Try alternative formats
+	var alternativeKeys []string
+
+	if strings.Contains(tableName, "__") {
+		// Pongo2 format: schema__table -> try schema.table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, "__", ".", 1))
+	} else if strings.Contains(tableName, ".") {
+		// Qualified format: schema.table -> try schema__table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, ".", "__", 1))
+	} else {
+		// Simple table name without schema -> try with public schema
+		// This handles the case where template has "organization" but filter has "public.organization"
+		alternativeKeys = append(alternativeKeys, "public."+tableName)
+		alternativeKeys = append(alternativeKeys, "public__"+tableName)
+	}
+
+	for _, altKey := range alternativeKeys {
+		if filters, ok := databaseFilters[altKey]; ok {
+			return filters
+		}
+	}
+
+	return nil
 }
 
 // transformPluginCRMAdvancedFilters transforms advanced FilterCondition filters for plugin_crm to use search fields
@@ -635,14 +723,16 @@ func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.Fil
 
 	// Define field mappings: encrypted field -> search field
 	fieldMappings := map[string]string{
-		"document":                "search.document",
-		"name":                    "search.name",
-		"banking_details.account": "search.banking_details_account",
-		"banking_details.iban":    "search.banking_details_iban",
-		"contact.primary_email":   "search.contact_primary_email",
-		"contact.secondary_email": "search.contact_secondary_email",
-		"contact.mobile_phone":    "search.contact_mobile_phone",
-		"contact.other_phone":     "search.contact_other_phone",
+		"document":                               "search.document",
+		"name":                                   "search.name",
+		"banking_details.account":                "search.banking_details_account",
+		"banking_details.iban":                   "search.banking_details_iban",
+		"contact.primary_email":                  "search.contact_primary_email",
+		"contact.secondary_email":                "search.contact_secondary_email",
+		"contact.mobile_phone":                   "search.contact_mobile_phone",
+		"contact.other_phone":                    "search.contact_other_phone",
+		"regulatory_fields.participant_document": "search.regulatory_fields_participant_document",
+		"related_parties.document":               "search.related_party_documents",
 	}
 
 	for fieldName, condition := range filter {
@@ -848,6 +938,14 @@ func (uc *UseCase) decryptNestedFields(record map[string]any, crypto *libCrypto.
 		return err
 	}
 
+	if err := uc.decryptRegulatoryFieldsFields(record, crypto); err != nil {
+		return err
+	}
+
+	if err := uc.decryptRelatedPartiesFields(record, crypto); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -941,6 +1039,54 @@ func (uc *UseCase) decryptNaturalPersonFields(record map[string]any, crypto *lib
 	return nil
 }
 
+// decryptRegulatoryFieldsFields decrypts fields within the regulatory_fields object
+func (uc *UseCase) decryptRegulatoryFieldsFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	regulatoryFields, ok := record["regulatory_fields"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	regulatoryFieldNames := []string{"participant_document"}
+	for _, fieldName := range regulatoryFieldNames {
+		if fieldValue, exists := regulatoryFields[fieldName]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(regulatoryFields, fieldName, fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt regulatory_fields.%s: %w", fieldName, err)
+			}
+		}
+	}
+
+	record["regulatory_fields"] = regulatoryFields
+
+	return nil
+}
+
+// decryptRelatedPartiesFields decrypts the document field within each related_parties array item
+func (uc *UseCase) decryptRelatedPartiesFields(record map[string]any, crypto *libCrypto.Crypto) error {
+	relatedParties, ok := record["related_parties"].([]any)
+	if !ok {
+		return nil
+	}
+
+	for i, party := range relatedParties {
+		partyMap, ok := party.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if fieldValue, exists := partyMap["document"]; exists && fieldValue != nil {
+			if err := uc.decryptFieldValue(partyMap, "document", fieldValue, crypto); err != nil {
+				return fmt.Errorf("failed to decrypt related_parties[%d].document: %w", i, err)
+			}
+		}
+
+		relatedParties[i] = partyMap
+	}
+
+	record["related_parties"] = relatedParties
+
+	return nil
+}
+
 // decryptFieldValue decrypts a single field value if it's a non-empty string
 func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string, fieldValue any, crypto *libCrypto.Crypto) error {
 	strValue, ok := fieldValue.(string)
@@ -960,9 +1106,7 @@ func (uc *UseCase) decryptFieldValue(container map[string]any, fieldName string,
 
 // checkReportStatus checks the current status of a report to implement idempotency.
 func (uc *UseCase) checkReportStatus(ctx context.Context, reportID uuid.UUID, logger log.Logger) (string, error) {
-	zeroUUID := uuid.UUID{}
-
-	report, err := uc.ReportDataRepo.FindByID(ctx, reportID, zeroUUID)
+	report, err := uc.ReportDataRepo.FindByID(ctx, reportID)
 	if err != nil {
 		logger.Debugf("Could not check report status for %s (may be first attempt): %v", reportID, err)
 		return "", err

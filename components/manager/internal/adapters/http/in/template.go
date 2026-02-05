@@ -1,12 +1,16 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	_ "github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	_ "github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -29,14 +33,13 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
-//	@Success		201					{object}	template.Template
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description		formData	string	true	"Description of the template"
+//	@Success		201				{object}	template.Template
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -49,14 +52,11 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	logger.Info("Request to create template")
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	outputFormat := c.FormValue("outputFormat")
 	description := c.FormValue("description")
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 		attribute.String("app.request.output_format", outputFormat),
 		attribute.String("app.request.description", description),
 	)
@@ -98,7 +98,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, errValidateFile)
 	}
 
-	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description, organizationID)
+	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
 
@@ -120,7 +120,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
 
 		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
-		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, organizationID, true); errDelete != nil {
+		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, true); errDelete != nil {
 			logger.Errorf("Failed to roll back template creation for ID %s after SeaweedFS failure. Error: %s", templateOut.ID.String(), errDelete.Error())
 		}
 
@@ -141,16 +141,15 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description			formData	string	true	"Description of the template"
-//	@Param			id					path		string	true	"Template ID"
-//	@Success		200					{object}	template.Template
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description		formData	string	true	"Description of the template"
+//	@Param			id				path		string	true	"Template ID"
+//	@Success		200				{object}	template.Template
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [patch]
 func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -163,15 +162,12 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	id := c.Locals("id").(uuid.UUID)
 	logger.Infof("Initiating update of Template with ID: %s", id)
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	outputFormat := c.FormValue("outputFormat")
 	description := c.FormValue("description")
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.template_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 		attribute.String("app.request.output_format", outputFormat),
 		attribute.String("app.request.description", description),
 	)
@@ -188,7 +184,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
 
-	if errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, organizationID, id, fileHeader); errUpdate != nil {
+	if errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader); errUpdate != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
 
 		logger.Errorf("Failed to update Template with ID: %s, Error: %s", id, errUpdate.Error())
@@ -196,7 +192,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		return http.WithError(c, errUpdate)
 	}
 
-	templateUpdated, err := th.Service.GetTemplateByID(ctx, id, organizationID)
+	templateUpdated, err := th.Service.GetTemplateByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
@@ -237,13 +233,12 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Description	Get a template by id
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			id					path		string	true	"Template ID"
-//	@Success		200					{object}	template.Template
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			id				path		string	true	"Template ID"
+//	@Success		200				{object}	template.Template
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //
 //	@Router			/v1/templates/{id} [get]
 func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
@@ -257,15 +252,12 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 	id := c.Locals("id").(uuid.UUID)
 	logger.Infof("Initiating get a Template with ID: %s", id)
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.template_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	templateModel, err := th.Service.GetTemplateByID(ctx, id, organizationID)
+	templateModel, err := th.Service.GetTemplateByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
@@ -285,15 +277,14 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Description	List all the templates
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			outputFormat		query		string	false	"XML, HTML, TXT and CSV"
-//	@Param			description			query		string	false	"Description of template"
-//	@Param			limit				query		int		false	"Limit"	default(10)
-//	@Param			page				query		int		false	"Page"	default(1)
-//	@Success		200					{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			outputFormat	query		string	false	"XML, HTML, TXT and CSV"
+//	@Param			description		query		string	false	"Description of template"
+//	@Param			limit			query		int		false	"Limit"	default(10)
+//	@Param			page			query		int		false	"Page"	default(1)
+//	@Success		200				{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates [get]
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -319,11 +310,8 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 
 	logger.Infof("Initiating retrieval all templates")
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	err = libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.query_params", headerParams)
@@ -331,7 +319,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	templates, err := th.Service.GetAllTemplates(ctx, *headerParams, organizationID)
+	templates, err := th.Service.GetAllTemplates(ctx, *headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
 
@@ -354,13 +342,12 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Description	SoftDelete a Template with the input ID. Returns 204 with no content on success.
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization		header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header	string	true	"Organization ID"
-//	@Param			id					path	string	true	"Template ID"
-//	@Success		204					"No content"
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			id				path	string	true	"Template ID"
+//	@Success		204				"No content"
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
 func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -373,15 +360,12 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	id := c.Locals("id").(uuid.UUID)
 	logger.Infof("Initiating removal of Template with ID: %s", id.String())
 
-	organizationID := c.Locals("X-Organization-Id").(uuid.UUID)
-
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.template_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
-	if err := th.Service.DeleteTemplateByID(ctx, id, organizationID, false); err != nil {
+	if err := th.Service.DeleteTemplateByID(ctx, id, false); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())

@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package integration
 
 import (
@@ -7,18 +11,15 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestIntegration_Reports_GetByID_ValidID tests GET /v1/reports/{id} with a valid report ID
 func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	code, body, err := cli.Request(ctx, "GET", "/v1/reports?limit=1", headers, nil)
 	if err != nil {
@@ -109,12 +110,9 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 // TestIntegration_Reports_GetByID_InvalidID tests GET /v1/reports/{id} with an invalid report ID
 func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	invalidID := "00000000-0000-0000-0000-000000000000"
 	code, body, err := cli.Request(ctx, "GET", fmt.Sprintf("/v1/reports/%s", invalidID), headers, nil)
@@ -153,12 +151,9 @@ func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
 // TestIntegration_Reports_GetByID_StatusFinished tests GET /v1/reports/{id} for a finished report
 func TestIntegration_Reports_GetByID_StatusFinished(t *testing.T) {
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	code, body, err := cli.Request(ctx, "GET", "/v1/reports?status=Finished&limit=1", headers, nil)
 	if err != nil {

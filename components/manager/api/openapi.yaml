@@ -4,7 +4,7 @@ info:
   description: This is a swagger documentation for Reporter
   termsOfService: http://swagger.io/terms/
   title: Reporter
-  version: 4.0.0
+  version: 1.0.0
 servers:
 - url: //localhost:4005/
 paths:
@@ -17,12 +17,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       responses:
@@ -51,12 +45,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: Data source ID
@@ -101,12 +89,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: Report status (processing, finished, error)
@@ -167,12 +149,6 @@ paths:
         name: Authorization
         schema:
           type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        schema:
-          type: string
       requestBody:
         content:
           application/json:
@@ -185,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
           description: Created
         "400":
           content:
@@ -219,12 +195,6 @@ paths:
         name: Authorization
         schema:
           type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        schema:
-          type: string
       - description: Report ID
         in: path
         name: id
@@ -236,7 +206,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
           description: OK
         "400":
           content:
@@ -267,12 +237,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: Report ID
@@ -318,12 +282,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: XML, HTML, TXT and CSV
@@ -379,12 +337,6 @@ paths:
         name: Authorization
         schema:
           type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        schema:
-          type: string
       requestBody:
         content:
           multipart/form-data:
@@ -410,7 +362,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
           description: Created
         "400":
           content:
@@ -436,12 +388,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: Template ID
@@ -484,12 +430,6 @@ paths:
         name: Authorization
         schema:
           type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        schema:
-          type: string
       - description: Template ID
         in: path
         name: id
@@ -501,7 +441,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
           description: OK
         "400":
           content:
@@ -531,12 +471,6 @@ paths:
           \ Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        schema:
-          type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         schema:
           type: string
       - description: Template ID
@@ -570,7 +504,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
           description: OK
         "400":
           content:
@@ -632,7 +566,7 @@ components:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
@@ -717,7 +651,7 @@ components:
           example: account
           type: string
       type: object
-    github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition:
+    github_com_LerianStudio_reporter_pkg_model.FilterCondition:
       example:
         nin:
         - '{}'
@@ -808,7 +742,7 @@ components:
             type: object
           type: array
       type: object
-    github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report:
+    github_com_LerianStudio_reporter_pkg_mongodb_report.Report:
       example:
         createdAt: createdAt
         completedAt: completedAt
@@ -858,7 +792,7 @@ components:
           additionalProperties:
             additionalProperties:
               additionalProperties:
-                $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition'
+                $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_model.FilterCondition'
               type: object
             type: object
           type: object
@@ -878,7 +812,7 @@ components:
         updatedAt:
           type: string
       type: object
-    github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template:
+    github_com_LerianStudio_reporter_pkg_mongodb_template.Template:
       example:
         createdAt: 2021-01-01T00:00:00Z
         fileName: 0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl
@@ -1009,7 +943,7 @@ components:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+            $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
           type: array
         limit:
           type: integer
@@ -1046,7 +980,7 @@ components:
           $ref: '#/components/schemas/Pagination'
         items:
           items:
-            $ref: '#/components/schemas/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+            $ref: '#/components/schemas/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
           type: array
         limit:
           type: integer

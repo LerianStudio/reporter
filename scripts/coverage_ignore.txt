@@ -1,4 +1,6 @@
-golang-plugin-boilerplate/api
-golang-plugin-boilerplate/cmd/app
-golang-plugin-boilerplate/pkg/constant
-golang-plugin-boilerplate/internal/bootstrap
+components/manager/api
+components/manager/cmd/app
+components/worker/cmd/app
+pkg/constant
+mock.go
+pkg/datasource-config.go

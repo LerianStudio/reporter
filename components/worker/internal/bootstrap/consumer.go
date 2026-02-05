@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package bootstrap
 
 import (
@@ -7,8 +11,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/LerianStudio/reporter/v4/components/worker/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/v4/components/worker/internal/services"
+	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/components/worker/internal/services"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

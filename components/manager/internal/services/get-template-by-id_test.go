@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
@@ -6,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +25,6 @@ func Test_getTemplateById(t *testing.T) {
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 	tempId := uuid.New()
-	orgId := uuid.New()
 
 	tempSvc := &UseCase{
 		TemplateRepo: mockTempRepo,
@@ -38,7 +41,6 @@ func Test_getTemplateById(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		orgId          uuid.UUID
 		tempId         uuid.UUID
 		mockSetup      func()
 		expectErr      bool
@@ -46,11 +48,10 @@ func Test_getTemplateById(t *testing.T) {
 	}{
 		{
 			name:   "Success - Get a template by id",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
 			},
 			expectErr: false,
@@ -64,11 +65,10 @@ func Test_getTemplateById(t *testing.T) {
 		},
 		{
 			name:   "Error - Get a template by id",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
@@ -76,11 +76,10 @@ func Test_getTemplateById(t *testing.T) {
 		},
 		{
 			name:   "Error - Get a template by id not found",
-			orgId:  orgId,
 			tempId: tempId,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
@@ -93,7 +92,7 @@ func Test_getTemplateById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.GetTemplateByID(ctx, tt.tempId, tt.orgId)
+			result, err := tempSvc.GetTemplateByID(ctx, tt.tempId)
 
 			if tt.expectErr {
 				assert.Error(t, err)

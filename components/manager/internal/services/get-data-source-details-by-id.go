@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
@@ -6,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -38,17 +42,20 @@ var (
 
 	// Define nested encrypted fields that should be excluded
 	nestedEncryptedFields = map[string]bool{
-		"contact.primary_email":                true,
-		"contact.secondary_email":              true,
-		"contact.mobile_phone":                 true,
-		"contact.other_phone":                  true,
-		"banking_details.account":              true,
-		"banking_details.iban":                 true,
-		"legal_person.representative.name":     true,
-		"legal_person.representative.document": true,
-		"legal_person.representative.email":    true,
-		"natural_person.mother_name":           true,
-		"natural_person.father_name":           true,
+		"contact.primary_email":                  true,
+		"contact.secondary_email":                true,
+		"contact.mobile_phone":                   true,
+		"contact.other_phone":                    true,
+		"banking_details.account":                true,
+		"banking_details.iban":                   true,
+		"legal_person.representative.name":       true,
+		"legal_person.representative.document":   true,
+		"legal_person.representative.email":      true,
+		"natural_person.mother_name":             true,
+		"natural_person.father_name":             true,
+		"regulatory_fields.participant_document": true,
+		"related_parties.document":               true,
+		"related_parties.name":                   true,
 	}
 )
 
@@ -182,7 +189,19 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 
 // getDataSourceDetailsOfMongoDBDatabase retrieves the data source information of a MongoDB database
 func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
-	schema, err := dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	var (
+		schema []mongodb.CollectionSchema
+		err    error
+	)
+
+	// If MidazOrganizationID is configured (e.g., for plugin_crm), fetch only collections for that organization
+	if dataSource.MidazOrganizationID != "" {
+		logger.Infof("Fetching schema for Midaz organization %s in datasource %s", dataSource.MidazOrganizationID, dataSourceID)
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchemaForOrganization(ctx, dataSource.MidazOrganizationID)
+	} else {
+		schema, err = dataSource.MongoDBRepository.GetDatabaseSchema(ctx)
+	}
+
 	if err != nil {
 		logger.Errorf("Error get schemas of mongo db: %s", err.Error())
 		return nil, err
@@ -347,15 +366,27 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 			"updated_at",
 			"deleted_at",
 			"metadata",
+			// Search fields (hashes, not encrypted)
 			"search.document",
 			"search.banking_details_account",
 			"search.banking_details_iban",
+			"search.regulatory_fields_participant_document",
+			"search.related_party_documents",
 			// Banking details fields (non-encrypted)
 			"banking_details.branch",
 			"banking_details.type",
 			"banking_details.opening_date",
+			"banking_details.closing_date",
 			"banking_details.country_code",
 			"banking_details.bank_id",
+			// Regulatory fields (non-encrypted)
+			"regulatory_fields",
+			// Related parties fields (non-encrypted)
+			"related_parties",
+			"related_parties._id",
+			"related_parties.role",
+			"related_parties.start_date",
+			"related_parties.end_date",
 		}
 	default:
 		return nil
@@ -364,7 +395,13 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database
 func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
-	schemas, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx)
+	// Use configured schemas or default to public
+	configuredSchemas := dataSource.Schemas
+	if len(configuredSchemas) == 0 {
+		configuredSchemas = []string{"public"}
+	}
+
+	schemas, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	if err != nil {
 		logger.Errorf("Error get schemas of postgres: %s", err.Error())
 
@@ -380,7 +417,7 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 		}
 
 		tableDetail := model.TableDetails{
-			Name:   tableSchema.TableName,
+			Name:   tableSchema.QualifiedName(), // Returns "schema.table" format
 			Fields: fields,
 		}
 

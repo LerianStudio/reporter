@@ -1,17 +1,21 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	pg "github.com/LerianStudio/reporter/v4/pkg/postgres"
-
-	"context"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	pg "github.com/LerianStudio/reporter/pkg/postgres"
 
 	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -20,23 +24,106 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// registeredDataSourceIDs holds the immutable set of valid datasource IDs.
+// This is populated once at startup and never modified, providing a source of truth
+// for validating datasource names and preventing map corruption from invalid IDs.
+var (
+	registeredDataSourceIDs     = make(map[string]struct{})
+	registeredDataSourceIDsOnce sync.Once
+	registeredDataSourceIDsLock sync.RWMutex
+)
+
+// initRegisteredDataSourceIDs initializes the immutable set of valid datasource IDs.
+// This should be called once at startup before any datasource operations.
+func initRegisteredDataSourceIDs(ids []string) {
+	registeredDataSourceIDsOnce.Do(func() {
+		registeredDataSourceIDsLock.Lock()
+		defer registeredDataSourceIDsLock.Unlock()
+
+		for _, id := range ids {
+			registeredDataSourceIDs[id] = struct{}{}
+		}
+	})
+}
+
+// RegisterDataSourceIDsForTesting allows tests to register datasource IDs.
+// This should ONLY be used in tests. In production, IDs are registered at startup.
+func RegisterDataSourceIDsForTesting(ids []string) {
+	registeredDataSourceIDsLock.Lock()
+	defer registeredDataSourceIDsLock.Unlock()
+
+	for _, id := range ids {
+		registeredDataSourceIDs[id] = struct{}{}
+	}
+}
+
+// ResetRegisteredDataSourceIDsForTesting clears all registered IDs and resets the sync.Once.
+// This should ONLY be used in tests to ensure test isolation.
+func ResetRegisteredDataSourceIDsForTesting() {
+	registeredDataSourceIDsLock.Lock()
+	defer registeredDataSourceIDsLock.Unlock()
+
+	registeredDataSourceIDs = make(map[string]struct{})
+	registeredDataSourceIDsOnce = sync.Once{}
+}
+
+// IsValidDataSourceID checks if a datasource ID was registered at startup.
+// This is the authoritative check for valid datasource names.
+func IsValidDataSourceID(id string) bool {
+	registeredDataSourceIDsLock.RLock()
+	defer registeredDataSourceIDsLock.RUnlock()
+
+	_, exists := registeredDataSourceIDs[id]
+
+	return exists
+}
+
 // DataSourceConfig represents the configuration required to establish a connection to a data source.
 // Fields include name, connection details, authentication, database, type, and SSL mode.
 type DataSourceConfig struct {
-	ConfigName  string
-	Name        string
-	Host        string
-	Port        string
-	User        string
-	Password    string
-	Database    string
-	Type        string
-	SSLMode     string
-	SSLCert     string
-	SSLRootCert string
-	SSL         string
-	SSLCA       string
-	Options     string
+	ConfigName          string
+	Name                string
+	Host                string
+	Port                string
+	User                string
+	Password            string
+	Database            string
+	Type                string
+	SSLMode             string
+	SSLCert             string
+	SSLRootCert         string
+	SSL                 string
+	SSLCA               string
+	Options             string
+	MidazOrganizationID string // Used for CRM datasources to construct collection names
+}
+
+// GetSchemas returns the configured schemas for this datasource.
+// It reads from the environment variable DATASOURCE_{NAME}_SCHEMAS.
+// If not configured, it defaults to ["public"].
+func (c *DataSourceConfig) GetSchemas() []string {
+	envKey := "DATASOURCE_" + strings.ToUpper(strings.ReplaceAll(c.ConfigName, "-", "_")) + "_SCHEMAS"
+	schemasStr := os.Getenv(envKey)
+
+	if schemasStr == "" {
+		return []string{"public"}
+	}
+
+	rawSchemas := strings.Split(schemasStr, ",")
+	schemas := make([]string, 0, len(rawSchemas))
+
+	for _, s := range rawSchemas {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			schemas = append(schemas, s)
+		}
+	}
+
+	if len(schemas) == 0 {
+		return []string{"public"}
+	}
+
+	return schemas
 }
 
 // DataSource represents a configuration for an external data source, specifying the database type and repository used.
@@ -76,10 +163,30 @@ type DataSource struct {
 
 	// RetryCount tracks how many times we've attempted to connect
 	RetryCount int
+
+	// Schemas holds the list of database schemas to query (PostgreSQL only)
+	// Defaults to ["public"] if not configured
+	Schemas []string
+
+	// MidazOrganizationID holds the Midaz organization ID for CRM datasources
+	// Used to construct collection names like "holder_{org_id}"
+	MidazOrganizationID string
 }
 
 // ConnectToDataSource establishes a connection to a data source if not already initialized.
 func ConnectToDataSource(databaseName string, dataSource *DataSource, logger log.Logger, externalDataSources map[string]DataSource) error {
+	// Primary validation: check against immutable set of registered IDs (source of truth)
+	if !IsValidDataSourceID(databaseName) {
+		logger.Errorf("Attempted to connect to unregistered datasource: %s - not in immutable registry, operation rejected", databaseName)
+		return fmt.Errorf("cannot connect to unregistered datasource: %s", databaseName)
+	}
+
+	// Secondary validation: ensure datasource exists in the runtime map
+	if _, exists := externalDataSources[databaseName]; !exists {
+		logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
+		return fmt.Errorf("datasource %s not found in runtime map", databaseName)
+	}
+
 	dataSource.LastAttempt = time.Now()
 	dataSource.RetryCount++
 
@@ -208,6 +315,16 @@ func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource 
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
+
+	// Collect valid IDs and register them in the immutable set
+	validIDs := make([]string, 0, len(dataSourceConfigs))
+	for _, dataSource := range dataSourceConfigs {
+		validIDs = append(validIDs, dataSource.ConfigName)
+	}
+
+	initRegisteredDataSourceIDs(validIDs)
+	logger.Infof("Registered %d immutable datasource IDs: %v", len(validIDs), validIDs)
+
 	for _, dataSource := range dataSourceConfigs {
 		var ds DataSource
 
@@ -223,7 +340,7 @@ func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource 
 
 		// Add datasource WITHOUT attempting connection
 		externalDataSources[dataSource.ConfigName] = ds
-		logger.Infof("📦 Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
+		logger.Infof("Datasource '%s' configured (lazy mode - will connect on first use)", dataSource.ConfigName)
 	}
 
 	logger.Infof("Datasource lazy initialization complete: %d configured", len(externalDataSources))
@@ -238,6 +355,16 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 	externalDataSources := make(map[string]DataSource)
 
 	dataSourceConfigs := getDataSourceConfigs(logger)
+
+	// Collect valid IDs and register them in the immutable set
+	validIDs := make([]string, 0, len(dataSourceConfigs))
+	for _, dataSource := range dataSourceConfigs {
+		validIDs = append(validIDs, dataSource.ConfigName)
+	}
+
+	initRegisteredDataSourceIDs(validIDs)
+	logger.Infof("Registered %d immutable datasource IDs: %v", len(validIDs), validIDs)
+
 	for _, dataSource := range dataSourceConfigs {
 		var ds DataSource
 
@@ -256,10 +383,10 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 		// Attempt connection with retry
 		err := ConnectToDataSourceWithRetry(dataSource.ConfigName, &ds, logger, externalDataSources)
 		if err != nil {
-			logger.Errorf("⚠️  Datasource '%s' is UNAVAILABLE - system will continue without it: %v", dataSource.ConfigName, err)
+			logger.Errorf("Datasource '%s' is UNAVAILABLE - system will continue without it: %v", dataSource.ConfigName, err)
 			externalDataSources[dataSource.ConfigName] = ds
 		} else {
-			logger.Infof("✅  Datasource '%s' initialized successfully", dataSource.ConfigName)
+			logger.Infof("Datasource '%s' initialized successfully", dataSource.ConfigName)
 			externalDataSources[dataSource.ConfigName] = ds
 		}
 	}
@@ -334,13 +461,14 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 	}
 
 	return DataSource{
-		DatabaseType: MongoDBType,
-		MongoURI:     mongoURI,
-		MongoDBName:  dataSource.Database,
-		Initialized:  false,
-		Status:       libConstant.DataSourceStatusUnknown,
-		LastAttempt:  time.Time{},
-		RetryCount:   0,
+		DatabaseType:        MongoDBType,
+		MongoURI:            mongoURI,
+		MongoDBName:         dataSource.Database,
+		Initialized:         false,
+		Status:              libConstant.DataSourceStatusUnknown,
+		LastAttempt:         time.Time{},
+		RetryCount:          0,
+		MidazOrganizationID: dataSource.MidazOrganizationID,
 	}
 }
 
@@ -372,6 +500,7 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		Status:         libConstant.DataSourceStatusUnknown,
 		LastAttempt:    time.Time{},
 		RetryCount:     0,
+		Schemas:        dataSource.GetSchemas(),
 	}
 }
 
@@ -427,34 +556,36 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 	upperName := strings.ToUpper(name)
 
 	configFields := map[string]string{
-		"CONFIG_NAME": os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
-		"HOST":        os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
-		"PORT":        os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
-		"USER":        os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
-		"PASSWORD":    os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
-		"DATABASE":    os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
-		"TYPE":        os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
-		"SSLMODE":     os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
-		"SSLROOTCERT": os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
-		"SSL":         os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),     // For MongoDB SSL
-		"SSLCA":       os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),   // For MongoDB CA file
-		"OPTIONS":     os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)), // For MongoDB URI options
+		"CONFIG_NAME":           os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
+		"HOST":                  os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
+		"PORT":                  os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
+		"USER":                  os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
+		"PASSWORD":              os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
+		"DATABASE":              os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
+		"TYPE":                  os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
+		"SSLMODE":               os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
+		"SSLROOTCERT":           os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
+		"SSL":                   os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),                   // For MongoDB SSL
+		"SSLCA":                 os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),                 // For MongoDB CA file
+		"OPTIONS":               os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)),               // For MongoDB URI options
+		"MIDAZ_ORGANIZATION_ID": os.Getenv(fmt.Sprintf("%s%s_MIDAZ_ORGANIZATION_ID", prefixPattern, upperName)), // For CRM collection names
 	}
 
 	dataSource := DataSourceConfig{
-		Name:        name,
-		ConfigName:  configFields["CONFIG_NAME"],
-		Host:        configFields["HOST"],
-		Port:        configFields["PORT"],
-		User:        configFields["USER"],
-		Password:    configFields["PASSWORD"],
-		Database:    configFields["DATABASE"],
-		Type:        configFields["TYPE"],
-		SSLMode:     configFields["SSLMODE"],
-		SSLRootCert: configFields["SSLROOTCERT"],
-		SSL:         configFields["SSL"],
-		SSLCA:       configFields["SSLCA"],
-		Options:     configFields["OPTIONS"],
+		Name:                name,
+		ConfigName:          configFields["CONFIG_NAME"],
+		Host:                configFields["HOST"],
+		Port:                configFields["PORT"],
+		User:                configFields["USER"],
+		Password:            configFields["PASSWORD"],
+		Database:            configFields["DATABASE"],
+		Type:                configFields["TYPE"],
+		SSLMode:             configFields["SSLMODE"],
+		SSLRootCert:         configFields["SSLROOTCERT"],
+		SSL:                 configFields["SSL"],
+		SSLCA:               configFields["SSLCA"],
+		Options:             configFields["OPTIONS"],
+		MidazOrganizationID: configFields["MIDAZ_ORGANIZATION_ID"],
 	}
 
 	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",
