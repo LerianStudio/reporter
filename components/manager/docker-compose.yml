@@ -14,22 +14,12 @@ services:
     networks:
       - reporter-infra-network
       - infra-network
-      - plugin-fees-network
       - reporter-manager-network
-      - plugin-auth-network
-      - plugin-crm-network
 
 networks:
   reporter-infra-network:
     external: true
   infra-network:
     external: true
-  plugin-fees-network:
-    external: true
   reporter-manager-network:
     driver: bridge
-  plugin-auth-network:
-    external: true
-  plugin-crm-network:
-    external: true
-

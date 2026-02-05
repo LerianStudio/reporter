@@ -12,15 +12,9 @@ services:
     networks:
       - reporter-infra-network
       - infra-network
-      - plugin-fees-network
-      - plugin-crm-network
 
 networks:
   reporter-infra-network:
     external: true
   infra-network:
-    external: true
-  plugin-fees-network:
-    external: true
-  plugin-crm-network:
     external: true
