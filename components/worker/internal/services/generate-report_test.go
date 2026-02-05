@@ -878,6 +878,10 @@ func TestParseMessage_ValidJSON(t *testing.T) {
 }
 
 func TestGetTableFilters(t *testing.T) {
+	baseFilter := map[string]model.FilterCondition{
+		"id": {Equals: []any{1, 2, 3}},
+	}
+
 	tests := []struct {
 		name            string
 		databaseFilters map[string]map[string]model.FilterCondition
@@ -897,15 +901,67 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil:       true,
 		},
 		{
-			name: "Table found in filters",
+			name: "Table found in filters - exact match",
 			databaseFilters: map[string]map[string]model.FilterCondition{
-				"users": {
-					"id": {
-						Equals: []any{1, 2, 3},
-					},
-				},
+				"users": baseFilter,
 			},
 			tableName: "users",
+			expectNil: false,
+		},
+		{
+			name: "Exact match - Pongo2 format",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"analytics__transfers": baseFilter,
+			},
+			tableName: "analytics__transfers",
+			expectNil: false,
+		},
+		{
+			name: "Exact match - qualified format",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"analytics.transfers": baseFilter,
+			},
+			tableName: "analytics.transfers",
+			expectNil: false,
+		},
+		{
+			name: "Cross-format match - filter has dot, table has Pongo2",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"analytics.transfers": baseFilter,
+			},
+			tableName: "analytics__transfers",
+			expectNil: false,
+		},
+		{
+			name: "Cross-format match - filter has Pongo2, table has dot",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"analytics__transfers": baseFilter,
+			},
+			tableName: "analytics.transfers",
+			expectNil: false,
+		},
+		{
+			name: "No match - different table names",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"other_table": baseFilter,
+			},
+			tableName: "transfers",
+			expectNil: true,
+		},
+		{
+			name: "Cross-format match - filter has public.table, template has just table",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"public.organization": baseFilter,
+			},
+			tableName: "organization",
+			expectNil: false,
+		},
+		{
+			name: "Cross-format match - filter has public__table, template has just table",
+			databaseFilters: map[string]map[string]model.FilterCondition{
+				"public__account": baseFilter,
+			},
+			tableName: "account",
 			expectNil: false,
 		},
 	}

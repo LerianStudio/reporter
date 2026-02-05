@@ -661,12 +661,43 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 }
 
 // getTableFilters extracts filters for a specific table/collection
+// Supports multiple table name formats:
+// - "schema__table" (Pongo2 format)
+// - "schema.table" (qualified format)
+// - "table" (simple format, will try with "public." prefix)
 func getTableFilters(databaseFilters map[string]map[string]model.FilterCondition, tableName string) map[string]model.FilterCondition {
 	if databaseFilters == nil {
 		return nil
 	}
 
-	return databaseFilters[tableName]
+	// Try exact match first
+	if filters, ok := databaseFilters[tableName]; ok {
+		return filters
+	}
+
+	// Try alternative formats
+	var alternativeKeys []string
+
+	if strings.Contains(tableName, "__") {
+		// Pongo2 format: schema__table -> try schema.table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, "__", ".", 1))
+	} else if strings.Contains(tableName, ".") {
+		// Qualified format: schema.table -> try schema__table
+		alternativeKeys = append(alternativeKeys, strings.Replace(tableName, ".", "__", 1))
+	} else {
+		// Simple table name without schema -> try with public schema
+		// This handles the case where template has "organization" but filter has "public.organization"
+		alternativeKeys = append(alternativeKeys, "public."+tableName)
+		alternativeKeys = append(alternativeKeys, "public__"+tableName)
+	}
+
+	for _, altKey := range alternativeKeys {
+		if filters, ok := databaseFilters[altKey]; ok {
+			return filters
+		}
+	}
+
+	return nil
 }
 
 // transformPluginCRMAdvancedFilters transforms advanced FilterCondition filters for plugin_crm to use search fields
