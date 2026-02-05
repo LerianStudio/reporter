@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package chaos
 
 import (
@@ -7,22 +11,17 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation
 func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	t.Log("⏳ Waiting for system stability after previous chaos tests...")
 	time.Sleep(10 * time.Second)
 
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🔍 Verifying system health before chaos test...")
 	if err := h.WaitForSystemHealth(ctx, cli, 30*time.Second); err != nil {
@@ -85,12 +84,7 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	t.Log("💥 CHAOS: Restarting RabbitMQ container...")
-	rabbitContainer := env.RabbitContainer
-	if rabbitContainer == "" {
-		rabbitContainer = "reporter-rabbitmq"
-	}
-
-	if err := h.RestartWithWait(rabbitContainer, 10*time.Second); err != nil {
+	if err := RestartRabbitMQ(10 * time.Second); err != nil {
 		t.Fatalf("❌ Failed to restart RabbitMQ: %v", err)
 	}
 
@@ -138,14 +132,9 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 
 // TestChaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
 func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
-	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
-	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
+	headers := h.AuthHeaders()
 
 	t.Log("🧪 Simulating message loss scenario...")
 
@@ -178,12 +167,7 @@ func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 	}
 
 	t.Log("💥 Restarting RabbitMQ during processing...")
-	rabbitContainer := env.RabbitContainer
-	if rabbitContainer == "" {
-		rabbitContainer = "reporter-rabbitmq"
-	}
-
-	if err := h.RestartWithWait(rabbitContainer, 5*time.Second); err != nil {
+	if err := RestartRabbitMQ(5 * time.Second); err != nil {
 		t.Fatalf("❌ Failed to restart RabbitMQ: %v", err)
 	}
 

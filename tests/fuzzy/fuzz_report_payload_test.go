@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package fuzzy
 
 import (
@@ -7,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // FuzzReportPayload tests various malformed report creation payloads
@@ -35,14 +39,9 @@ func FuzzReportPayload(f *testing.F) {
 	}
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	f.Fuzz(func(t *testing.T, payloadJSON string) {
 		// Limit size
@@ -90,14 +89,11 @@ func FuzzTemplateIDFormats(f *testing.F) {
 	f.Add("💀-💀-💀-💀-💀")
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	f.Fuzz(func(t *testing.T, templateID string) {
 		// Limit size
@@ -111,7 +107,7 @@ func FuzzTemplateIDFormats(f *testing.F) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},
@@ -163,7 +159,7 @@ func FuzzOrganizationID(f *testing.F) {
 			orgID = orgID[:1000]
 		}
 
-		headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+		headers := h.AuthHeaders()
 
 		code, body, err := cli.UploadMultipartForm(ctx, "POST", "/v1/templates", headers, formData, files)
 		if err != nil {
@@ -189,14 +185,9 @@ func FuzzNestedFilters(f *testing.F) {
 	f.Add(100)
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	f.Fuzz(func(t *testing.T, depth int) {
 		// Cap depth to prevent stack overflow
@@ -242,14 +233,9 @@ func FuzzConcurrentRequests(f *testing.F) {
 	f.Add("request3")
 
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		f.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	f.Fuzz(func(t *testing.T, requestData string) {
 		// Limit size

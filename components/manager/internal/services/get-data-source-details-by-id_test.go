@@ -1,24 +1,27 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"testing"
+	"time"
 
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"testing"
-	"time"
-
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	_ "github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	_ "github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
 func Test_GetDataSourceDetailsByID(t *testing.T) {
@@ -41,7 +44,8 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 	}
 	postgresSchema := []postgres.TableSchema{
 		{
-			TableName: "table1",
+			SchemaName: "public",
+			TableName:  "table1",
 			Columns: []postgres.ColumnInformation{
 				{Name: "col1", DataType: "string"},
 				{Name: "col2", DataType: "int"},
@@ -66,7 +70,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 		ExternalName: "pg_db",
 		Type:         pkg.PostgreSQLType,
 		Tables: []model.TableDetails{{
-			Name:   "table1",
+			Name:   "public.table1",
 			Fields: []string{"col1", "col2"},
 		}},
 	}
@@ -195,7 +199,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(postgresSchema, nil)
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 			},
@@ -257,7 +261,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(nil, errors.New("db error"))
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 			},
 			expectErr:    true,

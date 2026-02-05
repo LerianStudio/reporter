@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pkg
 
 import (
@@ -5,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 )
 
 // EntityNotFoundError records an error indicating an entity was not found in any case that caused it.
@@ -469,6 +473,30 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrCommunicateSeaweedFS.Error(),
 			Title:      "Communication Error with SeaweedFS",
 			Message:    "Error to communicate with SeaweedFS to download or upload file. Please try again.",
+		},
+		constant.ErrSchemaAmbiguous: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrSchemaAmbiguous.Error(),
+			Title:      "Ambiguous Schema Reference",
+			Message:    fmt.Sprintf("The table '%v' exists in multiple schemas: %v. Please use explicit schema syntax: database:schema.table", args...),
+		},
+		constant.ErrSchemaNotFound: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrSchemaNotFound.Error(),
+			Title:      "Schema Not Found",
+			Message:    fmt.Sprintf("The schema '%v' was not found in database '%v'. Please verify the schema name.", args...),
+		},
+		constant.ErrTableNotFoundInSchema: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrTableNotFoundInSchema.Error(),
+			Title:      "Table Not Found in Schema",
+			Message:    fmt.Sprintf("The table '%v' was not found in schema '%v' of database '%v'. Please verify the table name and schema.", args...),
+		},
+		constant.ErrDatabaseNotRegistered: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrDatabaseNotRegistered.Error(),
+			Title:      "Database Not Registered",
+			Message:    fmt.Sprintf("The database '%v' is not registered. Please verify the datasource configuration.", args...),
 		},
 	}
 

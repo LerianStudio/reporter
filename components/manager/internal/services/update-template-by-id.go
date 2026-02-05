@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
@@ -6,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
-	templateUtils "github.com/LerianStudio/reporter/v4/pkg/template_utils"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/net/http"
+	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -20,7 +24,7 @@ import (
 )
 
 // UpdateTemplateByID update a existent template
-func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, description string, organizationID, id uuid.UUID, fileHeader *multipart.FileHeader) error {
+func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, description string, id uuid.UUID, fileHeader *multipart.FileHeader) error {
 	var (
 		templateFile string
 		mappedFields map[string]map[string][]string
@@ -34,7 +38,6 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.template_id", id.String()),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	logger.Infof("Updating template")
@@ -49,7 +52,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 			return err
 		}
 
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, organizationID.String(), logger, mappedFields); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, "", logger, mappedFields); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 			logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
@@ -59,7 +62,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 	}
 
 	if fileHeader != nil && commons.IsNilOrEmpty(&outputFormat) {
-		outputFormatExistentTemplate, err := uc.TemplateRepo.FindOutputFormatByID(ctx, id, organizationID)
+		outputFormatExistentTemplate, err := uc.TemplateRepo.FindOutputFormatByID(ctx, id)
 		if err != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to get outputFormat of template by ID", err)
 
@@ -112,7 +115,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 		updateFields["$set"] = setFields
 	}
 
-	if errUpdate := uc.TemplateRepo.Update(ctx, id, organizationID, &updateFields); errUpdate != nil {
+	if errUpdate := uc.TemplateRepo.Update(ctx, id, &updateFields); errUpdate != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to update template in repository", errUpdate)
 
 		logger.Errorf("Error into creating a template, Error: %v", errUpdate)

@@ -1,19 +1,22 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
 	"context"
 
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetAllReports fetch all Reports from the repository
-func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, organizationID uuid.UUID) ([]*report.Report, error) {
+func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader) ([]*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.get_all_reports")
@@ -21,7 +24,6 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
-		attribute.String("app.request.organization_id", organizationID.String()),
 	)
 
 	err := opentelemetry.SetSpanAttributesFromStruct(&span, "app.request.payload", filters)
@@ -30,8 +32,6 @@ func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader, 
 	}
 
 	logger.Infof("Retrieving reports")
-
-	filters.OrganizationID = organizationID
 
 	reports, err := uc.ReportRepo.FindList(ctx, filters)
 	if err != nil {

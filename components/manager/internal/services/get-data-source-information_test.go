@@ -1,19 +1,27 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb"
-	"github.com/LerianStudio/reporter/v4/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_GetDataSourceInformation(t *testing.T) {
 	ctx := context.Background()
+
+	// Register datasource IDs for testing
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds", "pg_ds"})
 
 	pgConfig := &postgres.Connection{DBName: "pg_db"}
 

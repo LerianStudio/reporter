@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "name":"plugin",
-      "password_hash":"Pexngh1ls20Hs8hMsMFNJSwQuDPSybD+/ZrrnFM+SUM6Dcsx",
+      "name":"reporter-user",
+      "password_hash":"Dbabc1YPUpEKMgXXh5yFholWOpB080RSAua6msSZxgFW4r8n",
       "hashing_algorithm":"rabbit_password_hashing_sha256",
       "tags":"administrator"
     }
@@ -14,7 +14,7 @@
   ],
   "permissions": [
     {
-      "user": "plugin",
+      "user": "reporter-user",
       "vhost": "/",
       "configure": ".*",
       "write": ".*",

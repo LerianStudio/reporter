@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package postgres
 
 import (
@@ -7,14 +11,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/model"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -22,16 +27,33 @@ import (
 //
 //go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
 type Repository interface {
-	Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
-	QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
-	GetDatabaseSchema(ctx context.Context) ([]TableSchema, error)
+	Query(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
+	QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
+	GetDatabaseSchema(ctx context.Context, schemas []string) ([]TableSchema, error)
 	CloseConnection() error
+}
+
+// qualifyTableName returns a qualified table name with schema if provided.
+// If schemaName is empty, returns just the table name.
+// If schemaName is provided, returns "schema"."table" format.
+func qualifyTableName(schemaName, tableName string) string {
+	if schemaName == "" {
+		return tableName
+	}
+
+	return fmt.Sprintf(`"%s"."%s"`, schemaName, tableName)
 }
 
 // TableSchema represents the structure of a database table
 type TableSchema struct {
-	TableName string              `json:"table_name"`
-	Columns   []ColumnInformation `json:"columns"`
+	SchemaName string              `json:"schema_name"`
+	TableName  string              `json:"table_name"`
+	Columns    []ColumnInformation `json:"columns"`
+}
+
+// QualifiedName returns the fully qualified table name in the format "schema.table"
+func (t TableSchema) QualifiedName() string {
+	return fmt.Sprintf("%s.%s", t.SchemaName, t.TableName)
 }
 
 // ColumnInformation contains the details of a database column
@@ -83,8 +105,10 @@ func (ds *ExternalDataSource) CloseConnection() error {
 }
 
 // Query executes a SELECT SQL query on the specified table with the given fields and filter criteria.
+// The schemaName parameter specifies the database schema to query from (e.g., "public", "payment").
+// If schemaName is empty, the table name is used without schema qualification.
 // It returns the query results as a slice of maps or an error in case of failure.
-func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
+func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.query")
@@ -95,6 +119,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 	)
 
 	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
+		"schema": schemaName,
 		"table":  table,
 		"fields": fields,
 		"filter": filter,
@@ -103,7 +128,8 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
 	}
 
-	logger.Infof("Querying %s table with fields %v", table, fields)
+	qualifiedTable := qualifyTableName(schemaName, table)
+	logger.Infof("Querying %s table with fields %v", qualifiedTable, fields)
 
 	// Validate requested table and fields
 	queriedFields, err := ds.ValidateTableAndFields(ctx, table, fields, schema)
@@ -111,8 +137,11 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 		return nil, err
 	}
 
+	// Transform nested JSONB fields to proper PostgreSQL accessor syntax
+	selectFields := transformFieldsForSelect(queriedFields)
+
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(queriedFields...).From(table)
+	queryBuilder := psql.Select(selectFields...).From(qualifiedTable)
 
 	// Apply filters, but only if they correspond to valid columns
 	queryBuilder = buildDynamicFilters(queryBuilder, schema, table, filter)
@@ -141,9 +170,16 @@ func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, t
 	return scanRows(rows, logger)
 }
 
-// GetDatabaseSchema retrieves all tables and their column details from the database
-// It returns a slice of TableSchema objects or an error if the operation fails
-func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSchema, error) {
+// tableInfo holds schema and table name for internal processing
+type tableInfo struct {
+	schemaName string
+	tableName  string
+}
+
+// GetDatabaseSchema retrieves all tables and their column details from the specified schemas.
+// The schemas parameter specifies which database schemas to query (e.g., ["public", "payment", "transfer"]).
+// It returns a slice of TableSchema objects with SchemaName populated, or an error if the operation fails.
+func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context, schemas []string) ([]TableSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.get_database_schema")
@@ -153,53 +189,82 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	logger.Info("Retrieving database schema information")
+	logger.Infof("Retrieving database schema information for schemas: %v", schemas)
 
 	// Create timeout context for schema discovery (longer timeout for this operation)
 	schemaCtx, cancel := context.WithTimeout(ctx, constant.SchemaDiscoveryTimeout)
 	defer cancel()
 
-	// Query to get all user tables in the database
+	tables, err := ds.queryTables(schemaCtx, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	primaryKeys, err := ds.queryPrimaryKeys(schemaCtx, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := ds.buildTableSchemas(schemaCtx, tables, primaryKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Infof("Retrieved schema for %d tables across %d schemas", len(result), len(schemas))
+
+	return result, nil
+}
+
+// queryTables retrieves all user tables from the specified schemas.
+func (ds *ExternalDataSource) queryTables(ctx context.Context, schemas []string) ([]tableInfo, error) {
 	tableQuery := `
-		SELECT table_name 
-		FROM information_schema.tables 
-		WHERE table_schema = 'public'
+		SELECT table_schema, table_name
+		FROM information_schema.tables
+		WHERE table_schema = ANY($1)
 		AND table_type = 'BASE TABLE'
-		ORDER BY table_name
+		ORDER BY table_schema, table_name
 	`
 
-	rows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, tableQuery)
+	rows, err := ds.connection.ConnectionDB.QueryContext(ctx, tableQuery, pq.Array(schemas))
 	if err != nil {
 		return nil, fmt.Errorf("error querying tables: %w", err)
 	}
 	defer rows.Close()
 
-	var tables []string
+	var tables []tableInfo
 
 	for rows.Next() {
-		var tableName string
-		if err := rows.Scan(&tableName); err != nil {
+		var info tableInfo
+		if err := rows.Scan(&info.schemaName, &info.tableName); err != nil {
 			return nil, fmt.Errorf("error scanning table name: %w", err)
 		}
 
-		tables = append(tables, tableName)
+		tables = append(tables, info)
 	}
 
-	// Query to get primary key information
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating tables: %w", err)
+	}
+
+	return tables, nil
+}
+
+// queryPrimaryKeys retrieves primary key information for all tables in the specified schemas.
+func (ds *ExternalDataSource) queryPrimaryKeys(ctx context.Context, schemas []string) (map[string]map[string]bool, error) {
 	pkQuery := `
-		SELECT tc.table_name, kc.column_name
+		SELECT tc.table_schema, tc.table_name, kc.column_name
 		FROM information_schema.table_constraints tc
-		JOIN information_schema.key_column_usage kc 
-			ON kc.table_name = tc.table_name 
+		JOIN information_schema.key_column_usage kc
+			ON kc.table_name = tc.table_name
 			AND kc.table_schema = tc.table_schema
 			AND kc.constraint_name = tc.constraint_name
 		WHERE tc.constraint_type = 'PRIMARY KEY'
-		AND tc.table_schema = 'public'
+		AND tc.table_schema = ANY($1)
 	`
 
-	pkRows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, pkQuery)
+	pkRows, err := ds.connection.ConnectionDB.QueryContext(ctx, pkQuery, pq.Array(schemas))
 	if err != nil {
-		if schemaCtx.Err() == context.DeadlineExceeded {
+		if ctx.Err() == context.DeadlineExceeded {
 			return nil, fmt.Errorf("schema discovery timeout after %v while querying primary keys: %w", constant.SchemaDiscoveryTimeout, err)
 		}
 
@@ -207,77 +272,101 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]TableSch
 	}
 	defer pkRows.Close()
 
-	// Map to store primary key columns by table name
 	primaryKeys := make(map[string]map[string]bool)
 
 	for pkRows.Next() {
-		var tableName, columnName string
-		if err := pkRows.Scan(&tableName, &columnName); err != nil {
+		var schemaName, tableName, columnName string
+		if err := pkRows.Scan(&schemaName, &tableName, &columnName); err != nil {
 			return nil, fmt.Errorf("error scanning primary key info: %w", err)
 		}
+
+		key := schemaName + "." + tableName
+		if primaryKeys[key] == nil {
+			primaryKeys[key] = make(map[string]bool)
+		}
+
+		primaryKeys[key][columnName] = true
 	}
 
-	// Build the complete schema information
-	schema := make([]TableSchema, 0, len(tables))
+	if err := pkRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating primary keys: %w", err)
+	}
 
-	for _, tableName := range tables {
-		// Query to get column information for the current table
-		columnQuery := `
-			SELECT column_name, data_type, 
-			       CASE WHEN is_nullable = 'YES' THEN true ELSE false END as is_nullable
-			FROM information_schema.columns
-			WHERE table_schema = 'public'
-			AND table_name = $1
-			ORDER BY ordinal_position
-		`
+	return primaryKeys, nil
+}
 
-		colRows, err := ds.connection.ConnectionDB.QueryContext(schemaCtx, columnQuery, tableName)
+// buildTableSchemas builds the complete schema information for all tables.
+func (ds *ExternalDataSource) buildTableSchemas(ctx context.Context, tables []tableInfo, primaryKeys map[string]map[string]bool) ([]TableSchema, error) {
+	result := make([]TableSchema, 0, len(tables))
+
+	for _, tbl := range tables {
+		columns, err := ds.queryTableColumns(ctx, tbl, primaryKeys)
 		if err != nil {
-			if schemaCtx.Err() == context.DeadlineExceeded {
-				return nil, fmt.Errorf("schema discovery timeout after %v while querying columns for table %s: %w", constant.SchemaDiscoveryTimeout, tableName, err)
-			}
-
-			return nil, fmt.Errorf("error querying columns for table %s: %w", tableName, err)
+			return nil, err
 		}
 
-		var columns []ColumnInformation
-
-		for colRows.Next() {
-			var col ColumnInformation
-			if err := colRows.Scan(&col.Name, &col.DataType, &col.IsNullable); err != nil {
-				if closeErr := colRows.Close(); closeErr != nil {
-					logger.Warnf("error closing rows after scan error: %v", closeErr)
-				}
-
-				return nil, fmt.Errorf("error scanning column info: %w", err)
-			}
-
-			// Check if this column is a primary key
-			if pkCols, exists := primaryKeys[tableName]; exists {
-				col.IsPrimaryKey = pkCols[col.Name]
-			}
-
-			columns = append(columns, col)
-		}
-
-		if err := colRows.Close(); err != nil {
-			logger.Warnf("error closing column rows: %v", err)
-		}
-
-		schema = append(schema, TableSchema{
-			TableName: tableName,
-			Columns:   columns,
+		result = append(result, TableSchema{
+			SchemaName: tbl.schemaName,
+			TableName:  tbl.tableName,
+			Columns:    columns,
 		})
 	}
 
-	logger.Infof("Retrieved schema for %d tables", len(schema))
+	return result, nil
+}
 
-	return schema, nil
+// queryTableColumns retrieves column information for a specific table.
+func (ds *ExternalDataSource) queryTableColumns(ctx context.Context, tbl tableInfo, primaryKeys map[string]map[string]bool) ([]ColumnInformation, error) {
+	columnQuery := `
+		SELECT column_name, data_type,
+		       CASE WHEN is_nullable = 'YES' THEN true ELSE false END as is_nullable
+		FROM information_schema.columns
+		WHERE table_schema = $1
+		AND table_name = $2
+		ORDER BY ordinal_position
+	`
+
+	colRows, err := ds.connection.ConnectionDB.QueryContext(ctx, columnQuery, tbl.schemaName, tbl.tableName)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("schema discovery timeout after %v while querying columns for table %s.%s: %w", constant.SchemaDiscoveryTimeout, tbl.schemaName, tbl.tableName, err)
+		}
+
+		return nil, fmt.Errorf("error querying columns for table %s.%s: %w", tbl.schemaName, tbl.tableName, err)
+	}
+	defer colRows.Close()
+
+	var columns []ColumnInformation
+
+	pkKey := tbl.schemaName + "." + tbl.tableName
+
+	for colRows.Next() {
+		var col ColumnInformation
+		if err := colRows.Scan(&col.Name, &col.DataType, &col.IsNullable); err != nil {
+			return nil, fmt.Errorf("error scanning column info: %w", err)
+		}
+
+		if pkCols, exists := primaryKeys[pkKey]; exists {
+			col.IsPrimaryKey = pkCols[col.Name]
+		}
+
+		columns = append(columns, col)
+	}
+
+	if err := colRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating columns: %w", err)
+	}
+
+	return columns, nil
 }
 
 // scanRows processes the query rows and creates the resulting slice of maps.
 func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
-	columns, _ := rows.Columns()
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("error getting column names: %w", err)
+	}
+
 	values := make([]any, len(columns))
 	pointers := make([]any, len(columns))
 
@@ -294,6 +383,10 @@ func scanRows(rows *sql.Rows, logger log.Logger) ([]map[string]any, error) {
 
 		rowMap := createRowMap(columns, values, logger)
 		result = append(result, rowMap)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
 	return result, nil
@@ -343,6 +436,40 @@ func parseJSONBField(value any, logger log.Logger) any {
 	}
 
 	return value
+}
+
+// extractRootColumn extracts the root column name from a potentially nested JSONB field path.
+// For example: "fee_charge.totalAmount" returns "fee_charge"
+// Simple fields (without dots) are returned as-is.
+// This allows the entire JSONB column to be selected, which is then parsed by parseJSONBField
+// into a nested map structure that the template engine can traverse.
+func extractRootColumn(field string) string {
+	if dotIdx := strings.Index(field, "."); dotIdx != -1 {
+		return field[:dotIdx]
+	}
+
+	return field
+}
+
+// transformFieldsForSelect converts a list of fields to SQL-safe column names.
+// For nested JSONB field paths (e.g., "fee_charge.totalAmount"), only the root column
+// is included in the SELECT. The JSONB column will be parsed into a nested map by
+// parseJSONBField, allowing the template engine to access nested values.
+// This also deduplicates columns to avoid selecting the same column multiple times.
+func transformFieldsForSelect(fields []string) []string {
+	seen := make(map[string]bool)
+
+	var result []string
+
+	for _, field := range fields {
+		rootColumn := extractRootColumn(field)
+		if !seen[rootColumn] {
+			seen[rootColumn] = true
+			result = append(result, rootColumn)
+		}
+	}
+
+	return result
 }
 
 // ValidateTableAndFields checks if the specified table exists and validates that
@@ -409,7 +536,14 @@ func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableN
 	var invalidFields []string
 
 	for _, field := range requestedFields {
-		if validColumns[field] {
+		// Handle nested JSONB field paths (e.g., "fee_charge.totalAmount")
+		// For nested paths, validate that the root column exists
+		fieldToCheck := field
+		if dotIdx := strings.Index(field, "."); dotIdx != -1 {
+			fieldToCheck = field[:dotIdx]
+		}
+
+		if validColumns[fieldToCheck] {
 			validFields = append(validFields, field)
 		} else {
 			invalidFields = append(invalidFields, field)
@@ -469,8 +603,10 @@ func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values [
 	return queryBuilder.Where(fieldName+" IN ("+placeholder+")", values...)
 }
 
-// QueryWithAdvancedFilters executes a SELECT SQL query with advanced FilterCondition support
-func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
+// QueryWithAdvancedFilters executes a SELECT SQL query with advanced FilterCondition support.
+// The schemaName parameter specifies the database schema to query from (e.g., "public", "payment").
+// If schemaName is empty, the table name is used without schema qualification.
+func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	_, span := tracer.Start(ctx, "postgres.data_source.query_with_advanced_filters")
@@ -481,6 +617,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 	)
 
 	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.repository_filter", map[string]any{
+		"schema": schemaName,
 		"table":  table,
 		"fields": fields,
 		"filter": filter,
@@ -489,7 +626,8 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert repository filter to JSON string", err)
 	}
 
-	logger.Infof("Querying %s table with advanced filters on fields %v", table, fields)
+	qualifiedTable := qualifyTableName(schemaName, table)
+	logger.Infof("Querying %s table with advanced filters on fields %v", qualifiedTable, fields)
 
 	// Validate requested table and fields
 	queriedFields, err := ds.ValidateTableAndFields(ctx, table, fields, schema)
@@ -497,8 +635,11 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, sche
 		return nil, err
 	}
 
+	// Transform nested JSONB fields to proper PostgreSQL accessor syntax
+	selectFields := transformFieldsForSelect(queriedFields)
+
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	queryBuilder := psql.Select(queriedFields...).From(table)
+	queryBuilder := psql.Select(selectFields...).From(qualifiedTable)
 
 	// Apply advanced filters
 	queryBuilder, err = ds.buildAdvancedFilters(queryBuilder, schema, table, filter)

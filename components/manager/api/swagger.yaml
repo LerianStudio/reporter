@@ -7,7 +7,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition'
+              $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -65,7 +65,7 @@ definitions:
         example: account
         type: string
     type: object
-  github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition:
+  github_com_LerianStudio_reporter_pkg_model.FilterCondition:
     properties:
       between:
         description: |-
@@ -123,7 +123,7 @@ definitions:
         items: {}
         type: array
     type: object
-  github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report:
+  github_com_LerianStudio_reporter_pkg_mongodb_report.Report:
     properties:
       completedAt:
         type: string
@@ -135,7 +135,7 @@ definitions:
         additionalProperties:
           additionalProperties:
             additionalProperties:
-              $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition'
+              $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_model.FilterCondition'
             type: object
           type: object
         type: object
@@ -154,7 +154,7 @@ definitions:
       updatedAt:
         type: string
     type: object
-  github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template:
+  github_com_LerianStudio_reporter_pkg_mongodb_template.Template:
     properties:
       createdAt:
         example: "2021-01-01T00:00:00Z"
@@ -193,7 +193,7 @@ info:
   description: This is a swagger documentation for Reporter
   termsOfService: http://swagger.io/terms/
   title: Reporter
-  version: 4.0.0
+  version: 1.0.0
 paths:
   /v1/data-sources:
     get:
@@ -204,11 +204,6 @@ paths:
           Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         type: string
       produces:
       - application/json
@@ -234,11 +229,6 @@ paths:
           Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         type: string
       - description: Data source ID
         in: path
@@ -276,11 +266,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: Report status (processing, finished, error)
         in: query
         name: status
@@ -314,7 +299,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+                    $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
                   type: array
                 limit:
                   type: integer
@@ -344,11 +329,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: Report Input
         in: body
         name: reports
@@ -361,7 +341,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
         "400":
           description: Bad Request
           schema:
@@ -388,11 +368,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: Report ID
         in: path
         name: id
@@ -404,7 +379,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report'
         "400":
           description: Bad Request
           schema:
@@ -430,11 +405,6 @@ paths:
           Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         type: string
       - description: Report ID
         in: path
@@ -472,11 +442,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: XML, HTML, TXT and CSV
         in: query
         name: outputFormat
@@ -506,7 +471,7 @@ paths:
             - properties:
                 items:
                   items:
-                    $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+                    $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
                   type: array
                 limit:
                   type: integer
@@ -536,11 +501,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: Template file (.tpl)
         in: formData
         name: templateFile
@@ -562,7 +522,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:
@@ -583,11 +543,6 @@ paths:
           Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         type: string
       - description: Template ID
         in: path
@@ -622,11 +577,6 @@ paths:
         in: header
         name: Authorization
         type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
-        type: string
       - description: Template ID
         in: path
         name: id
@@ -638,7 +588,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:
@@ -663,11 +613,6 @@ paths:
           Only required when auth plugin is enabled."
         in: header
         name: Authorization
-        type: string
-      - description: Organization ID
-        in: header
-        name: X-Organization-Id
-        required: true
         type: string
       - description: Template file (.tpl)
         in: formData
@@ -695,7 +640,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template'
+            $ref: '#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template'
         "400":
           description: Bad Request
           schema:

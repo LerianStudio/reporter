@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   push:
@@ -7,54 +7,22 @@ on:
       - release-candidate
       - main
     paths-ignore:
+      - '.github/workflows/**'
+      - '.github/configs/**'
       - '.gitignore'
-      - '**/*.env'
-      - '*.env'
-      - '**/*.md'
-      - '*.md'
-      - '**/*.txt'
-      - '*.txt'
-    tags-ignore:
-      - '**'
 
 permissions:
-  id-token: write
   contents: write
+  issues: write
   pull-requests: write
-  packages: read
 
 jobs:
-  # Publish release using the lerian-studio/github-actions-go-pipeline-template
-  publish-release:
-    uses: LerianStudio/github-actions-go-pipeline-template/.github/workflows/release.yml@main
-    secrets:
-      lerian_studio_push_bot_app_id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-      lerian_studio_push_bot_private_key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-      lerian_ci_cd_user_gpg_key: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-      lerian_ci_cd_user_gpg_key_password: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-      lerian_ci_cd_user_name: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-      lerian_ci_cd_user_email: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
-
-  # Generate changelog with gptchangelog custom module
-  generate_changelog:
-    name: 📝 Generate AI-powered Changelog
-    runs-on: ubuntu-22.04
-    needs: publish-release
-    steps:
-      - uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-          private-key: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
-
-      - uses: LerianStudio/github-actions-gptchangelog@main
-        with:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LERIAN_CI_CD_USER_GPG_KEY: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY }}
-          LERIAN_CI_CD_USER_GPG_KEY_PASSWORD: ${{ secrets.LERIAN_CI_CD_USER_GPG_KEY_PASSWORD }}
-          LERIAN_CI_CD_USER_NAME: ${{ secrets.LERIAN_CI_CD_USER_NAME }}
-          LERIAN_CI_CD_USER_EMAIL: ${{ secrets.LERIAN_CI_CD_USER_EMAIL }}
-          LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_APP_ID }}
-          LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY: ${{ secrets.LERIAN_STUDIO_MIDAZ_PUSH_BOT_PRIVATE_KEY }}
+  # =========================
+  # RELEASE
+  # =========================
+  release:
+    name: Create Release
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/release.yml@v1.10.2
+    with:
+      runner_type: "blacksmith-4vcpu-ubuntu-2404"
+    secrets: inherit
