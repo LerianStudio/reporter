@@ -464,6 +464,13 @@ We are committed to providing a welcoming and inclusive environment. We expect a
 
 Project maintainers may remove, edit, or reject contributions that do not align with this Code of Conduct. Repeated violations may result in a ban from the project.
 
+## Community & Support
+
+- Join our [Discord community](https://discord.gg/DnhqKwkGv3) for discussions, support, and updates.
+- If you want to raise anything to the attention of the community, open a Discussion in our [GitHub](https://github.com/LerianStudio/midaz/v3/discussions).
+- Follow us on [Twitter](https://twitter.com/LerianStudio), [Instagram](https://www.instagram.com/lerian.studio/) and [Linkedin](https://www.linkedin.com/company/lerianstudio/) for the latest news and announcements.
+
+
 ## License
 
 This project is licensed under the **Elastic License 2.0**.
