@@ -72,10 +72,10 @@ func (rm *ReportMongoDBModel) FromEntity(r *Report) error {
 	dateNow := time.Now()
 	rm.ID = r.ID
 	rm.TemplateID = r.TemplateID
-	rm.Metadata = nil
+	rm.Metadata = r.Metadata
 	rm.Status = r.Status
 	rm.Filters = r.Filters
-	rm.CompletedAt = nil
+	rm.CompletedAt = r.CompletedAt
 	rm.CreatedAt = dateNow
 	rm.UpdatedAt = dateNow
 	rm.DeletedAt = nil

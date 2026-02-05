@@ -179,8 +179,8 @@ func TestReportMongoDBModel_FromEntity(t *testing.T) {
 	assert.Equal(t, templateID, mongoModel.TemplateID)
 	assert.Equal(t, "completed", mongoModel.Status)
 	assert.Equal(t, filters, mongoModel.Filters)
-	assert.Nil(t, mongoModel.Metadata) // FromEntity sets metadata to nil
-	assert.Nil(t, mongoModel.CompletedAt)
+	assert.Equal(t, report.Metadata, mongoModel.Metadata)       // FromEntity preserves metadata
+	assert.Equal(t, report.CompletedAt, mongoModel.CompletedAt) // FromEntity preserves completedAt
 	assert.Nil(t, mongoModel.DeletedAt)
 	assert.False(t, mongoModel.CreatedAt.IsZero())
 	assert.False(t, mongoModel.UpdatedAt.IsZero())

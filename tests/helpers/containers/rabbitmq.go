@@ -219,12 +219,12 @@ func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) er
 		return fmt.Errorf("refresh rabbitmq host: %w", err)
 	}
 
-	amqpPort, err := r.RabbitMQContainer.MappedPort(ctx, "5672")
+	amqpPort, err := r.MappedPort(ctx, "5672")
 	if err != nil {
 		return fmt.Errorf("refresh rabbitmq amqp port: %w", err)
 	}
 
-	mgmtPort, err := r.RabbitMQContainer.MappedPort(ctx, "15672")
+	mgmtPort, err := r.MappedPort(ctx, "15672")
 	if err != nil {
 		return fmt.Errorf("refresh rabbitmq management port: %w", err)
 	}

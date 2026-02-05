@@ -458,6 +458,7 @@ func extractRootColumn(field string) string {
 // This also deduplicates columns to avoid selecting the same column multiple times.
 func transformFieldsForSelect(fields []string) []string {
 	seen := make(map[string]bool)
+
 	var result []string
 
 	for _, field := range fields {

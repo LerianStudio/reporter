@@ -92,7 +92,7 @@ func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) erro
 	}
 
 	// Refresh connection info after restart (port mappings may change)
-	connStr, err := v.RedisContainer.ConnectionString(ctx)
+	connStr, err := v.ConnectionString(ctx)
 	if err != nil {
 		return fmt.Errorf("refresh valkey connection string: %w", err)
 	}
@@ -102,7 +102,7 @@ func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) erro
 		return fmt.Errorf("refresh valkey host: %w", err)
 	}
 
-	mappedPort, err := v.RedisContainer.MappedPort(ctx, "6379")
+	mappedPort, err := v.MappedPort(ctx, "6379")
 	if err != nil {
 		return fmt.Errorf("refresh valkey port: %w", err)
 	}
