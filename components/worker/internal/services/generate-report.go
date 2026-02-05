@@ -564,7 +564,7 @@ func (uc *UseCase) processPluginCRMCollection(
 	// Get Midaz organization ID from datasource configuration (DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID)
 	if dataSource.MidazOrganizationID == "" {
 		logger.Errorf("Midaz Organization ID not configured for plugin_crm datasource. Set DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable.")
-		return nil
+		return fmt.Errorf("plugin_crm datasource requires DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable to be configured")
 	}
 
 	newCollection := collection + "_" + dataSource.MidazOrganizationID
