@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pdf
 
 import (
@@ -130,7 +134,7 @@ func (wp *WorkerPool) createTempHTMLFile(html string) (string, error) {
 		wp.logger.Warnf("Failed to close temp file %s: %v", tmpFileName, err)
 	}
 
-	if err := os.WriteFile(tmpFileName, []byte(html), 0600); err != nil {
+	if err := os.WriteFile(tmpFileName, []byte(html), 0o600); err != nil {
 		wp.logger.Errorf("Failed to write HTML to temp file: %v", err)
 
 		_ = os.Remove(tmpFileName)
@@ -192,7 +196,7 @@ func (wp *WorkerPool) processPDFResult(pdfBuf []byte, filename string, err error
 		return fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
 	}
 
-	if err := os.WriteFile(filename, pdfBuf, 0600); err != nil {
+	if err := os.WriteFile(filename, pdfBuf, 0o600); err != nil {
 		wp.logger.Errorf("Failed to write PDF file: %v", err)
 		return err
 	}

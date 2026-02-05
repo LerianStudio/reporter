@@ -1,9 +1,6 @@
 service_name := reporter-infra
 bin_dir := ./.bin
 
-BLUE := \033[36m
-NC := \033[0m
-
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
 DOCKER_MIN_VERSION := 20.10.13
 DOCKER_CMD := $(shell \
@@ -47,9 +44,9 @@ help:
 # Docker Compose Commands
 .PHONY: up
 up:
-	@echo "$(BLUE)Starting all services...$(NC)"
+	@echo "Starting all services..."
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	@echo "All services started successfully"
 
 .PHONY: start
 start:
@@ -78,6 +75,6 @@ ps:
 
 .PHONY: set-env
 set-env:
-	@echo "$(BLUE)Setting up environment files...$(NC)"
+	@echo "Setting up environment files..."
 	cp -r ./.env.example ./.env
-	@echo "$(BLUE)Environment files created successfully$(NC)"
+	@echo "Environment files created successfully"

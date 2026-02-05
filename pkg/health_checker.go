@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package pkg
 
 import (
@@ -5,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/constant"
 
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -193,7 +197,13 @@ func (hc *HealthChecker) pingDataSource(ctx context.Context, name string, ds *Da
 			return false
 		}
 		// Try to get schema as a ping (lightweight operation)
-		_, err := ds.PostgresRepository.GetDatabaseSchema(ctx)
+		// Use configured schemas or default to public for health check
+		schemas := ds.Schemas
+		if len(schemas) == 0 {
+			schemas = []string{"public"}
+		}
+
+		_, err := ds.PostgresRepository.GetDatabaseSchema(ctx, schemas)
 
 		return err == nil
 

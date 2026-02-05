@@ -32,13 +32,6 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -76,13 +69,6 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
                     },
                     {
                         "type": "string",
@@ -139,13 +125,6 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Report status (processing, finished, error)",
                         "name": "status",
                         "in": "query"
@@ -191,7 +170,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report"
                                             }
                                         },
                                         "limit": {
@@ -242,13 +221,6 @@ const docTemplate = `{
                         "in": "header"
                     },
                     {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "description": "Report Input",
                         "name": "reports",
                         "in": "body",
@@ -262,7 +234,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -308,13 +280,6 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Report ID",
                         "name": "id",
                         "in": "path",
@@ -325,7 +290,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_report.Report"
                         }
                     },
                     "400": {
@@ -368,13 +333,6 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
                     },
                     {
                         "type": "string",
@@ -431,13 +389,6 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "XML, HTML, TXT and CSV",
                         "name": "outputFormat",
                         "in": "query"
@@ -477,7 +428,7 @@ const docTemplate = `{
                                         "items": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
+                                                "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template"
                                             }
                                         },
                                         "limit": {
@@ -528,13 +479,6 @@ const docTemplate = `{
                         "in": "header"
                     },
                     {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "type": "file",
                         "description": "Template file (.tpl)",
                         "name": "templateFile",
@@ -560,7 +504,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -597,13 +541,6 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Template ID",
                         "name": "id",
                         "in": "path",
@@ -614,7 +551,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -652,13 +589,6 @@ const docTemplate = `{
                         "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
                         "name": "Authorization",
                         "in": "header"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
                     },
                     {
                         "type": "string",
@@ -712,13 +642,6 @@ const docTemplate = `{
                         "in": "header"
                     },
                     {
-                        "type": "string",
-                        "description": "Organization ID",
-                        "name": "X-Organization-Id",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "type": "file",
                         "description": "Template file (.tpl)",
                         "name": "templateFile",
@@ -751,7 +674,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template"
+                            "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_mongodb_template.Template"
                         }
                     },
                     "400": {
@@ -792,7 +715,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -867,7 +790,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition": {
+        "github_com_LerianStudio_reporter_pkg_model.FilterCondition": {
             "type": "object",
             "properties": {
                 "between": {
@@ -912,7 +835,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v4_pkg_mongodb_report.Report": {
+        "github_com_LerianStudio_reporter_pkg_mongodb_report.Report": {
             "type": "object",
             "properties": {
                 "completedAt": {
@@ -931,7 +854,7 @@ const docTemplate = `{
                         "additionalProperties": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/github_com_LerianStudio_reporter_v4_pkg_model.FilterCondition"
+                                "$ref": "#/definitions/github_com_LerianStudio_reporter_pkg_model.FilterCondition"
                             }
                         }
                     }
@@ -957,7 +880,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_LerianStudio_reporter_v4_pkg_mongodb_template.Template": {
+        "github_com_LerianStudio_reporter_pkg_mongodb_template.Template": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -1009,7 +932,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "4.0.0",
+	Version:          "1.0.0",
 	Host:             "localhost:4005",
 	BasePath:         "/",
 	Schemes:          []string{},

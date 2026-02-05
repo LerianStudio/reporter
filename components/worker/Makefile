@@ -7,9 +7,6 @@ endif
 service_name := reporter-worker
 bin_dir := ./.bin
 
-BLUE := \033[36m
-NC := \033[0m
-
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}')
 DOCKER_MIN_VERSION := 20.10.13
 
@@ -54,9 +51,9 @@ info:
 # Docker Compose Commands
 .PHONY: up
 up:
-	@echo "$(BLUE)Starting all services...$(NC)"
+	@echo "Starting all services..."
 	@$(DOCKER_CMD) -f docker-compose.yml up --build -d
-	@echo "$(BLUE)All services started successfully$(NC)"
+	@echo "All services started successfully"
 
 .PHONY: start
 start:
@@ -85,29 +82,29 @@ ps:
 
 .PHONY: set-env
 set-env:
-	@echo "$(BLUE)Setting up environment files...$(NC)"
+	@echo "Setting up environment files..."
 	cp -r ./.env.example ./.env
-	@echo "$(BLUE)Environment files created successfully$(NC)"
+	@echo "Environment files created successfully"
 
 .PHONY: lint
 lint:
-	$(call title1,"Running linters on all components")
-	@for dir in $(COMPONENTS); do \
-		echo "$(CYAN)Checking for Go files in $$dir...$(NC)"; \
-		if find "$$dir" -name "*.go" -type f | grep -q .; then \
-			echo "$(CYAN)Linting in $$dir...$(NC)"; \
-			(cd $$dir && $(MAKE) lint) || exit 1; \
-		else \
-			echo "$(YELLOW)No Go files found in $$dir, skipping linting$(NC)"; \
+	@echo "Running linters..."
+	@if find . -name "*.go" -type f | grep -q .; then \
+		if ! command -v golangci-lint >/dev/null 2>&1; then \
+			echo "Installing golangci-lint..."; \
+			go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
 		fi; \
-	done
-	@echo "$(GREEN)$(BOLD)[ok]$(NC) Linting completed successfully$(GREEN) ✔️$(NC)"
+		golangci-lint run --fix ./... --verbose; \
+		echo "[ok] Linting completed successfully"; \
+	else \
+		echo "No Go files found, skipping linting"; \
+	fi
 
 .PHONY: test
 test:
-	@echo "$(BLUE)Running tests...$(NC)"
-		@if ! command -v go >/dev/null 2>&1; then \
-		echo "$(RED)Error: go is not installed$(NC)"; \
+	@echo "Running tests..."
+	@if ! command -v go >/dev/null 2>&1; then \
+		echo "Error: go is not installed"; \
 		exit 1; \
 	fi
-	go test -v ./... ./...
+	go test -v ./...

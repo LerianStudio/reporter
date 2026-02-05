@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package constant
 
 import (
@@ -42,4 +46,8 @@ var (
 	ErrScriptTagDetected               = errors.New("TPL-0032")
 	ErrDecryptionData                  = errors.New("TPL-0033")
 	ErrCommunicateSeaweedFS            = errors.New("TPL-0034")
+	ErrSchemaAmbiguous                 = errors.New("TPL-0035")
+	ErrSchemaNotFound                  = errors.New("TPL-0036")
+	ErrTableNotFoundInSchema           = errors.New("TPL-0037")
+	ErrDatabaseNotRegistered           = errors.New("TPL-0038")
 )

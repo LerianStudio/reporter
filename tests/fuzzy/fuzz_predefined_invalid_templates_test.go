@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package fuzzy
 
 import (
@@ -8,20 +12,17 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestPredefinedInvalidTemplates tests pre-defined templates that should fail gracefully
 func TestPredefinedInvalidTemplates(t *testing.T) {
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	// Get all template files from templates directory
 	templatesDir := "./templates"
@@ -82,7 +83,7 @@ func TestPredefinedInvalidTemplates(t *testing.T) {
 							"midaz_onboarding": map[string]any{
 								"organization": map[string]any{
 									"id": map[string]any{
-										"eq": []string{env.DefaultOrgID},
+										"eq": []string{testOrgID},
 									},
 								},
 							},

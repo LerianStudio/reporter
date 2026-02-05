@@ -5,13 +5,8 @@ services:
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
-      secrets:
-        - github_token
     env_file:
       - .env
-    environment:
-      - SEAWEEDFS_HOST=${SEAWEEDFS_HOST}
-      - SEAWEEDFS_FILER_PORT=${SEAWEEDFS_FILER_PORT}
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
@@ -19,25 +14,12 @@ services:
     networks:
       - reporter-infra-network
       - infra-network
-      - plugin-fees-network
       - reporter-manager-network
-      - plugin-auth-network
-      - plugin-crm-network
 
 networks:
   reporter-infra-network:
     external: true
   infra-network:
     external: true
-  plugin-fees-network:
-    external: true
   reporter-manager-network:
     driver: bridge
-  plugin-auth-network:
-    external: true
-  plugin-crm-network:
-    external: true
-
-secrets:
-  github_token:
-    file: ../../.secrets/github_token.txt

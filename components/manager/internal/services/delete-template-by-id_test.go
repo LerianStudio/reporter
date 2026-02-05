@@ -1,11 +1,15 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +23,6 @@ func Test_deleteTemplateByID(t *testing.T) {
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 	tempID := uuid.New()
-	orgId := uuid.New()
 	tempSvc := &UseCase{
 		TemplateRepo: mockTempRepo,
 	}
@@ -27,7 +30,6 @@ func Test_deleteTemplateByID(t *testing.T) {
 	tests := []struct {
 		name           string
 		tempID         uuid.UUID
-		orgId          uuid.UUID
 		hardDelete     bool
 		mockSetup      func()
 		expectErr      bool
@@ -36,11 +38,10 @@ func Test_deleteTemplateByID(t *testing.T) {
 		{
 			name:       "Success - Delete a template",
 			tempID:     tempID,
-			orgId:      orgId,
 			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectErr:      false,
@@ -49,11 +50,10 @@ func Test_deleteTemplateByID(t *testing.T) {
 		{
 			name:       "Error Bad Request - Delete a template",
 			tempID:     tempID,
-			orgId:      orgId,
 			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrBadRequest)
 			},
 			expectErr:      true,
@@ -62,11 +62,10 @@ func Test_deleteTemplateByID(t *testing.T) {
 		{
 			name:       "Error Document Not found - Delete a template",
 			tempID:     tempID,
-			orgId:      orgId,
 			hardDelete: true,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
@@ -79,7 +78,7 @@ func Test_deleteTemplateByID(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.orgId, tt.hardDelete)
+			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.hardDelete)
 
 			if tt.expectErr {
 				assert.Error(t, err)

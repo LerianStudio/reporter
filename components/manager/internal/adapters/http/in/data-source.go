@@ -1,10 +1,14 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package in
 
 import (
-	"github.com/LerianStudio/reporter/v4/components/manager/internal/services"
-	_ "github.com/LerianStudio/reporter/v4/pkg"
-	_ "github.com/LerianStudio/reporter/v4/pkg/model"
-	"github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	_ "github.com/LerianStudio/reporter/pkg"
+	_ "github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
@@ -23,10 +27,9 @@ type DataSourceHandler struct {
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Success		200					{object}	[]model.DataSourceInformation
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Success		200				{object}	[]model.DataSourceInformation
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/data-sources [get]
 func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -55,13 +58,12 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 //	@Description	Retrieves a data sources information with data source id passed
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			X-Organization-Id	header		string	true	"Organization ID"
-//	@Param			dataSourceId		path		string	true	"Data source ID"
-//	@Success		200					{object}	model.DataSourceDetails
-//	@Failure		400					{object}	pkg.HTTPError
-//	@Failure		404					{object}	pkg.HTTPError
-//	@Failure		500					{object}	pkg.HTTPError
+//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			dataSourceId	path		string	true	"Data source ID"
+//	@Success		200				{object}	model.DataSourceDetails
+//	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		404				{object}	pkg.HTTPError
+//	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/data-sources/{dataSourceId} [get]
 func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -72,6 +74,7 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	defer span.End()
 
 	dataSourceID := c.Params("dataSourceId")
+
 	logger.Infof("Initiating retrieval data source information with ID: %s", dataSourceID)
 
 	span.SetAttributes(

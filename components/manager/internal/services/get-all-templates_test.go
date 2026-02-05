@@ -1,12 +1,16 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package services
 
 import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/v4/pkg/constant"
-	"github.com/LerianStudio/reporter/v4/pkg/mongodb/template"
-	httpUtils "github.com/LerianStudio/reporter/v4/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	httpUtils "github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +22,6 @@ func Test_getAllTemplates(t *testing.T) {
 	defer ctrl.Finish()
 
 	tempID := uuid.New()
-	orgId := uuid.New()
 	resultEntity := []*template.Template{
 		{
 			ID:           tempID,
@@ -31,9 +34,8 @@ func Test_getAllTemplates(t *testing.T) {
 	mockTempRepo := template.NewMockRepository(ctrl)
 
 	filter := httpUtils.QueryHeader{
-		Limit:          10,
-		Page:           1,
-		OrganizationID: orgId,
+		Limit: 10,
+		Page:  1,
 	}
 
 	tempSvc := &UseCase{
@@ -83,7 +85,7 @@ func Test_getAllTemplates(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.GetAllTemplates(ctx, tt.filter, orgId)
+			result, err := tempSvc.GetAllTemplates(ctx, tt.filter)
 
 			if tt.expectErr {
 				assert.Error(t, err)

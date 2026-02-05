@@ -1,23 +1,22 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package fuzzy
 
 import (
 	"context"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // TestNullPayloadValidation tests that null payloads are properly rejected with 400
 func TestNullPayloadValidation(t *testing.T) {
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	testCases := []struct {
 		name        string
@@ -90,14 +89,11 @@ func TestNullPayloadValidation(t *testing.T) {
 // TestValidPayloadsStillWork ensures our validation doesn't break valid requests
 func TestValidPayloadsStillWork(t *testing.T) {
 	env := h.LoadEnvironment()
-
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
+
+	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	t.Run("ValidReportPayload", func(t *testing.T) {
 		payload := map[string]any{
@@ -106,7 +102,7 @@ func TestValidPayloadsStillWork(t *testing.T) {
 				"midaz_onboarding": map[string]any{
 					"organization": map[string]any{
 						"id": map[string]any{
-							"eq": []string{env.DefaultOrgID},
+							"eq": []string{testOrgID},
 						},
 					},
 				},

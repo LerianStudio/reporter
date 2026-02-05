@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 package integration
 
 import (
@@ -6,19 +10,16 @@ import (
 	"fmt"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/v4/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
 // GET /v1/templates — filters and pagination
 func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
 	t.Parallel()
 	env := h.LoadEnvironment()
-	if env.DefaultOrgID == "" {
-		t.Skip("X-Organization-Id not configured; set ORG_ID or X_ORGANIZATION_ID")
-	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg(env.DefaultOrgID)
+	headers := h.AuthHeaders()
 
 	path1 := "/v1/templates?limit=1&page=1&outputFormat=HTML"
 	code, body, err := cli.Request(ctx, "GET", path1, headers, nil)
@@ -61,7 +62,7 @@ func TestIntegration_Templates_Create_BadRequest(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
-	headers := h.AuthHeadersWithOrg("00000000-0000-0000-0000-000000000000")
+	headers := h.AuthHeaders()
 
 	payload := map[string]any{"description": "x", "outputFormat": "HTML", "templateFile": fmt.Sprintf("%s", "not-binary")}
 	code, body, err := cli.Request(ctx, "POST", "/v1/templates", headers, payload)
