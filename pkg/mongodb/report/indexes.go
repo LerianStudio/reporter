@@ -23,7 +23,7 @@ import (
 func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.ensure_report_indexes")
+	ctx, span := tracer.Start(ctx, "repository.report.ensure_indexes")
 	defer span.End()
 
 	span.SetAttributes(
@@ -134,7 +134,7 @@ func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 func (rm *ReportMongoDBRepository) DropIndexes(ctx context.Context) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.drop_report_indexes")
+	ctx, span := tracer.Start(ctx, "repository.report.drop_indexes")
 	defer span.End()
 
 	span.SetAttributes(

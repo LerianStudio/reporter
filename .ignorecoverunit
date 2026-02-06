@@ -9,7 +9,7 @@
 *.redis.go
 
 # Auto-generated mocks
-*_mock.go
+*.mock.go
 
 # Bootstrap/initialization code (minimal logic)
 /bootstrap/

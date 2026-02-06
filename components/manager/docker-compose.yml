@@ -5,6 +5,11 @@ services:
     build:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     env_file:
       - .env
     ports:

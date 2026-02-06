@@ -108,3 +108,10 @@ test:
 		exit 1; \
 	fi
 	go test -v ./...
+
+.PHONY: build
+build:
+	@echo "Building $(service_name)..."
+	@mkdir -p $(bin_dir)
+	@go build -o $(bin_dir)/$(service_name) ./cmd/app/main.go
+	@echo "[ok] $(service_name) built successfully at $(bin_dir)/$(service_name)"

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Add a specific emoji to the end of the first line in every commit message
-# based on the conventional commits keyword.
+# Validate commit message format (conventional commits) and add a specific
+# emoji to the end of the first line based on the keyword.
 
 if [ ! -f "$1" ] || grep -q "fixup!" "$1"; then
     # Exit if we didn't get a target file for some reason
@@ -9,7 +9,35 @@ if [ ! -f "$1" ] || grep -q "fixup!" "$1"; then
     exit 0
 fi
 
-KEYWORD=$(head -n 1 "$1" | awk '{print $1}' | sed -e 's/://')
+# Read the first line of the commit message
+FIRST_LINE=$(head -n 1 "$1")
+
+# Allow merge commits without further validation
+if echo "$FIRST_LINE" | grep -qE "^Merge "; then
+    exit 0
+fi
+
+# Validate conventional commit format
+# Format: type(optional-scope): description
+commit_msg_regex="^(feat|fix|refactor|style|test|docs|build|chore|ci|perf|revert)(\(.{1,20}\))?: (.{1,100})$"
+
+if ! echo "$FIRST_LINE" | grep -qE "$commit_msg_regex"; then
+    echo "ERROR: Invalid commit message format." >&2
+    echo "" >&2
+    echo "  Got: $FIRST_LINE" >&2
+    echo "" >&2
+    echo "  Expected format: type(scope): description" >&2
+    echo "  Valid types: feat, fix, refactor, style, test, docs, build, chore, ci, perf, revert" >&2
+    echo "  Scope is optional, max 20 chars. Description max 100 chars." >&2
+    echo "" >&2
+    echo "  Examples:" >&2
+    echo "    feat: add report generation endpoint" >&2
+    echo "    fix(worker): handle nil template gracefully" >&2
+    echo "    chore: update dependencies" >&2
+    exit 1
+fi
+
+KEYWORD=$(echo "$FIRST_LINE" | awk '{print $1}' | sed -e 's/://')
 
 case $KEYWORD in
     "feat"|"feat("*)

@@ -5,8 +5,9 @@
 package main
 
 import (
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
-	"github.com/LerianStudio/reporter/pkg"
 )
 
 // @title			Reporter
@@ -16,6 +17,6 @@ import (
 // @host			localhost:4005
 // @BasePath		/
 func main() {
-	pkg.InitLocalEnvConfig()
+	libCommons.InitLocalEnvConfig()
 	bootstrap.InitServers().Run()
 }

@@ -14,6 +14,18 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+//go:generate mockgen --destination=circuit_breaker.mock.go --package=pkg . CircuitBreakerExecutor
+
+// CircuitBreakerExecutor defines the interface for executing operations through a circuit breaker.
+type CircuitBreakerExecutor interface {
+	// Execute runs a function through the circuit breaker for the given datasource.
+	Execute(datasourceName string, fn func() (any, error)) (any, error)
+	// IsHealthy returns true if the circuit breaker for the datasource is in a healthy state.
+	IsHealthy(datasourceName string) bool
+	// GetState returns the current state of a circuit breaker as a string.
+	GetState(datasourceName string) string
+}
+
 // CircuitBreakerManager manages circuit breakers for datasources
 type CircuitBreakerManager struct {
 	breakers map[string]*gobreaker.CircuitBreaker

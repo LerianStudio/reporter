@@ -15,6 +15,18 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
+//go:generate mockgen --destination=health_checker.mock.go --package=pkg . HealthCheckRunner
+
+// HealthCheckRunner defines the interface for managing datasource health checks.
+type HealthCheckRunner interface {
+	// Start begins the health check loop in a background goroutine.
+	Start()
+	// Stop gracefully stops the health checker.
+	Stop()
+	// GetHealthStatus returns the current health status of all datasources.
+	GetHealthStatus() map[string]string
+}
+
 // HealthChecker performs periodic health checks on datasources and attempts reconnection
 type HealthChecker struct {
 	dataSources           *map[string]DataSource

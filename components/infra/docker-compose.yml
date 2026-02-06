@@ -26,6 +26,11 @@ services:
     image: rabbitmq:4.0-management-alpine
     container_name: reporter-rabbitmq
     restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -78,8 +83,13 @@ services:
 
   reporter-valkey:
     container_name: reporter-valkey
-    image: valkey/valkey:latest
+    image: valkey/valkey:8.0-alpine
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     env_file:
       - .env
     environment:

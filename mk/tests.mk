@@ -204,6 +204,24 @@ test-chaos:
 	  go test -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
 	fi
 
+# E2E tests (CI-only: requires deployed backend with Apidog)
+.PHONY: test-e2e
+test-e2e:
+	@echo "=========================================="
+	@echo "E2E tests run via CI/CD pipeline (Apidog)"
+	@echo "=========================================="
+	@echo ""
+	@echo "E2E tests require a deployed backend and are executed automatically"
+	@echo "in the CI/CD pipeline using Apidog after deployment."
+	@echo ""
+	@echo "See .github/workflows/build.yml for details."
+	@echo ""
+	@echo "To test locally, use:"
+	@echo "  make test-integration    - Integration tests with testcontainers"
+	@echo "  make test-fuzzy          - Fuzz/robustness tests"
+	@echo "  make test-chaos          - Chaos/resilience tests"
+	@echo ""
+
 # Run all test suites
 .PHONY: test-all
 test-all:

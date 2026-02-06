@@ -19,6 +19,14 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
+//go:generate mockgen --destination=pool.mock.go --package=pdf . PDFGenerator
+
+// PDFGenerator defines the interface for submitting PDF generation tasks.
+type PDFGenerator interface {
+	// Submit sends an HTML string to the pool for PDF generation and blocks until completion.
+	Submit(html, filename string) error
+}
+
 // Task represents a task to generate a PDF.
 type Task struct {
 	HTML     string

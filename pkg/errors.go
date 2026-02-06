@@ -49,8 +49,8 @@ func (e EntityNotFoundError) Unwrap() error {
 type ValidationError struct {
 	EntityType string `json:"entityType,omitempty"`
 	Title      string `json:"title,omitempty"`
-	Message    string `json:"code,omitempty"`
-	Code       string `json:"message,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
 	Err        error  `json:"err,omitempty"`
 }
 

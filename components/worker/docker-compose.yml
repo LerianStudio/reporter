@@ -5,6 +5,11 @@ services:
     build:
       context: ../../
       dockerfile: ./components/worker/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f worker || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     env_file:
       - .env
     volumes:

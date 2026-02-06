@@ -118,7 +118,6 @@ help:
 	@echo "Test Suite Aliases:"
 	@echo "  make test-unit                   - Run Go unit tests (exclude ./tests/**)"
 	@echo "  make test-integration            - Run Go integration tests (brings up backend)"
-	@echo "  make test-e2e                    - Run Apidog E2E tests (brings up backend)"
 	@echo "  make test-fuzzy                  - Run fuzz/robustness tests (brings up backend)"
 	@echo "  make test-chaos                  - Run chaos/resilience tests (brings up backend)"
 	@echo "  make test-property               - Run property-based tests"
@@ -517,7 +516,7 @@ dev-setup:
 	fi
 	@if ! command -v mockgen >/dev/null 2>&1; then \
 		echo "Installing mockgen..."; \
-		go install github.com/golang/mock/mockgen@latest; \
+		go install go.uber.org/mock/mockgen@v0.6.0; \
 	fi
 	@if ! command -v gosec >/dev/null 2>&1; then \
 		echo "Installing gosec..."; \

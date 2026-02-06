@@ -43,3 +43,13 @@ func (tm *TemplateMongoDBModel) ToEntity() *Template {
 		UpdatedAt:    tm.UpdatedAt,
 	}
 }
+
+// FromEntity converts Template to TemplateMongoDBModel
+func (tm *TemplateMongoDBModel) FromEntity(t *Template) {
+	tm.ID = t.ID
+	tm.OutputFormat = t.OutputFormat
+	tm.Description = t.Description
+	tm.FileName = t.FileName
+	tm.CreatedAt = t.CreatedAt
+	tm.UpdatedAt = t.UpdatedAt
+}
