@@ -61,7 +61,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 ) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongo.update_report_status")
+	ctx, span := tracer.Start(ctx, "repository.report.update_status")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -84,7 +84,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	// Create a filter using the UUID directly for matching the _id field stored as BinData
 	filter := bson.M{"_id": id}
 
-	ctx, spanUpdate := tracer.Start(ctx, "mongo.update_report_status.update")
+	ctx, spanUpdate := tracer.Start(ctx, "repository.report.update_status.update")
 	defer spanUpdate.End()
 
 	spanUpdate.SetAttributes(attributes...)
@@ -133,7 +133,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongo.create_report")
+	ctx, span := tracer.Start(ctx, "repository.report.create")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -163,7 +163,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 		return nil, err
 	}
 
-	ctx, spanInsert := tracer.Start(ctx, "mongo.create_report.insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.report.create.insert")
 
 	spanInsert.SetAttributes(attributes...)
 
@@ -188,7 +188,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
+	ctx, span := tracer.Start(ctx, "repository.report.find_by_id")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -209,7 +209,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 
 	var record *ReportMongoDBModel
 
-	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+	ctx, spanFindOne := tracer.Start(ctx, "repository.report.find_by_id.find_one")
 
 	spanFindOne.SetAttributes(attributes...)
 
@@ -236,7 +236,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
+	ctx, span := tracer.Start(ctx, "repository.report.find_list")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -291,7 +291,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 		Sort:  bson.D{{Key: "created_at", Value: -1}}, // Sort by created_at desc
 	}
 
-	ctx, spanFind := tracer.Start(ctx, "mongodb.find_reports.find")
+	ctx, spanFind := tracer.Start(ctx, "repository.report.find_list.find")
 
 	spanFind.SetAttributes(attributes...)
 

@@ -12,6 +12,13 @@ import (
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 )
 
+// Compile-time interface satisfaction checks.
+var (
+	_ pkg.CircuitBreakerExecutor = (*pkg.CircuitBreakerManager)(nil)
+	_ pkg.HealthCheckRunner      = (*pkg.HealthChecker)(nil)
+	_ pdf.PDFGenerator           = (*pdf.WorkerPool)(nil)
+)
+
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.
 type UseCase struct {
 	// TemplateSeaweedFS is a repository used to retrieve template files from SeaweedFS storage.
@@ -27,14 +34,14 @@ type UseCase struct {
 	ReportDataRepo reportData.Repository
 
 	// CircuitBreakerManager manages circuit breakers for external datasources
-	CircuitBreakerManager *pkg.CircuitBreakerManager
+	CircuitBreakerManager pkg.CircuitBreakerExecutor
 
 	// HealthChecker performs periodic health checks and reconnection attempts
-	HealthChecker *pkg.HealthChecker
+	HealthChecker pkg.HealthCheckRunner
 
 	// ReportTTL defines the Time To Live for reports (e.g., "1m", "1h", "7d", "30d"). Empty means no TTL.
 	ReportTTL string
 
 	// PdfPool provides PDF generation capabilities using Chrome headless
-	PdfPool *pdf.WorkerPool
+	PdfPool pdf.PDFGenerator
 }

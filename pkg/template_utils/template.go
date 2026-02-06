@@ -962,10 +962,24 @@ func isQuotedString(s string) bool {
 	return (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'')
 }
 
+// eventHandlerPattern matches inline event handler attributes (onerror=, onload=, onclick=, etc.)
+// The \b word boundary prevents false positives like "organization" containing "on"
+var eventHandlerPattern = regexp.MustCompile(`(?i)\bon\w+\s*=`)
+
 // ValidateNoScriptTag checks if the template contains <script> tags (case-insensitive) and returns an error if found.
+// It also detects common XSS vectors like inline event handlers (onerror=, onload=, etc.)
 func ValidateNoScriptTag(templateFile string) error {
 	lower := strings.ToLower(templateFile)
-	if strings.Contains(lower, "<script>") || strings.Contains(lower, "</script>") {
+
+	// Check for script tags (with or without attributes)
+	// This catches: <script>, <script src="evil.js">, <script type="text/javascript">, etc.
+	if strings.Contains(lower, "<script") || strings.Contains(lower, "</script") {
+		return constant.ErrScriptTagDetected
+	}
+
+	// Check for inline event handler attributes (onerror=, onload=, onclick=, etc.)
+	// This catches: <img onerror="alert(1)">, <svg onload="alert(1)">, etc.
+	if eventHandlerPattern.MatchString(templateFile) {
 		return constant.ErrScriptTagDetected
 	}
 

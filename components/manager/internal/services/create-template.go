@@ -7,12 +7,14 @@ package services
 import (
 	"context"
 	"fmt"
+	"mime/multipart"
 	"strings"
 	"time"
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/net/http"
 	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -20,8 +22,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// CreateTemplate creates a new template with specified parameters and stores it in the repository.
-func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string) (*template.Template, error) {
+// CreateTemplate creates a new template with specified parameters, stores it in the repository,
+// uploads the file to object storage, and performs a compensating transaction on storage failure.
+func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, fileHeader *multipart.FileHeader) (*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.create_template")
@@ -38,15 +41,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	// Block <script> tags
 	if err := templateUtils.ValidateNoScriptTag(templateFile); err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Script tag detected in template", err)
-
 		return nil, pkg.ValidateBusinessError(constant.ErrScriptTagDetected, "")
 	}
 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
-	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, "", logger, mappedFields); errValidateFields != nil {
+	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, mappedFields); errValidateFields != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
 
 		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
@@ -88,6 +89,30 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 		logger.Errorf("Error into creating a template, Error: %v", err)
 
 		return nil, err
+	}
+
+	// Read file bytes and upload to object storage
+	fileBytes, err := http.ReadMultipartFile(fileHeader)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
+
+		logger.Errorf("Error to get the file content: %v", err)
+
+		return nil, err
+	}
+
+	errPutStorage := uc.TemplateSeaweedFS.Put(ctx, resultTemplateModel.FileName, outFormat, fileBytes)
+	if errPutStorage != nil {
+		libOpentelemetry.HandleSpanError(&span, "Error putting template file on storage", errPutStorage)
+
+		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
+		if errDelete := uc.DeleteTemplateByID(ctx, resultTemplateModel.ID, true); errDelete != nil {
+			logger.Errorf("Failed to roll back template creation for ID %s after storage failure. Error: %s", resultTemplateModel.ID.String(), errDelete.Error())
+		}
+
+		logger.Errorf("Error putting template file on storage: %s", errPutStorage.Error())
+
+		return nil, errPutStorage
 	}
 
 	return resultTemplateModel, nil

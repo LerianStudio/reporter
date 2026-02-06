@@ -45,7 +45,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.create_template")
+	ctx, span := tracer.Start(ctx, "handler.template.create")
 	defer span.End()
 
 	c.SetUserContext(ctx)
@@ -98,38 +98,14 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, errValidateFile)
 	}
 
-	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description)
+	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description, fileHeader)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
 
 		return http.WithError(c, err)
 	}
 
-	// Get a file in bytes
-	fileBytes, err := http.ReadMultipartFile(fileHeader)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
-
-		logger.Errorf("Error to get the file content: %v", err)
-
-		return http.WithError(c, err)
-	}
-
-	errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
-	if errPutSeaweedFS != nil {
-		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
-
-		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
-		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, true); errDelete != nil {
-			logger.Errorf("Failed to roll back template creation for ID %s after SeaweedFS failure. Error: %s", templateOut.ID.String(), errDelete.Error())
-		}
-
-		logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
-
-		return http.WithError(c, errPutSeaweedFS)
-	}
-
-	logger.Infof("Successfully created create template %v", templateOut)
+	logger.Infof("Successfully created template %v", templateOut)
 
 	return http.Created(c, templateOut)
 }
@@ -156,7 +132,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.update_template")
+	ctx, span := tracer.Start(ctx, "handler.template.update")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -184,42 +160,13 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
 
-	if errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader); errUpdate != nil {
+	templateUpdated, errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader)
+	if errUpdate != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
 
 		logger.Errorf("Failed to update Template with ID: %s, Error: %s", id, errUpdate.Error())
 
 		return http.WithError(c, errUpdate)
-	}
-
-	templateUpdated, err := th.Service.GetTemplateByID(ctx, id)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
-
-		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
-
-		return http.WithError(c, err)
-	}
-
-	if fileHeader != nil {
-		// Get a file in bytes
-		fileBytes, err := http.ReadMultipartFile(fileHeader)
-		if err != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
-
-			logger.Errorf("Error to get file content: %v", err)
-
-			return http.WithError(c, err)
-		}
-
-		errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
-		if errPutSeaweedFS != nil {
-			libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
-
-			logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
-
-			return http.WithError(c, errPutSeaweedFS)
-		}
 	}
 
 	logger.Infof("Successfully updated Template with ID: %s", id)
@@ -246,7 +193,7 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.template.get")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -291,7 +238,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_all_template")
+	ctx, span := tracer.Start(ctx, "handler.template.get_all")
 	defer span.End()
 
 	headerParams, err := http.ValidateParameters(c.Queries())
@@ -354,7 +301,7 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.delete_template_by_id")
+	ctx, span := tracer.Start(ctx, "handler.template.delete")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)

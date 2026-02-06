@@ -507,7 +507,7 @@ func (uc *UseCase) queryMongoDatabase(
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "service.generate_report.query_mongo_database")
+	ctx, span := tracer.Start(ctx, "service.generate_report.query_mongo_database")
 	defer span.End()
 
 	span.SetAttributes(
@@ -519,6 +519,7 @@ func (uc *UseCase) queryMongoDatabase(
 		collectionFilters := getTableFilters(databaseFilters, collection)
 
 		if err := uc.processMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, result, logger); err != nil {
+			libOtel.HandleSpanError(&span, "Error processing MongoDB collection", err)
 			return err
 		}
 	}
@@ -536,6 +537,17 @@ func (uc *UseCase) processMongoCollection(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	_ = reqId // reqId available for future trace correlation if needed
+
+	ctx, span := tracer.Start(ctx, "service.generate_report.process_mongo_collection")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.database_name", databaseName),
+		attribute.String("app.request.collection", collection),
+	)
+
 	// Handle plugin_crm special cases
 	if databaseName == "plugin_crm" {
 		// Skip "organization" collection - it's not a real collection, just stores the organizationID for template context
@@ -544,11 +556,21 @@ func (uc *UseCase) processMongoCollection(
 			return nil
 		}
 
-		return uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
+		if err := uc.processPluginCRMCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger); err != nil {
+			libOtel.HandleSpanError(&span, "Error processing plugin_crm collection", err)
+			return err
+		}
+
+		return nil
 	}
 
 	// Handle regular collections
-	return uc.processRegularMongoCollection(ctx, dataSource, collection, fields, collectionFilters, result, logger)
+	if err := uc.processRegularMongoCollection(ctx, dataSource, databaseName, collection, fields, collectionFilters, result, logger); err != nil {
+		libOtel.HandleSpanError(&span, "Error processing regular MongoDB collection", err)
+		return err
+	}
+
+	return nil
 }
 
 // processPluginCRMCollection handles plugin_crm specific collection processing
@@ -593,19 +615,13 @@ func (uc *UseCase) processPluginCRMCollection(
 func (uc *UseCase) processRegularMongoCollection(
 	ctx context.Context,
 	dataSource *pkg.DataSource,
+	databaseName string,
 	collection string,
 	fields []string,
 	collectionFilters map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
-	// Determine database name from context (assuming it's available in the result map)
-	var databaseName string
-	for dbName := range result {
-		databaseName = dbName
-		break
-	}
-
 	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, collection, fields, collectionFilters, logger, databaseName)
 	if err != nil {
 		return err
@@ -626,6 +642,17 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 	logger log.Logger,
 	databaseName string,
 ) ([]map[string]any, error) {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	_ = reqId // reqId available for future trace correlation if needed
+
+	ctx, span := tracer.Start(ctx, "service.generate_report.query_mongo_collection_with_filters")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.database_name", databaseName),
+		attribute.String("app.request.collection", collection),
+	)
+
 	// Execute query with circuit breaker protection
 	queryResult, err := uc.CircuitBreakerManager.Execute(databaseName, func() (any, error) {
 		if len(collectionFilters) > 0 {
@@ -646,7 +673,9 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 		return dataSource.MongoDBRepository.Query(ctx, collection, fields, nil)
 	})
 	if err != nil {
+		libOtel.HandleSpanError(&span, "Error querying MongoDB collection", err)
 		logger.Errorf("Error querying collection %s in %s (circuit breaker): %s", collection, databaseName, err.Error())
+
 		return nil, err
 	}
 

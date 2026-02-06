@@ -89,7 +89,7 @@ func InitWorker() *Service {
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
-	logger.Infof(rabbitSource)
+	logger.Infof("RabbitMQ connecting to %s:%s", cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
 	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,

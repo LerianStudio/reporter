@@ -63,7 +63,7 @@ var (
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
+	ctx, span := tracer.Start(ctx, "service.get_data_source_details_by_id")
 	defer span.End()
 
 	span.SetAttributes(

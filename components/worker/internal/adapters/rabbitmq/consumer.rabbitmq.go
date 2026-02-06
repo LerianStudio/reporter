@@ -135,7 +135,9 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
 
 	tracer := pkg.NewTracerFromContext(ctx)
-	ctx, spanConsumer := tracer.Start(ctx, "rabbitmq.consumer.process_message")
+
+	ctx, spanConsumer := tracer.Start(ctx, "repository.rabbitmq.process_message")
+	defer spanConsumer.End()
 
 	spanConsumer.SetAttributes(
 		attribute.String("app.request.rabbitmq.consumer.request_id", requestIDStr),

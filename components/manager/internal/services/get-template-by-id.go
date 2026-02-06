@@ -35,13 +35,13 @@ func (uc *UseCase) GetTemplateByID(ctx context.Context, id uuid.UUID) (*template
 
 	templateModel, err := uc.TemplateRepo.FindByID(ctx, id)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
-
 		logger.Errorf("Error getting template on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 		}
+
+		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
 
 		return nil, err
 	}

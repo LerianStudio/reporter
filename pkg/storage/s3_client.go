@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 // Package storage provides object storage adapters for templates and reports.
 package storage
 
@@ -114,7 +118,7 @@ func (client *S3Client) Upload(ctx context.Context, key string, reader io.Reader
 // This method exists for interface compatibility with SeaweedFS.
 func (client *S3Client) UploadWithTTL(ctx context.Context, key string, reader io.Reader, contentType string, ttl string) (string, error) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-	ctx, span := tracer.Start(ctx, "s3.upload")
+	ctx, span := tracer.Start(ctx, "repository.storage.upload")
 
 	defer span.End()
 
@@ -160,7 +164,7 @@ func (client *S3Client) UploadWithTTL(ctx context.Context, key string, reader io
 // Download retrieves content from the given key.
 func (client *S3Client) Download(ctx context.Context, key string) (io.ReadCloser, error) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-	ctx, span := tracer.Start(ctx, "s3.download")
+	ctx, span := tracer.Start(ctx, "repository.storage.download")
 
 	defer span.End()
 
@@ -195,7 +199,7 @@ func (client *S3Client) Download(ctx context.Context, key string) (io.ReadCloser
 // Delete removes an object by key.
 func (client *S3Client) Delete(ctx context.Context, key string) error {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-	ctx, span := tracer.Start(ctx, "s3.delete")
+	ctx, span := tracer.Start(ctx, "repository.storage.delete")
 
 	defer span.End()
 
@@ -228,7 +232,7 @@ func (client *S3Client) Delete(ctx context.Context, key string) error {
 // GeneratePresignedURL creates a time-limited download URL.
 func (client *S3Client) GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-	ctx, span := tracer.Start(ctx, "s3.generate_presigned_url")
+	ctx, span := tracer.Start(ctx, "repository.storage.generate_presigned_url")
 
 	defer span.End()
 
@@ -260,7 +264,7 @@ func (client *S3Client) GeneratePresignedURL(ctx context.Context, key string, ex
 // Exists checks if an object exists at the given key.
 func (client *S3Client) Exists(ctx context.Context, key string) (bool, error) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-	ctx, span := tracer.Start(ctx, "s3.exists")
+	ctx, span := tracer.Start(ctx, "repository.storage.exists")
 
 	defer span.End()
 

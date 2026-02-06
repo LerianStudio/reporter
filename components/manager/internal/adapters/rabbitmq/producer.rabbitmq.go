@@ -55,7 +55,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 
 	logger.Infof("Init sent message")
 
-	_, spanProducer := tracer.Start(ctx, "rabbitmq.producer.publish_message")
+	ctx, spanProducer := tracer.Start(ctx, "repository.rabbitmq.publish_message")
 	defer spanProducer.End()
 
 	spanProducer.SetAttributes(

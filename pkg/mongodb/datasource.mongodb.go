@@ -101,7 +101,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 
 	logger.Infof("Querying %s collection with fields %v", collection, fields)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.query")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query")
 	defer span.End()
 
 	span.SetAttributes(
@@ -260,7 +260,7 @@ func convertBsonValue(value any) any {
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema")
+	ctx, span := tracer.Start(ctx, "repository.datasource.get_database_schema")
 	defer span.End()
 
 	span.SetAttributes(
@@ -346,7 +346,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Context, organizationID string) ([]CollectionSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema_for_organization")
+	ctx, span := tracer.Start(ctx, "repository.datasource.get_database_schema_for_organization")
 	defer span.End()
 
 	span.SetAttributes(
@@ -677,7 +677,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 
 	logger.Infof("Querying %s collection with advanced filters on fields %v", collection, fields)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.query_with_advanced_filters")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query_with_advanced_filters")
 	defer span.End()
 
 	span.SetAttributes(

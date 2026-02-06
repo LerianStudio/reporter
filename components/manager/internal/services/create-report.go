@@ -7,6 +7,7 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
@@ -44,28 +45,26 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	if errParseUUID != nil {
 		errInvalidID := pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
 
-		libOpentelemetry.HandleSpanError(&span, "Invalid template ID format", errParseUUID)
-
 		return nil, errInvalidID
 	}
 
 	// Find a template to generate a report
 	tOutputFormat, tMappedFields, err := uc.TemplateRepo.FindMappedFieldsAndOutputFormatByID(ctx, templateId)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to find template by ID", err)
-
 		logger.Errorf("Error to find template by id, Error: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
 		}
 
+		libOpentelemetry.HandleSpanError(&span, "Failed to find template by ID", err)
+
 		return nil, err
 	}
 
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, "", logger, filtersMapped); errValidateFields != nil {
+		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, filtersMapped); errValidateFields != nil {
 			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
 
 			return nil, errValidateFields
@@ -99,7 +98,23 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	}
 
 	logger.Infof("Sending report to reports queue...")
-	uc.SendReportQueueReports(ctx, reportMessage)
+
+	if err := uc.SendReportQueueReports(ctx, reportMessage); err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to send report to queue", err)
+
+		logger.Errorf("Error sending report to queue: %v", err)
+
+		// Update report status to error since queue send failed
+		metadata := map[string]any{
+			"error": "Failed to send report to queue",
+		}
+		if updateErr := uc.ReportRepo.UpdateReportStatusById(ctx, constant.ErrorStatus, result.ID, time.Now(), metadata); updateErr != nil {
+			libOpentelemetry.HandleSpanError(&span, "Failed to update report status to error", updateErr)
+			logger.Errorf("Error updating report status to error: %v", updateErr)
+		}
+
+		return nil, err
+	}
 
 	return result, nil
 }

@@ -35,13 +35,13 @@ func (uc *UseCase) GetReportByID(ctx context.Context, id uuid.UUID) (*report.Rep
 
 	reportModel, err := uc.ReportRepo.FindByID(ctx, id)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
-
 		logger.Errorf("Error getting report on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionReport)
 		}
+
+		opentelemetry.HandleSpanError(&span, "Failed to get report on repo by id", err)
 
 		return nil, err
 	}

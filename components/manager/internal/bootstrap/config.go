@@ -23,6 +23,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/storage"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
@@ -89,7 +90,7 @@ type Config struct {
 // InitServers initiate http and grpc servers.
 func InitServers() *Service {
 	cfg := &Config{}
-	if err := pkg.SetConfigFromEnvVars(cfg); err != nil {
+	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
 		panic(err)
 	}
 
@@ -194,7 +195,10 @@ func InitServers() *Service {
 		Logger:                       logger,
 	}
 
-	redisConsumerRepository := redis.NewConsumerRedis(redisConnection)
+	redisConsumerRepository, err := redis.NewConsumerRedis(redisConnection)
+	if err != nil {
+		logger.Fatalf("Failed to initialize Redis connection: %v", err)
+	}
 
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,

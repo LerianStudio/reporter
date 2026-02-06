@@ -59,7 +59,7 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDB
 func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (*Template, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
+	ctx, span := tracer.Start(ctx, "repository.template.find_by_id")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -80,7 +80,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID)
 
 	var record *TemplateMongoDBModel
 
-	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+	ctx, spanFindOne := tracer.Start(ctx, "repository.template.find_by_id.find_one")
 
 	spanFindOne.SetAttributes(attributes...)
 
@@ -107,7 +107,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID)
 func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Template, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_all_templates")
+	ctx, span := tracer.Start(ctx, "repository.template.find_list")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -156,7 +156,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 	skip := int64(filters.Page*filters.Limit - filters.Limit)
 	opts := options.FindOptions{Limit: &limit, Skip: &skip}
 
-	ctx, spanFind := tracer.Start(ctx, "mongodb.find_templates.find")
+	ctx, spanFind := tracer.Start(ctx, "repository.template.find_list.find")
 
 	spanFind.SetAttributes(attributes...)
 
@@ -207,7 +207,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, id uuid.UUID) (*string, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
+	ctx, span := tracer.Start(ctx, "repository.template.find_output_format_by_id")
 	defer span.End()
 
 	span.SetAttributes(
@@ -249,7 +249,7 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, i
 func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *TemplateMongoDBModel) (*Template, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongo.create_template")
+	ctx, span := tracer.Start(ctx, "repository.template.create")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -272,7 +272,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, spanInsert := tracer.Start(ctx, "mongo.create_template.insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.template.create.insert")
 
 	spanInsert.SetAttributes(attributes...)
 
@@ -297,7 +297,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id uuid.UUID, updateFields *bson.M) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.update_template")
+	ctx, span := tracer.Start(ctx, "repository.template.update")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -320,7 +320,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id uuid.UUID, u
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 	opts := options.Update().SetUpsert(false)
 
-	ctx, spanUpdate := tracer.Start(ctx, "mongodb.update_template.update_one")
+	ctx, spanUpdate := tracer.Start(ctx, "repository.template.update.update_one")
 
 	spanUpdate.SetAttributes(attributes...)
 
@@ -346,7 +346,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id uuid.UUID, u
 func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, hardDelete bool) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.delete_template")
+	ctx, span := tracer.Start(ctx, "repository.template.delete")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -367,7 +367,7 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, h
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, spanDelete := tracer.Start(ctx, "mongodb.delete_template.delete_one")
+	ctx, spanDelete := tracer.Start(ctx, "repository.template.delete.delete_one")
 
 	spanDelete.SetAttributes(attributes...)
 
@@ -419,7 +419,7 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, h
 func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx context.Context, id uuid.UUID) (*string, map[string]map[string][]string, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_mapped_fields_and_output_format_by_id")
+	ctx, span := tracer.Start(ctx, "repository.template.find_mapped_fields_and_output_format_by_id")
 	defer span.End()
 
 	span.SetAttributes(

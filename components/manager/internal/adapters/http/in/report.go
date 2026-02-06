@@ -8,12 +8,9 @@ import (
 	"bytes"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/pkg"
-	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	_ "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/net/http"
-	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -44,7 +41,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.create_report")
+	ctx, span := tracer.Start(ctx, "handler.report.create")
 	defer span.End()
 
 	c.SetUserContext(ctx)
@@ -70,7 +67,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	logger.Infof("Successfully created a report %v", reportOut)
 
-	return http.OK(c, reportOut)
+	return http.Created(c, reportOut)
 }
 
 // GetDownloadReport is a method to make download of a report.
@@ -91,60 +88,30 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_report_download")
+	ctx, span := tracer.Start(ctx, "handler.report.get_download")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Report with ID: %s", id)
+	logger.Infof("Initiating download of Report with ID: %s", id)
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id)
+	fileBytes, fileName, contentType, err := rh.Service.DownloadReport(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to download report", err)
 
-		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
+		logger.Errorf("Failed to download Report with ID: %s, Error: %s", id, err.Error())
 
 		return http.WithError(c, err)
 	}
 
-	if reportModel.Status != constant.FinishedStatus {
-		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
-		libOpentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
-
-		logger.Errorf("Report with ID %s is not Finished", id)
-
-		return http.WithError(c, errStatus)
-	}
-
-	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
-
-		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
-
-		return http.WithError(c, err)
-	}
-
-	objectName := templateModel.ID.String() + "/" + reportModel.ID.String() + "." + templateModel.OutputFormat
-
-	fileBytes, errFile := rh.Service.ReportSeaweedFS.Get(ctx, objectName)
-	if errFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to download file from SeaweedFS", errFile)
-
-		logger.Errorf("Failed to download file from SeaweedFS: %s", errFile.Error())
-
-		return http.WithError(c, errFile)
-	}
-
-	logger.Infof("Downloaded report file from SeaweedFS: %s (size: %d bytes)", objectName, len(fileBytes))
-
-	contentType := templateUtils.GetMimeType(templateModel.OutputFormat)
 	c.Set("Content-Type", contentType)
-	c.Set("Content-Disposition", "attachment; filename=\""+objectName+"\"")
+	c.Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+
+	logger.Infof("Successfully downloaded Report with ID: %s", id)
 
 	return c.SendStream(bytes.NewReader(fileBytes))
 }
@@ -168,7 +135,7 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_report")
+	ctx, span := tracer.Start(ctx, "handler.report.get")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -212,7 +179,7 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_all_reports")
+	ctx, span := tracer.Start(ctx, "handler.report.get_all")
 	defer span.End()
 
 	headerParams, err := http.ValidateParameters(c.Queries())

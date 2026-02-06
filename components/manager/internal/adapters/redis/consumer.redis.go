@@ -6,6 +6,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
@@ -30,22 +31,22 @@ type RedisConsumerRepository struct {
 }
 
 // NewConsumerRedis returns a new instance of RedisRepository using the given Redis connection.
-func NewConsumerRedis(rc *libRedis.RedisConnection) *RedisConsumerRepository {
+func NewConsumerRedis(rc *libRedis.RedisConnection) (*RedisConsumerRepository, error) {
 	r := &RedisConsumerRepository{
 		conn: rc,
 	}
 	if _, err := r.conn.GetClient(context.Background()); err != nil {
-		panic("Failed to connect on redis")
+		return nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}
 
-	return r
+	return r, nil
 }
 
 // Set sets a key in the redis
 func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.set")
+	ctx, span := tracer.Start(ctx, "repository.redis.set")
 	defer span.End()
 
 	span.SetAttributes(
@@ -78,7 +79,7 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.get")
+	ctx, span := tracer.Start(ctx, "repository.redis.get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -113,7 +114,7 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 func (rc *RedisConsumerRepository) Del(ctx context.Context, key string) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.del")
+	ctx, span := tracer.Start(ctx, "repository.redis.del")
 	defer span.End()
 
 	span.SetAttributes(

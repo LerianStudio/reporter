@@ -36,7 +36,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_data_source")
+	ctx, span := tracer.Start(ctx, "handler.data_source.get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -70,7 +70,7 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_data_source_details_by_id")
+	ctx, span := tracer.Start(ctx, "handler.data_source.get_details_by_id")
 	defer span.End()
 
 	dataSourceID := c.Params("dataSourceId")
