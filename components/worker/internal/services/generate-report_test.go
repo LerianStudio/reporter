@@ -33,17 +33,17 @@ func Test_getContentType(t *testing.T) {
 		expectedType string
 	}{
 		{
-			name:         "existing mime type",
+			name:         "Success - existing mime type",
 			extension:    "html",
 			expectedType: "text/html",
 		},
 		{
-			name:         "unknown mime type",
+			name:         "Success - unknown mime type",
 			extension:    "unknown",
 			expectedType: "text/plain",
 		},
 		{
-			name:         "empty extension",
+			name:         "Success - empty extension",
 			extension:    "",
 			expectedType: "text/plain",
 		},
@@ -59,7 +59,7 @@ func Test_getContentType(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_Success(t *testing.T) {
+func Test_GenerateReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -161,7 +161,7 @@ func TestGenerateReport_Success(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_TemplateRepoError(t *testing.T) {
+func Test_GenerateReport_TemplateRepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -208,7 +208,7 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	}
 }
 
-func TestSaveReport_Success(t *testing.T) {
+func Test_saveReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -240,7 +240,7 @@ func TestSaveReport_Success(t *testing.T) {
 	}
 }
 
-func TestSaveReport_ErrorOnPut(t *testing.T) {
+func Test_saveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -274,7 +274,7 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
+func Test_GenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -452,7 +452,7 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	}
 }
 
-func TestDecryptRegulatoryFieldsFields(t *testing.T) {
+func Test_decryptRegulatoryFieldsFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -477,7 +477,7 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 		expectNoChange bool
 	}{
 		{
-			name: "decrypt regulatory_fields.participant_document",
+			name: "Success - decrypt regulatory_fields.participant_document",
 			record: func() map[string]any {
 				doc := "12345678901234"
 				encrypted, _ := crypto.Encrypt(&doc)
@@ -490,14 +490,14 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 			expectedDoc: "12345678901234",
 		},
 		{
-			name: "no regulatory_fields present",
+			name: "Success - no regulatory_fields present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "regulatory_fields without participant_document",
+			name: "Success - regulatory_fields without participant_document",
 			record: map[string]any{
 				"regulatory_fields": map[string]any{
 					"other_field": "value",
@@ -506,7 +506,7 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 			expectNoChange: true,
 		},
 		{
-			name: "regulatory_fields with nil participant_document",
+			name: "Success - regulatory_fields with nil participant_document",
 			record: map[string]any{
 				"regulatory_fields": map[string]any{
 					"participant_document": nil,
@@ -536,7 +536,7 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 	}
 }
 
-func TestDecryptRelatedPartiesFields(t *testing.T) {
+func Test_decryptRelatedPartiesFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -561,7 +561,7 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 		expectNoChange bool
 	}{
 		{
-			name: "decrypt multiple related_parties documents",
+			name: "Success - decrypt multiple related_parties documents",
 			record: func() map[string]any {
 				doc1 := "11111111111"
 				doc2 := "22222222222"
@@ -587,21 +587,21 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 			expectedDocs: []string{"11111111111", "22222222222"},
 		},
 		{
-			name: "no related_parties present",
+			name: "Success - no related_parties present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "empty related_parties array",
+			name: "Success - empty related_parties array",
 			record: map[string]any{
 				"related_parties": []any{},
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "related_parties with nil document",
+			name: "Success - related_parties with nil document",
 			record: map[string]any{
 				"related_parties": []any{
 					map[string]any{
@@ -614,7 +614,7 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 			expectNoChange: true,
 		},
 		{
-			name: "related_parties with mixed valid and nil documents",
+			name: "Success - related_parties with mixed valid and nil documents",
 			record: func() map[string]any {
 				doc1 := "33333333333"
 				encrypted1, _ := crypto.Encrypt(&doc1)
@@ -669,7 +669,7 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
+func Test_transformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
@@ -690,13 +690,13 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 		inputValue    string
 	}{
 		{
-			name:          "transform regulatory_fields.participant_document",
+			name:          "Success - transform regulatory_fields.participant_document",
 			inputField:    "regulatory_fields.participant_document",
 			expectedField: "search.regulatory_fields_participant_document",
 			inputValue:    "12345678901234",
 		},
 		{
-			name:          "transform related_parties.document",
+			name:          "Success - transform related_parties.document",
 			inputField:    "related_parties.document",
 			expectedField: "search.related_party_documents",
 			inputValue:    "11111111111",
@@ -735,7 +735,7 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	}
 }
 
-func TestShouldSkipProcessing(t *testing.T) {
+func Test_shouldSkipProcessing(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -753,7 +753,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 		expectedSkip bool
 	}{
 		{
-			name:     "Skip - Report already finished",
+			name:     "Success - Skip report already finished",
 			reportID: uuid.New(),
 			mockSetup: func(reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
@@ -766,7 +766,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 			expectedSkip: true,
 		},
 		{
-			name:     "Skip - Report in error state",
+			name:     "Success - Skip report in error state",
 			reportID: uuid.New(),
 			mockSetup: func(reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
@@ -779,7 +779,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 			expectedSkip: true,
 		},
 		{
-			name:     "Don't skip - Report still processing",
+			name:     "Success - Don't skip report still processing",
 			reportID: uuid.New(),
 			mockSetup: func(reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
@@ -792,7 +792,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 			expectedSkip: false,
 		},
 		{
-			name:     "Don't skip - Report not found (first attempt)",
+			name:     "Success - Don't skip report not found (first attempt)",
 			reportID: uuid.New(),
 			mockSetup: func(reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
@@ -815,7 +815,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 	}
 }
 
-func TestParseMessage_InvalidJSON(t *testing.T) {
+func Test_parseMessage_InvalidJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -838,7 +838,7 @@ func TestParseMessage_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestParseMessage_ValidJSON(t *testing.T) {
+func Test_parseMessage_ValidJSON(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -867,7 +867,7 @@ func TestParseMessage_ValidJSON(t *testing.T) {
 	}
 }
 
-func TestGetTableFilters(t *testing.T) {
+func Test_getTableFilters(t *testing.T) {
 	baseFilter := map[string]model.FilterCondition{
 		"id": {Equals: []any{1, 2, 3}},
 	}
@@ -879,19 +879,19 @@ func TestGetTableFilters(t *testing.T) {
 		expectNil       bool
 	}{
 		{
-			name:            "Nil database filters",
+			name:            "Success - Nil database filters",
 			databaseFilters: nil,
 			tableName:       "users",
 			expectNil:       true,
 		},
 		{
-			name:            "Table not found in filters",
+			name:            "Success - Table not found in filters",
 			databaseFilters: map[string]map[string]model.FilterCondition{},
 			tableName:       "users",
 			expectNil:       true,
 		},
 		{
-			name: "Table found in filters - exact match",
+			name: "Success - Table found in filters exact match",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"users": baseFilter,
 			},
@@ -899,7 +899,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "Exact match - Pongo2 format",
+			name: "Success - Exact match Pongo2 format",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"analytics__transfers": baseFilter,
 			},
@@ -907,7 +907,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "Exact match - qualified format",
+			name: "Success - Exact match qualified format",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"analytics.transfers": baseFilter,
 			},
@@ -915,7 +915,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "Cross-format match - filter has dot, table has Pongo2",
+			name: "Success - Cross-format match filter has dot table has Pongo2",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"analytics.transfers": baseFilter,
 			},
@@ -923,7 +923,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "Cross-format match - filter has Pongo2, table has dot",
+			name: "Success - Cross-format match filter has Pongo2 table has dot",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"analytics__transfers": baseFilter,
 			},
@@ -931,7 +931,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "No match - different table names",
+			name: "Success - No match different table names",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"other_table": baseFilter,
 			},
@@ -939,7 +939,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: true,
 		},
 		{
-			name: "Cross-format match - filter has public.table, template has just table",
+			name: "Success - Cross-format match filter has public.table template has just table",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"public.organization": baseFilter,
 			},
@@ -947,7 +947,7 @@ func TestGetTableFilters(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name: "Cross-format match - filter has public__table, template has just table",
+			name: "Success - Cross-format match filter has public__table template has just table",
 			databaseFilters: map[string]map[string]model.FilterCondition{
 				"public__account": baseFilter,
 			},
@@ -969,7 +969,7 @@ func TestGetTableFilters(t *testing.T) {
 	}
 }
 
-func TestIsEncryptedField(t *testing.T) {
+func Test_isEncryptedField(t *testing.T) {
 	tests := []struct {
 		field    string
 		expected bool
@@ -992,7 +992,7 @@ func TestIsEncryptedField(t *testing.T) {
 	}
 }
 
-func TestHashFilterValues(t *testing.T) {
+func Test_hashFilterValues(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1008,19 +1008,19 @@ func TestHashFilterValues(t *testing.T) {
 		values []any
 	}{
 		{
-			name:   "Hash string values",
+			name:   "Success - Hash string values",
 			values: []any{"value1", "value2"},
 		},
 		{
-			name:   "Keep non-string values",
+			name:   "Success - Keep non-string values",
 			values: []any{123, 456.78, true},
 		},
 		{
-			name:   "Mixed values",
+			name:   "Success - Mixed values",
 			values: []any{"string", 123, "another", nil},
 		},
 		{
-			name:   "Empty string value",
+			name:   "Success - Empty string value",
 			values: []any{""},
 		},
 	}
@@ -1048,7 +1048,7 @@ func TestHashFilterValues(t *testing.T) {
 	}
 }
 
-func TestDecryptContactFields(t *testing.T) {
+func Test_decryptContactFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1073,7 +1073,7 @@ func TestDecryptContactFields(t *testing.T) {
 		expectNoChange bool
 	}{
 		{
-			name: "Decrypt contact fields",
+			name: "Success - Decrypt contact fields",
 			record: func() map[string]any {
 				email := "test@example.com"
 				phone := "+1234567890"
@@ -1089,14 +1089,14 @@ func TestDecryptContactFields(t *testing.T) {
 			expectedEmails: []string{"test@example.com", "+1234567890"},
 		},
 		{
-			name: "No contact field present",
+			name: "Success - No contact field present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "Contact field is not a map",
+			name: "Success - Contact field is not a map",
 			record: map[string]any{
 				"contact": "not a map",
 			},
@@ -1124,7 +1124,7 @@ func TestDecryptContactFields(t *testing.T) {
 	}
 }
 
-func TestDecryptBankingDetailsFields(t *testing.T) {
+func Test_decryptBankingDetailsFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1149,7 +1149,7 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 		expectNoChange  bool
 	}{
 		{
-			name: "Decrypt banking details fields",
+			name: "Success - Decrypt banking details fields",
 			record: func() map[string]any {
 				account := "12345-6"
 				iban := "BR1234567890"
@@ -1165,14 +1165,14 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 			expectedAccount: "12345-6",
 		},
 		{
-			name: "No banking_details field present",
+			name: "Success - No banking_details field present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "banking_details field is not a map",
+			name: "Success - banking_details field is not a map",
 			record: map[string]any{
 				"banking_details": "not a map",
 			},
@@ -1200,7 +1200,7 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 	}
 }
 
-func TestDecryptLegalPersonFields(t *testing.T) {
+func Test_decryptLegalPersonFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1225,7 +1225,7 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 		expectNoChange bool
 	}{
 		{
-			name: "Decrypt legal person representative fields",
+			name: "Success - Decrypt legal person representative fields",
 			record: func() map[string]any {
 				name := "John Doe"
 				doc := "12345678901"
@@ -1243,14 +1243,14 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 			expectedName: "John Doe",
 		},
 		{
-			name: "No legal_person field present",
+			name: "Success - No legal_person field present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "legal_person without representative",
+			name: "Success - legal_person without representative",
 			record: map[string]any{
 				"legal_person": map[string]any{
 					"company_name": "Test Company",
@@ -1284,7 +1284,7 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 	}
 }
 
-func TestDecryptNaturalPersonFields(t *testing.T) {
+func Test_decryptNaturalPersonFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1309,7 +1309,7 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 		expectNoChange     bool
 	}{
 		{
-			name: "Decrypt natural person fields",
+			name: "Success - Decrypt natural person fields",
 			record: func() map[string]any {
 				motherName := "Maria Silva"
 				fatherName := "Jose Silva"
@@ -1325,14 +1325,14 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 			expectedMotherName: "Maria Silva",
 		},
 		{
-			name: "No natural_person field present",
+			name: "Success - No natural_person field present",
 			record: map[string]any{
 				"id": "test-id",
 			},
 			expectNoChange: true,
 		},
 		{
-			name: "natural_person field is not a map",
+			name: "Success - natural_person field is not a map",
 			record: map[string]any{
 				"natural_person": "not a map",
 			},
@@ -1360,7 +1360,7 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 	}
 }
 
-func TestDecryptFieldValue(t *testing.T) {
+func Test_decryptFieldValue(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1386,25 +1386,25 @@ func TestDecryptFieldValue(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:       "Decrypt valid string",
+			name:       "Success - Decrypt valid string",
 			container:  map[string]any{},
 			fieldName:  "test_field",
 			fieldValue: func() string { v := "test"; e, _ := crypto.Encrypt(&v); return *e }(),
 		},
 		{
-			name:       "Skip non-string value",
+			name:       "Success - Skip non-string value",
 			container:  map[string]any{},
 			fieldName:  "test_field",
 			fieldValue: 123,
 		},
 		{
-			name:       "Skip empty string",
+			name:       "Success - Skip empty string",
 			container:  map[string]any{},
 			fieldName:  "test_field",
 			fieldValue: "",
 		},
 		{
-			name:        "Error on invalid encrypted value",
+			name:        "Error - invalid encrypted value",
 			container:   map[string]any{},
 			fieldName:   "test_field",
 			fieldValue:  "not-encrypted-data",
@@ -1425,7 +1425,7 @@ func TestDecryptFieldValue(t *testing.T) {
 	}
 }
 
-func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
+func Test_convertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -1447,7 +1447,7 @@ func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	}
 }
 
-func TestQueryDatabase_UnknownDataSource(t *testing.T) {
+func Test_queryDatabase_UnknownDataSource(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	useCase := &UseCase{
@@ -1472,7 +1472,7 @@ func TestQueryDatabase_UnknownDataSource(t *testing.T) {
 	}
 }
 
-func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
+func Test_queryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)
@@ -1514,7 +1514,7 @@ func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 	}
 }
 
-func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
+func Test_queryDatabase_UnsupportedDatabaseType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1550,7 +1550,7 @@ func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
+func Test_transformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
@@ -1568,7 +1568,7 @@ func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
+func Test_transformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 	os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1589,7 +1589,7 @@ func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
+func Test_transformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
@@ -1648,7 +1648,7 @@ func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
+func Test_transformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
@@ -1674,7 +1674,7 @@ func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
+func Test_GenerateReport_ReportAlreadyFinished(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1711,7 +1711,7 @@ func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
 	}
 }
 
-func TestUpdateReportWithErrors(t *testing.T) {
+func Test_updateReportWithErrors(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1767,7 +1767,7 @@ func TestUpdateReportWithErrors(t *testing.T) {
 	}
 }
 
-func TestMarkReportAsFinished(t *testing.T) {
+func Test_markReportAsFinished(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1825,7 +1825,7 @@ func TestMarkReportAsFinished(t *testing.T) {
 	}
 }
 
-func TestCheckReportStatus(t *testing.T) {
+func Test_checkReportStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1888,7 +1888,7 @@ func TestCheckReportStatus(t *testing.T) {
 	}
 }
 
-func TestSaveReport_WithTTL(t *testing.T) {
+func Test_saveReport_WithTTL(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1921,7 +1921,7 @@ func TestSaveReport_WithTTL(t *testing.T) {
 	}
 }
 
-func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
+func Test_queryPostgresDatabase_SchemaFormats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1934,7 +1934,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 		mockSetup func()
 	}{
 		{
-			name:     "Pongo2 format - schema__table",
+			name:     "Success - Pongo2 format schema__table",
 			tableKey: "custom_schema__users",
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
@@ -1956,7 +1956,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 			},
 		},
 		{
-			name:     "Qualified format - schema.table",
+			name:     "Success - Qualified format schema.table",
 			tableKey: "other_schema.products",
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
@@ -1978,7 +1978,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 			},
 		},
 		{
-			name:     "Legacy format - table only (autodiscovery)",
+			name:     "Success - Legacy format table only (autodiscovery)",
 			tableKey: "orders",
 			mockSetup: func() {
 				mockPostgresRepo.EXPECT().
@@ -2058,7 +2058,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 	}
 }
 
-func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
+func Test_decryptPluginCRMData_MissingEnvVars(t *testing.T) {
 	os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
 	os.Unsetenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
 
@@ -2075,7 +2075,7 @@ func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
 	}
 }
 
-func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
+func Test_decryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
 
@@ -2093,7 +2093,7 @@ func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 	}
 }
 
-func TestHandleErrorWithUpdate(t *testing.T) {
+func Test_handleErrorWithUpdate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2151,7 +2151,7 @@ func TestHandleErrorWithUpdate(t *testing.T) {
 	}
 }
 
-func TestDecryptNestedFields_AllTypes(t *testing.T) {
+func Test_decryptNestedFields_AllTypes(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2248,7 +2248,7 @@ func TestDecryptNestedFields_AllTypes(t *testing.T) {
 	}
 }
 
-func TestDecryptRecord(t *testing.T) {
+func Test_decryptRecord(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2272,7 +2272,7 @@ func TestDecryptRecord(t *testing.T) {
 		expectedFields map[string]any
 	}{
 		{
-			name: "Decrypt record with top-level encrypted fields",
+			name: "Success - Decrypt record with top-level encrypted fields",
 			record: func() map[string]any {
 				doc := "12345678901"
 				name := "John Doe"
@@ -2291,7 +2291,7 @@ func TestDecryptRecord(t *testing.T) {
 			},
 		},
 		{
-			name: "Decrypt record with no encrypted fields",
+			name: "Success - Decrypt record with no encrypted fields",
 			record: map[string]any{
 				"id":     "123",
 				"status": "active",
@@ -2319,7 +2319,7 @@ func TestDecryptRecord(t *testing.T) {
 	}
 }
 
-func TestDecryptTopLevelFields(t *testing.T) {
+func Test_decryptTopLevelFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2344,7 +2344,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 		expectNoChange bool
 	}{
 		{
-			name: "Decrypt document and name fields",
+			name: "Success - Decrypt document and name fields",
 			record: func() map[string]any {
 				doc := "12345678901"
 				name := "John Doe"
@@ -2358,7 +2358,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 			expectedDoc: "12345678901",
 		},
 		{
-			name: "No encrypted fields present",
+			name: "Success - No encrypted fields present",
 			record: map[string]any{
 				"id":     "123",
 				"status": "active",
@@ -2366,7 +2366,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 			expectNoChange: true,
 		},
 		{
-			name: "Encrypted field with nil value",
+			name: "Success - Encrypted field with nil value",
 			record: map[string]any{
 				"document": nil,
 				"name":     nil,
@@ -2391,7 +2391,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_ReportInErrorState(t *testing.T) {
+func Test_GenerateReport_ReportInErrorState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2428,7 +2428,7 @@ func TestGenerateReport_ReportInErrorState(t *testing.T) {
 	}
 }
 
-func TestQueryMongoDatabase_Success(t *testing.T) {
+func Test_queryMongoDatabase_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2474,7 +2474,7 @@ func TestQueryMongoDatabase_Success(t *testing.T) {
 	}
 }
 
-func TestQueryMongoDatabase_WithFilters(t *testing.T) {
+func Test_queryMongoDatabase_WithFilters(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2524,7 +2524,7 @@ func TestQueryMongoDatabase_WithFilters(t *testing.T) {
 	}
 }
 
-func TestProcessRegularMongoCollection(t *testing.T) {
+func Test_processRegularMongoCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2555,6 +2555,7 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 	err := useCase.processRegularMongoCollection(
 		context.Background(),
 		dataSource,
+		"shop_db",
 		"products",
 		[]string{"name", "price"},
 		nil,
@@ -2570,7 +2571,7 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 	}
 }
 
-func TestLoadTemplate_Success(t *testing.T) {
+func Test_loadTemplate_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2604,7 +2605,7 @@ func TestLoadTemplate_Success(t *testing.T) {
 	}
 }
 
-func TestLoadTemplate_Error(t *testing.T) {
+func Test_loadTemplate_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2640,7 +2641,7 @@ func TestLoadTemplate_Error(t *testing.T) {
 	}
 }
 
-func TestQueryExternalData_NoDataSources(t *testing.T) {
+func Test_queryExternalData_NoDataSources(t *testing.T) {
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)

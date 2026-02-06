@@ -5,6 +5,7 @@
 package pkg
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -99,6 +100,74 @@ func TestValidationError_Unwrap(t *testing.T) {
 	}
 
 	assert.Equal(t, wrappedErr, err.Unwrap())
+}
+
+func Test_validationErrorJSONSerialization(t *testing.T) {
+	tests := []struct {
+		name            string
+		validationError ValidationError
+		expectedJSON    map[string]any
+	}{
+		{
+			name: "Full ValidationError with all fields",
+			validationError: ValidationError{
+				EntityType: "template",
+				Title:      "Validation Failed",
+				Message:    "The template is invalid",
+				Code:       "VAL001",
+			},
+			expectedJSON: map[string]any{
+				"entityType": "template",
+				"title":      "Validation Failed",
+				"message":    "The template is invalid",
+				"code":       "VAL001",
+			},
+		},
+		{
+			name: "ValidationError with only Code and Message",
+			validationError: ValidationError{
+				Code:    "ERR123",
+				Message: "Invalid input",
+			},
+			expectedJSON: map[string]any{
+				"code":    "ERR123",
+				"message": "Invalid input",
+			},
+		},
+		{
+			name: "ValidationError with empty fields (omitempty behavior)",
+			validationError: ValidationError{
+				Code: "CODE001",
+			},
+			expectedJSON: map[string]any{
+				"code": "CODE001",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Marshal to JSON
+			jsonBytes, err := json.Marshal(tt.validationError)
+			assert.NoError(t, err)
+
+			// Unmarshal to map for flexible comparison
+			var result map[string]any
+			err = json.Unmarshal(jsonBytes, &result)
+			assert.NoError(t, err)
+
+			// Verify each expected field
+			for key, expectedValue := range tt.expectedJSON {
+				assert.Equal(t, expectedValue, result[key], "Field %s should match", key)
+			}
+
+			// Verify no unexpected fields beyond what we expect
+			for key := range result {
+				_, exists := tt.expectedJSON[key]
+				assert.True(t, exists, "Unexpected field %s in JSON output", key)
+			}
+		})
+	}
 }
 
 func TestEntityConflictError_Error(t *testing.T) {

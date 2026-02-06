@@ -19,6 +19,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/postgres"
+	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -69,6 +70,7 @@ func Test_updateTemplateById(t *testing.T) {
 	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization", "midaz_onboarding"})
 
 	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
 	htmlType := "html"
@@ -146,6 +148,7 @@ func Test_updateTemplateById(t *testing.T) {
 
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
 		ExternalDataSources: externalDataSources,
 	}
 
@@ -201,9 +204,29 @@ func Test_updateTemplateById(t *testing.T) {
 					CloseConnection().
 					Return(nil)
 
+				// First FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
 				mockTempRepo.EXPECT().
 					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+
+				// Second FindByID to get updated template (after update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
 			},
 			expectErr: false,
 		},
@@ -337,6 +360,18 @@ func Test_updateTemplateById(t *testing.T) {
 					CloseConnection().
 					Return(nil)
 
+				// FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
 				mockTempRepo.EXPECT().
 					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrInternalServer)
@@ -355,6 +390,149 @@ func Test_updateTemplateById(t *testing.T) {
 			mockSetup:   func() {},
 			expectErr:   true,
 		},
+		{
+			name:         "Error - GetTemplateByID after update fails",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// First FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				// Second FindByID (after update) fails
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("template not found after update"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Error - ReadMultipartFile fails",
+			templateFile: &multipart.FileHeader{Filename: "broken.tpl", Size: 1},
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			mockSetup:    func() {},
+			expectErr:    true,
+		},
+		{
+			name:         "Error - Storage Put fails",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// FindByID to get current template (before storage upload)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(errors.New("storage unavailable"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Error - FindByID fails before update",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// FindByID fails before update
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("template not found"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Success - Description only update (no file)",
+			templateFile: nil,
+			description:  "Updated Description Only",
+			tempId:       uuid.New(),
+			mockSetup: func() {
+				// No FindByID before update when no file is provided
+				mockTempRepo.EXPECT().
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+						Description:  "Updated Description Only",
+					}, nil)
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -362,7 +540,7 @@ func Test_updateTemplateById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
+			_, err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
 
 			if tt.expectErr {
 				assert.Error(t, err)

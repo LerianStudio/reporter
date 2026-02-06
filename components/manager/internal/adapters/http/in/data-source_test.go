@@ -30,7 +30,7 @@ func setupTestApp() *fiber.App {
 	})
 }
 
-func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
+func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupService   func() *services.UseCase
@@ -72,7 +72,7 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	}
 }
 
-func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
+func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

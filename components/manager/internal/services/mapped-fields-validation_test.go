@@ -45,12 +45,11 @@ func newMockLogger() *mockLogger {
 	return &mockLogger{}
 }
 
-func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
+func Test_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockPostgresRepo := postgres.NewMockRepository(ctrl)
-	logger := newMockLogger()
 
 	// Register datasource IDs for testing
 	pkg.ResetRegisteredDataSourceIDsForTesting()
@@ -169,7 +168,7 @@ func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+			err := svc.ValidateIfFieldsExistOnTables(ctx, tt.mappedFields)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -183,12 +182,11 @@ func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
+func Test_ValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockMongoRepo := mongodb.NewMockRepository(ctrl)
-	logger := newMockLogger()
 
 	// Register datasource IDs for testing
 	pkg.ResetRegisteredDataSourceIDsForTesting()
@@ -301,7 +299,7 @@ func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+			err := svc.ValidateIfFieldsExistOnTables(ctx, tt.mappedFields)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -315,9 +313,7 @@ func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
-	logger := newMockLogger()
-
+func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	// Register datasource IDs for testing - NOT including "unregistered_db"
 	pkg.ResetRegisteredDataSourceIDsForTesting()
 	pkg.RegisterDataSourceIDsForTesting([]string{"registered_db"})
@@ -362,7 +358,7 @@ func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+			err := svc.ValidateIfFieldsExistOnTables(ctx, tt.mappedFields)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -376,9 +372,7 @@ func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
-	logger := newMockLogger()
-
+func Test_ValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
 	// Register datasource IDs for testing
 	pkg.ResetRegisteredDataSourceIDsForTesting()
 	pkg.RegisterDataSourceIDsForTesting([]string{"unknown_db"})
@@ -399,13 +393,13 @@ func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, mappedFields)
+	err := svc.ValidateIfFieldsExistOnTables(ctx, mappedFields)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported database type")
 }
 
-func TestTransformMappedFieldsForStorage(t *testing.T) {
+func Test_TransformMappedFieldsForStorage(t *testing.T) {
 	tests := []struct {
 		name           string
 		mappedFields   map[string]map[string][]string
@@ -413,7 +407,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 		expected       map[string]map[string][]string
 	}{
 		{
-			name: "Regular database - no transformation",
+			name: "Success - Regular database no transformation",
 			mappedFields: map[string]map[string][]string{
 				"midaz_onboarding": {
 					"users":    {"id", "name"},
@@ -429,7 +423,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Plugin CRM database - adds organization mapping",
+			name: "Success - Plugin CRM database adds organization mapping",
 			mappedFields: map[string]map[string][]string{
 				"plugin_crm": {
 					"contacts": {"id", "name"},
@@ -444,7 +438,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Multiple databases - mixed transformation",
+			name: "Success - Multiple databases mixed transformation",
 			mappedFields: map[string]map[string][]string{
 				"midaz_onboarding": {
 					"users": {"id"},
@@ -465,7 +459,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 			},
 		},
 		{
-			name:           "Empty mapped fields",
+			name:           "Success - Empty mapped fields",
 			mappedFields:   map[string]map[string][]string{},
 			organizationID: "org-123",
 			expected:       map[string]map[string][]string{},
@@ -495,7 +489,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 	}
 }
 
-func TestGenerateCopyOfMappedFields(t *testing.T) {
+func Test_generateCopyOfMappedFields(t *testing.T) {
 	tests := []struct {
 		name          string
 		original      map[string]map[string][]string
@@ -503,7 +497,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 		checkModified func(t *testing.T, original, copy map[string]map[string][]string)
 	}{
 		{
-			name: "Creates deep copy - regular database",
+			name: "Success - Creates deep copy regular database",
 			original: map[string]map[string][]string{
 				"midaz_onboarding": {
 					"users": {"id", "name"},
@@ -524,7 +518,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 			},
 		},
 		{
-			name: "Plugin CRM - appends MidazOrganizationID to table names",
+			name: "Success - Plugin CRM appends MidazOrganizationID to table names",
 			original: map[string]map[string][]string{
 				"plugin_crm": {
 					"contacts": {"id", "name"},
@@ -545,7 +539,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 			},
 		},
 		{
-			name: "Plugin CRM - no MidazOrganizationID keeps original table names",
+			name: "Success - Plugin CRM no MidazOrganizationID keeps original table names",
 			original: map[string]map[string][]string{
 				"plugin_crm": {
 					"contacts": {"id", "name"},
@@ -562,7 +556,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 			},
 		},
 		{
-			name:        "Empty mapped fields",
+			name:        "Success - Empty mapped fields",
 			original:    map[string]map[string][]string{},
 			dataSources: map[string]pkg.DataSource{},
 			checkModified: func(t *testing.T, original, copiedFields map[string]map[string][]string) {
@@ -579,7 +573,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 	}
 }
 
-func TestValidateSchemaAmbiguity(t *testing.T) {
+func Test_validateSchemaAmbiguity(t *testing.T) {
 	tests := []struct {
 		name         string
 		databaseName string
@@ -589,7 +583,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 		errContains  string
 	}{
 		{
-			name:         "No ambiguity - table exists in single schema",
+			name:         "Success - No ambiguity table exists in single schema",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "public", TableName: "users"},
@@ -603,7 +597,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:         "No ambiguity - table in multiple schemas but has public",
+			name:         "Success - No ambiguity table in multiple schemas but has public",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "public", TableName: "users"},
@@ -617,7 +611,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 			expectErr: false, // public exists, so no ambiguity
 		},
 		{
-			name:         "Ambiguity - table in multiple schemas without public",
+			name:         "Error - Ambiguity table in multiple schemas without public",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "billing", TableName: "users"},
@@ -632,7 +626,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 			errContains: "users",
 		},
 		{
-			name:         "No ambiguity - explicit schema with Pongo2 format",
+			name:         "Success - No ambiguity explicit schema with Pongo2 format",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "billing", TableName: "users"},
@@ -646,7 +640,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 			expectErr: false, // explicit schema, no ambiguity check needed
 		},
 		{
-			name:         "No ambiguity - explicit schema with dot format",
+			name:         "Success - No ambiguity explicit schema with dot format",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "billing", TableName: "users"},
@@ -660,7 +654,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 			expectErr: false, // explicit schema, no ambiguity check needed
 		},
 		{
-			name:         "No error - table does not exist (caught by other validation)",
+			name:         "Success - Table does not exist (caught by other validation)",
 			databaseName: "test_db",
 			schema: []postgres.TableSchema{
 				{SchemaName: "public", TableName: "accounts"},
@@ -690,12 +684,11 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
+func Test_ValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockPostgresRepo := postgres.NewMockRepository(ctrl)
-	logger := newMockLogger()
 
 	// Register datasource IDs for testing
 	pkg.ResetRegisteredDataSourceIDsForTesting()
@@ -720,7 +713,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 		expectErr    bool
 	}{
 		{
-			name: "Success - Pongo2 format (schema__table)",
+			name: "Success - Pongo2 format schema__table",
 			mappedFields: map[string]map[string][]string{
 				"test_postgres_db": {
 					"analytics__transfers": {"id", "amount"},
@@ -737,7 +730,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "Success - Qualified format (schema.table)",
+			name: "Success - Qualified format schema.table",
 			mappedFields: map[string]map[string][]string{
 				"test_postgres_db": {
 					"analytics.transfers": {"id", "amount"},
@@ -754,7 +747,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "Success - Legacy format (just table name)",
+			name: "Success - Legacy format just table name",
 			mappedFields: map[string]map[string][]string{
 				"test_postgres_db": {
 					"transfers": {"id", "amount"},
@@ -791,7 +784,7 @@ func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := svc.ValidateIfFieldsExistOnTables(ctx, "", logger, tt.mappedFields)
+			err := svc.ValidateIfFieldsExistOnTables(ctx, tt.mappedFields)
 
 			if tt.expectErr {
 				require.Error(t, err)

@@ -29,7 +29,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestReportHandler_CreateReport(t *testing.T) {
+func Test_ReportHandler_CreateReport(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -77,7 +77,7 @@ func TestReportHandler_CreateReport(t *testing.T) {
 					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, nil)
 			},
-			expectedStatus: fiber.StatusOK,
+			expectedStatus: fiber.StatusCreated,
 			expectError:    false,
 		},
 		{
@@ -157,7 +157,7 @@ func TestReportHandler_CreateReport(t *testing.T) {
 	}
 }
 
-func TestReportHandler_GetReport(t *testing.T) {
+func Test_ReportHandler_GetReport(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -250,7 +250,7 @@ func TestReportHandler_GetReport(t *testing.T) {
 	}
 }
 
-func TestReportHandler_GetAllReports(t *testing.T) {
+func Test_ReportHandler_GetAllReports(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -363,7 +363,7 @@ func TestReportHandler_GetAllReports(t *testing.T) {
 	}
 }
 
-func TestReportHandler_GetDownloadReport(t *testing.T) {
+func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

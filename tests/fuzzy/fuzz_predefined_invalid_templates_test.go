@@ -15,8 +15,8 @@ import (
 	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
-// TestPredefinedInvalidTemplates tests pre-defined templates that should fail gracefully
-func TestPredefinedInvalidTemplates(t *testing.T) {
+// TestFuzzy_PredefinedInvalidTemplates tests pre-defined templates that should fail gracefully
+func TestFuzzy_PredefinedInvalidTemplates(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

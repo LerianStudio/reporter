@@ -7,6 +7,7 @@ package template_utils
 import (
 	"testing"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -787,6 +788,150 @@ func TestExtractFieldsFromConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := extractFieldsFromConditions(tt.conditions)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestValidateNoScriptTag(t *testing.T) {
+	tests := []struct {
+		name        string
+		template    string
+		expectError bool
+	}{
+		// Valid templates (should pass)
+		{
+			name:        "Valid - Simple Pongo2 template",
+			template:    `{% for item in db.table %}{{ item.name }}{% endfor %}`,
+			expectError: false,
+		},
+		{
+			name:        "Valid - Template with 'on' in text content",
+			template:    `<div>organization</div><p>connection</p>`,
+			expectError: false,
+		},
+		{
+			name:        "Valid - Template with 'on' in variable names",
+			template:    `{{ person.name }} {{ common_field }}`,
+			expectError: false,
+		},
+		{
+			name:        "Valid - HTML without XSS vectors",
+			template:    `<html><body><h1>Report</h1><p>{{ data.content }}</p></body></html>`,
+			expectError: false,
+		},
+
+		// Invalid templates - Script tags (original vulnerability)
+		{
+			name:        "Invalid - Exact <script> tag",
+			template:    `<html><script>alert('x')</script></html>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag with src attribute",
+			template:    `<script src="evil.js"></script>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag with type attribute",
+			template:    `<script type="text/javascript">alert(1)</script>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag with multiple attributes",
+			template:    `<script type="text/javascript" src="evil.js" defer></script>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag case insensitive",
+			template:    `<SCRIPT>alert(1)</SCRIPT>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag mixed case",
+			template:    `<ScRiPt>alert(1)</sCrIpT>`,
+			expectError: true,
+		},
+
+		// Invalid templates - Inline event handlers (XSS bypasses)
+		{
+			name:        "Invalid - img onerror XSS",
+			template:    `<img src="x" onerror="alert(1)">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - svg onload XSS",
+			template:    `<svg onload="alert(1)">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - div onclick XSS",
+			template:    `<div onclick="malicious()">Click me</div>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - body onload XSS",
+			template:    `<body onload="stealData()">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - input onfocus XSS",
+			template:    `<input type="text" onfocus="alert(1)">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - a onmouseover XSS",
+			template:    `<a href="#" onmouseover="alert(1)">Hover me</a>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - iframe onload XSS",
+			template:    `<iframe src="page.html" onload="stealCookies()"></iframe>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Event handler case insensitive",
+			template:    `<img OnError="alert(1)">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Event handler with spaces",
+			template:    `<img onerror = "alert(1)">`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Multiple event handlers",
+			template:    `<div onclick="x()" onmouseover="y()">Content</div>`,
+			expectError: true,
+		},
+
+		// Edge cases
+		{
+			name:        "Invalid - Script tag at end of file",
+			template:    `<html><body>content</body><script>alert(1)</script>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Multiple script tags",
+			template:    `<script>x()</script><div>content</div><script>y()</script>`,
+			expectError: true,
+		},
+		{
+			name:        "Invalid - Script tag with newlines",
+			template:    "<script>\nalert(1)\n</script>",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateNoScriptTag(tt.template)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for template: %s", tt.template)
+				assert.Equal(t, constant.ErrScriptTagDetected, err, "Should return ErrScriptTagDetected")
+			} else {
+				assert.NoError(t, err, "Expected no error for template: %s", tt.template)
+			}
 		})
 	}
 }

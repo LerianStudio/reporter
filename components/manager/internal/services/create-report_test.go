@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
 )
 
@@ -133,14 +134,79 @@ func Test_createReport(t *testing.T) {
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+
+				// Expect the report status to be updated to error when queue send fails
+				mockReportRepo.EXPECT().
+					UpdateReportStatusById(gomock.Any(), constant.ErrorStatus, reportId, gomock.Any(), gomock.Any()).
+					Return(nil)
 			},
-			expectErr: false,
-			expectedResult: &report.Report{
-				ID:         reportId,
-				TemplateID: tempId,
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name: "Error - Invalid template ID (not a UUID)",
+			reportInput: &model.CreateReportInput{
+				TemplateID: "not-a-valid-uuid",
 				Filters:    nil,
-				Status:     "processing",
 			},
+			mockSetup:      func() {},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:        "Error - Template not found (ErrNoDocuments)",
+			reportInput: reportInput,
+			mockSetup: func() {
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(nil, nil, mongo.ErrNoDocuments)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name: "Error - Filters validation fails",
+			reportInput: &model.CreateReportInput{
+				TemplateID: tempId.String(),
+				Filters: map[string]map[string]map[string]model.FilterCondition{
+					"midaz_onboarding": {
+						"invalid_table": {
+							"field": {Equals: []any{"value"}},
+						},
+					},
+				},
+			},
+			mockSetup: func() {
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(&outputFormat, mappedFields, nil)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:        "Error - Queue send fails and status update also fails",
+			reportInput: reportInput,
+			mockSetup: func() {
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(&outputFormat, mappedFields, nil)
+
+				mockReportRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(reportEntity, nil)
+
+				mockRabbitMQ.EXPECT().
+					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, constant.ErrInternalServer)
+
+				// Expect the report status update to also fail
+				mockReportRepo.EXPECT().
+					UpdateReportStatusById(gomock.Any(), constant.ErrorStatus, reportId, gomock.Any(), gomock.Any()).
+					Return(constant.ErrInternalServer)
+			},
+			expectErr:      true,
+			expectedResult: nil,
 		},
 	}
 
@@ -162,7 +228,7 @@ func Test_createReport(t *testing.T) {
 	}
 }
 
-func TestConvertFiltersToMappedFieldsType(t *testing.T) {
+func Test_convertFiltersToMappedFieldsType(t *testing.T) {
 	uc := &UseCase{}
 
 	tests := []struct {
@@ -171,7 +237,7 @@ func TestConvertFiltersToMappedFieldsType(t *testing.T) {
 		expected map[string]map[string][]string
 	}{
 		{
-			name: "Single datasource, single table, single field",
+			name: "Success - Single datasource single table single field",
 			input: map[string]map[string]map[string]model.FilterCondition{
 				"midaz_onboarding": {
 					"organization": {
@@ -186,7 +252,7 @@ func TestConvertFiltersToMappedFieldsType(t *testing.T) {
 			},
 		},
 		{
-			name: "Single datasource, single table, multiple fields (max 3)",
+			name: "Success - Single datasource single table multiple fields (max 3)",
 			input: map[string]map[string]map[string]model.FilterCondition{
 				"midaz_onboarding": {
 					"organization": {
@@ -204,7 +270,7 @@ func TestConvertFiltersToMappedFieldsType(t *testing.T) {
 			},
 		},
 		{
-			name: "Multiple datasources and tables",
+			name: "Success - Multiple datasources and tables",
 			input: map[string]map[string]map[string]model.FilterCondition{
 				"datasource_one": {
 					"organization": {

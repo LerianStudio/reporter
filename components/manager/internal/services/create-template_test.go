@@ -6,7 +6,9 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"mime/multipart"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/postgres"
+	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +35,7 @@ func Test_createTemplate(t *testing.T) {
 	mockTempRepo := template.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+	mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
 	tempId := uuid.New()
 
 	mongoSchemas := []mongodb.CollectionSchema{
@@ -106,6 +110,7 @@ func Test_createTemplate(t *testing.T) {
 
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTemplateStorage,
 		ExternalDataSources: externalDataSources,
 	}
 
@@ -136,12 +141,14 @@ func Test_createTemplate(t *testing.T) {
 		</Ledger>
 		{% endfor %}
 	`
+	templateTestFileHeader, _ := createFileHeaderFromString(templateTest, "teste_template_XML.tpl")
 
 	tests := []struct {
 		name           string
 		templateFile   string
 		outFormat      string
 		description    string
+		fileHeader     *multipart.FileHeader
 		mockSetup      func()
 		expectErr      bool
 		expectedResult *template.Template
@@ -151,6 +158,7 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
+			fileHeader:   templateTestFileHeader,
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -171,6 +179,10 @@ func Test_createTemplate(t *testing.T) {
 				mockTempRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
+
+				mockTemplateStorage.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
 			},
 			expectErr: false,
 			expectedResult: &template.Template{
@@ -186,6 +198,7 @@ func Test_createTemplate(t *testing.T) {
 			templateFile: templateTest,
 			outFormat:    "xml",
 			description:  "Template Financeiro",
+			fileHeader:   templateTestFileHeader,
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -215,7 +228,116 @@ func Test_createTemplate(t *testing.T) {
 			templateFile:   `<html><script>alert('x')</script></html>`,
 			outFormat:      "html",
 			description:    "Malicious Template",
+			fileHeader:     templateTestFileHeader,
 			mockSetup:      func() {},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:         "Error - ReadMultipartFile failure",
+			templateFile: templateTest,
+			outFormat:    "xml",
+			description:  "Template Financeiro",
+			fileHeader:   &multipart.FileHeader{},
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(templateEntity, nil)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:         "Error - Storage Put failure with successful rollback",
+			templateFile: templateTest,
+			outFormat:    "xml",
+			description:  "Template Financeiro",
+			fileHeader:   templateTestFileHeader,
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(templateEntity, nil)
+
+				mockTemplateStorage.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(errors.New("storage unavailable"))
+
+				// Rollback: DeleteTemplateByID calls TemplateRepo.Delete
+				mockTempRepo.EXPECT().
+					Delete(gomock.Any(), gomock.Any(), true).
+					Return(nil)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+		},
+		{
+			name:         "Error - Storage Put failure with rollback failure",
+			templateFile: templateTest,
+			outFormat:    "xml",
+			description:  "Template Financeiro",
+			fileHeader:   templateTestFileHeader,
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(templateEntity, nil)
+
+				mockTemplateStorage.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(errors.New("storage unavailable"))
+
+				// Rollback fails: DeleteTemplateByID calls TemplateRepo.Delete which also fails
+				mockTempRepo.EXPECT().
+					Delete(gomock.Any(), gomock.Any(), true).
+					Return(errors.New("delete failed"))
+			},
 			expectErr:      true,
 			expectedResult: nil,
 		},
@@ -226,7 +348,7 @@ func Test_createTemplate(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description)
+			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description, tt.fileHeader)
 
 			if tt.expectErr {
 				assert.Error(t, err)
@@ -237,4 +359,95 @@ func Test_createTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_createTemplateWithPluginCRM(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Register datasource IDs including plugin_crm
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"plugin_crm"})
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+	mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+	tempId := uuid.New()
+
+	crmSchemas := []mongodb.CollectionSchema{
+		{
+			CollectionName: "holder_org-123-abc",
+			Fields: []mongodb.FieldInformation{
+				{
+					Name:     "name",
+					DataType: "string",
+				},
+				{
+					Name:     "document",
+					DataType: "string",
+				},
+			},
+		},
+	}
+
+	externalDataSources := map[string]pkg.DataSource{}
+	externalDataSources["plugin_crm"] = pkg.DataSource{
+		DatabaseType:        "mongodb",
+		MongoDBRepository:   mockDataSourceMongo,
+		MongoURI:            "",
+		MongoDBName:         "plugin_crm",
+		Connection:          nil,
+		Initialized:         true,
+		MidazOrganizationID: "org-123-abc",
+	}
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTemplateStorage,
+		ExternalDataSources: externalDataSources,
+	}
+
+	templateEntity := &template.Template{
+		ID:           tempId,
+		OutputFormat: "xml",
+		Description:  "CRM Template",
+		FileName:     fmt.Sprintf("%s.tpl", tempId.String()),
+		CreatedAt:    time.Time{},
+	}
+
+	templateCRM := `
+		<?xml version="1.0" encoding="UTF-8"?>
+		{% for h in plugin_crm.holder %}
+		<Holder>
+			<Name>{{ h.name }}</Name>
+			<Document>{{ h.document }}</Document>
+		</Holder>
+		{% endfor %}
+	`
+	templateCRMFileHeader, _ := createFileHeaderFromString(templateCRM, "crm_template.tpl")
+
+	t.Run("Success - Template with plugin_crm datasource", func(t *testing.T) {
+		mockDataSourceMongo.EXPECT().
+			GetDatabaseSchemaForOrganization(gomock.Any(), "org-123-abc").
+			Return(crmSchemas, nil)
+
+		mockDataSourceMongo.EXPECT().
+			CloseConnection(gomock.Any()).
+			Return(nil)
+
+		mockTempRepo.EXPECT().
+			Create(gomock.Any(), gomock.Any()).
+			Return(templateEntity, nil)
+
+		mockTemplateStorage.EXPECT().
+			Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		ctx := context.Background()
+		result, err := tempSvc.CreateTemplate(ctx, templateCRM, "xml", "CRM Template", templateCRMFileHeader)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, tempId, result.ID)
+	})
 }

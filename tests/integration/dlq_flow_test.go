@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
-package integration_test
+package integration
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 )
 
 // TestDLQMessage_MetadataStructure validates DLQ message schema
-func TestDLQMessage_MetadataStructure(t *testing.T) {
+func TestIntegration_DLQ_MetadataStructure(t *testing.T) {
 	reportID := uuid.New()
 	reportMessage := model.ReportMessage{
 		ReportID:     reportID,
@@ -54,7 +54,7 @@ func TestDLQMessage_MetadataStructure(t *testing.T) {
 }
 
 // TestDLQConfiguration_TTLAndLimits validates DLQ queue configuration
-func TestDLQConfiguration_TTLAndLimits(t *testing.T) {
+func TestIntegration_DLQ_TTLAndLimits(t *testing.T) {
 	expectedTTL := 7 * 24 * time.Hour
 	expectedMaxLength := 10000
 
@@ -64,7 +64,7 @@ func TestDLQConfiguration_TTLAndLimits(t *testing.T) {
 }
 
 // TestReportStatus_UpdatedOnDLQ validates report status update
-func TestReportStatus_UpdatedOnDLQ(t *testing.T) {
+func TestIntegration_ReportStatus_UpdatedOnDLQ(t *testing.T) {
 	expectedStatus := "Error"
 	expectedMetadata := map[string]any{
 		"error":         "Database connection timeout",
@@ -80,7 +80,7 @@ func TestReportStatus_UpdatedOnDLQ(t *testing.T) {
 }
 
 // TestExponentialBackoff_Timing validates retry delays
-func TestExponentialBackoff_Timing(t *testing.T) {
+func TestIntegration_ExponentialBackoff_Timing(t *testing.T) {
 	expectedBackoffs := []time.Duration{
 		1 * time.Second, // 2^0
 		2 * time.Second, // 2^1

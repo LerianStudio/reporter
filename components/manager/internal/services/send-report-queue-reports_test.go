@@ -17,7 +17,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestSendReportQueueReports(t *testing.T) {
+func Test_SendReportQueueReports(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -38,6 +38,7 @@ func TestSendReportQueueReports(t *testing.T) {
 		name          string
 		reportMessage model.ReportMessage
 		mockSetup     func()
+		expectErr     bool
 	}{
 		{
 			name: "Success - Send report to queue",
@@ -112,16 +113,18 @@ func TestSendReportQueueReports(t *testing.T) {
 
 			ctx := context.Background()
 
-			// This function doesn't return anything, so we just verify it doesn't panic
-			// and the mock expectations are met
-			assert.NotPanics(t, func() {
-				svc.SendReportQueueReports(ctx, tt.reportMessage)
-			})
+			err := svc.SendReportQueueReports(ctx, tt.reportMessage)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
 
-func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
+func Test_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -140,7 +143,7 @@ func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	outputFormats := []string{"pdf", "xml", "html", "txt", "csv"}
 
 	for _, format := range outputFormats {
-		t.Run("OutputFormat_"+format, func(t *testing.T) {
+		t.Run("Success - OutputFormat "+format, func(t *testing.T) {
 			mockRabbitMQ.EXPECT().
 				ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 				Return(nil, nil)
@@ -161,9 +164,9 @@ func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			assert.NotPanics(t, func() {
-				svc.SendReportQueueReports(ctx, reportMessage)
-			})
+
+			err := svc.SendReportQueueReports(ctx, reportMessage)
+			assert.NoError(t, err)
 		})
 	}
 }

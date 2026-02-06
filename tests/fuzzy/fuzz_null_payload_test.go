@@ -11,8 +11,8 @@ import (
 	h "github.com/LerianStudio/reporter/tests/helpers"
 )
 
-// TestNullPayloadValidation tests that null payloads are properly rejected with 400
-func TestNullPayloadValidation(t *testing.T) {
+// TestFuzzy_NullPayloadValidation tests that null payloads are properly rejected with 400
+func TestFuzzy_NullPayloadValidation(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -86,8 +86,8 @@ func TestNullPayloadValidation(t *testing.T) {
 	}
 }
 
-// TestValidPayloadsStillWork ensures our validation doesn't break valid requests
-func TestValidPayloadsStillWork(t *testing.T) {
+// TestFuzzy_ValidPayloadsStillWork ensures our validation doesn't break valid requests
+func TestFuzzy_ValidPayloadsStillWork(t *testing.T) {
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
