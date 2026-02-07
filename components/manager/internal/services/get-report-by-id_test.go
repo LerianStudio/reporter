@@ -51,6 +51,7 @@ func TestGetReportByID(t *testing.T) {
 		reportId       uuid.UUID
 		mockSetup      func()
 		expectErr      bool
+		errContains    string
 		expectedResult *report.Report
 	}{
 		{
@@ -82,6 +83,7 @@ func TestGetReportByID(t *testing.T) {
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -93,6 +95,7 @@ func TestGetReportByID(t *testing.T) {
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
+			errContains:    "No report entity was found",
 			expectedResult: nil,
 		},
 	}
@@ -106,7 +109,8 @@ func TestGetReportByID(t *testing.T) {
 			result, err := reportSvc.GetReportByID(ctx, tt.reportId)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)

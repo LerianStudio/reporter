@@ -86,6 +86,7 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		dataSourceID string
 		mockSetup    func()
 		expectErr    bool
+		errContains  string
 		expectResult *model.DataSourceDetails
 	}{
 		{
@@ -219,6 +220,7 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":not_found").Return("", nil)
 			},
 			expectErr:    true,
+			errContains:  constant.ErrMissingDataSource.Error(),
 			expectResult: nil,
 		},
 		{
@@ -243,6 +245,7 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
 			},
 			expectErr:    true,
+			errContains:  constant.ErrMissingDataSource.Error(),
 			expectResult: nil,
 		},
 		{
@@ -268,6 +271,7 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 			},
 			expectErr:    true,
+			errContains:  constant.ErrMissingDataSource.Error(),
 			expectResult: nil,
 		},
 	}
@@ -279,7 +283,8 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 			tt.mockSetup()
 			result, err := svc.GetDataSourceDetailsByID(ctx, tt.dataSourceID)
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)

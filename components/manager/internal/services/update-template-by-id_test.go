@@ -182,6 +182,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 		tempId       uuid.UUID
 		mockSetup    func()
 		expectErr    bool
+		errContains  string
 	}{
 		{
 			name:         "Success - Update outputFormat template",
@@ -237,6 +238,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInternalServer.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -265,6 +267,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrFileContentInvalid.Error(),
 			mockSetup: func() {
 				htmlTypeP := &htmlType
 				mockDataSourceMongo.EXPECT().
@@ -295,6 +298,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "json",
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInvalidOutputFormat.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -320,6 +324,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "html",
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrFileContentInvalid.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -345,6 +350,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "xml",
 			description:  "Template Atualizado",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInternalServer.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -391,6 +397,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			tempId:      uuid.New(),
 			mockSetup:   func() {},
 			expectErr:   true,
+			errContains: constant.ErrScriptTagDetected.Error(),
 		},
 		{
 			name:         "Error - GetTemplateByID after update fails",
@@ -398,6 +405,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "xml",
 			description:  "Template Atualizado",
 			tempId:       uuid.New(),
+			errContains:  "template not found after update",
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -446,6 +454,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			tempId:       uuid.New(),
 			mockSetup:    func() {},
 			expectErr:    true,
+			errContains:  "open",
 		},
 		{
 			name:         "Error - Storage Put fails",
@@ -453,6 +462,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "xml",
 			description:  "Template Atualizado",
 			tempId:       uuid.New(),
+			errContains:  "storage unavailable",
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -490,6 +500,7 @@ func TestUpdateTemplateByID(t *testing.T) {
 			outFormat:    "xml",
 			description:  "Template Atualizado",
 			tempId:       uuid.New(),
+			errContains:  "template not found",
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -546,7 +557,8 @@ func TestUpdateTemplateByID(t *testing.T) {
 			_, err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				require.NoError(t, err)
 			}

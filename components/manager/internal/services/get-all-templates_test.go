@@ -50,6 +50,7 @@ func TestGetAllTemplates(t *testing.T) {
 		filter         httpUtils.QueryHeader
 		mockSetup      func()
 		expectErr      bool
+		expectedErr    error
 		expectedResult []*template.Template
 	}{
 		{
@@ -79,6 +80,7 @@ func TestGetAllTemplates(t *testing.T) {
 					Return(nil, constant.ErrBadRequest)
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrBadRequest,
 			expectedResult: nil,
 		},
 	}
@@ -92,7 +94,8 @@ func TestGetAllTemplates(t *testing.T) {
 			result, err := tempSvc.GetAllTemplates(ctx, tt.filter)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)

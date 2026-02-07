@@ -60,11 +60,12 @@ func TestCreateReport_SetsOrganizationID(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		orgID     uuid.UUID
-		input     *model.CreateReportInput
-		mockSetup func()
-		expectErr bool
+		name        string
+		orgID       uuid.UUID
+		input       *model.CreateReportInput
+		mockSetup   func()
+		expectErr   bool
+		errContains string
 	}{
 		{
 			name:  "Success - CreateReport sets organization_id on the report",
@@ -101,7 +102,8 @@ func TestCreateReport_SetsOrganizationID(t *testing.T) {
 			result, err := reportSvc.CreateReport(ctx, tt.orgID, tt.input)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -150,6 +152,7 @@ func TestGetReportByID_TenantIsolation(t *testing.T) {
 		reportID       uuid.UUID
 		mockSetup      func()
 		expectErr      bool
+		expectedErr    error
 		expectedResult *report.Report
 	}{
 		{
@@ -175,6 +178,7 @@ func TestGetReportByID_TenantIsolation(t *testing.T) {
 					Return(nil, constant.ErrEntityNotFound)
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrEntityNotFound,
 			expectedResult: nil,
 		},
 	}
@@ -188,7 +192,8 @@ func TestGetReportByID_TenantIsolation(t *testing.T) {
 			result, err := reportSvc.GetReportByID(ctx, tt.reportID, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -251,6 +256,7 @@ func TestGetAllReports_TenantIsolation(t *testing.T) {
 		filters       http.QueryHeader
 		mockSetup     func()
 		expectErr     bool
+		errContains   string
 		expectedCount int
 	}{
 		{
@@ -288,7 +294,8 @@ func TestGetAllReports_TenantIsolation(t *testing.T) {
 			result, err := reportSvc.GetAllReports(ctx, tt.filters, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -336,6 +343,7 @@ func TestGetTemplateByID_TenantIsolation(t *testing.T) {
 		tempID         uuid.UUID
 		mockSetup      func()
 		expectErr      bool
+		expectedErr    error
 		expectedResult *template.Template
 	}{
 		{
@@ -360,6 +368,7 @@ func TestGetTemplateByID_TenantIsolation(t *testing.T) {
 					Return(nil, constant.ErrEntityNotFound)
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrEntityNotFound,
 			expectedResult: nil,
 		},
 	}
@@ -373,7 +382,8 @@ func TestGetTemplateByID_TenantIsolation(t *testing.T) {
 			result, err := tempSvc.GetTemplateByID(ctx, tt.tempID, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -424,6 +434,7 @@ func TestGetAllTemplates_TenantIsolation(t *testing.T) {
 		filters       http.QueryHeader
 		mockSetup     func()
 		expectErr     bool
+		errContains   string
 		expectedCount int
 	}{
 		{
@@ -461,7 +472,8 @@ func TestGetAllTemplates_TenantIsolation(t *testing.T) {
 			result, err := tempSvc.GetAllTemplates(ctx, tt.filters, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -495,12 +507,13 @@ func TestDeleteTemplateByID_TenantIsolation(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		orgID      uuid.UUID
-		tempID     uuid.UUID
-		hardDelete bool
-		mockSetup  func()
-		expectErr  bool
+		name        string
+		orgID       uuid.UUID
+		tempID      uuid.UUID
+		hardDelete  bool
+		mockSetup   func()
+		expectErr   bool
+		expectedErr error
 	}{
 		{
 			name:       "Success - Delete template with matching organization",
@@ -524,7 +537,8 @@ func TestDeleteTemplateByID_TenantIsolation(t *testing.T) {
 					Delete(gomock.Any(), tempID, false, orgB).
 					Return(constant.ErrEntityNotFound)
 			},
-			expectErr: true,
+			expectErr:   true,
+			expectedErr: constant.ErrEntityNotFound,
 		},
 	}
 
@@ -537,7 +551,8 @@ func TestDeleteTemplateByID_TenantIsolation(t *testing.T) {
 			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.hardDelete, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -564,11 +579,12 @@ func TestDownloadReport_TenantIsolation(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		orgID     uuid.UUID
-		reportID  uuid.UUID
-		mockSetup func()
-		expectErr bool
+		name        string
+		orgID       uuid.UUID
+		reportID    uuid.UUID
+		mockSetup   func()
+		expectErr   bool
+		expectedErr error
 	}{
 		{
 			name:     "Error - Download report with non-matching organization returns not found",
@@ -580,7 +596,8 @@ func TestDownloadReport_TenantIsolation(t *testing.T) {
 					FindByID(gomock.Any(), reportID, orgB).
 					Return(nil, constant.ErrEntityNotFound)
 			},
-			expectErr: true,
+			expectErr:   true,
+			expectedErr: constant.ErrEntityNotFound,
 		},
 		{
 			name:     "Success - Download report with matching organization proceeds",
@@ -611,7 +628,8 @@ func TestDownloadReport_TenantIsolation(t *testing.T) {
 			_, _, _, err := reportSvc.DownloadReport(ctx, tt.reportID, tt.orgID)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 			}
 			// Note: Success case may still error due to missing template/storage mocks,
 			// but the tenant isolation check is what we're testing here.

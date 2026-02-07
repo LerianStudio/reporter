@@ -33,6 +33,7 @@ func TestSendReportQueueReports(t *testing.T) {
 		reportMessage model.ReportMessage
 		mockSetup     func()
 		expectErr     bool
+		errContains   string
 	}{
 		{
 			name: "Success - Send report to queue",
@@ -113,7 +114,8 @@ func TestSendReportQueueReports(t *testing.T) {
 			err := svc.SendReportQueueReports(ctx, tt.reportMessage)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				require.NoError(t, err)
 			}

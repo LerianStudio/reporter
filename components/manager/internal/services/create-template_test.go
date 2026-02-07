@@ -153,6 +153,7 @@ func TestCreateTemplate(t *testing.T) {
 		fileHeader     *multipart.FileHeader
 		mockSetup      func()
 		expectErr      bool
+		errContains    string
 		expectedResult *template.Template
 	}{
 		{
@@ -223,6 +224,7 @@ func TestCreateTemplate(t *testing.T) {
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -233,6 +235,7 @@ func TestCreateTemplate(t *testing.T) {
 			fileHeader:     templateTestFileHeader,
 			mockSetup:      func() {},
 			expectErr:      true,
+			errContains:    constant.ErrScriptTagDetected.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -263,6 +266,7 @@ func TestCreateTemplate(t *testing.T) {
 					Return(templateEntity, nil)
 			},
 			expectErr:      true,
+			errContains:    "open",
 			expectedResult: nil,
 		},
 		{
@@ -302,6 +306,7 @@ func TestCreateTemplate(t *testing.T) {
 					Return(nil)
 			},
 			expectErr:      true,
+			errContains:    "storage unavailable",
 			expectedResult: nil,
 		},
 		{
@@ -341,6 +346,7 @@ func TestCreateTemplate(t *testing.T) {
 					Return(errors.New("delete failed"))
 			},
 			expectErr:      true,
+			errContains:    "storage unavailable",
 			expectedResult: nil,
 		},
 	}
@@ -354,7 +360,8 @@ func TestCreateTemplate(t *testing.T) {
 			result, err := tempSvc.CreateTemplate(ctx, tt.templateFile, tt.outFormat, tt.description, tt.fileHeader)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)

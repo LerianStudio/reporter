@@ -69,6 +69,7 @@ func TestGetAllReports(t *testing.T) {
 		filters        http.QueryHeader
 		mockSetup      func()
 		expectErr      bool
+		expectedErr    error
 		expectedResult []*report.Report
 		expectedCount  int
 	}{
@@ -106,6 +107,7 @@ func TestGetAllReports(t *testing.T) {
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrInternalServer,
 			expectedResult: nil,
 			expectedCount:  0,
 		},
@@ -132,7 +134,8 @@ func TestGetAllReports(t *testing.T) {
 			result, err := reportSvc.GetAllReports(ctx, tt.filters)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)

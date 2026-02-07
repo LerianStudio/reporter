@@ -78,6 +78,7 @@ func TestDownloadReport(t *testing.T) {
 		reportId      uuid.UUID
 		mockSetup     func()
 		expectErr     bool
+		errContains   string
 		expectedBytes []byte
 	}{
 		{
@@ -108,6 +109,7 @@ func TestDownloadReport(t *testing.T) {
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:     true,
+			errContains:   constant.ErrInternalServer.Error(),
 			expectedBytes: nil,
 		},
 		{
@@ -119,6 +121,7 @@ func TestDownloadReport(t *testing.T) {
 					Return(processingReport, nil)
 			},
 			expectErr:     true,
+			errContains:   constant.ErrReportStatusNotFinished.Error(),
 			expectedBytes: nil,
 		},
 		{
@@ -134,6 +137,7 @@ func TestDownloadReport(t *testing.T) {
 					Return(nil, errors.New("template not found"))
 			},
 			expectErr:     true,
+			errContains:   "template not found",
 			expectedBytes: nil,
 		},
 		{
@@ -153,6 +157,7 @@ func TestDownloadReport(t *testing.T) {
 					Return(nil, errors.New("storage unavailable"))
 			},
 			expectErr:     true,
+			errContains:   "storage unavailable",
 			expectedBytes: nil,
 		},
 	}
@@ -166,7 +171,8 @@ func TestDownloadReport(t *testing.T) {
 			fileBytes, objectName, contentType, err := reportSvc.DownloadReport(ctx, tt.reportId)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, fileBytes)
 				assert.Empty(t, objectName)
 				assert.Empty(t, contentType)

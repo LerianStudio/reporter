@@ -47,6 +47,7 @@ func TestGetTemplateByID(t *testing.T) {
 		tempId         uuid.UUID
 		mockSetup      func()
 		expectErr      bool
+		errContains    string
 		expectedResult *template.Template
 	}{
 		{
@@ -75,6 +76,7 @@ func TestGetTemplateByID(t *testing.T) {
 					Return(nil, constant.ErrInternalServer)
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -86,6 +88,7 @@ func TestGetTemplateByID(t *testing.T) {
 					Return(nil, mongo.ErrNoDocuments)
 			},
 			expectErr:      true,
+			errContains:    "No template entity was found",
 			expectedResult: nil,
 		},
 	}
@@ -99,7 +102,8 @@ func TestGetTemplateByID(t *testing.T) {
 			result, err := tempSvc.GetTemplateByID(ctx, tt.tempId)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
