@@ -60,7 +60,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	var midazOrgID string
 
 	if _, hasPluginCRM := mappedFields["plugin_crm"]; hasPluginCRM {
-		if ds, exists := uc.ExternalDataSources["plugin_crm"]; exists {
+		if ds, exists := uc.ExternalDataSources.Get("plugin_crm"); exists {
 			midazOrgID = ds.MidazOrganizationID
 		}
 	}

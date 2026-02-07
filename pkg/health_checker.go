@@ -67,14 +67,14 @@ func (hc *HealthChecker) Start() {
 		hc.healthCheckLoop()
 	}()
 
-	hc.logger.Info("🏥 Health checker started - checking datasources every 30s")
+	hc.logger.Info("Health checker started - checking datasources every 30s")
 }
 
 // Stop gracefully stops the health checker
 func (hc *HealthChecker) Stop() {
 	close(hc.stopChan)
 	hc.wg.Wait()
-	hc.logger.Info("🏥 Health checker stopped")
+	hc.logger.Info("Health checker stopped")
 }
 
 // healthCheckLoop runs the periodic health checks
@@ -109,7 +109,7 @@ func (hc *HealthChecker) performHealthChecks() {
 
 	hc.mu.RUnlock()
 
-	hc.logger.Info("🔍 Performing health checks on all datasources...")
+	hc.logger.Info("Performing health checks on all datasources...")
 
 	unavailableCount := 0
 	reconnectedCount := 0
@@ -119,7 +119,7 @@ func (hc *HealthChecker) performHealthChecks() {
 		if hc.needsHealing(name, ds) {
 			unavailableCount++
 
-			hc.logger.Infof("🔧 Attempting to heal datasource '%s' (status: %s)", name, ds.Status)
+			hc.logger.Infof("Attempting to heal datasource '%s' (status: %s)", name, ds.Status)
 
 			if hc.attemptReconnection(name, &ds) {
 				reconnectedCount++
@@ -131,17 +131,17 @@ func (hc *HealthChecker) performHealthChecks() {
 
 				// Reset circuit breaker
 				hc.circuitBreakerManager.Reset(name)
-				hc.logger.Infof("✅ Datasource '%s' reconnected successfully - circuit breaker reset", name)
+				hc.logger.Infof("Datasource '%s' reconnected successfully - circuit breaker reset", name)
 			} else {
-				hc.logger.Warnf("⚠️  Failed to reconnect datasource '%s' - will retry in %v", name, constant.HealthCheckInterval)
+				hc.logger.Warnf("Failed to reconnect datasource '%s' - will retry in %v", name, constant.HealthCheckInterval)
 			}
 		}
 	}
 
 	if unavailableCount > 0 {
-		hc.logger.Infof("🏥 Health check complete: %d datasources needed healing, %d reconnected", unavailableCount, reconnectedCount)
+		hc.logger.Infof("Health check complete: %d datasources needed healing, %d reconnected", unavailableCount, reconnectedCount)
 	} else {
-		hc.logger.Debug("✅ All datasources healthy")
+		hc.logger.Debug("All datasources healthy")
 	}
 }
 
@@ -173,7 +173,7 @@ func (hc *HealthChecker) attemptReconnection(name string, ds *DataSource) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.HealthCheckTimeout)
 	defer cancel()
 
-	hc.logger.Infof("🔌 Attempting reconnection to datasource '%s'...", name)
+	hc.logger.Infof("Attempting reconnection to datasource '%s'...", name)
 
 	// Create a temporary map for ConnectToDataSource
 	tempMap := make(map[string]DataSource)

@@ -26,14 +26,16 @@ type MultiQueueConsumer struct {
 }
 
 // NewMultiQueueConsumer create a new instance of MultiQueueConsumer.
-func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes, useCase *services.UseCase) *MultiQueueConsumer {
+func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes, useCase *services.UseCase, queueName string) *MultiQueueConsumer {
 	consumer := &MultiQueueConsumer{
 		consumerRoutes: routes,
 		UseCase:        useCase,
 	}
 
 	// Registry handlers for each queue
-	routes.Register(os.Getenv("RABBITMQ_GENERATE_REPORT_QUEUE"), consumer.handlerGenerateReport)
+	if routes != nil {
+		routes.Register(queueName, consumer.handlerGenerateReport)
+	}
 
 	return consumer
 }

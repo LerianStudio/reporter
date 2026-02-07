@@ -31,9 +31,15 @@ type UseCase struct {
 	// RabbitMQRepo provides an abstraction on top of the producer rabbitmq.
 	RabbitMQRepo rabbitmq.ProducerRepository
 
-	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
-	ExternalDataSources map[string]pkgConfig.DataSource
+	// ExternalDataSources holds a thread-safe map of external data sources identified by their names.
+	ExternalDataSources *pkgConfig.SafeDataSources
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
 	RedisRepo redis.RedisRepository
+
+	// RabbitMQExchange is the exchange name for publishing report generation messages.
+	RabbitMQExchange string
+
+	// RabbitMQGenerateReportKey is the routing key for report generation messages.
+	RabbitMQGenerateReportKey string
 }

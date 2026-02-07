@@ -79,7 +79,7 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 		return cached, nil
 	}
 
-	dataSource, ok := uc.ExternalDataSources[dataSourceID]
+	dataSource, ok := uc.ExternalDataSources.Get(dataSourceID)
 	if !ok {
 		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
 	}
@@ -175,12 +175,12 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 	case pkg.PostgreSQLType:
 		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
 			logger.Infof("Connecting to PostgreSQL datasource '%s' on-demand...", dataSourceID)
-			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
+			return uc.ExternalDataSources.ConnectDataSource(dataSourceID, dataSource, logger)
 		}
 	case pkg.MongoDBType:
 		if !dataSource.Initialized {
 			logger.Infof("Connecting to MongoDB datasource '%s' on-demand...", dataSourceID)
-			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
+			return uc.ExternalDataSources.ConnectDataSource(dataSourceID, dataSource, logger)
 		}
 	}
 

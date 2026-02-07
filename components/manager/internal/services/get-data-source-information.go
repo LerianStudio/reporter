@@ -27,7 +27,9 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 		attribute.String("app.request.request_id", reqId),
 	)
 
-	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.external_data_sources", uc.ExternalDataSources)
+	allDataSources := uc.ExternalDataSources.GetAll()
+
+	err := libOpentelemetry.SetSpanAttributesFromStruct(&span, "app.request.external_data_sources", allDataSources)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert external data sources to JSON string", err)
 	}
@@ -36,7 +38,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 	result := make([]*model.DataSourceInformation, 0)
 
-	for key, dataSource := range uc.ExternalDataSources {
+	for key, dataSource := range allDataSources {
 		if !pkg.IsValidDataSourceID(key) {
 			logger.Warnf("Skipping datasource '%s' from listing - not in immutable registry (possible corruption)", key)
 			continue

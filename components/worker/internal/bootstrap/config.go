@@ -65,6 +65,9 @@ type Config struct {
 	MongoDBPort       string `env:"MONGO_PORT"`
 	MongoDBParameters string `env:"MONGO_PARAMETERS"`
 	MaxPoolSize       int    `env:"MONGO_MAX_POOL_SIZE"`
+	// Crypto configuration envs (for plugin_crm decryption)
+	CryptoHashSecretKeyPluginCRM    string `env:"CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM"`
+	CryptoEncryptSecretKeyPluginCRM string `env:"CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM"`
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
@@ -227,22 +230,25 @@ func InitWorker() (*Service, error) {
 
 	// Initialize circuit breaker manager for datasource resilience
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
-	externalDataSources := pkg.ExternalDatasourceConnections(logger)
-	healthChecker := pkg.NewHealthChecker(&externalDataSources, circuitBreakerManager, logger)
+	externalDataSourcesMap := pkg.ExternalDatasourceConnections(logger)
+	externalDataSources := pkg.NewSafeDataSources(externalDataSourcesMap)
+	healthChecker := pkg.NewHealthChecker(&externalDataSourcesMap, circuitBreakerManager, logger)
 
 	// Initialize PDF Pool for PDF generation
 	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
 	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
 
 	service := &services.UseCase{
-		TemplateSeaweedFS:     templateSeaweedFSRepository,
-		ReportSeaweedFS:       reportSeaweedFSRepository,
-		ExternalDataSources:   externalDataSources,
-		ReportDataRepo:        reportMongoDBRepository,
-		CircuitBreakerManager: circuitBreakerManager,
-		HealthChecker:         healthChecker,
-		ReportTTL:             "", // TTL not supported in S3 mode - use bucket lifecycle policies
-		PdfPool:               pdfPool,
+		TemplateSeaweedFS:               templateSeaweedFSRepository,
+		ReportSeaweedFS:                 reportSeaweedFSRepository,
+		ExternalDataSources:             externalDataSources,
+		ReportDataRepo:                  reportMongoDBRepository,
+		CircuitBreakerManager:           circuitBreakerManager,
+		HealthChecker:                   healthChecker,
+		ReportTTL:                       "", // TTL not supported in S3 mode - use bucket lifecycle policies
+		PdfPool:                         pdfPool,
+		CryptoHashSecretKeyPluginCRM:    cfg.CryptoHashSecretKeyPluginCRM,
+		CryptoEncryptSecretKeyPluginCRM: cfg.CryptoEncryptSecretKeyPluginCRM,
 	}
 
 	logger.Infof("Reports will be stored permanently (no TTL - use S3 bucket lifecycle policies for expiration)")
@@ -250,11 +256,12 @@ func InitWorker() (*Service, error) {
 	// Start health checker in background
 	healthChecker.Start()
 
-	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		healthChecker:      healthChecker,
+		mongoConnection:    mongoConnection,
 	}, nil
 }

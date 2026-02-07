@@ -13,10 +13,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_SendReportQueueReports(t *testing.T) {
+func TestSendReportQueueReports(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -24,10 +27,6 @@ func Test_SendReportQueueReports(t *testing.T) {
 
 	reportID := uuid.New()
 	templateID := uuid.New()
-
-	// Set environment variables for the test
-	t.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	t.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
 
 	tests := []struct {
 		name          string
@@ -99,11 +98,14 @@ func Test_SendReportQueueReports(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
 			svc := &UseCase{
-				RabbitMQRepo: mockRabbitMQ,
+				RabbitMQRepo:              mockRabbitMQ,
+				RabbitMQExchange:          "test-exchange",
+				RabbitMQGenerateReportKey: "test-key",
 			}
 
 			ctx := context.Background()
@@ -113,13 +115,15 @@ func Test_SendReportQueueReports(t *testing.T) {
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
-func Test_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
+func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -128,19 +132,19 @@ func Test_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	reportID := uuid.New()
 	templateID := uuid.New()
 
-	t.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	t.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
-
 	outputFormats := []string{"pdf", "xml", "html", "txt", "csv"}
 
 	for _, format := range outputFormats {
+		format := format
 		t.Run("Success - OutputFormat "+format, func(t *testing.T) {
 			mockRabbitMQ.EXPECT().
 				ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 				Return(nil, nil)
 
 			svc := &UseCase{
-				RabbitMQRepo: mockRabbitMQ,
+				RabbitMQRepo:              mockRabbitMQ,
+				RabbitMQExchange:          "test-exchange",
+				RabbitMQGenerateReportKey: "test-key",
 			}
 
 			reportMessage := model.ReportMessage{

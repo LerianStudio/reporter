@@ -291,7 +291,7 @@ func ConnectToDataSourceWithRetry(databaseName string, dataSource *DataSource, l
 
 		// Check if error is fatal (no point in retrying)
 		if isFatalError(err) {
-			logger.Warnf("⚠️  Fatal error detected for datasource %s - skipping remaining retries", databaseName)
+			logger.Warnf("Fatal error detected for datasource %s - skipping remaining retries", databaseName)
 			break
 		}
 

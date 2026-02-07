@@ -6,7 +6,6 @@ package services
 
 import (
 	"context"
-	"os"
 
 	"github.com/LerianStudio/reporter/pkg/model"
 
@@ -34,8 +33,8 @@ func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage mod
 
 	if _, err := uc.RabbitMQRepo.ProducerDefault(
 		ctx,
-		os.Getenv("RABBITMQ_EXCHANGE"),
-		os.Getenv("RABBITMQ_GENERATE_REPORT_KEY"),
+		uc.RabbitMQExchange,
+		uc.RabbitMQGenerateReportKey,
 		reportMessage,
 	); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to send message to queue", err)

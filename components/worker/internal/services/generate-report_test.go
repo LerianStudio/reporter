@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"strings"
 	"testing"
 
@@ -26,7 +25,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getContentType(t *testing.T) {
+func TestGetContentType(t *testing.T) {
 	tests := []struct {
 		name         string
 		extension    string
@@ -59,7 +58,7 @@ func Test_getContentType(t *testing.T) {
 	}
 }
 
-func Test_GenerateReport_Success(t *testing.T) {
+func TestGenerateReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -146,13 +145,13 @@ func Test_GenerateReport_Success(t *testing.T) {
 		ReportSeaweedFS:       mockReportRepo,
 		ReportDataRepo:        mockReportDataRepo,
 		CircuitBreakerManager: circuitBreakerManager,
-		ExternalDataSources: map[string]pkg.DataSource{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 			"onboarding": {
 				Initialized:        true,
 				DatabaseType:       "postgresql",
 				PostgresRepository: mockPostgresRepo,
 			},
-		},
+		}),
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
@@ -161,7 +160,7 @@ func Test_GenerateReport_Success(t *testing.T) {
 	}
 }
 
-func Test_GenerateReport_TemplateRepoError(t *testing.T) {
+func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -199,7 +198,7 @@ func Test_GenerateReport_TemplateRepoError(t *testing.T) {
 	useCase := &UseCase{
 		TemplateSeaweedFS:   mockTemplateRepo,
 		ReportDataRepo:      mockReportDataRepo,
-		ExternalDataSources: map[string]pkg.DataSource{},
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
@@ -208,7 +207,7 @@ func Test_GenerateReport_TemplateRepoError(t *testing.T) {
 	}
 }
 
-func Test_saveReport_Success(t *testing.T) {
+func TestSaveReport_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -240,7 +239,7 @@ func Test_saveReport_Success(t *testing.T) {
 	}
 }
 
-func Test_saveReport_ErrorOnPut(t *testing.T) {
+func TestSaveReport_ErrorOnPut(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -274,12 +273,9 @@ func Test_saveReport_ErrorOnPut(t *testing.T) {
 	}
 }
 
-func Test_GenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
+func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	t.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", encryptKey)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -428,18 +424,20 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		TemplateSeaweedFS:     mockTemplateRepo,
-		ReportSeaweedFS:       mockReportRepo,
-		ReportDataRepo:        mockReportDataRepo,
-		CircuitBreakerManager: circuitBreakerManager,
-		ExternalDataSources: map[string]pkg.DataSource{
+		TemplateSeaweedFS:               mockTemplateRepo,
+		ReportSeaweedFS:                 mockReportRepo,
+		ReportDataRepo:                  mockReportDataRepo,
+		CircuitBreakerManager:           circuitBreakerManager,
+		CryptoHashSecretKeyPluginCRM:    hashKey,
+		CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 			"plugin_crm": {
 				Initialized:         true,
 				DatabaseType:        "mongodb",
 				MongoDBRepository:   mockMongoRepo,
 				MidazOrganizationID: organizationID,
 			},
-		},
+		}),
 	}
 
 	err = useCase.GenerateReport(context.Background(), bodyBytes)
@@ -448,7 +446,7 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	}
 }
 
-func Test_decryptRegulatoryFieldsFields(t *testing.T) {
+func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -532,7 +530,7 @@ func Test_decryptRegulatoryFieldsFields(t *testing.T) {
 	}
 }
 
-func Test_decryptRelatedPartiesFields(t *testing.T) {
+func TestDecryptRelatedPartiesFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -665,10 +663,8 @@ func Test_decryptRelatedPartiesFields(t *testing.T) {
 	}
 }
 
-func Test_transformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
+func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	crypto := &libCrypto.Crypto{
@@ -676,7 +672,9 @@ func Test_transformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 		Logger:        logger,
 	}
 
-	useCase := &UseCase{}
+	useCase := &UseCase{
+		CryptoHashSecretKeyPluginCRM: hashKey,
+	}
 
 	tests := []struct {
 		name          string
@@ -730,7 +728,7 @@ func Test_transformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	}
 }
 
-func Test_shouldSkipProcessing(t *testing.T) {
+func TestShouldSkipProcessing(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -810,7 +808,7 @@ func Test_shouldSkipProcessing(t *testing.T) {
 	}
 }
 
-func Test_parseMessage_InvalidJSON(t *testing.T) {
+func TestParseMessage_InvalidJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -833,7 +831,7 @@ func Test_parseMessage_InvalidJSON(t *testing.T) {
 	}
 }
 
-func Test_parseMessage_ValidJSON(t *testing.T) {
+func TestParseMessage_ValidJSON(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -862,7 +860,7 @@ func Test_parseMessage_ValidJSON(t *testing.T) {
 	}
 }
 
-func Test_getTableFilters(t *testing.T) {
+func TestGetTableFilters(t *testing.T) {
 	baseFilter := map[string]model.FilterCondition{
 		"id": {Equals: []any{1, 2, 3}},
 	}
@@ -964,7 +962,7 @@ func Test_getTableFilters(t *testing.T) {
 	}
 }
 
-func Test_isEncryptedField(t *testing.T) {
+func TestIsEncryptedField(t *testing.T) {
 	tests := []struct {
 		field    string
 		expected bool
@@ -987,7 +985,7 @@ func Test_isEncryptedField(t *testing.T) {
 	}
 }
 
-func Test_hashFilterValues(t *testing.T) {
+func TestHashFilterValues(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1043,7 +1041,7 @@ func Test_hashFilterValues(t *testing.T) {
 	}
 }
 
-func Test_decryptContactFields(t *testing.T) {
+func TestDecryptContactFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1119,7 +1117,7 @@ func Test_decryptContactFields(t *testing.T) {
 	}
 }
 
-func Test_decryptBankingDetailsFields(t *testing.T) {
+func TestDecryptBankingDetailsFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1195,7 +1193,7 @@ func Test_decryptBankingDetailsFields(t *testing.T) {
 	}
 }
 
-func Test_decryptLegalPersonFields(t *testing.T) {
+func TestDecryptLegalPersonFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1279,7 +1277,7 @@ func Test_decryptLegalPersonFields(t *testing.T) {
 	}
 }
 
-func Test_decryptNaturalPersonFields(t *testing.T) {
+func TestDecryptNaturalPersonFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1355,7 +1353,7 @@ func Test_decryptNaturalPersonFields(t *testing.T) {
 	}
 }
 
-func Test_decryptFieldValue(t *testing.T) {
+func TestDecryptFieldValue(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1420,7 +1418,7 @@ func Test_decryptFieldValue(t *testing.T) {
 	}
 }
 
-func Test_convertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
+func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -1442,11 +1440,11 @@ func Test_convertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	}
 }
 
-func Test_queryDatabase_UnknownDataSource(t *testing.T) {
+func TestQueryDatabase_UnknownDataSource(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	useCase := &UseCase{
-		ExternalDataSources:   map[string]pkg.DataSource{},
+		ExternalDataSources:   pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 		CircuitBreakerManager: pkg.NewCircuitBreakerManager(logger),
 	}
 
@@ -1467,7 +1465,7 @@ func Test_queryDatabase_UnknownDataSource(t *testing.T) {
 	}
 }
 
-func Test_queryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
+func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)
@@ -1480,12 +1478,12 @@ func Test_queryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 	}
 
 	useCase := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 			"test_db": {
 				Initialized:  true,
 				DatabaseType: "postgresql",
 			},
-		},
+		}),
 		CircuitBreakerManager: cbManager,
 	}
 
@@ -1509,19 +1507,19 @@ func Test_queryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 	}
 }
 
-func Test_queryDatabase_UnsupportedDatabaseType(t *testing.T) {
+func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	useCase := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 			"test_db": {
 				Initialized:  true,
 				DatabaseType: "unsupported_type",
 			},
-		},
+		}),
 		CircuitBreakerManager: pkg.NewCircuitBreakerManager(logger),
 	}
 
@@ -1545,11 +1543,7 @@ func Test_queryDatabase_UnsupportedDatabaseType(t *testing.T) {
 	}
 }
 
-func Test_transformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
-	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-
+func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
 
@@ -1562,8 +1556,8 @@ func Test_transformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	}
 }
 
-func Test_transformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
-	os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
@@ -1583,13 +1577,13 @@ func Test_transformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 	}
 }
 
-func Test_transformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
+func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	useCase := &UseCase{}
+	useCase := &UseCase{
+		CryptoHashSecretKeyPluginCRM: hashKey,
+	}
 
 	filter := map[string]model.FilterCondition{
 		"document": {
@@ -1641,13 +1635,13 @@ func Test_transformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	}
 }
 
-func Test_transformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
+func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	useCase := &UseCase{}
+	useCase := &UseCase{
+		CryptoHashSecretKeyPluginCRM: hashKey,
+	}
 
 	filter := map[string]model.FilterCondition{
 		"unmapped_field": {
@@ -1666,7 +1660,7 @@ func Test_transformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	}
 }
 
-func Test_GenerateReport_ReportAlreadyFinished(t *testing.T) {
+func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1694,7 +1688,7 @@ func Test_GenerateReport_ReportAlreadyFinished(t *testing.T) {
 
 	useCase := &UseCase{
 		ReportDataRepo:      mockReportDataRepo,
-		ExternalDataSources: map[string]pkg.DataSource{},
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
@@ -1703,7 +1697,7 @@ func Test_GenerateReport_ReportAlreadyFinished(t *testing.T) {
 	}
 }
 
-func Test_updateReportWithErrors(t *testing.T) {
+func TestUpdateReportWithErrors(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1759,7 +1753,7 @@ func Test_updateReportWithErrors(t *testing.T) {
 	}
 }
 
-func Test_markReportAsFinished(t *testing.T) {
+func TestMarkReportAsFinished(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1817,7 +1811,7 @@ func Test_markReportAsFinished(t *testing.T) {
 	}
 }
 
-func Test_checkReportStatus(t *testing.T) {
+func TestCheckReportStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1880,7 +1874,7 @@ func Test_checkReportStatus(t *testing.T) {
 	}
 }
 
-func Test_saveReport_WithTTL(t *testing.T) {
+func TestSaveReport_WithTTL(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1913,7 +1907,7 @@ func Test_saveReport_WithTTL(t *testing.T) {
 	}
 }
 
-func Test_queryPostgresDatabase_SchemaFormats(t *testing.T) {
+func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2050,9 +2044,9 @@ func Test_queryPostgresDatabase_SchemaFormats(t *testing.T) {
 	}
 }
 
-func Test_decryptPluginCRMData_MissingEnvVars(t *testing.T) {
-	os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
-	os.Unsetenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
+func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
+	t.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", "")
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
@@ -2067,7 +2061,7 @@ func Test_decryptPluginCRMData_MissingEnvVars(t *testing.T) {
 	}
 }
 
-func Test_decryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
+func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
 
@@ -2085,7 +2079,7 @@ func Test_decryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 	}
 }
 
-func Test_handleErrorWithUpdate(t *testing.T) {
+func TestHandleErrorWithUpdate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2143,7 +2137,7 @@ func Test_handleErrorWithUpdate(t *testing.T) {
 	}
 }
 
-func Test_decryptNestedFields_AllTypes(t *testing.T) {
+func TestDecryptNestedFields_AllTypes(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2240,7 +2234,7 @@ func Test_decryptNestedFields_AllTypes(t *testing.T) {
 	}
 }
 
-func Test_decryptRecord(t *testing.T) {
+func TestDecryptRecord(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2311,7 +2305,7 @@ func Test_decryptRecord(t *testing.T) {
 	}
 }
 
-func Test_decryptTopLevelFields(t *testing.T) {
+func TestDecryptTopLevelFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2383,7 +2377,7 @@ func Test_decryptTopLevelFields(t *testing.T) {
 	}
 }
 
-func Test_GenerateReport_ReportInErrorState(t *testing.T) {
+func TestGenerateReport_ReportInErrorState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2411,7 +2405,7 @@ func Test_GenerateReport_ReportInErrorState(t *testing.T) {
 
 	useCase := &UseCase{
 		ReportDataRepo:      mockReportDataRepo,
-		ExternalDataSources: map[string]pkg.DataSource{},
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
@@ -2420,7 +2414,7 @@ func Test_GenerateReport_ReportInErrorState(t *testing.T) {
 	}
 }
 
-func Test_queryMongoDatabase_Success(t *testing.T) {
+func TestQueryMongoDatabase_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2466,7 +2460,7 @@ func Test_queryMongoDatabase_Success(t *testing.T) {
 	}
 }
 
-func Test_queryMongoDatabase_WithFilters(t *testing.T) {
+func TestQueryMongoDatabase_WithFilters(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2516,7 +2510,7 @@ func Test_queryMongoDatabase_WithFilters(t *testing.T) {
 	}
 }
 
-func Test_processRegularMongoCollection(t *testing.T) {
+func TestProcessRegularMongoCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2563,7 +2557,7 @@ func Test_processRegularMongoCollection(t *testing.T) {
 	}
 }
 
-func Test_loadTemplate_Success(t *testing.T) {
+func TestLoadTemplate_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2597,7 +2591,7 @@ func Test_loadTemplate_Success(t *testing.T) {
 	}
 }
 
-func Test_loadTemplate_Error(t *testing.T) {
+func TestLoadTemplate_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2633,13 +2627,13 @@ func Test_loadTemplate_Error(t *testing.T) {
 	}
 }
 
-func Test_queryExternalData_NoDataSources(t *testing.T) {
+func TestQueryExternalData_NoDataSources(t *testing.T) {
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
-		ExternalDataSources:   map[string]pkg.DataSource{},
+		ExternalDataSources:   pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 		CircuitBreakerManager: cbManager,
 	}
 

@@ -149,7 +149,7 @@ func (uc *UseCase) shouldSkipProcessing(ctx context.Context, reportID uuid.UUID,
 
 // loadTemplate loads template file from SeaweedFS.
 func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, span *trace.Span, logger log.Logger) ([]byte, error) {
-	ctx, spanTemplate := tracer.Start(ctx, "service.report.generate.get_template")
+	ctx, spanTemplate := tracer.Start(ctx, "service.report.get_template")
 	defer spanTemplate.End()
 
 	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
@@ -174,7 +174,7 @@ func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, messag
 
 // renderTemplate renders the template with data from external sources.
 func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span, logger log.Logger) (string, error) {
-	ctx, spanRender := tracer.Start(ctx, "service.report.generate.render_template")
+	ctx, spanRender := tracer.Start(ctx, "service.report.render_template")
 	defer spanRender.End()
 
 	renderer := pongo.NewTemplateRenderer()
@@ -203,7 +203,7 @@ func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, tracer trace.Tracer
 		return htmlOutput, nil
 	}
 
-	_, spanPDF := tracer.Start(ctx, "service.report.generate.convert_to_pdf")
+	_, spanPDF := tracer.Start(ctx, "service.report.convert_to_pdf")
 	defer spanPDF.End()
 
 	logger.Infof("Converting HTML to PDF for report %s (HTML size: %d bytes)", message.ReportID, len(htmlOutput))
@@ -282,7 +282,7 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 // If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
-	ctx, spanSaveReport := tracer.Start(ctx, "service.report.generate.save_report")
+	ctx, spanSaveReport := tracer.Start(ctx, "service.report.save_report")
 	defer spanSaveReport.End()
 
 	outputFormat := strings.ToLower(message.OutputFormat)
@@ -309,7 +309,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.report.generate.query_external_data")
+	ctx, span := tracer.Start(ctx, "service.report.query_external_data")
 	defer span.End()
 
 	for databaseName, tables := range message.DataQueries {
@@ -331,12 +331,12 @@ func (uc *UseCase) queryDatabase(
 	logger log.Logger,
 	tracer trace.Tracer,
 ) error {
-	ctx, dbSpan := tracer.Start(ctx, "service.report.generate.query_external_data.database")
+	ctx, dbSpan := tracer.Start(ctx, "service.report.query_database")
 	defer dbSpan.End()
 
 	logger.Infof("Querying database %s", databaseName)
 
-	dataSource, exists := uc.ExternalDataSources[databaseName]
+	dataSource, exists := uc.ExternalDataSources.Get(databaseName)
 	if !exists {
 		libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
 		logger.Errorf("Unknown data source: %s", databaseName)
@@ -349,7 +349,7 @@ func (uc *UseCase) queryDatabase(
 		cbState := uc.CircuitBreakerManager.GetState(databaseName)
 		err := fmt.Errorf("datasource %s is unhealthy - circuit breaker state: %s", databaseName, cbState)
 		libOtel.HandleSpanError(&dbSpan, "Circuit breaker blocking request", err)
-		logger.Errorf("⚠️  Circuit breaker blocking request to datasource %s (state: %s)", databaseName, cbState)
+		logger.Errorf("Circuit breaker blocking request to datasource %s (state: %s)", databaseName, cbState)
 
 		return err
 	}
@@ -360,13 +360,13 @@ func (uc *UseCase) queryDatabase(
 		if dataSource.Status == libConstants.DataSourceStatusUnavailable {
 			err := fmt.Errorf("datasource %s is unavailable (initialization failed)", databaseName)
 			libOtel.HandleSpanError(&dbSpan, "Datasource unavailable", err)
-			logger.Errorf("⚠️  Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)
+			logger.Errorf("Datasource %s is unavailable - last error: %v", databaseName, dataSource.LastError)
 
 			return err
 		}
 
 		// Attempt to connect
-		if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
+		if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
 			libOtel.HandleSpanError(&dbSpan, "Error initializing database connection.", err)
 			return err
 		}
@@ -507,7 +507,7 @@ func (uc *UseCase) queryMongoDatabase(
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.report.generate.query_mongo_database")
+	ctx, span := tracer.Start(ctx, "service.report.query_mongo_database")
 	defer span.End()
 
 	span.SetAttributes(
@@ -540,7 +540,7 @@ func (uc *UseCase) processMongoCollection(
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 	_ = reqId // reqId available for future trace correlation if needed
 
-	ctx, span := tracer.Start(ctx, "service.report.generate.process_mongo_collection")
+	ctx, span := tracer.Start(ctx, "service.report.process_mongo_collection")
 	defer span.End()
 
 	span.SetAttributes(
@@ -645,7 +645,7 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 	_ = reqId // reqId available for future trace correlation if needed
 
-	ctx, span := tracer.Start(ctx, "service.report.generate.query_mongo_collection_with_filters")
+	ctx, span := tracer.Start(ctx, "service.report.query_mongo_filters")
 	defer span.End()
 
 	span.SetAttributes(
@@ -738,13 +738,12 @@ func (uc *UseCase) transformPluginCRMAdvancedFilters(filter map[string]model.Fil
 		return nil, nil
 	}
 
-	hashSecretKey := os.Getenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
-	if hashSecretKey == "" {
-		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	if uc.CryptoHashSecretKeyPluginCRM == "" {
+		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM not configured")
 	}
 
 	crypto := &libCrypto.Crypto{
-		HashSecretKey: hashSecretKey,
+		HashSecretKey: uc.CryptoHashSecretKeyPluginCRM,
 		Logger:        logger,
 	}
 
@@ -869,21 +868,18 @@ func (uc *UseCase) decryptPluginCRMData(logger log.Logger, collectionResult []ma
 		return collectionResult, nil
 	}
 
-	// Initialize crypto instance
-	hashSecretKey := os.Getenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
-
-	encryptSecretKey := os.Getenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
-	if encryptSecretKey == "" {
-		return nil, fmt.Errorf("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	// Initialize crypto instance using centralized configuration
+	if uc.CryptoEncryptSecretKeyPluginCRM == "" {
+		return nil, fmt.Errorf("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM not configured")
 	}
 
-	if hashSecretKey == "" {
-		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM environment variable not set")
+	if uc.CryptoHashSecretKeyPluginCRM == "" {
+		return nil, fmt.Errorf("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM not configured")
 	}
 
 	crypto := &libCrypto.Crypto{
-		HashSecretKey:    hashSecretKey,
-		EncryptSecretKey: encryptSecretKey,
+		HashSecretKey:    uc.CryptoHashSecretKeyPluginCRM,
+		EncryptSecretKey: uc.CryptoEncryptSecretKeyPluginCRM,
 		Logger:           logger,
 	}
 

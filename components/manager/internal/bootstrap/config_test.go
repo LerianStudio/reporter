@@ -15,16 +15,21 @@ import (
 // validManagerConfig returns a Config with all required fields populated.
 func validManagerConfig() *Config {
 	return &Config{
-		ServerAddress:             "localhost:4005",
-		MongoDBHost:               "localhost",
-		MongoDBName:               "reporter",
-		RabbitMQHost:              "localhost",
-		RabbitMQPortAMQP:          "5672",
-		RabbitMQUser:              "guest",
-		RabbitMQPass:              "guest",
+		ServerAddress:               "localhost:4005",
+		MongoDBHost:                 "localhost",
+		MongoDBName:                 "reporter",
+		MongoMaxPoolSize:     "100",
+		MongoMinPoolSize:     "10",
+		MongoMaxConnIdleTime: "60s",
+		RabbitMQHost:                "localhost",
+		RabbitMQPortAMQP:            "5672",
+		RabbitMQUser:                "guest",
+		RabbitMQPass:                "guest",
 		RabbitMQGenerateReportQueue: "reporter.generate-report.queue",
-		RedisHost:                 "localhost:6379",
-		ObjectStorageEndpoint:     "http://localhost:8333",
+		RabbitMQExchange:            "reporter.generate-report.exchange",
+		RabbitMQGenerateReportKey:   "reporter.generate-report.key",
+		RedisHost:                   "localhost:6379",
+		ObjectStorageEndpoint:       "http://localhost:8333",
 	}
 }
 
@@ -53,6 +58,8 @@ func TestConfig_Validate_AllFieldsMissing(t *testing.T) {
 	assert.Contains(t, errMsg, "RABBITMQ_DEFAULT_USER is required")
 	assert.Contains(t, errMsg, "RABBITMQ_DEFAULT_PASS is required")
 	assert.Contains(t, errMsg, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
+	assert.Contains(t, errMsg, "RABBITMQ_EXCHANGE is required")
+	assert.Contains(t, errMsg, "RABBITMQ_GENERATE_REPORT_KEY is required")
 	assert.Contains(t, errMsg, "REDIS_HOST is required")
 	assert.Contains(t, errMsg, "OBJECT_STORAGE_ENDPOINT is required")
 }
@@ -61,9 +68,9 @@ func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name         string
-		modify       func(cfg *Config)
-		expectedErr  string
+		name        string
+		modify      func(cfg *Config)
+		expectedErr string
 	}{
 		{
 			name:        "missing ServerAddress",
@@ -106,6 +113,16 @@ func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
 			expectedErr: "RABBITMQ_GENERATE_REPORT_QUEUE is required",
 		},
 		{
+			name:        "missing RabbitMQExchange",
+			modify:      func(cfg *Config) { cfg.RabbitMQExchange = "" },
+			expectedErr: "RABBITMQ_EXCHANGE is required",
+		},
+		{
+			name:        "missing RabbitMQGenerateReportKey",
+			modify:      func(cfg *Config) { cfg.RabbitMQGenerateReportKey = "" },
+			expectedErr: "RABBITMQ_GENERATE_REPORT_KEY is required",
+		},
+		{
 			name:        "missing RedisHost",
 			modify:      func(cfg *Config) { cfg.RedisHost = "" },
 			expectedErr: "REDIS_HOST is required",
@@ -118,6 +135,7 @@ func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

@@ -27,8 +27,8 @@ type UseCase struct {
 	// ReportSeaweedFS is a repository interface for storing report files in SeaweedFS.
 	ReportSeaweedFS reportSeaweedFS.Repository
 
-	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
-	ExternalDataSources map[string]pkg.DataSource
+	// ExternalDataSources holds a thread-safe map of external data sources identified by their names.
+	ExternalDataSources *pkg.SafeDataSources
 
 	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case
 	ReportDataRepo reportData.Repository
@@ -44,4 +44,10 @@ type UseCase struct {
 
 	// PdfPool provides PDF generation capabilities using Chrome headless
 	PdfPool pdf.PDFGenerator
+
+	// CryptoHashSecretKeyPluginCRM is the hash secret key for plugin_crm data operations.
+	CryptoHashSecretKeyPluginCRM string
+
+	// CryptoEncryptSecretKeyPluginCRM is the encryption secret key for plugin_crm data operations.
+	CryptoEncryptSecretKeyPluginCRM string
 }

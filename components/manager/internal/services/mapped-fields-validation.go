@@ -30,27 +30,29 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 
 	logger.Infof("Validating if mapped fields exist on tables")
 
+	allDataSources := uc.ExternalDataSources.GetAll()
+
 	for databaseName := range mappedFields {
 		if !pkg.IsValidDataSourceID(databaseName) {
 			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
 			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 
-		if _, exists := uc.ExternalDataSources[databaseName]; !exists {
+		if _, exists := allDataSources[databaseName]; !exists {
 			logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
 			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
 		}
 	}
 
-	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, uc.ExternalDataSources)
+	mappedFieldsToValidate := generateCopyOfMappedFields(mappedFields, allDataSources)
 
 	for databaseName := range mappedFields {
-		dataSource := uc.ExternalDataSources[databaseName]
+		dataSource := allDataSources[databaseName]
 
 		switch dataSource.DatabaseType {
 		case pkg.PostgreSQLType:
 			if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
-				if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
+				if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
 					libOpentelemetry.HandleSpanError(&span, "Failed to initialize PostgreSQL connection", err)
 					logger.Errorf("Error initializing database connection, Err: %s", err)
 
@@ -67,7 +69,7 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 			}
 		case pkg.MongoDBType:
 			if !dataSource.Initialized {
-				if err := pkg.ConnectToDataSource(databaseName, &dataSource, logger, uc.ExternalDataSources); err != nil {
+				if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
 					libOpentelemetry.HandleSpanError(&span, "Failed to initialize MongoDB connection", err)
 					logger.Errorf("Error initializing database connection, Err: %s", err)
 

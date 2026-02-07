@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,13 +46,16 @@ type Config struct {
 	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry         bool   `env:"ENABLE_TELEMETRY"`
 	// Mongo configuration envs
-	MongoURI          string `env:"MONGO_URI"`
-	MongoDBHost       string `env:"MONGO_HOST"`
-	MongoDBName       string `env:"MONGO_NAME"`
-	MongoDBUser       string `env:"MONGO_USER"`
-	MongoDBPassword   string `env:"MONGO_PASSWORD"`
-	MongoDBPort       string `env:"MONGO_PORT"`
-	MongoDBParameters string `env:"MONGO_PARAMETERS"`
+	MongoURI             string        `env:"MONGO_URI"`
+	MongoDBHost          string        `env:"MONGO_HOST"`
+	MongoDBName          string        `env:"MONGO_NAME"`
+	MongoDBUser          string        `env:"MONGO_USER"`
+	MongoDBPassword      string        `env:"MONGO_PASSWORD"`
+	MongoDBPort          string        `env:"MONGO_PORT"`
+	MongoDBParameters    string        `env:"MONGO_PARAMETERS"`
+	MongoMaxPoolSize     string `env:"MONGO_MAX_POOL_SIZE" default:"100"`
+	MongoMinPoolSize     string `env:"MONGO_MIN_POOL_SIZE" default:"10"`
+	MongoMaxConnIdleTime string `env:"MONGO_MAX_CONN_IDLE_TIME" default:"60s"`
 	// Storage configuration envs (S3-compatible only)
 	ObjectStorageEndpoint     string `env:"OBJECT_STORAGE_ENDPOINT"`
 	ObjectStorageRegion       string `env:"OBJECT_STORAGE_REGION" default:"us-east-1"`
@@ -69,6 +73,8 @@ type Config struct {
 	RabbitMQUser                string `env:"RABBITMQ_DEFAULT_USER"`
 	RabbitMQPass                string `env:"RABBITMQ_DEFAULT_PASS"`
 	RabbitMQGenerateReportQueue string `env:"RABBITMQ_GENERATE_REPORT_QUEUE"`
+	RabbitMQExchange            string `env:"RABBITMQ_EXCHANGE"`
+	RabbitMQGenerateReportKey   string `env:"RABBITMQ_GENERATE_REPORT_KEY"`
 	// Redis/Valkey configuration envs
 	RedisHost                    string `env:"REDIS_HOST"`
 	RedisMasterName              string `env:"REDIS_MASTER_NAME" default:""`
@@ -87,56 +93,78 @@ type Config struct {
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
 }
 
-// Validate checks that all required configuration fields are present.
-// Returns a descriptive multi-error message listing all missing fields.
+// Validate checks that all required configuration fields are present
+// and that optional numeric bounds are consistent.
+// Returns a descriptive multi-error message listing all violations.
 func (c *Config) Validate() error {
 	var errs []string
 
-	if c.ServerAddress == "" {
-		errs = append(errs, "SERVER_ADDRESS is required")
-	}
-
-	if c.MongoDBHost == "" {
-		errs = append(errs, "MONGO_HOST is required")
-	}
-
-	if c.MongoDBName == "" {
-		errs = append(errs, "MONGO_NAME is required")
-	}
-
-	if c.RabbitMQHost == "" {
-		errs = append(errs, "RABBITMQ_HOST is required")
-	}
-
-	if c.RabbitMQPortAMQP == "" {
-		errs = append(errs, "RABBITMQ_PORT_AMQP is required")
-	}
-
-	if c.RabbitMQUser == "" {
-		errs = append(errs, "RABBITMQ_DEFAULT_USER is required")
-	}
-
-	if c.RabbitMQPass == "" {
-		errs = append(errs, "RABBITMQ_DEFAULT_PASS is required")
-	}
-
-	if c.RabbitMQGenerateReportQueue == "" {
-		errs = append(errs, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
-	}
-
-	if c.RedisHost == "" {
-		errs = append(errs, "REDIS_HOST is required")
-	}
-
-	if c.ObjectStorageEndpoint == "" {
-		errs = append(errs, "OBJECT_STORAGE_ENDPOINT is required")
-	}
+	errs = c.validateRequiredFields(errs)
+	errs = c.validateMongoPoolBounds(errs)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
 	}
 
 	return nil
+}
+
+// validateRequiredFields appends an error for each required configuration
+// field that is empty and returns the accumulated slice.
+func (c *Config) validateRequiredFields(errs []string) []string {
+	required := []struct {
+		value string
+		name  string
+	}{
+		{c.ServerAddress, "SERVER_ADDRESS"},
+		{c.MongoDBHost, "MONGO_HOST"},
+		{c.MongoDBName, "MONGO_NAME"},
+		{c.RabbitMQHost, "RABBITMQ_HOST"},
+		{c.RabbitMQPortAMQP, "RABBITMQ_PORT_AMQP"},
+		{c.RabbitMQUser, "RABBITMQ_DEFAULT_USER"},
+		{c.RabbitMQPass, "RABBITMQ_DEFAULT_PASS"},
+		{c.RabbitMQGenerateReportQueue, "RABBITMQ_GENERATE_REPORT_QUEUE"},
+		{c.RabbitMQExchange, "RABBITMQ_EXCHANGE"},
+		{c.RabbitMQGenerateReportKey, "RABBITMQ_GENERATE_REPORT_KEY"},
+		{c.RedisHost, "REDIS_HOST"},
+		{c.ObjectStorageEndpoint, "OBJECT_STORAGE_ENDPOINT"},
+	}
+
+	for _, r := range required {
+		if r.value == "" {
+			errs = append(errs, r.name+" is required")
+		}
+	}
+
+	return errs
+}
+
+// validateMongoPoolBounds checks that MongoDB connection pool size
+// parameters are within allowed ranges and consistent with each other.
+func (c *Config) validateMongoPoolBounds(errs []string) []string {
+	const mongoMaxPoolSizeUpperBound = 10000
+
+	maxPool, err := strconv.ParseUint(c.MongoMaxPoolSize, 10, 64)
+	if err != nil && c.MongoMaxPoolSize != "" {
+		errs = append(errs, "MONGO_MAX_POOL_SIZE must be a valid integer")
+		return errs
+	}
+
+	minPool, err := strconv.ParseUint(c.MongoMinPoolSize, 10, 64)
+	if err != nil && c.MongoMinPoolSize != "" {
+		errs = append(errs, "MONGO_MIN_POOL_SIZE must be a valid integer")
+		return errs
+	}
+
+	if maxPool > mongoMaxPoolSizeUpperBound {
+		errs = append(errs, "MONGO_MAX_POOL_SIZE must not exceed 10000")
+	}
+
+	if maxPool > 0 && minPool > maxPool {
+		errs = append(errs, "MONGO_MIN_POOL_SIZE must not exceed MONGO_MAX_POOL_SIZE")
+	}
+
+	return errs
 }
 
 // InitServers initiate http and grpc servers.
@@ -196,10 +224,16 @@ func InitServers() (*Service, error) {
 		mongoSource += "/?" + cfg.MongoDBParameters
 	}
 
+	mongoMaxPoolSize, _ := strconv.ParseUint(cfg.MongoMaxPoolSize, 10, 64)
+	if mongoMaxPoolSize == 0 {
+		mongoMaxPoolSize = 100
+	}
+
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
 		Database:               cfg.MongoDBName,
 		Logger:                 logger,
+		MaxPoolSize:            mongoMaxPoolSize,
 	}
 
 	// Init rabbit MQ for producer
@@ -266,7 +300,7 @@ func InitServers() (*Service, error) {
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
 		TemplateSeaweedFS:   templateSeaweedFSRepository,
-		ExternalDataSources: pkg.ExternalDatasourceConnections(logger),
+		ExternalDataSources: pkg.NewSafeDataSources(pkg.ExternalDatasourceConnections(logger)),
 	}
 
 	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
@@ -279,14 +313,16 @@ func InitServers() (*Service, error) {
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
 
 	// Initialize datasources in lazy mode (connect on-demand for faster startup)
-	externalDataSources := pkg.ExternalDatasourceConnectionsLazy(logger)
+	externalDataSources := pkg.NewSafeDataSources(pkg.ExternalDatasourceConnectionsLazy(logger))
 
 	reportService := &services.UseCase{
-		ReportRepo:          reportMongoDBRepository,
-		RabbitMQRepo:        producerRabbitMQRepository,
-		TemplateRepo:        templateMongoDBRepository,
-		ReportSeaweedFS:     reportSeaweedFSRepository,
-		ExternalDataSources: externalDataSources,
+		ReportRepo:                reportMongoDBRepository,
+		RabbitMQRepo:              producerRabbitMQRepository,
+		TemplateRepo:              templateMongoDBRepository,
+		ReportSeaweedFS:           reportSeaweedFSRepository,
+		ExternalDataSources:       externalDataSources,
+		RabbitMQExchange:          cfg.RabbitMQExchange,
+		RabbitMQGenerateReportKey: cfg.RabbitMQGenerateReportKey,
 	}
 
 	reportHandler, err := in2.NewReportHandler(reportService)
