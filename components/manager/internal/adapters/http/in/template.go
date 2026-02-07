@@ -5,6 +5,8 @@
 package in
 
 import (
+	"errors"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
@@ -22,8 +24,19 @@ import (
 
 const errorFileAccepted = "there is no uploaded file associated with the given key"
 
+// TemplateHandler handles HTTP requests for template operations.
 type TemplateHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewTemplateHandler creates a new TemplateHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for TemplateHandler")
+	}
+
+	return &TemplateHandler{service: service}, nil
 }
 
 // CreateTemplate is a method that creates a template.
@@ -98,7 +111,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 		return http.WithError(c, errValidateFile)
 	}
 
-	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description, fileHeader)
+	templateOut, err := th.service.CreateTemplate(ctx, templateFile, outputFormat, description, fileHeader)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
 
@@ -160,7 +173,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
 
-	templateUpdated, errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader)
+	templateUpdated, errUpdate := th.service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader)
 	if errUpdate != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
 
@@ -204,7 +217,7 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	templateModel, err := th.Service.GetTemplateByID(ctx, id)
+	templateModel, err := th.service.GetTemplateByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
 
@@ -266,7 +279,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	templates, err := th.Service.GetAllTemplates(ctx, *headerParams)
+	templates, err := th.service.GetAllTemplates(ctx, *headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
 
@@ -312,7 +325,7 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	if err := th.Service.DeleteTemplateByID(ctx, id, false); err != nil {
+	if err := th.service.DeleteTemplateByID(ctx, id, false); err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())

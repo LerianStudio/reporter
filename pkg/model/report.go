@@ -4,7 +4,11 @@
 
 package model
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // FilterCondition defines advanced filtering conditions for report generation.
 // Supports multiple operators for complex queries including range, equality, and list-based filters.
@@ -59,6 +63,28 @@ type CreateReportInput struct {
 	Filters    map[string]map[string]map[string]FilterCondition `json:"filters" validate:"required"`
 } //	@name	CreateReportInput
 
+// NewCreateReportInput creates a new CreateReportInput with validation.
+// This constructor enforces domain invariants at creation time, ensuring the input
+// can never exist in an invalid state.
+//
+// Parameters:
+//   - templateID: The template identifier (must not be empty)
+//   - filters: The filter conditions for report generation
+//
+// Returns:
+//   - *CreateReportInput: A validated input object
+//   - error: Validation error if invariants are violated
+func NewCreateReportInput(templateID string, filters map[string]map[string]map[string]FilterCondition) (*CreateReportInput, error) {
+	if templateID == "" {
+		return nil, fmt.Errorf("templateID must not be empty")
+	}
+
+	return &CreateReportInput{
+		TemplateID: templateID,
+		Filters:    filters,
+	}, nil
+}
+
 // ReportMessage is a struct designed to encapsulate response payload data.
 //
 // swagger:model ReportMessage
@@ -71,3 +97,44 @@ type ReportMessage struct {
 	Filters      map[string]map[string]map[string]FilterCondition `json:"filters"`
 	MappedFields map[string]map[string][]string                   `json:"mappedFields"`
 } //	@name	ReportMessage
+
+// NewReportMessage creates a new ReportMessage with validation.
+// This constructor enforces domain invariants at creation time, ensuring the message
+// can never exist in an invalid state before being published to RabbitMQ.
+//
+// Parameters:
+//   - templateID: The template UUID (must not be nil)
+//   - reportID: The report UUID (must not be nil)
+//   - outputFormat: The desired output format (must not be empty)
+//   - mappedFields: Field mappings for template rendering (can be nil)
+//   - filters: Filter conditions for data queries (can be nil)
+//
+// Returns:
+//   - *ReportMessage: A validated message object
+//   - error: Validation error if invariants are violated
+func NewReportMessage(
+	templateID, reportID uuid.UUID,
+	outputFormat string,
+	mappedFields map[string]map[string][]string,
+	filters map[string]map[string]map[string]FilterCondition,
+) (*ReportMessage, error) {
+	if templateID == uuid.Nil {
+		return nil, fmt.Errorf("templateID must not be nil")
+	}
+
+	if reportID == uuid.Nil {
+		return nil, fmt.Errorf("reportID must not be nil")
+	}
+
+	if outputFormat == "" {
+		return nil, fmt.Errorf("outputFormat must not be empty")
+	}
+
+	return &ReportMessage{
+		TemplateID:   templateID,
+		ReportID:     reportID,
+		OutputFormat: outputFormat,
+		MappedFields: mappedFields,
+		Filters:      filters,
+	}, nil
+}

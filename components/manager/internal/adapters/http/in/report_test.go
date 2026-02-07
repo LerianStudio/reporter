@@ -132,7 +132,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 			}
 
 			handler := &ReportHandler{
-				Service: svc,
+				service: svc,
 			}
 
 			app := fiber.New(fiber.Config{
@@ -214,7 +214,7 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 			}
 
 			handler := &ReportHandler{
-				Service: svc,
+				service: svc,
 			}
 
 			app := fiber.New(fiber.Config{
@@ -328,7 +328,7 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 			}
 
 			handler := &ReportHandler{
-				Service: svc,
+				service: svc,
 			}
 
 			app := fiber.New(fiber.Config{
@@ -502,7 +502,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 			}
 
 			handler := &ReportHandler{
-				Service: svc,
+				service: svc,
 			}
 
 			app := fiber.New(fiber.Config{
@@ -530,4 +530,21 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_NewReportHandler_NilService(t *testing.T) {
+	handler, err := NewReportHandler(nil)
+
+	assert.Nil(t, handler)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "service must not be nil")
+}
+
+func Test_NewReportHandler_ValidService(t *testing.T) {
+	svc := &services.UseCase{}
+
+	handler, err := NewReportHandler(svc)
+
+	assert.NotNil(t, handler)
+	assert.NoError(t, err)
 }

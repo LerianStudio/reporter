@@ -90,7 +90,7 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	templateID := uuid.New()
 	templateEntity := &template.Template{
@@ -168,7 +168,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	templates := []*template.Template{
 		{
@@ -277,7 +277,7 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 	templateID := uuid.New()
 
 	tests := []struct {
@@ -346,7 +346,7 @@ func Test_TemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	mockTemplateRepo.EXPECT().
 		FindList(gomock.Any(), gomock.Any()).
@@ -377,7 +377,7 @@ func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	tests := []struct {
 		name           string
@@ -451,7 +451,7 @@ func Test_TemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	app := setupTemplateTestApp(handler)
 	app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
@@ -492,7 +492,7 @@ func Test_TemplateHandler_CreateTemplate_NoFile(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 
 	app := setupTemplateTestApp(handler)
 	app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
@@ -528,7 +528,7 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 		TemplateSeaweedFS: mockSeaweedFS,
 	}
 
-	handler := &TemplateHandler{Service: useCase}
+	handler := &TemplateHandler{service: useCase}
 	templateID := uuid.New()
 
 	tests := []struct {
@@ -576,4 +576,21 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
+}
+
+func Test_NewTemplateHandler_NilService(t *testing.T) {
+	handler, err := NewTemplateHandler(nil)
+
+	assert.Nil(t, handler)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "service must not be nil")
+}
+
+func Test_NewTemplateHandler_ValidService(t *testing.T) {
+	svc := &services.UseCase{}
+
+	handler, err := NewTemplateHandler(svc)
+
+	assert.NotNil(t, handler)
+	assert.NoError(t, err)
 }

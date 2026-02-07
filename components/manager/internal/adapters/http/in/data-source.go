@@ -5,6 +5,8 @@
 package in
 
 import (
+	"errors"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	_ "github.com/LerianStudio/reporter/pkg"
 	_ "github.com/LerianStudio/reporter/pkg/model"
@@ -17,8 +19,19 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// DataSourceHandler handles HTTP requests for data source operations.
 type DataSourceHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewDataSourceHandler creates a new DataSourceHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewDataSourceHandler(service *services.UseCase) (*DataSourceHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for DataSourceHandler")
+	}
+
+	return &DataSourceHandler{service: service}, nil
 }
 
 // GetDataSourceInformation retrieves all data sources connected on reporter.
@@ -45,7 +58,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	logger.Infof("Initiating retrieval data source information")
 
-	dataSourceInfo := ds.Service.GetDataSourceInformation(ctx)
+	dataSourceInfo := ds.service.GetDataSourceInformation(ctx)
 
 	logger.Infof("Successfully get all data source information.")
 
@@ -82,7 +95,7 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 		attribute.String("app.request.data_source_id", dataSourceID),
 	)
 
-	dataSourceInfo, err := ds.Service.GetDataSourceDetailsByID(ctx, dataSourceID)
+	dataSourceInfo, err := ds.service.GetDataSourceDetailsByID(ctx, dataSourceID)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
 

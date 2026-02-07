@@ -97,6 +97,8 @@ help:
 	@echo ""
 	@echo ""
 	@echo "Setup Commands:"
+	@echo "  make check-tools                 - Verify all required development tools are installed"
+	@echo "  make dev-setup                   - Install all development tools and set up environment"
 	@echo "  make set-env                     - Copy .env.example to .env for all components"
 	@echo ""
 	@echo ""
@@ -109,6 +111,11 @@ help:
 	@echo "  make rebuild-up                   - Rebuild and restart all services"
 	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
 	@echo "  make logs                         - Show logs for all services"
+	@echo ""
+	@echo ""
+	@echo "Code Generation Commands:"
+	@echo "  make generate                    - Run code generation (go generate)"
+	@echo "  make generate-mocks              - Generate mock files"
 	@echo ""
 	@echo ""
 	@echo "Documentation Commands:"
@@ -499,8 +506,43 @@ validate-api-docs: generate-docs
 	fi
 
 #-------------------------------------------------------
+# Code Generation Commands
+#-------------------------------------------------------
+
+.PHONY: generate
+generate:
+	$(call print_title,"Running code generation")
+	@go generate ./...
+	@echo "[ok] Code generation completed ✔️"
+
+.PHONY: generate-mocks
+generate-mocks:
+	$(call print_title,"Generating mock files")
+	@go generate ./...
+	@echo "[ok] Mock generation completed ✔️"
+
+#-------------------------------------------------------
 # Developer Helper Commands
 #-------------------------------------------------------
+
+.PHONY: check-tools
+check-tools:
+	$(call print_title,"Checking required tools")
+	@err=0; \
+	for tool in go docker golangci-lint swag mockgen gosec govulncheck gofumpt goimports; do \
+		if command -v $$tool >/dev/null 2>&1; then \
+			echo "[ok] $$tool is installed"; \
+		else \
+			echo "[missing] $$tool is NOT installed"; \
+			err=1; \
+		fi; \
+	done; \
+	if [ $$err -eq 1 ]; then \
+		echo ""; \
+		echo "Run 'make dev-setup' to install missing tools"; \
+		exit 1; \
+	fi; \
+	echo "[ok] All tools available ✔️"
 
 .PHONY: dev-setup
 dev-setup:

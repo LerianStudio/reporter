@@ -52,7 +52,7 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 			app := setupTestApp()
 
 			handler := &DataSourceHandler{
-				Service: tt.setupService(),
+				service: tt.setupService(),
 			}
 
 			app.Get("/v1/data-sources", func(c *fiber.Ctx) error {
@@ -170,7 +170,7 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			app := setupTestApp()
 
 			handler := &DataSourceHandler{
-				Service: tt.setupService(),
+				service: tt.setupService(),
 			}
 
 			app.Get("/v1/data-sources/:dataSourceId", func(c *fiber.Ctx) error {
@@ -199,4 +199,21 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_NewDataSourceHandler_NilService(t *testing.T) {
+	handler, err := NewDataSourceHandler(nil)
+
+	assert.Nil(t, handler)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "service must not be nil")
+}
+
+func Test_NewDataSourceHandler_ValidService(t *testing.T) {
+	svc := &services.UseCase{}
+
+	handler, err := NewDataSourceHandler(svc)
+
+	assert.NotNil(t, handler)
+	assert.NoError(t, err)
 }

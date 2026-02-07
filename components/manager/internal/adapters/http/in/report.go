@@ -6,6 +6,7 @@ package in
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -19,8 +20,19 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// ReportHandler handles HTTP requests for report operations.
 type ReportHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewReportHandler creates a new ReportHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewReportHandler(service *services.UseCase) (*ReportHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for ReportHandler")
+	}
+
+	return &ReportHandler{service: service}, nil
 }
 
 // CreateReport is a method that creates a report.
@@ -58,7 +70,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
 	}
 
-	reportOut, err := rh.Service.CreateReport(ctx, payload)
+	reportOut, err := rh.service.CreateReport(ctx, payload)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
 
@@ -99,7 +111,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 		attribute.String("app.request.report_id", id.String()),
 	)
 
-	fileBytes, fileName, contentType, err := rh.Service.DownloadReport(ctx, id)
+	fileBytes, fileName, contentType, err := rh.service.DownloadReport(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to download report", err)
 
@@ -146,7 +158,7 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 		attribute.String("app.request.report_id", id.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id)
+	reportModel, err := rh.service.GetReportByID(ctx, id)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
 
@@ -207,7 +219,7 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	reports, err := rh.Service.GetAllReports(ctx, *headerParams)
+	reports, err := rh.service.GetAllReports(ctx, *headerParams)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
 

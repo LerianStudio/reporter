@@ -59,8 +59,7 @@ COPY --from=builder /worker /app/worker
 # Switch to non-root user
 USER appuser
 
-# Expose the application port
-EXPOSE 4005
+# Worker is a RabbitMQ consumer with no HTTP server; no port to expose.
 
 # Set the entrypoint to the worker binary
 ENTRYPOINT ["/app/worker"]
