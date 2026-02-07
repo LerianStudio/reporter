@@ -12,6 +12,53 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// IsBusinessError checks if an error is a business/domain error (validation, not-found, conflict, etc.)
+// as opposed to a technical/infrastructure error. Business errors should use HandleSpanBusinessErrorEvent
+// to avoid polluting error rate metrics with expected business conditions.
+func IsBusinessError(err error) bool {
+	var notFoundErr pkg.EntityNotFoundError
+	if errors.As(err, &notFoundErr) {
+		return true
+	}
+
+	var conflictErr pkg.EntityConflictError
+	if errors.As(err, &conflictErr) {
+		return true
+	}
+
+	var validationKnownFieldsErr pkg.ValidationKnownFieldsError
+	if errors.As(err, &validationKnownFieldsErr) {
+		return true
+	}
+
+	var validationUnknownFieldsErr pkg.ValidationUnknownFieldsError
+	if errors.As(err, &validationUnknownFieldsErr) {
+		return true
+	}
+
+	var validationErr pkg.ValidationError
+	if errors.As(err, &validationErr) {
+		return true
+	}
+
+	var unprocessableErr pkg.UnprocessableOperationError
+	if errors.As(err, &unprocessableErr) {
+		return true
+	}
+
+	var unauthorizedErr pkg.UnauthorizedError
+	if errors.As(err, &unauthorizedErr) {
+		return true
+	}
+
+	var forbiddenErr pkg.ForbiddenError
+	if errors.As(err, &forbiddenErr) {
+		return true
+	}
+
+	return false
+}
+
 // WithError returns an error with the given status code and message.
 // It uses errors.As() to correctly identify domain error types even when
 // they are wrapped with fmt.Errorf("%w") or multiple layers of wrapping.

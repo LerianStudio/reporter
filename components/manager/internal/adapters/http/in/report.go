@@ -75,7 +75,11 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	reportOut, err := rh.service.CreateReport(ctx, payload)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create report", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		}
 
 		return http.WithError(c, err)
 	}
@@ -118,7 +122,11 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 
 	fileBytes, fileName, contentType, err := rh.service.DownloadReport(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to download report", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to download report", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to download report", err)
+		}
 
 		logger.Errorf("Failed to download Report with ID: %s, Error: %s", id, err.Error())
 
@@ -167,7 +175,11 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	reportModel, err := rh.service.GetReportByID(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve report on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -230,7 +242,11 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	reports, err := rh.service.GetAllReports(ctx, *headerParams)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve all Reports on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve all Reports, Error: %s", err.Error())
 

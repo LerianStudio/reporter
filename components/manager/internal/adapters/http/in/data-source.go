@@ -102,7 +102,11 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 
 	dataSourceInfo, err := ds.service.GetDataSourceDetailsByID(ctx, dataSourceID)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve data source information on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve data source information, Error: %s", err.Error())
 

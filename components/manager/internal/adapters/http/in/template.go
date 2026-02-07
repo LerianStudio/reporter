@@ -5,6 +5,7 @@
 package in
 
 import (
+	"context"
 	"errors"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
@@ -46,15 +47,17 @@ func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description		formData	string	true	"Description of the template"
-//	@Success		201				{object}	template.Template
-//	@Failure		400				{object}	pkg.HTTPError
-//	@Failure		401				{object}	pkg.HTTPError
-//	@Failure		403				{object}	pkg.HTTPError
-//	@Failure		500				{object}	pkg.HTTPError
+//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			Idempotency-Key		header		string	false	"Client-provided idempotency key to prevent duplicate template creation"
+//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description			formData	string	true	"Description of the template"
+//	@Success		201					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		401					{object}	pkg.HTTPError
+//	@Failure		403					{object}	pkg.HTTPError
+//	@Failure		409					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -62,6 +65,11 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	ctx, span := tracer.Start(ctx, "handler.template.create")
 	defer span.End()
+
+	// Extract Idempotency-Key header and inject into context for the service layer
+	if idempotencyKey := c.Get("Idempotency-Key"); idempotencyKey != "" {
+		ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, idempotencyKey)
+	}
 
 	c.SetUserContext(ctx)
 
@@ -115,7 +123,11 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	templateOut, err := th.service.CreateTemplate(ctx, templateFile, outputFormat, description, fileHeader)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create template", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
+		}
 
 		return http.WithError(c, err)
 	}
@@ -179,7 +191,11 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 
 	templateUpdated, errUpdate := th.service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader)
 	if errUpdate != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
+		if http.IsBusinessError(errUpdate) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to update template", errUpdate)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
+		}
 
 		logger.Errorf("Failed to update Template with ID: %s, Error: %s", id, errUpdate.Error())
 
@@ -225,7 +241,11 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 
 	templateModel, err := th.service.GetTemplateByID(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve template on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
 
@@ -289,7 +309,11 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 
 	templates, err := th.service.GetAllTemplates(ctx, *headerParams)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve all Templates on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve all Templates, Error: %s", err.Error())
 
@@ -336,7 +360,11 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 	)
 
 	if err := th.service.DeleteTemplateByID(ctx, id, false); err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to remove template on database", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
+		}
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())
 
