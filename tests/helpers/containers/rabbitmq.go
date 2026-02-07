@@ -234,12 +234,19 @@ func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) er
 	r.AmqpPort = amqpPort.Port()
 	r.MgmtPort = mgmtPort.Port()
 
-	// Re-setup topology after restart with refreshed URL
-	if err := r.setupTopology(r.AmqpURL); err != nil {
-		return fmt.Errorf("re-setup topology: %w", err)
+	// Re-setup topology after restart with refreshed URL.
+	// RabbitMQ may need a few seconds to accept AMQP connections after container start.
+	var topologyErr error
+	for i := 0; i < 10; i++ {
+		topologyErr = r.setupTopology(r.AmqpURL)
+		if topologyErr == nil {
+			return nil
+		}
+
+		time.Sleep(2 * time.Second)
 	}
 
-	return nil
+	return fmt.Errorf("re-setup topology after 10 retries: %w", topologyErr)
 }
 
 // PurgeQueues removes all messages from all queues.
