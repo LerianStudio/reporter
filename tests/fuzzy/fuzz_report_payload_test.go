@@ -51,11 +51,9 @@ func FuzzReport_Payload(f *testing.F) {
 			payloadJSON = payloadJSON[:100000]
 		}
 
-		// Try to parse as JSON
+		// Try to parse as JSON - invalid JSON is valid fuzz input, just return
 		var payload any
 		if err := json.Unmarshal([]byte(payloadJSON), &payload); err != nil {
-			// Invalid JSON - test as raw body
-			t.Skip("invalid JSON")
 			return
 		}
 

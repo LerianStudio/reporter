@@ -42,11 +42,9 @@ func FuzzReport_Filters(f *testing.F) {
 			filterJSON = filterJSON[:5000]
 		}
 
-		// Try to parse as JSON
+		// Try to parse as JSON - invalid JSON is valid fuzz input, just return
 		var filterData any
 		if err := json.Unmarshal([]byte(filterJSON), &filterData); err != nil {
-			// Invalid JSON, skip
-			t.Skip("invalid JSON")
 			return
 		}
 

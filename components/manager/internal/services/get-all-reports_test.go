@@ -22,18 +22,10 @@ import (
 func TestGetAllReports(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportRepo := report.NewMockRepository(ctrl)
 	templateId := uuid.New()
 	reportId1 := uuid.New()
 	reportId2 := uuid.New()
 	timeNow := time.Now()
-
-	reportSvc := &UseCase{
-		ReportRepo: mockReportRepo,
-	}
 
 	filters := http.QueryHeader{
 		Limit:  10,
@@ -67,7 +59,7 @@ func TestGetAllReports(t *testing.T) {
 	tests := []struct {
 		name           string
 		filters        http.QueryHeader
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
 		expectedErr    error
 		expectedResult []*report.Report
@@ -76,10 +68,12 @@ func TestGetAllReports(t *testing.T) {
 		{
 			name:    "Success - Get all reports",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(mockReports, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false,
 			expectedResult: mockReports,
@@ -88,11 +82,13 @@ func TestGetAllReports(t *testing.T) {
 		{
 			name:    "Success - Get all reports with status filter",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				filteredReports := []*report.Report{mockReports[0]} // Only finished reports
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(filteredReports, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false,
 			expectedResult: []*report.Report{mockReports[0]},
@@ -101,10 +97,12 @@ func TestGetAllReports(t *testing.T) {
 		{
 			name:    "Error - Failed to retrieve reports",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      true,
 			expectedErr:    constant.ErrInternalServer,
@@ -114,10 +112,12 @@ func TestGetAllReports(t *testing.T) {
 		{
 			name:    "Success - Empty result set",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return([]*report.Report{}, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false, // Empty result set is valid, returns empty slice
 			expectedResult: []*report.Report{},
@@ -128,7 +128,12 @@ func TestGetAllReports(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			reportSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := reportSvc.GetAllReports(ctx, tt.filters)

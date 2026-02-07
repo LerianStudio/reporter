@@ -28,14 +28,6 @@ import (
 func TestGetDataSourceDetailsByID(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockMongoRepo := mongodb.NewMockRepository(ctrl)
-	mockPostgresRepo := postgres.NewMockRepository(ctrl)
-	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-
 	mongoSchema := []mongodb.CollectionSchema{
 		{
 			CollectionName: "collection1",
@@ -82,9 +74,8 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		setupSvc     func() *UseCase
+		setupSvc     func(ctrl *gomock.Controller) *UseCase
 		dataSourceID string
-		mockSetup    func()
 		expectErr    bool
 		errContains  string
 		expectResult *model.DataSourceDetails
@@ -92,7 +83,10 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Cache hit - MongoDB",
 			dataSourceID: "mongo_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockMongoRepo := mongodb.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return(string(mongoResultJSON), nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
@@ -104,9 +98,6 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					}),
 					RedisRepo: mockRedisRepo,
 				}
-			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return(string(mongoResultJSON), nil)
 			},
 			expectErr:    false,
 			expectResult: mongoResult,
@@ -114,7 +105,13 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Cache miss - MongoDB, sets cache",
 			dataSourceID: "mongo_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockMongoRepo := mongodb.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
+				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
@@ -126,12 +123,6 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					}),
 					RedisRepo: mockRedisRepo,
 				}
-			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
-				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 			},
 			expectErr:    false,
 			expectResult: mongoResult,
@@ -139,7 +130,13 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Cache error - MongoDB, acts as miss",
 			dataSourceID: "mongo_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockMongoRepo := mongodb.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", errors.New("redis error"))
+				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
+				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
@@ -152,19 +149,16 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					RedisRepo: mockRedisRepo,
 				}
 			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", errors.New("redis error"))
-				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(mongoSchema, nil)
-				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, string(mongoResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
-			},
 			expectErr:    false,
 			expectResult: mongoResult,
 		},
 		{
 			name:         "Cache hit - PostgreSQL",
 			dataSourceID: "pg_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockPostgresRepo := postgres.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return(string(pgResultJSON), nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
@@ -177,9 +171,6 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					}),
 					RedisRepo: mockRedisRepo,
 				}
-			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return(string(pgResultJSON), nil)
 			},
 			expectErr:    false,
 			expectResult: pgResult,
@@ -187,7 +178,13 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Cache miss - PostgreSQL, sets cache",
 			dataSourceID: "pg_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockPostgresRepo := postgres.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(postgresSchema, nil)
+				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
+				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
@@ -201,23 +198,16 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					RedisRepo: mockRedisRepo,
 				}
 			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(postgresSchema, nil)
-				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
-				mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKeyPG, string(pgResultJSON), time.Second*time.Duration(constant.RedisTTL)).Return(nil)
-			},
 			expectErr:    false,
 			expectResult: pgResult,
 		},
 		{
 			name:         "Error - Data source not found",
 			dataSourceID: "not_found",
-			setupSvc: func() *UseCase {
-				return &UseCase{ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}), RedisRepo: mockRedisRepo}
-			},
-			mockSetup: func() {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
 				mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":not_found").Return("", nil)
+				return &UseCase{ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}), RedisRepo: mockRedisRepo}
 			},
 			expectErr:    true,
 			errContains:  constant.ErrMissingDataSource.Error(),
@@ -226,7 +216,12 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Error - MongoDB repo returns error",
 			dataSourceID: "mongo_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockMongoRepo := mongodb.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(nil, errors.New("db error"))
+				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
@@ -239,11 +234,6 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					RedisRepo: mockRedisRepo,
 				}
 			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
-				mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return(nil, errors.New("db error"))
-				mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
-			},
 			expectErr:    true,
 			errContains:  constant.ErrMissingDataSource.Error(),
 			expectResult: nil,
@@ -251,7 +241,12 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 		{
 			name:         "Error - PostgreSQL repo returns error",
 			dataSourceID: "pg_ds",
-			setupSvc: func() *UseCase {
+			setupSvc: func(ctrl *gomock.Controller) *UseCase {
+				mockPostgresRepo := postgres.NewMockRepository(ctrl)
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
+				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
+				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 				return &UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
@@ -264,11 +259,6 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 					}),
 					RedisRepo: mockRedisRepo,
 				}
-			},
-			mockSetup: func() {
-				mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKeyPG).Return("", nil)
-				mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
-				mockPostgresRepo.EXPECT().CloseConnection().Return(nil)
 			},
 			expectErr:    true,
 			errContains:  constant.ErrMissingDataSource.Error(),
@@ -279,8 +269,14 @@ func TestGetDataSourceDetailsByID(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			svc := tt.setupSvc()
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			svc := tt.setupSvc(ctrl)
+
+			ctx := context.Background()
 			result, err := svc.GetDataSourceDetailsByID(ctx, tt.dataSourceID)
 			if tt.expectErr {
 				require.Error(t, err)

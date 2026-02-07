@@ -46,9 +46,8 @@ func FuzzTemplate_InvalidTags(f *testing.F) {
 			templateContent = templateContent[:10000]
 		}
 
-		// Skip empty templates
+		// Empty input is valid for fuzz testing - function should handle gracefully
 		if strings.TrimSpace(templateContent) == "" {
-			t.Skip("empty template")
 			return
 		}
 

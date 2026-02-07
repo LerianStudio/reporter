@@ -22,6 +22,8 @@ import (
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -56,9 +58,7 @@ func TestGetContentType(t *testing.T) {
 			t.Parallel()
 
 			got := getContentType(tt.extension)
-			if got != tt.expectedType {
-				t.Errorf("getContentType(%q) = %q; want %q", tt.extension, got, tt.expectedType)
-			}
+			assert.Equal(t, tt.expectedType, got, "getContentType(%q)", tt.extension)
 		})
 	}
 }
@@ -162,9 +162,7 @@ func TestGenerateReport_Success(t *testing.T) {
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestGenerateReport_TemplateRepoError(t *testing.T) {
@@ -211,9 +209,8 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
-	if err == nil || !strings.Contains(err.Error(), "failed to get file") {
-		t.Errorf("expected template get error, got: %v", err)
-	}
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get file")
 }
 
 func TestSaveReport_Success(t *testing.T) {
@@ -245,9 +242,7 @@ func TestSaveReport_Success(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestSaveReport_ErrorOnPut(t *testing.T) {
@@ -281,9 +276,8 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, output, logger)
-	if err == nil || !strings.Contains(err.Error(), "failed to put file") {
-		t.Errorf("expected error on Put, got: %v", err)
-	}
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to put file")
 }
 
 func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
@@ -317,9 +311,7 @@ func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 
 	// Inicializar o cipher para criptografia
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	hashedDocument := crypto.GenerateHash(&testDocument)
 
@@ -398,14 +390,10 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 			gomock.Any(),
 		).
 		DoAndReturn(func(ctx context.Context, collection string, fields []string, filters map[string]model.FilterCondition) ([]map[string]any, error) {
-			if searchDocFilter, exists := filters["search.document"]; exists {
-				if len(searchDocFilter.Equals) > 0 {
-					if searchDocFilter.Equals[0] != hashedDocument {
-						t.Errorf("Expected hashed document %s, got %s", hashedDocument, searchDocFilter.Equals[0])
-					}
-				}
-			} else {
-				t.Error("Expected search.document filter to be present")
+			searchDocFilter, exists := filters["search.document"]
+			assert.True(t, exists, "Expected search.document filter to be present")
+			if exists && len(searchDocFilter.Equals) > 0 {
+				assert.Equal(t, hashedDocument, searchDocFilter.Equals[0], "Expected hashed document")
 			}
 			return mockMongoData, nil
 		})
@@ -414,20 +402,11 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 		EXPECT().
 		Put(gomock.Any(), gomock.Any(), "text/html", gomock.Any(), "").
 		DoAndReturn(func(ctx context.Context, objectName, contentType string, data []byte, ttl string) error {
-			// Verificar se o conteúdo foi renderizado com dados descriptografados
 			content := string(data)
-			if !strings.Contains(content, "João Silva") {
-				t.Error("Expected decrypted name 'João Silva' in rendered content")
-			}
-			if !strings.Contains(content, testDocument) {
-				t.Error("Expected decrypted document in rendered content")
-			}
-			if !strings.Contains(content, "joao@example.com") {
-				t.Error("Expected decrypted email in rendered content")
-			}
-			if !strings.Contains(content, "12345-6") {
-				t.Error("Expected decrypted account in rendered content")
-			}
+			assert.Contains(t, content, "João Silva", "Expected decrypted name in rendered content")
+			assert.Contains(t, content, testDocument, "Expected decrypted document in rendered content")
+			assert.Contains(t, content, "joao@example.com", "Expected decrypted email in rendered content")
+			assert.Contains(t, content, "12345-6", "Expected decrypted account in rendered content")
 			return nil
 		})
 
@@ -456,9 +435,7 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 	}
 
 	err = useCase.GenerateReport(context.Background(), bodyBytes)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestDecryptRegulatoryFieldsFields(t *testing.T) {
@@ -475,9 +452,7 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -533,18 +508,12 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptRegulatoryFieldsFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange {
 				regulatoryFields, ok := tt.record["regulatory_fields"].(map[string]any)
-				if !ok {
-					t.Fatal("regulatory_fields not found or wrong type")
-				}
-				if regulatoryFields["participant_document"] != tt.expectedDoc {
-					t.Errorf("expected participant_document = %q, got %q", tt.expectedDoc, regulatoryFields["participant_document"])
-				}
+				require.True(t, ok, "regulatory_fields not found or wrong type")
+				assert.Equal(t, tt.expectedDoc, regulatoryFields["participant_document"])
 			}
 		})
 	}
@@ -564,9 +533,7 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -659,27 +626,19 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptRelatedPartiesFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && len(tt.expectedDocs) > 0 {
 				relatedParties, ok := tt.record["related_parties"].([]any)
-				if !ok {
-					t.Fatal("related_parties not found or wrong type")
-				}
+				require.True(t, ok, "related_parties not found or wrong type")
 
 				docIndex := 0
 				for i, party := range relatedParties {
 					partyMap, ok := party.(map[string]any)
-					if !ok {
-						t.Fatalf("related_parties[%d] is not a map", i)
-					}
+					require.True(t, ok, "related_parties[%d] is not a map", i)
 
 					if partyMap["document"] != nil && docIndex < len(tt.expectedDocs) {
-						if partyMap["document"] != tt.expectedDocs[docIndex] {
-							t.Errorf("expected related_parties[%d].document = %q, got %q", i, tt.expectedDocs[docIndex], partyMap["document"])
-						}
+						assert.Equal(t, tt.expectedDocs[docIndex], partyMap["document"], "related_parties[%d].document", i)
 						docIndex++
 					}
 				}
@@ -735,25 +694,17 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 			}
 
 			transformedFilter, err := useCase.transformPluginCRMAdvancedFilters(filter, logger)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			// Verify the field was transformed
-			if _, exists := transformedFilter[tt.expectedField]; !exists {
-				t.Errorf("expected field %q not found in transformed filter", tt.expectedField)
-			}
+			assert.Contains(t, transformedFilter, tt.expectedField, "expected field not found in transformed filter")
 
 			// Verify the original field was removed
-			if _, exists := transformedFilter[tt.inputField]; exists {
-				t.Errorf("original field %q should not exist in transformed filter", tt.inputField)
-			}
+			assert.NotContains(t, transformedFilter, tt.inputField, "original field should not exist in transformed filter")
 
 			// Verify the value was hashed
 			expectedHash := crypto.GenerateHash(&tt.inputValue)
-			if transformedFilter[tt.expectedField].Equals[0] != expectedHash {
-				t.Errorf("expected hashed value %q, got %q", expectedHash, transformedFilter[tt.expectedField].Equals[0])
-			}
+			assert.Equal(t, expectedHash, transformedFilter[tt.expectedField].Equals[0], "expected hashed value")
 		})
 	}
 }
@@ -834,9 +785,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
 			result := useCase.shouldSkipProcessing(context.Background(), tt.reportID, logger)
-			if result != tt.expectedSkip {
-				t.Errorf("shouldSkipProcessing() = %v, want %v", result, tt.expectedSkip)
-			}
+			assert.Equal(t, tt.expectedSkip, result, "shouldSkipProcessing()")
 		})
 	}
 }
@@ -861,9 +810,7 @@ func TestParseMessage_InvalidJSON(t *testing.T) {
 		Return(nil)
 
 	_, err := useCase.parseMessage(context.Background(), []byte("invalid json"), &span, logger)
-	if err == nil {
-		t.Error("expected error for invalid JSON")
-	}
+	require.Error(t, err, "expected error for invalid JSON")
 }
 
 func TestParseMessage_ValidJSON(t *testing.T) {
@@ -886,15 +833,9 @@ func TestParseMessage_ValidJSON(t *testing.T) {
 	bodyBytes, _ := json.Marshal(body)
 
 	message, err := useCase.parseMessage(context.Background(), bodyBytes, &span, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if message.TemplateID != templateID {
-		t.Errorf("expected templateID %s, got %s", templateID, message.TemplateID)
-	}
-	if message.ReportID != reportID {
-		t.Errorf("expected reportID %s, got %s", reportID, message.ReportID)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, templateID, message.TemplateID)
+	assert.Equal(t, reportID, message.ReportID)
 }
 
 func TestGetTableFilters(t *testing.T) {
@@ -994,11 +935,10 @@ func TestGetTableFilters(t *testing.T) {
 			t.Parallel()
 
 			result := getTableFilters(tt.databaseFilters, tt.tableName)
-			if tt.expectNil && result != nil {
-				t.Errorf("expected nil, got %v", result)
-			}
-			if !tt.expectNil && result == nil {
-				t.Error("expected non-nil result")
+			if tt.expectNil {
+				assert.Nil(t, result)
+			} else {
+				assert.NotNil(t, result, "expected non-nil result")
 			}
 		})
 	}
@@ -1025,9 +965,7 @@ func TestIsEncryptedField(t *testing.T) {
 			t.Parallel()
 
 			result := isEncryptedField(tt.field)
-			if result != tt.expected {
-				t.Errorf("isEncryptedField(%q) = %v, want %v", tt.field, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "isEncryptedField(%q)", tt.field)
 		})
 	}
 }
@@ -1073,20 +1011,14 @@ func TestHashFilterValues(t *testing.T) {
 			t.Parallel()
 
 			result := useCase.hashFilterValues(tt.values, crypto)
-			if len(result) != len(tt.values) {
-				t.Errorf("expected %d values, got %d", len(tt.values), len(result))
-			}
+			require.Len(t, result, len(tt.values))
 
 			for i, v := range tt.values {
 				if strVal, ok := v.(string); ok && strVal != "" {
 					expectedHash := crypto.GenerateHash(&strVal)
-					if result[i] != expectedHash {
-						t.Errorf("value[%d]: expected hashed value, got %v", i, result[i])
-					}
+					assert.Equal(t, expectedHash, result[i], "value[%d]: expected hashed value", i)
 				} else {
-					if result[i] != v {
-						t.Errorf("value[%d]: expected unchanged value %v, got %v", i, v, result[i])
-					}
+					assert.Equal(t, v, result[i], "value[%d]: expected unchanged value", i)
 				}
 			}
 		})
@@ -1107,9 +1039,7 @@ func TestDecryptContactFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -1157,18 +1087,12 @@ func TestDecryptContactFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptContactFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && len(tt.expectedEmails) > 0 {
 				contact, ok := tt.record["contact"].(map[string]any)
-				if !ok {
-					t.Fatal("contact not found or wrong type")
-				}
-				if contact["primary_email"] != tt.expectedEmails[0] {
-					t.Errorf("expected primary_email = %q, got %q", tt.expectedEmails[0], contact["primary_email"])
-				}
+				require.True(t, ok, "contact not found or wrong type")
+				assert.Equal(t, tt.expectedEmails[0], contact["primary_email"])
 			}
 		})
 	}
@@ -1188,9 +1112,7 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -1238,18 +1160,12 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptBankingDetailsFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && tt.expectedAccount != "" {
 				bankingDetails, ok := tt.record["banking_details"].(map[string]any)
-				if !ok {
-					t.Fatal("banking_details not found or wrong type")
-				}
-				if bankingDetails["account"] != tt.expectedAccount {
-					t.Errorf("expected account = %q, got %q", tt.expectedAccount, bankingDetails["account"])
-				}
+				require.True(t, ok, "banking_details not found or wrong type")
+				assert.Equal(t, tt.expectedAccount, bankingDetails["account"])
 			}
 		})
 	}
@@ -1269,9 +1185,7 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -1323,22 +1237,14 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptLegalPersonFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && tt.expectedName != "" {
 				legalPerson, ok := tt.record["legal_person"].(map[string]any)
-				if !ok {
-					t.Fatal("legal_person not found or wrong type")
-				}
+				require.True(t, ok, "legal_person not found or wrong type")
 				representative, ok := legalPerson["representative"].(map[string]any)
-				if !ok {
-					t.Fatal("representative not found or wrong type")
-				}
-				if representative["name"] != tt.expectedName {
-					t.Errorf("expected name = %q, got %q", tt.expectedName, representative["name"])
-				}
+				require.True(t, ok, "representative not found or wrong type")
+				assert.Equal(t, tt.expectedName, representative["name"])
 			}
 		})
 	}
@@ -1358,9 +1264,7 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -1408,18 +1312,12 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptNaturalPersonFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && tt.expectedMotherName != "" {
 				naturalPerson, ok := tt.record["natural_person"].(map[string]any)
-				if !ok {
-					t.Fatal("natural_person not found or wrong type")
-				}
-				if naturalPerson["mother_name"] != tt.expectedMotherName {
-					t.Errorf("expected mother_name = %q, got %q", tt.expectedMotherName, naturalPerson["mother_name"])
-				}
+				require.True(t, ok, "natural_person not found or wrong type")
+				assert.Equal(t, tt.expectedMotherName, naturalPerson["mother_name"])
 			}
 		})
 	}
@@ -1439,9 +1337,7 @@ func TestDecryptFieldValue(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -1485,11 +1381,10 @@ func TestDecryptFieldValue(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptFieldValue(tt.container, tt.fieldName, tt.fieldValue, crypto)
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1511,12 +1406,8 @@ func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	htmlContent := "<html><body>Test</body></html>"
 
 	result, err := useCase.convertToPDFIfNeeded(context.Background(), tracer, message, htmlContent, &span, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if result != htmlContent {
-		t.Errorf("expected unchanged content for non-PDF format")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, htmlContent, result, "expected unchanged content for non-PDF format")
 }
 
 func TestQueryDatabase_UnknownDataSource(t *testing.T) {
@@ -1541,9 +1432,7 @@ func TestQueryDatabase_UnknownDataSource(t *testing.T) {
 		tracer,
 	)
 	// Unknown data source should not return error, just skip
-	if err != nil {
-		t.Errorf("expected nil error for unknown data source, got: %v", err)
-	}
+	require.NoError(t, err, "expected nil error for unknown data source")
 }
 
 func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
@@ -1582,12 +1471,8 @@ func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 		tracer,
 	)
 
-	if err == nil {
-		t.Error("expected error when circuit breaker is unhealthy")
-	}
-	if !strings.Contains(err.Error(), "circuit breaker") {
-		t.Errorf("expected circuit breaker error, got: %v", err)
-	}
+	require.Error(t, err, "expected error when circuit breaker is unhealthy")
+	assert.Contains(t, err.Error(), "circuit breaker")
 }
 
 func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
@@ -1620,12 +1505,8 @@ func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
 		tracer,
 	)
 
-	if err == nil {
-		t.Error("expected error for unsupported database type")
-	}
-	if !strings.Contains(err.Error(), "unsupported database type") {
-		t.Errorf("expected 'unsupported database type' error, got: %v", err)
-	}
+	require.Error(t, err, "expected error for unsupported database type")
+	assert.Contains(t, err.Error(), "unsupported database type")
 }
 
 func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
@@ -1635,12 +1516,8 @@ func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	useCase := &UseCase{}
 
 	result, err := useCase.transformPluginCRMAdvancedFilters(nil, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if result != nil {
-		t.Errorf("expected nil result for nil input, got: %v", result)
-	}
+	require.NoError(t, err)
+	assert.Nil(t, result, "expected nil result for nil input")
 }
 
 func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
@@ -1657,12 +1534,8 @@ func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 	}
 
 	_, err := useCase.transformPluginCRMAdvancedFilters(filter, logger)
-	if err == nil {
-		t.Error("expected error when env var is missing")
-	}
-	if !strings.Contains(err.Error(), "CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM") {
-		t.Errorf("expected env var error, got: %v", err)
-	}
+	require.Error(t, err, "expected error when env var is missing")
+	assert.Contains(t, err.Error(), "CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
 }
 
 func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
@@ -1689,40 +1562,20 @@ func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	}
 
 	result, err := useCase.transformPluginCRMAdvancedFilters(filter, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if _, exists := result["search.document"]; !exists {
-		t.Error("expected search.document field in result")
-	}
+	assert.Contains(t, result, "search.document", "expected search.document field in result")
 
 	// Verify all conditions were transformed
 	searchDoc := result["search.document"]
-	if len(searchDoc.Equals) == 0 {
-		t.Error("expected Equals to be transformed")
-	}
-	if len(searchDoc.GreaterThan) == 0 {
-		t.Error("expected GreaterThan to be transformed")
-	}
-	if len(searchDoc.GreaterOrEqual) == 0 {
-		t.Error("expected GreaterOrEqual to be transformed")
-	}
-	if len(searchDoc.LessThan) == 0 {
-		t.Error("expected LessThan to be transformed")
-	}
-	if len(searchDoc.LessOrEqual) == 0 {
-		t.Error("expected LessOrEqual to be transformed")
-	}
-	if len(searchDoc.Between) == 0 {
-		t.Error("expected Between to be transformed")
-	}
-	if len(searchDoc.In) == 0 {
-		t.Error("expected In to be transformed")
-	}
-	if len(searchDoc.NotIn) == 0 {
-		t.Error("expected NotIn to be transformed")
-	}
+	assert.NotEmpty(t, searchDoc.Equals, "expected Equals to be transformed")
+	assert.NotEmpty(t, searchDoc.GreaterThan, "expected GreaterThan to be transformed")
+	assert.NotEmpty(t, searchDoc.GreaterOrEqual, "expected GreaterOrEqual to be transformed")
+	assert.NotEmpty(t, searchDoc.LessThan, "expected LessThan to be transformed")
+	assert.NotEmpty(t, searchDoc.LessOrEqual, "expected LessOrEqual to be transformed")
+	assert.NotEmpty(t, searchDoc.Between, "expected Between to be transformed")
+	assert.NotEmpty(t, searchDoc.In, "expected In to be transformed")
+	assert.NotEmpty(t, searchDoc.NotIn, "expected NotIn to be transformed")
 }
 
 func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
@@ -1742,14 +1595,10 @@ func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	}
 
 	result, err := useCase.transformPluginCRMAdvancedFilters(filter, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Non-mapped fields should be kept as-is
-	if _, exists := result["unmapped_field"]; !exists {
-		t.Error("expected unmapped_field to be preserved")
-	}
+	assert.Contains(t, result, "unmapped_field", "expected unmapped_field to be preserved")
 }
 
 func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
@@ -1786,9 +1635,7 @@ func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
-	if err != nil {
-		t.Errorf("expected no error for already finished report, got: %v", err)
-	}
+	require.NoError(t, err, "expected no error for already finished report")
 }
 
 func TestUpdateReportWithErrors(t *testing.T) {
@@ -1840,11 +1687,10 @@ func TestUpdateReportWithErrors(t *testing.T) {
 			}
 
 			err := useCase.updateReportWithErrors(context.Background(), tt.reportID, tt.errorMessage)
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1901,11 +1747,10 @@ func TestMarkReportAsFinished(t *testing.T) {
 			}
 
 			err := useCase.markReportAsFinished(context.Background(), tt.reportID, &span, logger)
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1964,15 +1809,12 @@ func TestCheckReportStatus(t *testing.T) {
 			}
 
 			status, err := useCase.checkReportStatus(context.Background(), tt.reportID, logger)
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-			if status != tt.expectedStatus {
-				t.Errorf("expected status %q, got %q", tt.expectedStatus, status)
-			}
+			assert.Equal(t, tt.expectedStatus, status)
 		})
 	}
 }
@@ -2007,9 +1849,7 @@ func TestSaveReport_WithTTL(t *testing.T) {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
 	err := useCase.saveReport(ctx, tracer, message, renderedOutput, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
@@ -2145,9 +1985,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 				result,
 				logger,
 			)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -2165,9 +2003,7 @@ func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
 	}
 
 	_, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"document"})
-	if err == nil {
-		t.Error("expected error when env vars are missing")
-	}
+	require.Error(t, err, "expected error when env vars are missing")
 }
 
 func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
@@ -2181,13 +2017,8 @@ func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 	}
 
 	result, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"id", "status"})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(result) != 1 {
-		t.Errorf("expected 1 result, got %d", len(result))
-	}
+	require.NoError(t, err)
+	require.Len(t, result, 1)
 }
 
 func TestHandleErrorWithUpdate(t *testing.T) {
@@ -2244,8 +2075,8 @@ func TestHandleErrorWithUpdate(t *testing.T) {
 			}
 
 			err := useCase.handleErrorWithUpdate(context.Background(), tt.reportID, &span, tt.errorMsg, tt.inputErr, logger)
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
+			if tt.expectError {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -2265,9 +2096,7 @@ func TestDecryptNestedFields_AllTypes(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -2312,42 +2141,28 @@ func TestDecryptNestedFields_AllTypes(t *testing.T) {
 	}
 
 	err = useCase.decryptNestedFields(record, crypto)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Verify all fields were decrypted
 	contact := record["contact"].(map[string]any)
-	if contact["primary_email"] != email {
-		t.Errorf("expected email %q, got %q", email, contact["primary_email"])
-	}
+	assert.Equal(t, email, contact["primary_email"])
 
 	bankingDetails := record["banking_details"].(map[string]any)
-	if bankingDetails["account"] != account {
-		t.Errorf("expected account %q, got %q", account, bankingDetails["account"])
-	}
+	assert.Equal(t, account, bankingDetails["account"])
 
 	legalPerson := record["legal_person"].(map[string]any)
 	representative := legalPerson["representative"].(map[string]any)
-	if representative["name"] != repName {
-		t.Errorf("expected rep name %q, got %q", repName, representative["name"])
-	}
+	assert.Equal(t, repName, representative["name"])
 
 	naturalPerson := record["natural_person"].(map[string]any)
-	if naturalPerson["mother_name"] != motherName {
-		t.Errorf("expected mother name %q, got %q", motherName, naturalPerson["mother_name"])
-	}
+	assert.Equal(t, motherName, naturalPerson["mother_name"])
 
 	regulatoryFields := record["regulatory_fields"].(map[string]any)
-	if regulatoryFields["participant_document"] != participantDoc {
-		t.Errorf("expected participant doc %q, got %q", participantDoc, regulatoryFields["participant_document"])
-	}
+	assert.Equal(t, participantDoc, regulatoryFields["participant_document"])
 
 	relatedParties := record["related_parties"].([]any)
 	party := relatedParties[0].(map[string]any)
-	if party["document"] != partyDoc {
-		t.Errorf("expected party doc %q, got %q", partyDoc, party["document"])
-	}
+	assert.Equal(t, partyDoc, party["document"])
 }
 
 func TestDecryptRecord(t *testing.T) {
@@ -2364,9 +2179,7 @@ func TestDecryptRecord(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -2413,14 +2226,10 @@ func TestDecryptRecord(t *testing.T) {
 			t.Parallel()
 
 			result, err := useCase.decryptRecord(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			for key, expected := range tt.expectedFields {
-				if result[key] != expected {
-					t.Errorf("expected %s = %v, got %v", key, expected, result[key])
-				}
+				assert.Equal(t, expected, result[key], "field %s", key)
 			}
 		})
 	}
@@ -2440,9 +2249,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 	}
 
 	err := crypto.InitializeCipher()
-	if err != nil {
-		t.Fatalf("Failed to initialize cipher: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize cipher")
 
 	useCase := &UseCase{}
 
@@ -2490,14 +2297,10 @@ func TestDecryptTopLevelFields(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.decryptTopLevelFields(tt.record, crypto)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			if !tt.expectNoChange && tt.expectedDoc != "" {
-				if tt.record["document"] != tt.expectedDoc {
-					t.Errorf("expected document = %q, got %q", tt.expectedDoc, tt.record["document"])
-				}
+				assert.Equal(t, tt.expectedDoc, tt.record["document"])
 			}
 		})
 	}
@@ -2537,9 +2340,7 @@ func TestGenerateReport_ReportInErrorState(t *testing.T) {
 	}
 
 	err := useCase.GenerateReport(context.Background(), bodyBytes)
-	if err != nil {
-		t.Errorf("expected no error for report in error state, got: %v", err)
-	}
+	require.NoError(t, err, "expected no error for report in error state")
 }
 
 func TestQueryMongoDatabase_Success(t *testing.T) {
@@ -2581,13 +2382,8 @@ func TestQueryMongoDatabase_Success(t *testing.T) {
 		result,
 		logger,
 	)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(result["test_db"]["users"]) != 1 {
-		t.Errorf("expected 1 result, got %d", len(result["test_db"]["users"]))
-	}
+	require.NoError(t, err)
+	require.Len(t, result["test_db"]["users"], 1)
 }
 
 func TestQueryMongoDatabase_WithFilters(t *testing.T) {
@@ -2637,9 +2433,7 @@ func TestQueryMongoDatabase_WithFilters(t *testing.T) {
 		result,
 		logger,
 	)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestProcessRegularMongoCollection(t *testing.T) {
@@ -2682,13 +2476,8 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 		result,
 		logger,
 	)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(result["shop_db"]["products"]) != 1 {
-		t.Errorf("expected 1 product, got %d", len(result["shop_db"]["products"]))
-	}
+	require.NoError(t, err)
+	require.Len(t, result["shop_db"]["products"], 1)
 }
 
 func TestLoadTemplate_Success(t *testing.T) {
@@ -2718,13 +2507,8 @@ func TestLoadTemplate_Success(t *testing.T) {
 	}
 
 	result, err := useCase.loadTemplate(context.Background(), tracer, message, &span, logger)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if string(result) != string(templateContent) {
-		t.Errorf("expected template content %q, got %q", templateContent, result)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, string(templateContent), string(result))
 }
 
 func TestLoadTemplate_Error(t *testing.T) {
@@ -2760,9 +2544,7 @@ func TestLoadTemplate_Error(t *testing.T) {
 	}
 
 	_, err := useCase.loadTemplate(context.Background(), tracer, message, &span, logger)
-	if err == nil {
-		t.Error("expected error but got none")
-	}
+	require.Error(t, err)
 }
 
 func TestQueryExternalData_NoDataSources(t *testing.T) {
@@ -2787,11 +2569,6 @@ func TestQueryExternalData_NoDataSources(t *testing.T) {
 	result := make(map[string]map[string][]map[string]any)
 
 	err := useCase.queryExternalData(context.Background(), message, result)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(result) != 0 {
-		t.Errorf("expected empty result, got %d entries", len(result))
-	}
+	require.NoError(t, err)
+	assert.Empty(t, result, "expected empty result")
 }

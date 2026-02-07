@@ -9,7 +9,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/postgres"
@@ -18,32 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
-
-// mockLogger is a simple no-op logger for testing
-type mockLogger struct{}
-
-func (m *mockLogger) Info(args ...any)                               {}
-func (m *mockLogger) Infof(format string, args ...any)               {}
-func (m *mockLogger) Infoln(args ...any)                             {}
-func (m *mockLogger) Warn(args ...any)                               {}
-func (m *mockLogger) Warnf(format string, args ...any)               {}
-func (m *mockLogger) Warnln(args ...any)                             {}
-func (m *mockLogger) Error(args ...any)                              {}
-func (m *mockLogger) Errorf(format string, args ...any)              {}
-func (m *mockLogger) Errorln(args ...any)                            {}
-func (m *mockLogger) Debug(args ...any)                              {}
-func (m *mockLogger) Debugf(format string, args ...any)              {}
-func (m *mockLogger) Debugln(args ...any)                            {}
-func (m *mockLogger) Fatal(args ...any)                              {}
-func (m *mockLogger) Fatalf(format string, args ...any)              {}
-func (m *mockLogger) Fatalln(args ...any)                            {}
-func (m *mockLogger) WithFields(fields ...any) log.Logger            { return m }
-func (m *mockLogger) Sync() error                                    { return nil }
-func (m *mockLogger) WithDefaultMessageTemplate(s string) log.Logger { return m }
-
-func newMockLogger() *mockLogger {
-	return &mockLogger{}
-}
 
 func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state

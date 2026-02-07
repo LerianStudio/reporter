@@ -20,18 +20,13 @@ import (
 func TestSendReportQueueReports(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
-
 	reportID := uuid.New()
 	templateID := uuid.New()
 
 	tests := []struct {
 		name          string
 		reportMessage model.ReportMessage
-		mockSetup     func()
+		mockSetup     func(ctrl *gomock.Controller) *UseCase
 		expectErr     bool
 		errContains   string
 	}{
@@ -48,10 +43,16 @@ func TestSendReportQueueReports(t *testing.T) {
 				},
 				Filters: nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 		{
@@ -75,10 +76,16 @@ func TestSendReportQueueReports(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 		{
@@ -90,10 +97,16 @@ func TestSendReportQueueReports(t *testing.T) {
 				MappedFields: map[string]map[string][]string{},
 				Filters:      nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 	}
@@ -101,13 +114,12 @@ func TestSendReportQueueReports(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
 
-			svc := &UseCase{
-				RabbitMQRepo:              mockRabbitMQ,
-				RabbitMQExchange:          "test-exchange",
-				RabbitMQGenerateReportKey: "test-key",
-			}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			svc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 
@@ -126,11 +138,6 @@ func TestSendReportQueueReports(t *testing.T) {
 func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
-
 	reportID := uuid.New()
 	templateID := uuid.New()
 
@@ -139,6 +146,12 @@ func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	for _, format := range outputFormats {
 		format := format
 		t.Run("Success - OutputFormat "+format, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 			mockRabbitMQ.EXPECT().
 				ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 				Return(nil, nil)

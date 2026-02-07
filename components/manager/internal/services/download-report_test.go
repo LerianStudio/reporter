@@ -24,22 +24,9 @@ import (
 func TestDownloadReport(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportRepo := report.NewMockRepository(ctrl)
-	mockTempRepo := template.NewMockRepository(ctrl)
-	mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
-
 	reportId := uuid.New()
 	tempId := uuid.New()
 	timeNow := time.Now()
-
-	reportSvc := &UseCase{
-		ReportRepo:      mockReportRepo,
-		TemplateRepo:    mockTempRepo,
-		ReportSeaweedFS: mockReportStorage,
-	}
 
 	finishedReport := &report.Report{
 		ID:          reportId,
@@ -76,7 +63,7 @@ func TestDownloadReport(t *testing.T) {
 	tests := []struct {
 		name          string
 		reportId      uuid.UUID
-		mockSetup     func()
+		mockSetup     func(ctrl *gomock.Controller) *UseCase
 		expectErr     bool
 		errContains   string
 		expectedBytes []byte
@@ -84,7 +71,11 @@ func TestDownloadReport(t *testing.T) {
 		{
 			name:     "Success - Download finished report",
 			reportId: reportId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
+
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(finishedReport, nil)
@@ -96,6 +87,12 @@ func TestDownloadReport(t *testing.T) {
 				mockReportStorage.EXPECT().
 					Get(gomock.Any(), gomock.Any()).
 					Return(expectedFileBytes, nil)
+
+				return &UseCase{
+					ReportRepo:      mockReportRepo,
+					TemplateRepo:    mockTempRepo,
+					ReportSeaweedFS: mockReportStorage,
+				}
 			},
 			expectErr:     false,
 			expectedBytes: expectedFileBytes,
@@ -103,10 +100,20 @@ func TestDownloadReport(t *testing.T) {
 		{
 			name:     "Error - GetReportByID fails",
 			reportId: reportId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
+
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+
+				return &UseCase{
+					ReportRepo:      mockReportRepo,
+					TemplateRepo:    mockTempRepo,
+					ReportSeaweedFS: mockReportStorage,
+				}
 			},
 			expectErr:     true,
 			errContains:   constant.ErrInternalServer.Error(),
@@ -115,10 +122,20 @@ func TestDownloadReport(t *testing.T) {
 		{
 			name:     "Error - Report status not finished",
 			reportId: reportId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
+
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(processingReport, nil)
+
+				return &UseCase{
+					ReportRepo:      mockReportRepo,
+					TemplateRepo:    mockTempRepo,
+					ReportSeaweedFS: mockReportStorage,
+				}
 			},
 			expectErr:     true,
 			errContains:   constant.ErrReportStatusNotFinished.Error(),
@@ -127,7 +144,11 @@ func TestDownloadReport(t *testing.T) {
 		{
 			name:     "Error - GetTemplateByID fails",
 			reportId: reportId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
+
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(finishedReport, nil)
@@ -135,6 +156,12 @@ func TestDownloadReport(t *testing.T) {
 				mockTempRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("template not found"))
+
+				return &UseCase{
+					ReportRepo:      mockReportRepo,
+					TemplateRepo:    mockTempRepo,
+					ReportSeaweedFS: mockReportStorage,
+				}
 			},
 			expectErr:     true,
 			errContains:   "template not found",
@@ -143,7 +170,11 @@ func TestDownloadReport(t *testing.T) {
 		{
 			name:     "Error - Storage Get fails",
 			reportId: reportId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockReportStorage := reportSeaweedFS.NewMockRepository(ctrl)
+
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(finishedReport, nil)
@@ -155,6 +186,12 @@ func TestDownloadReport(t *testing.T) {
 				mockReportStorage.EXPECT().
 					Get(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("storage unavailable"))
+
+				return &UseCase{
+					ReportRepo:      mockReportRepo,
+					TemplateRepo:    mockTempRepo,
+					ReportSeaweedFS: mockReportStorage,
+				}
 			},
 			expectErr:     true,
 			errContains:   "storage unavailable",
@@ -165,7 +202,12 @@ func TestDownloadReport(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			reportSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			fileBytes, objectName, contentType, err := reportSvc.DownloadReport(ctx, tt.reportId)

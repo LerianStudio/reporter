@@ -101,9 +101,8 @@ func FuzzTemplate_SyntaxErrors(f *testing.F) {
 			templateContent = templateContent[:100000]
 		}
 
-		// Skip empty
+		// Empty input is valid for fuzz testing - function should handle gracefully
 		if strings.TrimSpace(templateContent) == "" {
-			t.Skip("empty template")
 			return
 		}
 

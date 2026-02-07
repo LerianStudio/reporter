@@ -21,9 +21,6 @@ import (
 func TestGetAllTemplates(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	tempID := uuid.New()
 	resultEntity := []*template.Template{
 		{
@@ -34,21 +31,15 @@ func TestGetAllTemplates(t *testing.T) {
 		},
 	}
 
-	mockTempRepo := template.NewMockRepository(ctrl)
-
 	filter := httpUtils.QueryHeader{
 		Limit: 10,
 		Page:  1,
 	}
 
-	tempSvc := &UseCase{
-		TemplateRepo: mockTempRepo,
-	}
-
 	tests := []struct {
 		name           string
 		filter         httpUtils.QueryHeader
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
 		expectedErr    error
 		expectedResult []*template.Template
@@ -56,10 +47,12 @@ func TestGetAllTemplates(t *testing.T) {
 		{
 			name:   "Success - Get all templates",
 			filter: filter,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindList(gomock.Any(), filter).
 					Return(resultEntity, nil)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr: false,
 			expectedResult: []*template.Template{
@@ -74,10 +67,12 @@ func TestGetAllTemplates(t *testing.T) {
 		{
 			name:   "Error - Get all templates",
 			filter: filter,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindList(gomock.Any(), filter).
 					Return(nil, constant.ErrBadRequest)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
 			expectedErr:    constant.ErrBadRequest,
@@ -88,7 +83,12 @@ func TestGetAllTemplates(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tempSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := tempSvc.GetAllTemplates(ctx, tt.filter)
