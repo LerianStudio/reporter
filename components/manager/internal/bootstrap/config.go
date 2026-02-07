@@ -168,7 +168,9 @@ func (c *Config) validateMongoPoolBounds(errs []string) []string {
 }
 
 // InitServers initiate http and grpc servers.
-func InitServers() (*Service, error) {
+// Uses a cleanup stack pattern: if any initialization step fails, all previously
+// opened connections are closed in reverse order to prevent resource leaks.
+func InitServers() (_ *Service, err error) {
 	cfg := &Config{}
 	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
@@ -180,6 +182,19 @@ func InitServers() (*Service, error) {
 
 	logger := zap.InitializeLogger()
 
+	// Cleanup stack: on failure, close resources in reverse order
+	var cleanups []func()
+
+	defer func() {
+		if err != nil {
+			logger.Infof("Initialization failed, cleaning up %d resources...", len(cleanups))
+
+			for i := len(cleanups) - 1; i >= 0; i-- {
+				cleanups[i]()
+			}
+		}
+	}()
+
 	// Init Open telemetry to control logs and flows
 	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
@@ -189,6 +204,11 @@ func InitServers() (*Service, error) {
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 		EnableTelemetry:           cfg.EnableTelemetry,
 		Logger:                    logger,
+	})
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: shutting down telemetry")
+		telemetry.ShutdownTelemetry()
 	})
 
 	// Create single storage client for both templates and reports (using prefixes)
@@ -256,6 +276,16 @@ func InitServers() (*Service, error) {
 		return nil, fmt.Errorf("failed to initialize template mongodb repository: %w", err)
 	}
 
+	cleanups = append(cleanups, func() {
+		if mongoConnection.DB != nil {
+			logger.Info("Cleanup: disconnecting MongoDB")
+
+			if disconnectErr := mongoConnection.DB.Disconnect(context.Background()); disconnectErr != nil {
+				logger.Errorf("Cleanup: failed to disconnect MongoDB: %v", disconnectErr)
+			}
+		}
+	})
+
 	reportMongoDBRepository, err := report.NewReportMongoDBRepository(mongoConnection)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
@@ -297,10 +327,22 @@ func InitServers() (*Service, error) {
 		return nil, fmt.Errorf("failed to initialize redis connection: %w", err)
 	}
 
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: closing Redis connection")
+
+		if closeErr := redisConnection.Close(); closeErr != nil {
+			logger.Errorf("Cleanup: failed to close Redis connection: %v", closeErr)
+		}
+	})
+
+	// Initialize datasources in lazy mode (connect on-demand for faster startup).
+	// A single instance is shared across all services that need external data sources.
+	externalDataSources := pkg.NewSafeDataSources(pkg.ExternalDatasourceConnectionsLazy(logger))
+
 	templateService := &services.UseCase{
 		TemplateRepo:        templateMongoDBRepository,
 		TemplateSeaweedFS:   templateSeaweedFSRepository,
-		ExternalDataSources: pkg.NewSafeDataSources(pkg.ExternalDatasourceConnections(logger)),
+		ExternalDataSources: externalDataSources,
 	}
 
 	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
@@ -311,9 +353,6 @@ func InitServers() (*Service, error) {
 	}
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
-
-	// Initialize datasources in lazy mode (connect on-demand for faster startup)
-	externalDataSources := pkg.NewSafeDataSources(pkg.ExternalDatasourceConnectionsLazy(logger))
 
 	reportService := &services.UseCase{
 		ReportRepo:                reportMongoDBRepository,
@@ -351,7 +390,10 @@ func InitServers() (*Service, error) {
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{
-		Server: serverAPI,
-		Logger: logger,
+		Server:             serverAPI,
+		Logger:             logger,
+		mongoConnection:    mongoConnection,
+		rabbitMQConnection: rabbitMQConnection,
+		redisConnection:    redisConnection,
 	}, nil
 }

@@ -118,7 +118,9 @@ func (c *Config) Validate() error {
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
-func InitWorker() (*Service, error) {
+// Uses a cleanup stack pattern: if any initialization step fails, all previously
+// opened connections are closed in reverse order to prevent resource leaks.
+func InitWorker() (_ *Service, err error) {
 	cfg := &Config{}
 	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
@@ -135,6 +137,19 @@ func InitWorker() (*Service, error) {
 
 	logger := libZap.InitializeLogger()
 
+	// Cleanup stack: on failure, close resources in reverse order
+	var cleanups []func()
+
+	defer func() {
+		if err != nil {
+			logger.Infof("Initialization failed, cleaning up %d resources...", len(cleanups))
+
+			for i := len(cleanups) - 1; i >= 0; i-- {
+				cleanups[i]()
+			}
+		}
+	}()
+
 	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
@@ -143,6 +158,11 @@ func InitWorker() (*Service, error) {
 		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
 		EnableTelemetry:           cfg.EnableTelemetry,
 		Logger:                    logger,
+	})
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: shutting down telemetry")
+		telemetry.ShutdownTelemetry()
 	})
 
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
@@ -165,6 +185,22 @@ func InitWorker() (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
 	}
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: closing RabbitMQ connection")
+
+		if rabbitMQConnection.Channel != nil {
+			if closeErr := rabbitMQConnection.Channel.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
+			}
+		}
+
+		if rabbitMQConnection.Connection != nil && !rabbitMQConnection.Connection.IsClosed() {
+			if closeErr := rabbitMQConnection.Connection.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
+			}
+		}
+	})
 
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
@@ -219,6 +255,16 @@ func InitWorker() (*Service, error) {
 		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
 	}
 
+	cleanups = append(cleanups, func() {
+		if mongoConnection.DB != nil {
+			logger.Info("Cleanup: disconnecting MongoDB")
+
+			if disconnectErr := mongoConnection.DB.Disconnect(context.Background()); disconnectErr != nil {
+				logger.Errorf("Cleanup: failed to disconnect MongoDB: %v", disconnectErr)
+			}
+		}
+	})
+
 	// Create MongoDB indexes for optimal performance
 	// Indexes are created automatically on startup to ensure they exist
 	// This is idempotent and safe to run multiple times
@@ -238,6 +284,11 @@ func InitWorker() (*Service, error) {
 	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
 	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
 
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: closing PDF worker pool")
+		pdfPool.Close()
+	})
+
 	service := &services.UseCase{
 		TemplateSeaweedFS:               templateSeaweedFSRepository,
 		ReportSeaweedFS:                 reportSeaweedFSRepository,
@@ -255,6 +306,11 @@ func InitWorker() (*Service, error) {
 
 	// Start health checker in background
 	healthChecker.Start()
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: stopping health checker")
+		healthChecker.Stop()
+	})
 
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue)
 
