@@ -41,8 +41,8 @@ services:
     volumes:
       - ./rabbitmq/etc/definitions.json:/etc/rabbitmq/definitions.json
       - ./rabbitmq/etc/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
-      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+      - reporter-rabbitmq-data:/var/lib/rabbitmq
+      - reporter-rabbitmq-log:/var/log/rabbitmq
     networks:
       - reporter-infra-network
 
@@ -82,7 +82,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8000/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -122,6 +122,8 @@ volumes:
   reporter-mongodb-data:
   reporter-seaweedfs-data:
   reporter-redis-data:
+  reporter-rabbitmq-data:
+  reporter-rabbitmq-log:
 
 networks:
   reporter-infra-network:

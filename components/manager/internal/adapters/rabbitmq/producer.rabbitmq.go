@@ -41,10 +41,10 @@ func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRep
 	// Connection will be retried on first use
 	_, err := c.GetNewConnect()
 	if err != nil {
-		c.Logger.Errorf("⚠️  Failed to connect to RabbitMQ during initialization: %v", err)
+		c.Logger.Errorf("Failed to connect to RabbitMQ during initialization: %v", err)
 		c.Logger.Warn("RabbitMQ connection will be retried on first message publish")
 	} else {
-		c.Logger.Info("✅ RabbitMQ producer connected successfully")
+		c.Logger.Info("RabbitMQ producer connected successfully")
 	}
 
 	return prmq
@@ -90,7 +90,7 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 			return nil, err
 		}
 
-		logger.Info("✅ RabbitMQ connection established on-demand")
+		logger.Info("RabbitMQ connection established on-demand")
 	}
 
 	retryCount := 0

@@ -120,6 +120,7 @@ help:
 	@echo ""
 	@echo "Documentation Commands:"
 	@echo "  make generate-docs               - Generate Swagger documentation for all services"
+	@echo "  make serve-docs                  - Serve Swagger UI locally at http://localhost:8080"
 	@echo ""
 	@echo ""
 	@echo "Test Suite Aliases:"
@@ -474,6 +475,14 @@ ps:
 #-------------------------------------------------------
 # Docs Commands
 #-------------------------------------------------------
+
+.PHONY: serve-docs
+serve-docs:
+	@echo "Serving Swagger UI at http://localhost:8080"
+	@docker run --rm -p 8080:8080 \
+		-e SWAGGER_JSON=/api/swagger.json \
+		-v $(shell pwd)/components/manager/api:/api \
+		swaggerapi/swagger-ui
 
 .PHONY: generate-docs
 generate-docs:

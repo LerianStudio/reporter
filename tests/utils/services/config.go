@@ -7,7 +7,7 @@ package services
 import (
 	"os"
 
-	"github.com/LerianStudio/reporter/tests/helpers/containers"
+	"github.com/LerianStudio/reporter/tests/utils/containers"
 )
 
 // ServiceConfig holds configuration derived from test infrastructure.
@@ -112,6 +112,8 @@ func (c *ServiceConfig) ApplyManagerEnv() {
 	os.Setenv("RABBITMQ_DEFAULT_USER", c.RabbitUser)
 	os.Setenv("RABBITMQ_DEFAULT_PASS", c.RabbitPassword)
 	os.Setenv("RABBITMQ_GENERATE_REPORT_QUEUE", containers.QueueGenerateReport)
+	os.Setenv("RABBITMQ_EXCHANGE", containers.ExchangeGenerateReport)
+	os.Setenv("RABBITMQ_GENERATE_REPORT_KEY", containers.RoutingKeyGenerateReport)
 	os.Setenv("RABBITMQ_HEALTH_CHECK_URL", "http://"+c.RabbitHost+":"+c.RabbitMgmtPort)
 
 	// S3/SeaweedFS
@@ -187,6 +189,7 @@ func ClearEnv() {
 		"MONGO_URI", "MONGO_HOST", "MONGO_PORT", "MONGO_USER", "MONGO_PASSWORD", "MONGO_NAME",
 		"RABBITMQ_URI", "RABBITMQ_HOST", "RABBITMQ_PORT_AMQP", "RABBITMQ_PORT_HOST",
 		"RABBITMQ_DEFAULT_USER", "RABBITMQ_DEFAULT_PASS", "RABBITMQ_GENERATE_REPORT_QUEUE",
+		"RABBITMQ_EXCHANGE", "RABBITMQ_GENERATE_REPORT_KEY",
 		"RABBITMQ_HEALTH_CHECK_URL", "RABBITMQ_NUMBERS_OF_WORKERS",
 		"OBJECT_STORAGE_ENDPOINT", "OBJECT_STORAGE_REGION", "OBJECT_STORAGE_ACCESS_KEY_ID",
 		"OBJECT_STORAGE_SECRET_KEY", "OBJECT_STORAGE_BUCKET", "OBJECT_STORAGE_USE_PATH_STYLE",

@@ -61,5 +61,9 @@ USER appuser
 
 # Worker is a RabbitMQ consumer with no HTTP server; no port to expose.
 
+# Health check for container orchestrators (no HTTP server, use process check)
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD pgrep -f worker || exit 1
+
 # Set the entrypoint to the worker binary
 ENTRYPOINT ["/app/worker"]

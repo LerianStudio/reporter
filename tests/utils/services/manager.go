@@ -147,6 +147,8 @@ func buildManagerEnv(cfg *ServiceConfig) []string {
 	env = append(env, "RABBITMQ_DEFAULT_USER="+cfg.RabbitUser)
 	env = append(env, "RABBITMQ_DEFAULT_PASS="+cfg.RabbitPassword)
 	env = append(env, "RABBITMQ_GENERATE_REPORT_QUEUE=reporter.generate-report.queue")
+	env = append(env, "RABBITMQ_EXCHANGE=reporter.generate-report.exchange")
+	env = append(env, "RABBITMQ_GENERATE_REPORT_KEY=reporter.generate-report.key")
 	env = append(env, "RABBITMQ_HEALTH_CHECK_URL=http://"+cfg.RabbitHost+":"+cfg.RabbitMgmtPort)
 
 	// S3/SeaweedFS

@@ -116,7 +116,7 @@ func (wp *WorkerPool) processTask(allocCtx context.Context, task Task) {
 	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %.2f KB, timeout: %v)", task.Filename, htmlSizeKB, wp.timeout)
 
 	if len(task.HTML) > cn.PDFLargeHTMLThreshold {
-		wp.logger.Warnf("⚠️  Large HTML detected (%.2f KB). Consider increasing PDF_TIMEOUT_SECONDS if timeouts occur", htmlSizeKB)
+		wp.logger.Warnf("Large HTML detected (%.2f KB). Consider increasing PDF_TIMEOUT_SECONDS if timeouts occur", htmlSizeKB)
 	}
 
 	ctx, ctxCancel := chromedp.NewContext(allocCtx)

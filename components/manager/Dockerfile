@@ -44,5 +44,9 @@ USER appuser
 # Expose the application port
 EXPOSE 4005
 
+# Health check for container orchestrators
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4005/health || exit 1
+
 # Set the entrypoint to the manager binary
 ENTRYPOINT ["/app/manager"]
