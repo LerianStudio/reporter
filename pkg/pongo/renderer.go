@@ -57,6 +57,7 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 		"contains": func(str1 any, str2 any) bool {
 			s1 := strings.ToUpper(fmt.Sprintf("%v", str1))
 			s2 := strings.ToUpper(fmt.Sprintf("%v", str2))
+
 			return strings.Contains(s1, s2)
 		},
 	}

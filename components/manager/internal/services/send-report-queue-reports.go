@@ -20,7 +20,7 @@ import (
 func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.send_report_queue")
+	ctx, span := tracer.Start(ctx, "service.report.send_queue")
 	defer span.End()
 
 	span.SetAttributes(

@@ -23,7 +23,7 @@ import (
 func (uc *UseCase) GetReportByID(ctx context.Context, id uuid.UUID) (*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_report_by_id")
+	ctx, span := tracer.Start(ctx, "service.report.get_by_id")
 	defer span.End()
 
 	span.SetAttributes(

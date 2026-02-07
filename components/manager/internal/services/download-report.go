@@ -23,7 +23,7 @@ import (
 func (uc *UseCase) DownloadReport(ctx context.Context, id uuid.UUID) ([]byte, string, string, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.download_report")
+	ctx, span := tracer.Start(ctx, "service.report.download")
 	defer span.End()
 
 	span.SetAttributes(

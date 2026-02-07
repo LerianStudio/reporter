@@ -4,7 +4,15 @@
 
 package constant
 
+import "time"
+
 const (
 	TemplateBucketName = "templates"
 	ReportBucketName   = "reports"
+)
+
+// SeaweedFS HTTP client configuration.
+const (
+	// SeaweedFSHTTPTimeout is the timeout for HTTP requests to the SeaweedFS server.
+	SeaweedFSHTTPTimeout = 30 * time.Second
 )

@@ -63,7 +63,7 @@ var (
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_data_source_details_by_id")
+	ctx, span := tracer.Start(ctx, "service.datasource.get_details_by_id")
 	defer span.End()
 
 	span.SetAttributes(
@@ -221,7 +221,7 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 
 // processCollectionsForDataSource processes collections and returns table details
 func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSchema, dataSourceID string) []model.TableDetails {
-	tableDetails := make([]model.TableDetails, 0)
+	tableDetails := make([]model.TableDetails, 0, len(schema))
 
 	for _, collection := range schema {
 		fields := uc.getFieldsForCollection(collection, dataSourceID)

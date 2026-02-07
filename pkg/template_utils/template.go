@@ -53,7 +53,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 			// Don't process if it's just a collection path (will be handled by DIMP function)
 			basePathParts := CleanPath(basePart)
-			if len(basePathParts) == 2 {
+			if len(basePathParts) == constant.MinPathParts {
 				// This is just datasource.collection, skip it - DIMP function will handle
 				continue
 			}
@@ -63,7 +63,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 		for _, fieldExpr := range fieldPaths {
 			parts := CleanPath(fieldExpr)
-			if len(parts) < 2 {
+			if len(parts) < constant.MinPathParts {
 				continue
 			}
 
@@ -97,7 +97,7 @@ func regexBlockIfOnPlaceholder(templateFile string, resultRegex map[string]any, 
 
 		for _, fieldExpr := range fieldPaths {
 			parts := CleanPath(fieldExpr)
-			if len(parts) < 2 {
+			if len(parts) < constant.MinPathParts {
 				continue
 			}
 
@@ -122,7 +122,7 @@ func regexBlockSetOnPlaceholder(templateFile string, resultRegex map[string]any,
 
 		for _, fieldExpr := range fieldPaths {
 			parts := CleanPath(fieldExpr)
-			if len(parts) < 2 {
+			if len(parts) < constant.MinPathParts {
 				continue
 			}
 
@@ -146,7 +146,7 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		regexp.MustCompile(`{%-?\s*max_by\s+(.*?)\s*-?%}`),
 	}
 
-	var matches [][]string
+	matches := make([][]string, 0, len(aggrRegexes))
 	for _, re := range aggrRegexes {
 		matches = append(matches, re.FindAllStringSubmatch(templateFile, -1)...)
 	}
@@ -160,7 +160,7 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		}
 
 		mainPath := CleanPath(strings.TrimSpace(args[0]))
-		if len(mainPath) < 2 {
+		if len(mainPath) < constant.MinPathParts {
 			continue
 		}
 
@@ -171,7 +171,7 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 		// - Without "by": mainPath(1) + conditionPairs(2n) = odd number
 		// In "by" expressions, args[1] is a nested JSON field path (e.g., "fee_charge.totalAmount"),
 		// NOT a datasource reference. It should be preserved as-is.
-		hasByClause := len(args) >= 4 && len(args)%2 == 0
+		hasByClause := len(args) >= constant.MinByClauseArgs && len(args)%2 == 0
 
 		for i, arg := range args[1:] {
 			// Skip quoted string literals (values like "cacc", 'value', etc.)
@@ -193,7 +193,7 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 			argPath := CleanPath(arg)
 
 			switch {
-			case len(argPath) < 2:
+			case len(argPath) < constant.MinPathParts:
 				insertField(resultRegex, mainPath, arg)
 			case variableMap[argPath[0]] != nil:
 				insertField(resultRegex, variableMap[argPath[0]], argPath[1])
@@ -246,7 +246,7 @@ func processDIMPForLoops(templateFile string, resultRegex map[string]any) {
 		filterArg := match[3]
 
 		collectionParts := CleanPath(collection)
-		if len(collectionParts) < 2 {
+		if len(collectionParts) < constant.MinPathParts {
 			continue
 		}
 
@@ -263,7 +263,7 @@ func containsDIMPFilter(expr string) bool {
 
 func extractDIMPBasePath(expr string, variableMap map[string][]string) []string {
 	parts := strings.Split(expr, "|")
-	if len(parts) < 2 {
+	if len(parts) < constant.MinPathParts {
 		return nil
 	}
 
@@ -278,8 +278,8 @@ func extractDIMPBasePath(expr string, variableMap map[string][]string) []string 
 		return loopPath
 	}
 
-	if len(collectionParts) >= 2 {
-		return collectionParts[:2]
+	if len(collectionParts) >= constant.MinPathParts {
+		return collectionParts[:constant.MinPathParts]
 	}
 
 	return nil
@@ -322,7 +322,7 @@ func extractFieldFromFilterArg(resultRegex map[string]any, basePath []string, fi
 // ensureMapStructure ensures that the nested map structure exists for the given path
 // For path ["datasource", "collection"], it creates: resultRegex["datasource"]["collection"] = []any{}
 func ensureMapStructure(m map[string]any, path []string) {
-	if len(path) < 2 {
+	if len(path) < constant.MinPathParts {
 		return
 	}
 
@@ -350,7 +350,7 @@ func ensureMapStructure(m map[string]any, path []string) {
 // insertFieldToPath inserts a field into the nested structure at the given path
 // For path ["datasource", "collection"] and field "status", it adds "status" to the collection's field list
 func insertFieldToPath(m map[string]any, path []string, field string) {
-	if len(path) < 2 {
+	if len(path) < constant.MinPathParts {
 		return
 	}
 
@@ -384,7 +384,7 @@ func regexBlockCalcOnPlaceholder(templateFile string, resultRegex map[string]any
 
 		for _, fieldExpr := range fieldPaths {
 			parts := CleanPath(fieldExpr)
-			if len(parts) < 2 {
+			if len(parts) < constant.MinPathParts {
 				continue
 			}
 
@@ -418,9 +418,9 @@ func regexBlockForOnPlaceholder(templateFile string) map[string][]string {
 		basePath := extractBasePathFromFilterExpr(fullExpr)
 		path := CleanPath(basePath)
 
-		if len(path) == 2 {
+		if len(path) == constant.MinPathParts {
 			variableMap[variable] = []string{path[0], path[1]}
-		} else if len(path) > 2 {
+		} else if len(path) > constant.MinPathParts {
 			variableMap[variable] = []string{path[0], path[1], path[2]}
 		} else {
 			variableMap[variable] = path
@@ -494,7 +494,7 @@ func regexBlockForWithFilterOnPlaceholder(result map[string]any, variableMap map
 			filterTarget := strings.TrimSpace(argParts[0])
 			path := CleanPath(filterTarget)
 
-			if len(path) >= 2 {
+			if len(path) >= constant.MinPathParts {
 				variableMap[assignedVar] = []string{path[0], path[1]}
 
 				for _, param := range argParts[1:] {
@@ -507,7 +507,7 @@ func regexBlockForWithFilterOnPlaceholder(result map[string]any, variableMap map
 
 					paramPath := CleanPath(cleanParam)
 
-					if len(paramPath) < 2 {
+					if len(paramPath) < constant.MinPathParts {
 						insertField(result, path, cleanParam)
 						continue
 					}
@@ -548,7 +548,7 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 			filterTarget := strings.TrimSpace(argParts[0])
 			path := CleanPath(filterTarget)
 
-			if len(path) >= 2 {
+			if len(path) >= constant.MinPathParts {
 				variableMap[assignedVar] = []string{path[0], path[1]}
 
 				for _, param := range argParts[1:] {
@@ -561,7 +561,7 @@ func regexBlockWithOnPlaceholder(variableMap map[string][]string, templateFile s
 
 					paramPath := CleanPath(cleanParam)
 
-					if len(paramPath) < 2 {
+					if len(paramPath) < constant.MinPathParts {
 						insertField(result, path, cleanParam)
 						continue
 					}
@@ -592,7 +592,7 @@ func extractFieldsFromExpressionOfAggregation(expr string) []string {
 	reWithBy := regexp.MustCompile(`^\s*(\S+)\s+by\s+"([^"]+)"\s+if\s+(.+)$`)
 	matchesWithBy := reWithBy.FindStringSubmatch(expr)
 
-	if len(matchesWithBy) == 4 {
+	if len(matchesWithBy) == constant.MatchGroupsWithByClause {
 		// Has "by" clause: collection, byField, conditions
 		result = append(result, matchesWithBy[1], matchesWithBy[2])
 		// Extract all fields from conditions (supports "and" compound conditions)
@@ -606,7 +606,7 @@ func extractFieldsFromExpressionOfAggregation(expr string) []string {
 	reSimple := regexp.MustCompile(`^\s*(\S+)\s+if\s+(.+)$`)
 	matchesSimple := reSimple.FindStringSubmatch(expr)
 
-	if len(matchesSimple) == 3 {
+	if len(matchesSimple) == constant.MatchGroupsSimple {
 		// No "by" clause: collection, conditions
 		result = append(result, matchesSimple[1])
 		// Extract all fields from conditions
@@ -634,7 +634,7 @@ func extractFieldsFromConditions(conditions string) []string {
 
 	for _, part := range parts {
 		matches := conditionRegex.FindStringSubmatch(strings.TrimSpace(part))
-		if len(matches) == 3 {
+		if len(matches) == constant.MatchGroupsSimple {
 			result = append(result, matches[1], matches[2])
 		}
 	}
@@ -907,7 +907,7 @@ func CleanPath(path string) []string {
 
 		// Split the rest by dots
 		restParts := strings.Split(rest, ".")
-		if len(restParts) < 2 {
+		if len(restParts) < constant.MinPathParts {
 			// Invalid format, fall back to legacy behavior
 			return cleanPathLegacy(path)
 		}
@@ -955,7 +955,7 @@ func cleanPathLegacy(path string) []string {
 
 // isQuotedString checks if a string is a quoted literal (starts and ends with quotes)
 func isQuotedString(s string) bool {
-	if len(s) < 2 {
+	if len(s) < constant.MinQuotedStringLength {
 		return false
 	}
 
@@ -1011,8 +1011,8 @@ func ParseDatabaseReference(ref string) (database, schema, table string, err err
 	}
 
 	// Legacy format: database.table
-	parts := strings.SplitN(ref, ".", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(ref, ".", constant.SplitKeyValueParts)
+	if len(parts) != constant.SplitKeyValueParts {
 		return "", "", "", fmt.Errorf("invalid format: expected database.table, got %q", ref)
 	}
 

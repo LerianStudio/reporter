@@ -23,7 +23,7 @@ import (
 func (uc *UseCase) GetTemplateByID(ctx context.Context, id uuid.UUID) (*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.template.get_by_id")
 	defer span.End()
 
 	span.SetAttributes(

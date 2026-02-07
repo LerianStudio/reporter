@@ -63,7 +63,7 @@ var mimeTypes = map[string]string{
 func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.generate_report")
+	ctx, span := tracer.Start(ctx, "service.report.generate")
 	defer span.End()
 
 	message, err := uc.parseMessage(ctx, body, &span, logger)
@@ -149,7 +149,7 @@ func (uc *UseCase) shouldSkipProcessing(ctx context.Context, reportID uuid.UUID,
 
 // loadTemplate loads template file from SeaweedFS.
 func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, span *trace.Span, logger log.Logger) ([]byte, error) {
-	ctx, spanTemplate := tracer.Start(ctx, "service.generate_report.get_template")
+	ctx, spanTemplate := tracer.Start(ctx, "service.report.generate.get_template")
 	defer spanTemplate.End()
 
 	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
@@ -174,7 +174,7 @@ func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, messag
 
 // renderTemplate renders the template with data from external sources.
 func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span, logger log.Logger) (string, error) {
-	ctx, spanRender := tracer.Start(ctx, "service.generate_report.render_template")
+	ctx, spanRender := tracer.Start(ctx, "service.report.generate.render_template")
 	defer spanRender.End()
 
 	renderer := pongo.NewTemplateRenderer()
@@ -203,7 +203,7 @@ func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, tracer trace.Tracer
 		return htmlOutput, nil
 	}
 
-	_, spanPDF := tracer.Start(ctx, "service.generate_report.convert_to_pdf")
+	_, spanPDF := tracer.Start(ctx, "service.report.generate.convert_to_pdf")
 	defer spanPDF.End()
 
 	logger.Infof("Converting HTML to PDF for report %s (HTML size: %d bytes)", message.ReportID, len(htmlOutput))
@@ -282,7 +282,7 @@ func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUI
 // If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
-	ctx, spanSaveReport := tracer.Start(ctx, "service.generate_report.save_report")
+	ctx, spanSaveReport := tracer.Start(ctx, "service.report.generate.save_report")
 	defer spanSaveReport.End()
 
 	outputFormat := strings.ToLower(message.OutputFormat)
@@ -309,7 +309,7 @@ func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message 
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.generate_report.query_external_data")
+	ctx, span := tracer.Start(ctx, "service.report.generate.query_external_data")
 	defer span.End()
 
 	for databaseName, tables := range message.DataQueries {
@@ -331,7 +331,7 @@ func (uc *UseCase) queryDatabase(
 	logger log.Logger,
 	tracer trace.Tracer,
 ) error {
-	ctx, dbSpan := tracer.Start(ctx, "service.generate_report.query_external_data.database")
+	ctx, dbSpan := tracer.Start(ctx, "service.report.generate.query_external_data.database")
 	defer dbSpan.End()
 
 	logger.Infof("Querying database %s", databaseName)
@@ -435,12 +435,12 @@ func (uc *UseCase) queryPostgresDatabase(
 
 		if strings.Contains(tableKey, "__") {
 			// Pongo2 format: schema__table -> split by double underscore
-			parts := strings.SplitN(tableKey, "__", 2)
+			parts := strings.SplitN(tableKey, "__", constant.SplitKeyValueParts)
 			explicitSchema = parts[0]
 			tableName = parts[1]
 		} else if strings.Contains(tableKey, ".") {
 			// Qualified format: schema.table -> split by dot
-			parts := strings.SplitN(tableKey, ".", 2)
+			parts := strings.SplitN(tableKey, ".", constant.SplitKeyValueParts)
 			explicitSchema = parts[0]
 			tableName = parts[1]
 		} else {
@@ -507,7 +507,7 @@ func (uc *UseCase) queryMongoDatabase(
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.generate_report.query_mongo_database")
+	ctx, span := tracer.Start(ctx, "service.report.generate.query_mongo_database")
 	defer span.End()
 
 	span.SetAttributes(
@@ -540,7 +540,7 @@ func (uc *UseCase) processMongoCollection(
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 	_ = reqId // reqId available for future trace correlation if needed
 
-	ctx, span := tracer.Start(ctx, "service.generate_report.process_mongo_collection")
+	ctx, span := tracer.Start(ctx, "service.report.generate.process_mongo_collection")
 	defer span.End()
 
 	span.SetAttributes(
@@ -645,7 +645,7 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 	_ = reqId // reqId available for future trace correlation if needed
 
-	ctx, span := tracer.Start(ctx, "service.generate_report.query_mongo_collection_with_filters")
+	ctx, span := tracer.Start(ctx, "service.report.generate.query_mongo_collection_with_filters")
 	defer span.End()
 
 	span.SetAttributes(

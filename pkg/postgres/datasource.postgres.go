@@ -744,7 +744,7 @@ func (ds *ExternalDataSource) applyAdvancedFilter(queryBuilder squirrel.SelectBu
 	}
 
 	// Handle between (using AND with >= and <=)
-	if len(condition.Between) == 2 {
+	if len(condition.Between) == constant.BetweenOperatorValues {
 		// For date fields, ensure proper date range handling
 		startValue := condition.Between[0]
 		endValue := condition.Between[1]
@@ -754,7 +754,7 @@ func (ds *ExternalDataSource) applyAdvancedFilter(queryBuilder squirrel.SelectBu
 			// Convert end date to end of day (23:59:59.999)
 			if endStr, ok := endValue.(string); ok {
 				// If it's just a date (YYYY-MM-DD), add time to make it end of day
-				if len(endStr) == 10 { // YYYY-MM-DD format
+				if len(endStr) == constant.DateOnlyStringLength { // YYYY-MM-DD format
 					endValue = endStr + "T23:59:59.999Z"
 				}
 			}

@@ -23,7 +23,7 @@ import (
 func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFields map[string]map[string][]string) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.validate_mapped_fields")
+	ctx, span := tracer.Start(ctx, "service.report.validate_mapped_fields")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("app.request.request_id", reqId))

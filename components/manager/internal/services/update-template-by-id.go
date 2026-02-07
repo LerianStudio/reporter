@@ -35,7 +35,7 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.update_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.template.update")
 	defer span.End()
 
 	span.SetAttributes(

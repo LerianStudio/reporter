@@ -25,7 +25,7 @@ import (
 func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateReportInput) (*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.create_report")
+	ctx, span := tracer.Start(ctx, "service.report.create")
 	defer span.End()
 
 	span.SetAttributes(
@@ -135,7 +135,7 @@ func (uc *UseCase) convertFiltersToMappedFieldsType(filters map[string]map[strin
 				keys = append(keys, innerKey)
 
 				count++
-				if count == 3 {
+				if count == constant.MaxSchemaPreviewKeys {
 					break
 				}
 			}

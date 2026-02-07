@@ -17,7 +17,7 @@ import (
 func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id uuid.UUID, hardDelete bool) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.delete_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.template.delete")
 	defer span.End()
 
 	span.SetAttributes(

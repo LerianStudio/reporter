@@ -7,11 +7,17 @@ linters:
     - depguard
     - dogsled
     - dupword
+    - errcheck
     - errchkjson
+    - forbidigo
     - gocognit
     - gocyclo
+    - gosec
+    - govet
+    - ineffassign
     - loggercheck
     - misspell
+    - mnd
     - nakedret
     - nilerr
     - nolintlint
@@ -24,6 +30,7 @@ linters:
     - tparallel
     - unconvert
     - unparam
+    - unused
     - usestdlibvars
     - wastedassign
     - wsl_v5
@@ -34,8 +41,25 @@ linters:
           deny:
             - pkg: io/ioutil
               desc: The io/ioutil package has been deprecated, see https://go.dev/doc/go1.16#ioutil
+    forbidigo:
+      forbid:
+        - pattern: "^fmt\\.Print(|f|ln)$"
+          msg: "Use structured logging (lib-commons logger) instead of fmt.Print*"
+        - pattern: "^log\\.Print(|f|ln)$"
+          msg: "Use lib-commons logger instead of log.Print*"
+        - pattern: "^log\\.Fatal(|f|ln)$"
+          msg: "log.Fatal* bypasses graceful shutdown; use proper error handling"
     gocyclo:
       min-complexity: 16
+    mnd:
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "-1"
+      ignored-functions:
+        - "time.Duration"
+        - "time.Sleep"
+        - "make"
     govet:
       enable:
         - shadow
@@ -119,6 +143,9 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 formatters:
+  enable:
+    - gofmt
+    - goimports
   exclusions:
     generated: lax
     paths:

@@ -7,7 +7,6 @@ package template
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
@@ -83,12 +82,12 @@ func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 			Options: options.Index().
 				SetName("idx_template_description_text").
 				SetWeights(bson.D{
-					{Key: "description", Value: 10},
+					{Key: "description", Value: constant.MongoTextSearchWeight},
 				}),
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, constant.MongoIndexCreateTimeout)
 	defer cancel()
 
 	logger.Infof("Attempting to create %d indexes for %s collection (removed SetBackground - deprecated since MongoDB 4.2)", len(indexes), constant.MongoCollectionTemplate)
@@ -136,7 +135,7 @@ func (tm *TemplateMongoDBRepository) DropIndexes(ctx context.Context) error {
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, constant.MongoIndexDropTimeout)
 	defer cancel()
 
 	if _, err := coll.Indexes().DropAll(ctx); err != nil {

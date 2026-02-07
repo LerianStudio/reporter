@@ -27,7 +27,7 @@ import (
 func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, description string, fileHeader *multipart.FileHeader) (*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.create_template")
+	ctx, span := tracer.Start(ctx, "service.template.create")
 	defer span.End()
 
 	span.SetAttributes(

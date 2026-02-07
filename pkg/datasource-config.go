@@ -533,8 +533,8 @@ func collectDataSourceNames() map[string]bool {
 	envVars := os.Environ()
 
 	for _, env := range envVars {
-		parts := strings.SplitN(env, "=", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(env, "=", constant.SplitKeyValueParts)
+		if len(parts) != constant.SplitKeyValueParts {
 			continue
 		}
 

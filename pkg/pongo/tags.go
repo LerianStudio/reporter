@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
+
 	"github.com/flosch/pongo2/v6"
 	"github.com/shopspring/decimal"
 )
@@ -348,7 +350,7 @@ func (node *calcTagNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Tem
 	}
 
 	// Round to 10 decimal places to avoid artifacts (e.g., ...0000000001)
-	rounded := math.Round(result*1e10) / 1e10
+	rounded := math.Round(result*constant.RoundingPrecision) / constant.RoundingPrecision
 	out := formatNumber(rounded)
 	out = strings.TrimRight(out, "0")
 	out = strings.TrimRight(out, ".")

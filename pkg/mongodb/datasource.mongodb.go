@@ -60,7 +60,7 @@ func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) 
 	mongoConnection := &libMongo.MongoConnection{
 		ConnectionStringSource: mongoURI,
 		Database:               dbName,
-		MaxPoolSize:            100,
+		MaxPoolSize:            constant.MongoMaxPoolSizeExternal,
 		Logger:                 logger,
 	}
 
@@ -237,7 +237,7 @@ func convertBsonValue(value any) any {
 
 	case primitive.Binary:
 		// Check if Binary is a UUID
-		if len(v.Data) == 16 {
+		if len(v.Data) == constant.MongoUUIDByteLength {
 			u, err := uuid.FromBytes(v.Data)
 			if err == nil {
 				return u.String() // Retorna UUID formatado
@@ -442,7 +442,7 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 	}
 
 	// For large collections (>10k docs), use sampling instead of full aggregation
-	if count > 10000 {
+	if count > constant.MongoLargeCollectionThreshold {
 		return ds.discoverFieldsWithSampling(ctx, coll, count)
 	}
 
@@ -451,9 +451,10 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 		// Limit processing to a reasonable sample size even for small collections
 		{
 			"$limit": func() int64 {
-				if count > 1000 {
-					return 1000
+				if count > constant.MongoSmallCollectionLimit {
+					return constant.MongoSmallCollectionLimit
 				}
+
 				return count
 			}(),
 		},
@@ -547,16 +548,16 @@ func (ds *ExternalDataSource) calculateOptimalSampleSize(totalDocs int64) int {
 	// Statistical sampling: 95% confidence, 5% margin of error
 	// For schema discovery, we don't need perfect accuracy, just good coverage
 	switch {
-	case totalDocs <= 1000:
+	case totalDocs <= constant.MongoSmallCollectionDocLimit:
 		return int(totalDocs) // Use all documents for small collections
-	case totalDocs <= 10000:
-		return 1000 // 10% sample
-	case totalDocs <= 100000:
-		return 2000 // 2% sample
-	case totalDocs <= 1000000:
-		return 5000 // 0.5% sample
+	case totalDocs <= constant.MongoMediumCollectionDocLimit:
+		return constant.MongoDefaultSampleSize // 10% sample
+	case totalDocs <= constant.MongoLargeCollectionDocLimit:
+		return constant.MongoMediumSampleSize // 2% sample
+	case totalDocs <= constant.MongoVeryLargeCollectionDocLimit:
+		return constant.MongoLargeSampleSize // 0.5% sample
 	default:
-		return 10000 // 0.1% sample for very large collections
+		return constant.MongoMaxSampleSize // 0.1% sample for very large collections
 	}
 }
 
@@ -567,14 +568,14 @@ func (ds *ExternalDataSource) sampleMultipleDocuments(ctx context.Context, coll 
 		return nil, nil, err
 	}
 
-	sampleSize := 50
-	if count < 50 {
+	sampleSize := constant.MongoMinDocsForSampling
+	if count < constant.MongoMinDocsForSampling {
 		sampleSize = int(count)
 	}
 
 	var cursor *mongo.Cursor
 
-	if count > 1000 {
+	if count > constant.MongoMaxDocsForSmallSample {
 		pipeline := []bson.M{
 			{"$sample": bson.M{"size": sampleSize}},
 		}
@@ -650,19 +651,19 @@ func (ds *ExternalDataSource) inferDataType(value any) string {
 // isMoreSpecificType determines if one type is more specific than another
 func (ds *ExternalDataSource) isMoreSpecificType(newType, currentType string) bool {
 	typeHierarchy := map[string]int{
-		"objectId":      10,
-		"date":          9,
-		"timestamp":     8,
-		"decimal":       7,
-		"binData":       6,
-		"regex":         5,
-		"minKey/maxKey": 4,
-		"number":        3,
-		"string":        2,
-		"boolean":       2,
-		"array":         2,
-		"object":        2,
-		"unknown":       1,
+		"objectId":      constant.BSONPriorityObjectID,
+		"date":          constant.BSONPriorityDate,
+		"timestamp":     constant.BSONPriorityTimestamp,
+		"decimal":       constant.BSONPriorityDecimal,
+		"binData":       constant.BSONPriorityBinData,
+		"regex":         constant.BSONPriorityRegex,
+		"minKey/maxKey": constant.BSONPriorityMinMaxKey,
+		"number":        constant.BSONPriorityNumber,
+		"string":        constant.BSONPriorityDefault,
+		"boolean":       constant.BSONPriorityDefault,
+		"array":         constant.BSONPriorityDefault,
+		"object":        constant.BSONPriorityDefault,
+		"unknown":       constant.BSONPriorityUnknown,
 	}
 
 	newLevel := typeHierarchy[newType]
