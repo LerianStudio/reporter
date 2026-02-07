@@ -14,6 +14,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -81,7 +82,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	logger.Infof("Successfully created a report %v", reportOut)
 
-	return http.Created(c, reportOut)
+	return commonsHttp.Created(c, reportOut)
 }
 
 // GetDownloadReport is a method to make download of a report.
@@ -173,7 +174,7 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 		return http.WithError(c, err)
 	}
 
-	return http.OK(c, reportModel)
+	return commonsHttp.OK(c, reportModel)
 }
 
 // GetAllReports is a method that recovery all Reports information.
@@ -241,5 +242,5 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 	pagination.SetItems(reports)
 	pagination.SetTotal(len(reports))
 
-	return http.OK(c, pagination)
+	return commonsHttp.OK(c, pagination)
 }

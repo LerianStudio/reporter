@@ -98,12 +98,19 @@ type DataSourceConfig struct {
 	MidazOrganizationID string // Used for CRM datasources to construct collection names
 }
 
+// getDataSourceEnv reads an environment variable for a datasource field using the
+// DATASOURCE_{NAME}_{FIELD} naming convention. This centralizes env var access for
+// dynamic datasource discovery, where the number of datasources is not known at compile time.
+func getDataSourceEnv(name, field string) string {
+	upperName := strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
+	return os.Getenv(fmt.Sprintf("DATASOURCE_%s_%s", upperName, field))
+}
+
 // GetSchemas returns the configured schemas for this datasource.
 // It reads from the environment variable DATASOURCE_{NAME}_SCHEMAS.
 // If not configured, it defaults to ["public"].
 func (c *DataSourceConfig) GetSchemas() []string {
-	envKey := "DATASOURCE_" + strings.ToUpper(strings.ReplaceAll(c.ConfigName, "-", "_")) + "_SCHEMAS"
-	schemasStr := os.Getenv(envKey)
+	schemasStr := getDataSourceEnv(c.ConfigName, "SCHEMAS")
 
 	if schemasStr == "" {
 		return []string{"public"}
@@ -552,40 +559,21 @@ func collectDataSourceNames() map[string]bool {
 // buildDataSourceConfig creates a DataSourceConfig for the given name, validating all required fields.
 // Returns the config and a boolean indicating if the configuration is complete.
 func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bool) {
-	prefixPattern := "DATASOURCE_"
-	upperName := strings.ToUpper(name)
-
-	configFields := map[string]string{
-		"CONFIG_NAME":           os.Getenv(fmt.Sprintf("%s%s_CONFIG_NAME", prefixPattern, upperName)),
-		"HOST":                  os.Getenv(fmt.Sprintf("%s%s_HOST", prefixPattern, upperName)),
-		"PORT":                  os.Getenv(fmt.Sprintf("%s%s_PORT", prefixPattern, upperName)),
-		"USER":                  os.Getenv(fmt.Sprintf("%s%s_USER", prefixPattern, upperName)),
-		"PASSWORD":              os.Getenv(fmt.Sprintf("%s%s_PASSWORD", prefixPattern, upperName)),
-		"DATABASE":              os.Getenv(fmt.Sprintf("%s%s_DATABASE", prefixPattern, upperName)),
-		"TYPE":                  os.Getenv(fmt.Sprintf("%s%s_TYPE", prefixPattern, upperName)),
-		"SSLMODE":               os.Getenv(fmt.Sprintf("%s%s_SSLMODE", prefixPattern, upperName)),
-		"SSLROOTCERT":           os.Getenv(fmt.Sprintf("%s%s_SSLROOTCERT", prefixPattern, upperName)),
-		"SSL":                   os.Getenv(fmt.Sprintf("%s%s_SSL", prefixPattern, upperName)),                   // For MongoDB SSL
-		"SSLCA":                 os.Getenv(fmt.Sprintf("%s%s_SSLCA", prefixPattern, upperName)),                 // For MongoDB CA file
-		"OPTIONS":               os.Getenv(fmt.Sprintf("%s%s_OPTIONS", prefixPattern, upperName)),               // For MongoDB URI options
-		"MIDAZ_ORGANIZATION_ID": os.Getenv(fmt.Sprintf("%s%s_MIDAZ_ORGANIZATION_ID", prefixPattern, upperName)), // For CRM collection names
-	}
-
 	dataSource := DataSourceConfig{
 		Name:                name,
-		ConfigName:          configFields["CONFIG_NAME"],
-		Host:                configFields["HOST"],
-		Port:                configFields["PORT"],
-		User:                configFields["USER"],
-		Password:            configFields["PASSWORD"],
-		Database:            configFields["DATABASE"],
-		Type:                configFields["TYPE"],
-		SSLMode:             configFields["SSLMODE"],
-		SSLRootCert:         configFields["SSLROOTCERT"],
-		SSL:                 configFields["SSL"],
-		SSLCA:               configFields["SSLCA"],
-		Options:             configFields["OPTIONS"],
-		MidazOrganizationID: configFields["MIDAZ_ORGANIZATION_ID"],
+		ConfigName:          getDataSourceEnv(name, "CONFIG_NAME"),
+		Host:                getDataSourceEnv(name, "HOST"),
+		Port:                getDataSourceEnv(name, "PORT"),
+		User:                getDataSourceEnv(name, "USER"),
+		Password:            getDataSourceEnv(name, "PASSWORD"),
+		Database:            getDataSourceEnv(name, "DATABASE"),
+		Type:                getDataSourceEnv(name, "TYPE"),
+		SSLMode:             getDataSourceEnv(name, "SSLMODE"),
+		SSLRootCert:         getDataSourceEnv(name, "SSLROOTCERT"),
+		SSL:                 getDataSourceEnv(name, "SSL"),     // For MongoDB SSL
+		SSLCA:               getDataSourceEnv(name, "SSLCA"),   // For MongoDB CA file
+		Options:             getDataSourceEnv(name, "OPTIONS"), // For MongoDB URI options
+		MidazOrganizationID: getDataSourceEnv(name, "MIDAZ_ORGANIZATION_ID"), // For CRM collection names
 	}
 
 	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",

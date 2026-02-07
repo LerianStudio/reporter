@@ -10,6 +10,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
+    # Inline env mapping required: the mongo image expects MONGO_INITDB_* vars
+    # which differ from our .env naming (MONGO_USER / MONGO_PASSWORD).
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
@@ -30,8 +33,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     env_file:
       - .env
+    # Inline env mapping required: the rabbitmq image expects RABBITMQ_DEFAULT_*
+    # vars for initial credential setup at first boot.
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -72,6 +78,8 @@ services:
     container_name: reporter-keda
     env_file:
       - .env
+    # Inline env mapping required: KEDA operator expects its own KEDA_OPERATOR_*
+    # prefixed vars, mapped from our .env RabbitMQ connection settings.
     environment:
       - KEDA_OPERATOR_LOG_LEVEL=info
       - KEDA_OPERATOR_RABBITMQ_HOST=reporter-rabbitmq
@@ -102,8 +110,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     env_file:
       - .env
+    # Inline env mapping required: Valkey/Redis image uses REDIS_USER and
+    # REDIS_PASSWORD for runtime auth configuration.
     environment:
       - REDIS_USER=${REDIS_USER}
       - REDIS_PASSWORD=${REDIS_PASSWORD}

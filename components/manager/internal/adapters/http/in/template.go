@@ -122,7 +122,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	logger.Infof("Successfully created template %v", templateOut)
 
-	return http.Created(c, templateOut)
+	return commonsHttp.Created(c, templateOut)
 }
 
 // UpdateTemplateByID is a method that updates a Template by a given id.
