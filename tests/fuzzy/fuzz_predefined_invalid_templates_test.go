@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // TestFuzzy_PredefinedInvalidTemplates tests pre-defined templates that should fail gracefully

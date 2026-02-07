@@ -17,10 +17,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_downloadReport(t *testing.T) {
+func TestDownloadReport(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -155,6 +158,7 @@ func Test_downloadReport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -167,8 +171,8 @@ func Test_downloadReport(t *testing.T) {
 				assert.Empty(t, objectName)
 				assert.Empty(t, contentType)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, fileBytes)
+				require.NoError(t, err)
+				require.NotNil(t, fileBytes)
 				assert.Equal(t, tt.expectedBytes, fileBytes)
 				assert.NotEmpty(t, objectName)
 				assert.NotEmpty(t, contentType)

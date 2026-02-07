@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // Restarts RabbitMQ container and validates recovery of the system
-func TestChaos_RabbitMQ_RestartAndRecover(t *testing.T) {
+func TestIntegration_Chaos_RabbitMQ_RestartAndRecover(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

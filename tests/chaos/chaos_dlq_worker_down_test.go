@@ -14,7 +14,7 @@ import (
 // TestChaos_DLQ_WorkerDownThenRabbitMQCrash tests message persistence when both Worker and RabbitMQ fail
 // This test requires docker-compose infrastructure where Worker runs as a container.
 // In testcontainers mode, Worker runs as a subprocess and cannot be stopped/started via Docker.
-func TestChaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
+func TestIntegration_Chaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

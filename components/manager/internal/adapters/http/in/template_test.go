@@ -22,6 +22,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
@@ -79,6 +80,8 @@ func createMultipartForm(t *testing.T, filename, content, outputFormat, descript
 }
 
 func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -141,6 +144,7 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -150,13 +154,15 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/templates/"+tt.templateID, nil)
 			resp, err := app.Test(req)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
 
 func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -250,6 +256,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -259,13 +266,15 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/templates"+tt.queryParams, nil)
 			resp, err := app.Test(req)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
 
 func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -319,6 +328,7 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -328,13 +338,15 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 			req := httptest.NewRequest(http.MethodDelete, "/templates/"+tt.templateID, nil)
 			resp, err := app.Test(req)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
 
 func Test_TemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -366,6 +378,8 @@ func Test_TemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
 }
 
 func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -422,6 +436,7 @@ func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			app := setupTemplateTestApp(handler)
 			app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
@@ -433,13 +448,15 @@ func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 
 			resp, err := app.Test(req)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
 
 func Test_TemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -481,6 +498,8 @@ func Test_TemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
 }
 
 func Test_TemplateHandler_CreateTemplate_NoFile(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -517,6 +536,8 @@ func Test_TemplateHandler_CreateTemplate_NoFile(t *testing.T) {
 }
 
 func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -561,6 +582,7 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			app := setupTemplateTestApp(handler)
 			app.Patch("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.UpdateTemplateByID)
@@ -572,13 +594,15 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 
 			resp, err := app.Test(req)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
 
 func Test_NewTemplateHandler_NilService(t *testing.T) {
+	t.Parallel()
+
 	handler, err := NewTemplateHandler(nil)
 
 	assert.Nil(t, handler)
@@ -587,6 +611,8 @@ func Test_NewTemplateHandler_NilService(t *testing.T) {
 }
 
 func Test_NewTemplateHandler_ValidService(t *testing.T) {
+	t.Parallel()
+
 	svc := &services.UseCase{}
 
 	handler, err := NewTemplateHandler(svc)

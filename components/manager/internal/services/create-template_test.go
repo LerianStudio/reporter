@@ -21,10 +21,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_createTemplate(t *testing.T) {
+func TestCreateTemplate(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -78,8 +80,8 @@ func Test_createTemplate(t *testing.T) {
 		},
 	}
 
-	externalDataSources := map[string]pkg.DataSource{}
-	externalDataSources["midaz_organization"] = pkg.DataSource{
+	externalDataSourcesMap := map[string]pkg.DataSource{}
+	externalDataSourcesMap["midaz_organization"] = pkg.DataSource{
 		DatabaseType:       "mongodb",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -89,7 +91,7 @@ func Test_createTemplate(t *testing.T) {
 		Initialized:        true,
 	}
 
-	externalDataSources["midaz_onboarding"] = pkg.DataSource{
+	externalDataSourcesMap["midaz_onboarding"] = pkg.DataSource{
 		DatabaseType:       "postgresql",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -111,7 +113,7 @@ func Test_createTemplate(t *testing.T) {
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
 		TemplateSeaweedFS:   mockTemplateStorage,
-		ExternalDataSources: externalDataSources,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
 	}
 
 	timestamp := time.Now().Unix()
@@ -344,6 +346,7 @@ func Test_createTemplate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -354,14 +357,15 @@ func Test_createTemplate(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 			}
 		})
 	}
 }
 
-func Test_createTemplateWithPluginCRM(t *testing.T) {
+func TestCreateTemplateWithPluginCRM(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -390,8 +394,8 @@ func Test_createTemplateWithPluginCRM(t *testing.T) {
 		},
 	}
 
-	externalDataSources := map[string]pkg.DataSource{}
-	externalDataSources["plugin_crm"] = pkg.DataSource{
+	externalDataSourcesMap := map[string]pkg.DataSource{}
+	externalDataSourcesMap["plugin_crm"] = pkg.DataSource{
 		DatabaseType:        "mongodb",
 		MongoDBRepository:   mockDataSourceMongo,
 		MongoURI:            "",
@@ -404,7 +408,7 @@ func Test_createTemplateWithPluginCRM(t *testing.T) {
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
 		TemplateSeaweedFS:   mockTemplateStorage,
-		ExternalDataSources: externalDataSources,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
 	}
 
 	templateEntity := &template.Template{
@@ -446,8 +450,8 @@ func Test_createTemplateWithPluginCRM(t *testing.T) {
 		ctx := context.Background()
 		result, err := tempSvc.CreateTemplate(ctx, templateCRM, "xml", "CRM Template", templateCRMFileHeader)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
+		require.NoError(t, err)
+		require.NotNil(t, result)
 		assert.Equal(t, tempId, result.ID)
 	})
 }

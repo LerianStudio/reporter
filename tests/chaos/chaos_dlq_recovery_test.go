@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestChaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
-func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
+// TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
+func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

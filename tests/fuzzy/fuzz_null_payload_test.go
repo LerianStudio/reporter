@@ -10,7 +10,7 @@ import (
 	"context"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // TestFuzzy_NullPayloadValidation tests that null payloads are properly rejected with 400

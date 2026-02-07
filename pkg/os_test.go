@@ -57,7 +57,7 @@ func TestGetEnvOrDefault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Ensure clean state before test
-			os.Unsetenv(tt.envKey)
+			t.Setenv(tt.envKey, "")
 
 			if tt.setEnv {
 				t.Setenv(tt.envKey, tt.envValue)
@@ -147,7 +147,7 @@ func TestGetenvBoolOrDefault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Ensure clean state before test
-			os.Unsetenv(tt.envKey)
+			t.Setenv(tt.envKey, "")
 
 			if tt.setEnv {
 				t.Setenv(tt.envKey, tt.envValue)
@@ -237,7 +237,7 @@ func TestGetenvIntOrDefault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Ensure clean state before test
-			os.Unsetenv(tt.envKey)
+			t.Setenv(tt.envKey, "")
 
 			if tt.setEnv {
 				t.Setenv(tt.envKey, tt.envValue)
@@ -291,9 +291,9 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 
 	t.Run("Missing env vars result in zero values", func(t *testing.T) {
 		// Ensure vars are not set
-		os.Unsetenv("TEST_STRING_FIELD")
-		os.Unsetenv("TEST_INT_FIELD")
-		os.Unsetenv("TEST_BOOL_FIELD")
+		t.Setenv("TEST_STRING_FIELD", "")
+		t.Setenv("TEST_INT_FIELD", "")
+		t.Setenv("TEST_BOOL_FIELD", "")
 
 		config := &TestConfig{}
 		err := SetConfigFromEnvVars(config)

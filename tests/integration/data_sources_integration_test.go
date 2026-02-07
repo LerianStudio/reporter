@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // GET /v1/data-sources — deve respeitar cache e retornar 200

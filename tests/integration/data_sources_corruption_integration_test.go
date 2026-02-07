@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap tests that sending

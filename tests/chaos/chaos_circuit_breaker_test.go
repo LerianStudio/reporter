@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
-func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
+// TestIntegration_Chaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
+func TestIntegration_Chaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

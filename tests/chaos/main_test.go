@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
-	"github.com/LerianStudio/reporter/tests/helpers/containers"
-	"github.com/LerianStudio/reporter/tests/helpers/services"
+	h "github.com/LerianStudio/reporter/tests/utils"
+	"github.com/LerianStudio/reporter/tests/utils/containers"
+	"github.com/LerianStudio/reporter/tests/utils/services"
 )
 
 var (

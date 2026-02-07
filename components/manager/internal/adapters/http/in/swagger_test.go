@@ -16,6 +16,7 @@ import (
 )
 
 func TestWithSwaggerEnvConfig(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test modifies global api.SwaggerInfo state
 	originalTitle := api.SwaggerInfo.Title
 	originalDescription := api.SwaggerInfo.Description
 	originalVersion := api.SwaggerInfo.Version
@@ -120,6 +121,7 @@ func TestWithSwaggerEnvConfig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			api.SwaggerInfo.Title = originalTitle
 			api.SwaggerInfo.Description = originalDescription

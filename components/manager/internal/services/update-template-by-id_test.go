@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -61,7 +62,8 @@ func createFileHeaderFromString(content, filename string) (*multipart.FileHeader
 	return files[0], nil
 }
 
-func Test_updateTemplateById(t *testing.T) {
+func TestUpdateTemplateByID(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -115,8 +117,8 @@ func Test_updateTemplateById(t *testing.T) {
 		},
 	}
 
-	externalDataSources := map[string]pkg.DataSource{}
-	externalDataSources["midaz_organization"] = pkg.DataSource{
+	externalDataSourcesMap := map[string]pkg.DataSource{}
+	externalDataSourcesMap["midaz_organization"] = pkg.DataSource{
 		DatabaseType:       "mongodb",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -127,7 +129,7 @@ func Test_updateTemplateById(t *testing.T) {
 		Initialized:        true,
 	}
 
-	externalDataSources["midaz_onboarding"] = pkg.DataSource{
+	externalDataSourcesMap["midaz_onboarding"] = pkg.DataSource{
 		DatabaseType:       "postgresql",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -149,7 +151,7 @@ func Test_updateTemplateById(t *testing.T) {
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
 		TemplateSeaweedFS:   mockTempSeaweedFS,
-		ExternalDataSources: externalDataSources,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
 	}
 
 	templateTest := `
@@ -536,6 +538,7 @@ func Test_updateTemplateById(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -545,7 +548,7 @@ func Test_updateTemplateById(t *testing.T) {
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

@@ -45,7 +45,8 @@ func newMockLogger() *mockLogger {
 	return &mockLogger{}
 }
 
-func Test_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
+func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -150,11 +151,12 @@ func Test_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
 			svc := &UseCase{
-				ExternalDataSources: map[string]pkg.DataSource{
+				ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 					"test_postgres_db": {
 						DatabaseType:       pkg.PostgreSQLType,
 						PostgresRepository: mockPostgresRepo,
@@ -164,7 +166,7 @@ func Test_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 							Connected: true,
 						},
 					},
-				},
+				}),
 			}
 
 			ctx := context.Background()
@@ -182,7 +184,8 @@ func Test_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	}
 }
 
-func Test_ValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
+func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -285,17 +288,18 @@ func Test_ValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
 			svc := &UseCase{
-				ExternalDataSources: map[string]pkg.DataSource{
+				ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 					"test_mongo_db": {
 						DatabaseType:      pkg.MongoDBType,
 						MongoDBRepository: mockMongoRepo,
 						Initialized:       true,
 					},
-				},
+				}),
 			}
 
 			ctx := context.Background()
@@ -313,7 +317,9 @@ func Test_ValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	}
 }
 
-func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
+func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
+
 	// Register datasource IDs for testing - NOT including "unregistered_db"
 	pkg.ResetRegisteredDataSourceIDsForTesting()
 	pkg.RegisterDataSourceIDsForTesting([]string{"registered_db"})
@@ -321,7 +327,7 @@ func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	tests := []struct {
 		name         string
 		mappedFields map[string]map[string][]string
-		dataSources  map[string]pkg.DataSource
+		dataSources  *pkg.SafeDataSources
 		expectErr    bool
 		errContains  string
 	}{
@@ -332,7 +338,7 @@ func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 					"users": {"id"},
 				},
 			},
-			dataSources: map[string]pkg.DataSource{},
+			dataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 			expectErr:   true,
 			errContains: "unregistered_db",
 		},
@@ -343,15 +349,16 @@ func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 					"users": {"id"},
 				},
 			},
-			dataSources: map[string]pkg.DataSource{
+			dataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 				// Data source is not in the map
-			},
+			}),
 			expectErr:   true,
 			errContains: "registered_db",
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &UseCase{
 				ExternalDataSources: tt.dataSources,
@@ -372,18 +379,20 @@ func Test_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	}
 }
 
-func Test_ValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
+func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
+
 	// Register datasource IDs for testing
 	pkg.ResetRegisteredDataSourceIDsForTesting()
 	pkg.RegisterDataSourceIDsForTesting([]string{"unknown_db"})
 
 	svc := &UseCase{
-		ExternalDataSources: map[string]pkg.DataSource{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 			"unknown_db": {
 				DatabaseType: "unsupported_type",
 				Initialized:  true,
 			},
-		},
+		}),
 	}
 
 	mappedFields := map[string]map[string][]string{
@@ -399,7 +408,9 @@ func Test_ValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported database type")
 }
 
-func Test_TransformMappedFieldsForStorage(t *testing.T) {
+func TestTransformMappedFieldsForStorage(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		mappedFields   map[string]map[string][]string
@@ -467,7 +478,10 @@ func Test_TransformMappedFieldsForStorage(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := TransformMappedFieldsForStorage(tt.mappedFields, tt.organizationID)
 
 			// Check database count
@@ -489,7 +503,9 @@ func Test_TransformMappedFieldsForStorage(t *testing.T) {
 	}
 }
 
-func Test_generateCopyOfMappedFields(t *testing.T) {
+func TestGenerateCopyOfMappedFields(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		original      map[string]map[string][]string
@@ -566,14 +582,19 @@ func Test_generateCopyOfMappedFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			copiedFields := generateCopyOfMappedFields(tt.original, tt.dataSources)
 			tt.checkModified(t, tt.original, copiedFields)
 		})
 	}
 }
 
-func Test_validateSchemaAmbiguity(t *testing.T) {
+func TestValidateSchemaAmbiguity(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		databaseName string
@@ -669,7 +690,10 @@ func Test_validateSchemaAmbiguity(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validateSchemaAmbiguity(tt.databaseName, tt.schema, tt.mappedFields)
 
 			if tt.expectErr {
@@ -684,7 +708,8 @@ func Test_validateSchemaAmbiguity(t *testing.T) {
 	}
 }
 
-func Test_ValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
+func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -766,11 +791,12 @@ func Test_ValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) 
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
 			svc := &UseCase{
-				ExternalDataSources: map[string]pkg.DataSource{
+				ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 					"test_postgres_db": {
 						DatabaseType:       pkg.PostgreSQLType,
 						PostgresRepository: mockPostgresRepo,
@@ -780,7 +806,7 @@ func Test_ValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) 
 							Connected: true,
 						},
 					},
-				},
+				}),
 			}
 
 			ctx := context.Background()

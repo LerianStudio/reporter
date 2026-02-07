@@ -18,6 +18,8 @@ import (
 )
 
 func TestParsePathParametersUUID(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		pathParam      string
@@ -63,7 +65,10 @@ func TestParsePathParametersUUID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			app := fiber.New(fiber.Config{
 				DisableStartupMessage: true,
 			})
@@ -107,6 +112,8 @@ func TestParsePathParametersUUID(t *testing.T) {
 }
 
 func TestParsePathParametersUUID_SpecificUUID(t *testing.T) {
+	t.Parallel()
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
@@ -130,6 +137,8 @@ func TestParsePathParametersUUID_SpecificUUID(t *testing.T) {
 }
 
 func TestParsePathParametersUUID_WithDifferentRoutes(t *testing.T) {
+	t.Parallel()
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
@@ -162,7 +171,10 @@ func TestParsePathParametersUUID_WithDifferentRoutes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			req := httptest.NewRequest(http.MethodGet, tt.route, nil)
 			resp, err := app.Test(req)
 
@@ -184,5 +196,7 @@ func TestParsePathParametersUUID_WithDifferentRoutes(t *testing.T) {
 }
 
 func TestUUIDPathParameter_Constant(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, "id", UUIDPathParameter)
 }

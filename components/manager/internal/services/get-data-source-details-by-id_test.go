@@ -14,6 +14,7 @@ import (
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/LerianStudio/reporter/pkg"
@@ -24,7 +25,9 @@ import (
 	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
-func Test_GetDataSourceDetailsByID(t *testing.T) {
+func TestGetDataSourceDetailsByID(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -90,14 +93,14 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBRepository: mockMongoRepo,
 							MongoDBName:       "mongo_db",
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -112,14 +115,14 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBRepository: mockMongoRepo,
 							MongoDBName:       "mongo_db",
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -137,14 +140,14 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBRepository: mockMongoRepo,
 							MongoDBName:       "mongo_db",
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -162,7 +165,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
 							DatabaseType:       pkg.PostgreSQLType,
 							PostgresRepository: mockPostgresRepo,
@@ -170,7 +173,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 							MongoDBName:        "pg_db",
 							Initialized:        true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -185,7 +188,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
 							DatabaseType:       pkg.PostgreSQLType,
 							PostgresRepository: mockPostgresRepo,
@@ -193,7 +196,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 							MongoDBName:        "pg_db",
 							Initialized:        true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -210,7 +213,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			name:         "Error - Data source not found",
 			dataSourceID: "not_found",
 			setupSvc: func() *UseCase {
-				return &UseCase{ExternalDataSources: map[string]pkg.DataSource{}, RedisRepo: mockRedisRepo}
+				return &UseCase{ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}), RedisRepo: mockRedisRepo}
 			},
 			mockSetup: func() {
 				mockRedisRepo.EXPECT().Get(gomock.Any(), constant.DataSourceDetailsKeyPrefix+":not_found").Return("", nil)
@@ -223,14 +226,14 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBRepository: mockMongoRepo,
 							MongoDBName:       "mongo_db",
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -247,7 +250,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 			dataSourceID: "pg_ds",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
 							DatabaseType:       pkg.PostgreSQLType,
 							PostgresRepository: mockPostgresRepo,
@@ -255,7 +258,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 							MongoDBName:        "pg_db",
 							Initialized:        true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -270,6 +273,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			svc := tt.setupSvc()
 			tt.mockSetup()
@@ -278,7 +282,7 @@ func Test_GetDataSourceDetailsByID(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectResult, result)
 			}
 		})

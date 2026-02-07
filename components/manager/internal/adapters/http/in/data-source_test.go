@@ -31,6 +31,8 @@ func setupTestApp() *fiber.App {
 }
 
 func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		setupService   func() *services.UseCase
@@ -40,7 +42,7 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 			name: "Success - Returns empty list when no data sources",
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{},
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 				}
 			},
 			expectedStatus: fiber.StatusOK,
@@ -48,6 +50,7 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			app := setupTestApp()
 
@@ -73,6 +76,8 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 }
 
 func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -102,14 +107,14 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -127,7 +132,7 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			dataSourceID: "not_found",
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{},
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 					RedisRepo:           mockRedisRepo,
 				}
 			},
@@ -142,14 +147,14 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			dataSourceID: "mongo_ds",
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -164,6 +169,7 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -202,6 +208,8 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 }
 
 func Test_NewDataSourceHandler_NilService(t *testing.T) {
+	t.Parallel()
+
 	handler, err := NewDataSourceHandler(nil)
 
 	assert.Nil(t, handler)
@@ -210,6 +218,8 @@ func Test_NewDataSourceHandler_NilService(t *testing.T) {
 }
 
 func Test_NewDataSourceHandler_ValidService(t *testing.T) {
+	t.Parallel()
+
 	svc := &services.UseCase{}
 
 	handler, err := NewDataSourceHandler(svc)

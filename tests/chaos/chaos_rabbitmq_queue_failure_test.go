@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation
-func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
+// TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration simulates a failure of the RabbitMQ queue during report generation
+func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -139,8 +139,8 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 	t.Log("📋 Checking worker logs...")
 }
 
-// TestChaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
-func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
+// TestIntegration_Chaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
+func TestIntegration_Chaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

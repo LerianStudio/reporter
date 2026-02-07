@@ -13,7 +13,7 @@ import (
 )
 
 // Restarts MongoDB and Redis containers and validates recovery of the system
-func TestChaos_Datastores_RestartAndRecover(t *testing.T) {
+func TestIntegration_Chaos_Datastores_RestartAndRecover(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

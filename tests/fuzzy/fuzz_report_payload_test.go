@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // FuzzReportPayload tests various malformed report creation payloads
@@ -233,6 +233,11 @@ func FuzzConcurrentRequests(f *testing.F) {
 	f.Add("request1")
 	f.Add("request2")
 	f.Add("request3")
+	f.Add("<script>alert('xss')</script>")
+	f.Add("' OR 1=1 --")
+	f.Add(strings.Repeat("a", 1024))
+	f.Add("\u540d\u524d\u30c6\u30b9\u30c8")
+	f.Add("00000000-0000-0000-0000-000000000000")
 
 	env := h.LoadEnvironment()
 	ctx := context.Background()

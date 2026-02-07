@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestChaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
+// TestIntegration_Chaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
 // a message to RabbitMQ but the connection is closed
-func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
+func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -96,8 +96,8 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	t.Log("🎯 RabbitMQ connection chaos test completed")
 }
 
-// TestChaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
-func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
+// TestIntegration_Chaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
+func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -170,8 +170,8 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	t.Log("🎯 RabbitMQ channel chaos test completed")
 }
 
-// TestChaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
-func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
+// TestIntegration_Chaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
+func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

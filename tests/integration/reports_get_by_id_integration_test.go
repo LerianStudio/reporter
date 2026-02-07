@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	h "github.com/LerianStudio/reporter/tests/helpers"
+	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
 // TestIntegration_Reports_GetByID_ValidID tests GET /v1/reports/{id} with a valid report ID

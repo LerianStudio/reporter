@@ -30,6 +30,8 @@ import (
 )
 
 func Test_ReportHandler_CreateReport(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -122,6 +124,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -158,6 +161,8 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 }
 
 func Test_ReportHandler_GetReport(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -206,6 +211,7 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -251,6 +257,8 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 }
 
 func Test_ReportHandler_GetAllReports(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -320,6 +328,7 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -364,6 +373,8 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 }
 
 func Test_ReportHandler_GetDownloadReport(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -492,6 +503,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -533,6 +545,8 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 }
 
 func Test_NewReportHandler_NilService(t *testing.T) {
+	t.Parallel()
+
 	handler, err := NewReportHandler(nil)
 
 	assert.Nil(t, handler)
@@ -541,6 +555,8 @@ func Test_NewReportHandler_NilService(t *testing.T) {
 }
 
 func Test_NewReportHandler_ValidService(t *testing.T) {
+	t.Parallel()
+
 	svc := &services.UseCase{}
 
 	handler, err := NewReportHandler(svc)

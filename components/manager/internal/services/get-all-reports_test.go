@@ -15,10 +15,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getAllReports(t *testing.T) {
+func TestGetAllReports(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -121,6 +124,7 @@ func Test_getAllReports(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -131,8 +135,8 @@ func Test_getAllReports(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 				assert.Len(t, result, tt.expectedCount)
 				if tt.expectedCount > 0 {
 					assert.Equal(t, tt.expectedResult[0].ID, result[0].ID)
