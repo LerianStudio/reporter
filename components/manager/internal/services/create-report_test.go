@@ -6,9 +6,14 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
@@ -16,11 +21,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_createReport(t *testing.T) {
+func TestCreateReport(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -211,6 +219,7 @@ func Test_createReport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -221,14 +230,323 @@ func Test_createReport(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 			}
 		})
 	}
 }
 
-func Test_convertFiltersToMappedFieldsType(t *testing.T) {
+// hashRequestBody computes a SHA256 hash of the JSON-serialized request body.
+// This is a test helper that mirrors the expected hashing logic in the idempotency implementation.
+func hashRequestBody(t *testing.T, input *model.CreateReportInput) string {
+	t.Helper()
+
+	data, err := json.Marshal(input)
+	require.NoError(t, err, "failed to marshal report input for hash computation")
+
+	return fmt.Sprintf("%x", sha256.Sum256(data))
+}
+
+func TestCreateReport_Idempotency(t *testing.T) {
+	t.Parallel()
+
+	reportID := uuid.New()
+	tempID := uuid.New()
+
+	mappedFields := map[string]map[string][]string{
+		"midaz_onboarding": {
+			"organization": {"legal_name", "legal_document"},
+		},
+	}
+
+	outputFormat := "html"
+
+	reportInput := &model.CreateReportInput{
+		TemplateID: tempID.String(),
+		Filters:    nil,
+	}
+
+	reportEntity := &report.Report{
+		ID:         reportID,
+		TemplateID: tempID,
+		Filters:    nil,
+		Status:     constant.ProcessingStatus,
+	}
+
+	// Pre-compute the expected idempotency key based on the request body hash
+	expectedHash := hashRequestBody(t, reportInput)
+	expectedIdempotencyKey := "idempotency:" + expectedHash
+
+	// Pre-compute the expected cached response JSON
+	cachedResponseJSON, err := json.Marshal(reportEntity)
+	require.NoError(t, err, "failed to marshal report entity for cached response")
+
+	// Idempotency TTL: 24 hours as specified in requirements
+	idempotencyTTL := 24 * time.Hour
+
+	tests := []struct {
+		name           string
+		reportInput    *model.CreateReportInput
+		idempotencyKey string
+		mockSetup      func(
+			mockRedisRepo *redis.MockRedisRepository,
+			mockTempRepo *template.MockRepository,
+			mockReportRepo *report.MockRepository,
+			mockRabbitMQ *rabbitmq.MockProducerRepository,
+		)
+		expectErr      bool
+		expectedResult *report.Report
+		description    string
+	}{
+		{
+			name:           "Success - First call creates report with idempotency lock",
+			reportInput:    reportInput,
+			idempotencyKey: "",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// Expect SetNX to be called with the hash-based key BEFORE report creation
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(true, nil)
+
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(&outputFormat, mappedFields, nil)
+
+				mockReportRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(reportEntity, nil)
+
+				mockRabbitMQ.EXPECT().
+					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, nil)
+
+				// After successful creation, expect the result to be cached in Redis
+				mockRedisRepo.EXPECT().
+					Set(gomock.Any(), expectedIdempotencyKey, string(cachedResponseJSON), idempotencyTTL).
+					Return(nil)
+			},
+			expectErr: false,
+			expectedResult: &report.Report{
+				ID:         reportID,
+				TemplateID: tempID,
+				Filters:    nil,
+				Status:     constant.ProcessingStatus,
+			},
+			description: "The first call must acquire the SetNX lock, create the report, " +
+				"send to RabbitMQ, and cache the response for future duplicates.",
+		},
+		{
+			name:           "Success - Duplicate request returns cached response (no new report created)",
+			reportInput:    reportInput,
+			idempotencyKey: "",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// SetNX returns false: key already exists (duplicate request)
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(false, nil)
+
+				// Expect Get to retrieve the cached response
+				mockRedisRepo.EXPECT().
+					Get(gomock.Any(), expectedIdempotencyKey).
+					Return(string(cachedResponseJSON), nil)
+
+				// NO calls to TemplateRepo, ReportRepo, or RabbitMQ should happen
+				// (gomock will fail if unexpected calls are made)
+			},
+			expectErr: false,
+			expectedResult: &report.Report{
+				ID:         reportID,
+				TemplateID: tempID,
+				Filters:    nil,
+				Status:     constant.ProcessingStatus,
+			},
+			description: "When SetNX returns false, it means a duplicate request. " +
+				"The service must return the cached response without creating a new report or publishing to RabbitMQ.",
+		},
+		{
+			name: "Success - Different request body creates a different report",
+			reportInput: &model.CreateReportInput{
+				TemplateID: uuid.New().String(),
+				Filters:    nil,
+			},
+			idempotencyKey: "",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// Different body produces a different hash, so SetNX succeeds (new key)
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), gomock.Not(gomock.Eq(expectedIdempotencyKey)), gomock.Any(), idempotencyTTL).
+					Return(true, nil)
+
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(&outputFormat, mappedFields, nil)
+
+				mockReportRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(reportEntity, nil)
+
+				mockRabbitMQ.EXPECT().
+					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, nil)
+
+				mockRedisRepo.EXPECT().
+					Set(gomock.Any(), gomock.Not(gomock.Eq(expectedIdempotencyKey)), gomock.Any(), idempotencyTTL).
+					Return(nil)
+			},
+			expectErr:      false,
+			expectedResult: reportEntity,
+			description: "A request with a different body produces a different hash, " +
+				"so SetNX succeeds and a new report is created normally.",
+		},
+		{
+			name:           "Success - Client-provided Idempotency-Key header is used instead of hash",
+			reportInput:    reportInput,
+			idempotencyKey: "client-provided-unique-key-12345",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// When client provides an explicit key, it is used instead of hashing the body
+				clientIdempotencyKey := "idempotency:client-provided-unique-key-12345"
+
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), clientIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(true, nil)
+
+				mockTempRepo.EXPECT().
+					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
+					Return(&outputFormat, mappedFields, nil)
+
+				mockReportRepo.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					Return(reportEntity, nil)
+
+				mockRabbitMQ.EXPECT().
+					ProducerDefault(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, nil)
+
+				mockRedisRepo.EXPECT().
+					Set(gomock.Any(), clientIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(nil)
+			},
+			expectErr:      false,
+			expectedResult: reportEntity,
+			description: "When the client provides an Idempotency-Key header, the service must " +
+				"use that key instead of computing a hash from the request body.",
+		},
+		{
+			name:           "Error - Duplicate in-flight request (SetNX false, no cached value yet)",
+			reportInput:    reportInput,
+			idempotencyKey: "",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// SetNX returns false: key already exists
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(false, nil)
+
+				// Get returns empty string: first request is still processing
+				mockRedisRepo.EXPECT().
+					Get(gomock.Any(), expectedIdempotencyKey).
+					Return("", nil)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+			description: "When SetNX returns false and Get returns empty, it means the first request " +
+				"is still in-flight. The service must return an error indicating a duplicate in-flight request.",
+		},
+		{
+			name:           "Error - Redis SetNX fails",
+			reportInput:    reportInput,
+			idempotencyKey: "",
+			mockSetup: func(
+				mockRedisRepo *redis.MockRedisRepository,
+				mockTempRepo *template.MockRepository,
+				mockReportRepo *report.MockRepository,
+				mockRabbitMQ *rabbitmq.MockProducerRepository,
+			) {
+				// Redis is unavailable
+				mockRedisRepo.EXPECT().
+					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
+					Return(false, constant.ErrInternalServer)
+			},
+			expectErr:      true,
+			expectedResult: nil,
+			description: "When Redis SetNX fails due to infrastructure error, the service must " +
+				"return an error rather than proceeding without idempotency protection.",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Each subtest gets its own mock controller to avoid interference
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTempRepo := template.NewMockRepository(ctrl)
+			mockReportRepo := report.NewMockRepository(ctrl)
+			mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
+			mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+			tt.mockSetup(mockRedisRepo, mockTempRepo, mockReportRepo, mockRabbitMQ)
+
+			reportSvc := &UseCase{
+				TemplateRepo: mockTempRepo,
+				ReportRepo:   mockReportRepo,
+				RabbitMQRepo: mockRabbitMQ,
+				RedisRepo:    mockRedisRepo,
+			}
+
+			ctx := context.Background()
+
+			// If an idempotency key is provided, inject it into context
+			if tt.idempotencyKey != "" {
+				ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, tt.idempotencyKey)
+			}
+
+			result, err := reportSvc.CreateReport(ctx, tt.reportInput)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tt.expectedResult.ID, result.ID)
+				assert.Equal(t, tt.expectedResult.TemplateID, result.TemplateID)
+				assert.Equal(t, tt.expectedResult.Status, result.Status)
+			}
+		})
+	}
+}
+
+func TestConvertFiltersToMappedFieldsType(t *testing.T) {
+	t.Parallel()
+
 	uc := &UseCase{}
 
 	tests := []struct {
@@ -299,7 +617,10 @@ func Test_convertFiltersToMappedFieldsType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := uc.convertFiltersToMappedFieldsType(tt.input)
 
 			// Verify structure matches (can't guarantee order of keys in maps)

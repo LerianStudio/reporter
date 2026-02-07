@@ -4,7 +4,20 @@
 
 package constant
 
+import "time"
+
+type contextKey string
+
 const (
 	DataSourceDetailsKeyPrefix = "data_source_details"
 	RedisTTL                   = 300
+
+	// IdempotencyKeyPrefix is the Redis key prefix for idempotency locks.
+	IdempotencyKeyPrefix = "idempotency"
+
+	// IdempotencyTTL is the time-to-live for idempotency keys (24 hours).
+	IdempotencyTTL = 24 * time.Hour
+
+	// IdempotencyKeyCtx is the context key for client-provided Idempotency-Key header values.
+	IdempotencyKeyCtx = contextKey("idempotency_key")
 )

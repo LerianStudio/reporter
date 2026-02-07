@@ -50,4 +50,6 @@ var (
 	ErrSchemaNotFound                  = errors.New("TPL-0036")
 	ErrTableNotFoundInSchema           = errors.New("TPL-0037")
 	ErrDatabaseNotRegistered           = errors.New("TPL-0038")
+	ErrDuplicateRequestInFlight        = errors.New("TPL-0039")
+	ErrIdempotencyConflict             = errors.New("TPL-0040")
 )

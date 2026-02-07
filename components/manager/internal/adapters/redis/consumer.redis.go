@@ -21,6 +21,7 @@ import (
 //go:generate mockgen --destination=consumer.redis.mock.go --package=redis . RedisRepository
 type RedisRepository interface {
 	Set(ctx context.Context, key, value string, ttl time.Duration) error
+	SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error)
 	Get(ctx context.Context, key string) (string, error)
 	Del(ctx context.Context, key string) error
 }
@@ -73,6 +74,44 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 	}
 
 	return nil
+}
+
+// SetNX sets a key in redis only if it does not already exist (atomic compare-and-set).
+// Returns true if the key was set (first request), false if it already existed (duplicate).
+func (rc *RedisConsumerRepository) SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.redis.set_nx")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.key", key),
+		attribute.String("app.request.value", value),
+		attribute.String("app.request.ttl", ttl.String()),
+	)
+
+	rds, err := rc.conn.GetClient(ctx)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to get redis client", err)
+
+		return false, err
+	}
+
+	logger.Infof("SetNX key: %s, ttl: %v", key, ttl)
+
+	result, err := rds.SetNX(ctx, key, value, ttl).Result()
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to set_nx on redis", err)
+
+		return false, err
+	}
+
+	span.SetAttributes(
+		attribute.Bool("app.response.was_set", result),
+	)
+
+	return result, nil
 }
 
 // Get recovers a key from the redis

@@ -498,6 +498,18 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Database Not Registered",
 			Message:    fmt.Sprintf("The database '%v' is not registered. Please verify the datasource configuration.", args...),
 		},
+		constant.ErrDuplicateRequestInFlight: EntityConflictError{
+			EntityType: entityType,
+			Code:       constant.ErrDuplicateRequestInFlight.Error(),
+			Title:      "Duplicate Request In Flight",
+			Message:    "A duplicate request is currently being processed. Please wait and try again.",
+		},
+		constant.ErrIdempotencyConflict: EntityConflictError{
+			EntityType: entityType,
+			Code:       constant.ErrIdempotencyConflict.Error(),
+			Title:      "Idempotency Conflict",
+			Message:    "A request with this idempotency key has already been processed.",
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {
