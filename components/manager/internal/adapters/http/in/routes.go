@@ -19,6 +19,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
@@ -51,6 +52,13 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	tlMid := commonsHttp.NewTelemetryMiddleware(tl)
 
 	f.Use(tlMid.WithTelemetry(tl))
+	f.Use(otelfiber.Middleware(
+		otelfiber.WithNext(func(c *fiber.Ctx) bool {
+			// Skip tracing for health/ready endpoints to reduce noise
+			path := c.Path()
+			return path == "/health" || path == "/ready"
+		}),
+	))
 	f.Use(RecoverMiddleware())
 	f.Use(SecurityHeaders())
 	f.Use(cors.New())

@@ -5,14 +5,15 @@
 package pongo
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"testing"
 )
 
 func TestMain(m *testing.M) {
 	if err := RegisterAll(); err != nil {
-		log.Fatalf("Failed to register pongo2 filters and tags: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to register pongo2 filters and tags: %v\n", err)
+		os.Exit(1)
 	}
 
 	os.Exit(m.Run())

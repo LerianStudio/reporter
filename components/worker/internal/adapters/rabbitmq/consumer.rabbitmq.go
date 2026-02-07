@@ -24,7 +24,9 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
+	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
+	// otel/trace is used for trace.Span parameter type in handleFailedMessage
 	"go.opentelemetry.io/otel/trace"
 )
 

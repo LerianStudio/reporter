@@ -79,6 +79,10 @@ func NewCreateReportInput(templateID string, filters map[string]map[string]map[s
 		return nil, fmt.Errorf("templateID must not be empty")
 	}
 
+	if _, err := uuid.Parse(templateID); err != nil {
+		return nil, fmt.Errorf("templateID must be a valid UUID: %w", err)
+	}
+
 	return &CreateReportInput{
 		TemplateID: templateID,
 		Filters:    filters,

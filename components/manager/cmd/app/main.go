@@ -24,6 +24,9 @@ func main() {
 
 	svc, err := bootstrap.InitServers()
 	if err != nil {
+		// fmt.Fprintf is used here because the structured logger (zap) is not yet
+		// available — it is initialized inside InitServers. This is the only place
+		// where fmt output is acceptable per Ring standards.
 		fmt.Fprintf(os.Stderr, "Failed to initialize manager: %v\n", err)
 		os.Exit(1)
 	}

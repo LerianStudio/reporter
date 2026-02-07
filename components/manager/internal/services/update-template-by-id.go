@@ -21,7 +21,9 @@ import (
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
+	// otel/trace is used for trace.Span parameter type in validateOutputFormatAndFile
 	"go.opentelemetry.io/otel/trace"
 )
 

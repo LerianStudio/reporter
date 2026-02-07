@@ -18,6 +18,9 @@ func main() {
 
 	svc, err := bootstrap.InitWorker()
 	if err != nil {
+		// fmt.Fprintf is used here because the structured logger (zap) is not yet
+		// available — it is initialized inside InitWorker. This is the only place
+		// where fmt output is acceptable per Ring standards.
 		fmt.Fprintf(os.Stderr, "Failed to initialize worker: %v\n", err)
 		os.Exit(1)
 	}
