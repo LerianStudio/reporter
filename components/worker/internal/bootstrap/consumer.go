@@ -13,8 +13,10 @@ import (
 
 	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/worker/internal/services"
+	"github.com/LerianStudio/reporter/pkg"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -23,13 +25,15 @@ import (
 type MultiQueueConsumer struct {
 	consumerRoutes *rabbitmq.ConsumerRoutes
 	UseCase        *services.UseCase
+	logger         log.Logger
 }
 
 // NewMultiQueueConsumer create a new instance of MultiQueueConsumer.
-func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes, useCase *services.UseCase, queueName string) *MultiQueueConsumer {
+func NewMultiQueueConsumer(routes *rabbitmq.ConsumerRoutes, useCase *services.UseCase, queueName string, logger log.Logger) *MultiQueueConsumer {
 	consumer := &MultiQueueConsumer{
 		consumerRoutes: routes,
 		UseCase:        useCase,
+		logger:         logger,
 	}
 
 	// Registry handlers for each queue
@@ -50,16 +54,12 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				cancel()
-			}
-		}()
-
+	pkg.GoWithCleanup(mq.logger, func() {
 		<-sigs
 		cancel()
-	}()
+	}, func(_ any) {
+		cancel()
+	})
 
 	if err := mq.consumerRoutes.RunConsumers(ctx, wg); err != nil {
 		return err

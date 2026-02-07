@@ -110,11 +110,46 @@ func (c *Config) Validate() error {
 		errs = append(errs, "OBJECT_STORAGE_ENDPOINT is required")
 	}
 
+	errs = c.validateProductionConfig(errs)
+
 	if len(errs) > 0 {
 		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
 	}
 
 	return nil
+}
+
+// defaultPassword is the placeholder value that must be replaced before
+// deploying to production.
+const defaultPassword = "CHANGE_ME"
+
+// validateProductionConfig enforces stricter rules when EnvName is "production".
+// Telemetry and real credentials are required in production.
+func (c *Config) validateProductionConfig(errs []string) []string {
+	if c.EnvName != "production" {
+		return errs
+	}
+
+	if !c.EnableTelemetry {
+		errs = append(errs, "ENABLE_TELEMETRY must be true in production")
+	}
+
+	secrets := []struct {
+		value string
+		name  string
+	}{
+		{c.MongoDBPassword, "MONGO_PASSWORD"},
+		{c.RabbitMQPass, "RABBITMQ_DEFAULT_PASS"},
+		{c.ObjectStorageSecretKey, "OBJECT_STORAGE_SECRET_KEY"},
+	}
+
+	for _, s := range secrets {
+		if s.value == defaultPassword {
+			errs = append(errs, s.name+" must not use the default placeholder in production")
+		}
+	}
+
+	return errs
 }
 
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
@@ -312,12 +347,15 @@ func InitWorker() (_ *Service, err error) {
 		healthChecker.Stop()
 	})
 
-	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue)
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue, logger)
 
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		healthChecker:      healthChecker,
 		mongoConnection:    mongoConnection,
+		rabbitMQConnection: rabbitMQConnection,
+		pdfPool:            pdfPool,
+		telemetry:          telemetry,
 	}, nil
 }

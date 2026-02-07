@@ -7,6 +7,7 @@ package bootstrap
 import (
 	"testing"
 
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,18 +41,12 @@ func TestConfig_HasCryptoEncryptSecretKeyPluginCRMField(t *testing.T) {
 func TestNewMultiQueueConsumer_ReceivesQueueName(t *testing.T) {
 	t.Parallel()
 
-	// This test verifies that NewMultiQueueConsumer accepts a queueName parameter.
-	// Currently the function signature is:
-	//   NewMultiQueueConsumer(routes, useCase) *MultiQueueConsumer
-	// It should become:
-	//   NewMultiQueueConsumer(routes, useCase, queueName string) *MultiQueueConsumer
-	//
-	// We cannot call it with 3 args yet, so this test will fail to compile.
-	// The test proves the refactoring is needed.
+	// This test verifies that NewMultiQueueConsumer accepts a queueName and logger parameter.
 
 	queueName := "reporter.generate-report.queue"
+	logger := &log.NoneLogger{}
 
-	consumer := NewMultiQueueConsumer(nil, nil, queueName)
+	consumer := NewMultiQueueConsumer(nil, nil, queueName, logger)
 
 	require.NotNil(t, consumer)
 }

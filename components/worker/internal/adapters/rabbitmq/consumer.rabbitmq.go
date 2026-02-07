@@ -256,7 +256,8 @@ func isRetryable(err error) bool {
 		return false
 	}
 
-	// Check for known non-retryable error types from the application
+	// Check for known non-retryable error types from the application.
+	// Business validation and domain errors will never succeed on retry.
 	var validationErr pkg.ValidationError
 	if errors.As(err, &validationErr) {
 		return false
@@ -264,6 +265,21 @@ func isRetryable(err error) bool {
 
 	var notFoundErr pkg.EntityNotFoundError
 	if errors.As(err, &notFoundErr) {
+		return false
+	}
+
+	var knownFieldsErr pkg.ValidationKnownFieldsError
+	if errors.As(err, &knownFieldsErr) {
+		return false
+	}
+
+	var unknownFieldsErr pkg.ValidationUnknownFieldsError
+	if errors.As(err, &unknownFieldsErr) {
+		return false
+	}
+
+	var unprocessableErr pkg.UnprocessableOperationError
+	if errors.As(err, &unprocessableErr) {
 		return false
 	}
 
