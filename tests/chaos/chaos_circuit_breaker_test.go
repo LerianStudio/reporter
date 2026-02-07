@@ -1,3 +1,5 @@
+//go:build chaos
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -16,6 +18,13 @@ import (
 
 // TestChaos_CircuitBreaker_OpenAndRecover tests circuit breaker opening and recovery
 func TestChaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
+
 	// Skip this test in testcontainers mode - requires external plugin_crm infrastructure
 	if os.Getenv("USE_EXISTING_INFRA") != "true" {
 		t.Skip("Skipping circuit breaker test - requires plugin_crm infrastructure (docker-compose)")

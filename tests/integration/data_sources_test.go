@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -14,7 +16,6 @@ import (
 
 // GET /v1/data-sources — deve respeitar cache e retornar 200
 func TestIntegration_DataSources_CacheBehavior(t *testing.T) {
-	t.Parallel()
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

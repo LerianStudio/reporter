@@ -5,17 +5,10 @@
 package pkg
 
 import (
-	"os"
 	"testing"
 )
 
 func TestDataSourceConfig_GetSchemas(t *testing.T) {
-	// Clean up any existing env vars after tests
-	defer func() {
-		os.Unsetenv("DATASOURCE_EXTERNAL_DB_SCHEMAS")
-		os.Unsetenv("DATASOURCE_MIDAZ_ONBOARDING_SCHEMAS")
-	}()
-
 	tests := []struct {
 		name       string
 		configName string
@@ -50,13 +43,9 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset env for each test
-			os.Unsetenv("DATASOURCE_EXTERNAL_DB_SCHEMAS")
-			os.Unsetenv("DATASOURCE_MIDAZ_ONBOARDING_SCHEMAS")
-
 			if tt.envValue != "" {
 				envKey := "DATASOURCE_" + toEnvFormat(tt.configName) + "_SCHEMAS"
-				os.Setenv(envKey, tt.envValue)
+				t.Setenv(envKey, tt.envValue)
 			}
 
 			config := DataSourceConfig{

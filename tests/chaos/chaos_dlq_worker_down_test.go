@@ -1,3 +1,5 @@
+//go:build chaos
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -13,6 +15,13 @@ import (
 // This test requires docker-compose infrastructure where Worker runs as a container.
 // In testcontainers mode, Worker runs as a subprocess and cannot be stopped/started via Docker.
 func TestChaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
+
 	// Skip this test in testcontainers mode - Worker is a Go subprocess, not a container
 	if os.Getenv("USE_EXISTING_INFRA") != "true" {
 		t.Skip("Skipping test - Worker runs as subprocess in testcontainers mode, requires docker-compose infrastructure")

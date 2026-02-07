@@ -7,7 +7,6 @@ package http
 import (
 	"encoding/base64"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -126,8 +125,7 @@ func TestValidateParameters_ValidSortOrders(t *testing.T) {
 
 func TestValidateParameters_PaginationLimitExceeded(t *testing.T) {
 	// Set max pagination limit for test
-	os.Setenv("MAX_PAGINATION_LIMIT", "100")
-	defer os.Unsetenv("MAX_PAGINATION_LIMIT")
+	t.Setenv("MAX_PAGINATION_LIMIT", "100")
 
 	params := map[string]string{
 		"limit": "150",

@@ -6,7 +6,6 @@ package services
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
@@ -27,12 +26,8 @@ func Test_SendReportQueueReports(t *testing.T) {
 	templateID := uuid.New()
 
 	// Set environment variables for the test
-	os.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	os.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
-	defer func() {
-		os.Unsetenv("RABBITMQ_EXCHANGE")
-		os.Unsetenv("RABBITMQ_GENERATE_REPORT_KEY")
-	}()
+	t.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
+	t.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
 
 	tests := []struct {
 		name          string
@@ -133,12 +128,8 @@ func Test_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	reportID := uuid.New()
 	templateID := uuid.New()
 
-	os.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	os.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
-	defer func() {
-		os.Unsetenv("RABBITMQ_EXCHANGE")
-		os.Unsetenv("RABBITMQ_GENERATE_REPORT_KEY")
-	}()
+	t.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
+	t.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
 
 	outputFormats := []string{"pdf", "xml", "html", "txt", "csv"}
 

@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -15,7 +17,6 @@ import (
 
 // GET /v1/templates — filters and pagination
 func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
-	t.Parallel()
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -58,7 +59,6 @@ func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
 
 // POST /v1/templates — create template with invalid payload
 func TestIntegration_Templates_Create_BadRequest(t *testing.T) {
-	t.Parallel()
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

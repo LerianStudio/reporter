@@ -1,3 +1,5 @@
+//go:build chaos
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -7,6 +9,7 @@ package chaos
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -16,6 +19,12 @@ import (
 // TestChaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
 // a message to RabbitMQ but the connection is closed
 func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
@@ -89,6 +98,13 @@ func TestChaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
 func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
+
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Give time for Manager and RabbitMQ to fully stabilize
 
@@ -156,6 +172,13 @@ func TestChaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 // TestChaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
 func TestChaos_RabbitMQ_QueueFull(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
+
 	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	time.Sleep(30 * time.Second) // Increased from 15s to 30s for datasource reconnection
 

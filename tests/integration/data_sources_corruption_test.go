@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -14,7 +16,6 @@ import (
 
 // TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap tests that sending
 func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing.T) {
-	t.Parallel()
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -104,7 +105,6 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 // multiple requests with invalid datasource names don't accumulate invalid entries
 // in the ExternalDataSources map.
 func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *testing.T) {
-	t.Parallel()
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

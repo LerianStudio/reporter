@@ -278,12 +278,8 @@ func Test_GenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	os.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", encryptKey)
-	defer func() {
-		os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
-		os.Unsetenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
-	}()
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
+	t.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", encryptKey)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -672,8 +668,7 @@ func Test_decryptRelatedPartiesFields(t *testing.T) {
 func Test_transformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	defer os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	crypto := &libCrypto.Crypto{
@@ -1553,8 +1548,7 @@ func Test_queryDatabase_UnsupportedDatabaseType(t *testing.T) {
 func Test_transformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	defer os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
@@ -1592,8 +1586,7 @@ func Test_transformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 func Test_transformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	defer os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
@@ -1651,8 +1644,7 @@ func Test_transformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 func Test_transformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	os.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
-	defer os.Unsetenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", hashKey)
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}

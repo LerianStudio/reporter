@@ -7,7 +7,6 @@ package in
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/LerianStudio/reporter/components/manager/api"
@@ -129,19 +128,9 @@ func TestWithSwaggerEnvConfig(t *testing.T) {
 			api.SwaggerInfo.BasePath = originalBasePath
 			api.SwaggerInfo.Schemes = originalSchemes
 
-			for key := range tt.envVars {
-				os.Unsetenv(key)
-			}
-
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				t.Setenv(key, value)
 			}
-
-			defer func() {
-				for key := range tt.envVars {
-					os.Unsetenv(key)
-				}
-			}()
 
 			app := fiber.New(fiber.Config{
 				DisableStartupMessage: true,
@@ -176,10 +165,9 @@ func TestWithSwaggerEnvConfig_EmptyValues(t *testing.T) {
 
 	defer func() {
 		api.SwaggerInfo.Title = originalTitle
-		os.Unsetenv("SWAGGER_TITLE")
 	}()
 
-	os.Setenv("SWAGGER_TITLE", "")
+	t.Setenv("SWAGGER_TITLE", "")
 
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
@@ -206,12 +194,10 @@ func TestWithSwaggerEnvConfig_DelimiterSettings(t *testing.T) {
 	defer func() {
 		api.SwaggerInfo.LeftDelim = originalLeftDelim
 		api.SwaggerInfo.RightDelim = originalRightDelim
-		os.Unsetenv("SWAGGER_LEFT_DELIM")
-		os.Unsetenv("SWAGGER_RIGHT_DELIM")
 	}()
 
-	os.Setenv("SWAGGER_LEFT_DELIM", "[[")
-	os.Setenv("SWAGGER_RIGHT_DELIM", "]]")
+	t.Setenv("SWAGGER_LEFT_DELIM", "[[")
+	t.Setenv("SWAGGER_RIGHT_DELIM", "]]")
 
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,

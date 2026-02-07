@@ -1,3 +1,5 @@
+//go:build chaos
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -7,6 +9,7 @@ package chaos
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -15,6 +18,12 @@ import (
 
 // TestChaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
 func TestChaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
 	t.Log("⏳ Waiting for system stability...")
 	time.Sleep(5 * time.Second)
 

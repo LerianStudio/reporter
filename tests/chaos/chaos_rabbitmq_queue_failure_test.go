@@ -1,3 +1,5 @@
+//go:build chaos
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -8,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -16,6 +19,12 @@ import (
 
 // TestChaos_RabbitMQ_QueueFailureDuringReportGeneration simulate a failure of the RabbitMQ queue during report generation
 func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
 	t.Log("⏳ Waiting for system stability after previous chaos tests...")
 	time.Sleep(10 * time.Second)
 
@@ -132,6 +141,13 @@ func TestChaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
 
 // TestChaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
 func TestChaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
+	if os.Getenv("CHAOS") != "1" {
+		t.Skip("Set CHAOS=1 to run chaos tests")
+	}
+	if testing.Short() {
+		t.Skip("Skipping chaos test in short mode")
+	}
+
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
