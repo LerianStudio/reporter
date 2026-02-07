@@ -31,7 +31,7 @@ func setupTestApp() *fiber.App {
 	})
 }
 
-func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
+func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -53,6 +53,8 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			app := setupTestApp()
 
 			handler := &DataSourceHandler{
@@ -76,7 +78,7 @@ func Test_DataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	}
 }
 
-func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
+func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -214,7 +216,7 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	}
 }
 
-func Test_DataSourceHandler_GetDataSourceInformationByID_InvalidUUID(t *testing.T) {
+func TestDataSourceHandler_GetDataSourceInformationByID_InvalidUUID(t *testing.T) {
 	t.Parallel()
 
 	app := setupTestApp()
@@ -274,7 +276,7 @@ func Test_DataSourceHandler_GetDataSourceInformationByID_InvalidUUID(t *testing.
 	}
 }
 
-func Test_NewDataSourceHandler_NilService(t *testing.T) {
+func TestNewDataSourceHandler_NilService(t *testing.T) {
 	t.Parallel()
 
 	handler, err := NewDataSourceHandler(nil)
@@ -284,7 +286,7 @@ func Test_NewDataSourceHandler_NilService(t *testing.T) {
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
-func Test_NewDataSourceHandler_ValidService(t *testing.T) {
+func TestNewDataSourceHandler_ValidService(t *testing.T) {
 	t.Parallel()
 
 	svc := &services.UseCase{}

@@ -29,15 +29,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func Test_ReportHandler_CreateReport(t *testing.T) {
+func TestReportHandler_CreateReport(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTempRepo := template.NewMockRepository(ctrl)
-	mockReportRepo := report.NewMockRepository(ctrl)
-	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 
 	tempID := uuid.New()
 	reportID := uuid.New()
@@ -45,7 +38,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		payload        model.CreateReportInput
-		mockSetup      func()
+		mockSetup      func(mockTempRepo *template.MockRepository, mockReportRepo *report.MockRepository, mockRabbitMQ *rabbitmq.MockProducerRepository)
 		expectedStatus int
 		expectError    bool
 	}{
@@ -55,7 +48,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 				TemplateID: tempID.String(),
 				Filters:    nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(mockTempRepo *template.MockRepository, mockReportRepo *report.MockRepository, mockRabbitMQ *rabbitmq.MockProducerRepository) {
 				outputFormat := "pdf"
 				mappedFields := map[string]map[string][]string{
 					"midaz_onboarding": {
@@ -88,7 +81,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 				TemplateID: tempID.String(),
 				Filters:    nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(mockTempRepo *template.MockRepository, mockReportRepo *report.MockRepository, mockRabbitMQ *rabbitmq.MockProducerRepository) {
 				mockTempRepo.EXPECT().
 					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(nil, nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "template"))
@@ -102,7 +95,7 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 				TemplateID: tempID.String(),
 				Filters:    nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(mockTempRepo *template.MockRepository, mockReportRepo *report.MockRepository, mockRabbitMQ *rabbitmq.MockProducerRepository) {
 				outputFormat := "pdf"
 				mappedFields := map[string]map[string][]string{
 					"midaz_onboarding": {
@@ -126,7 +119,16 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTempRepo := template.NewMockRepository(ctrl)
+			mockReportRepo := report.NewMockRepository(ctrl)
+			mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
+
+			tt.mockSetup(mockTempRepo, mockReportRepo, mockRabbitMQ)
 
 			svc := &services.UseCase{
 				TemplateRepo: mockTempRepo,
@@ -160,13 +162,8 @@ func Test_ReportHandler_CreateReport(t *testing.T) {
 	}
 }
 
-func Test_ReportHandler_GetReport(t *testing.T) {
+func TestReportHandler_GetReport(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportRepo := report.NewMockRepository(ctrl)
 
 	reportID := uuid.New()
 	tempID := uuid.New()
@@ -176,14 +173,14 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		reportID       uuid.UUID
-		mockSetup      func()
+		mockSetup      func(mockReportRepo *report.MockRepository)
 		expectedStatus int
 		expectError    bool
 	}{
 		{
 			name:     "Success - Get report by ID",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(&report.Report{
@@ -200,7 +197,7 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 		{
 			name:     "Error - Report not found",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "report"))
@@ -213,7 +210,14 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportRepo := report.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockReportRepo)
 
 			svc := &services.UseCase{
 				ReportRepo: mockReportRepo,
@@ -256,13 +260,8 @@ func Test_ReportHandler_GetReport(t *testing.T) {
 	}
 }
 
-func Test_ReportHandler_GetAllReports(t *testing.T) {
+func TestReportHandler_GetAllReports(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportRepo := report.NewMockRepository(ctrl)
 
 	reportID1 := uuid.New()
 	reportID2 := uuid.New()
@@ -273,14 +272,14 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 	tests := []struct {
 		name           string
 		queryParams    string
-		mockSetup      func()
+		mockSetup      func(mockReportRepo *report.MockRepository)
 		expectedStatus int
 		expectedLen    int
 	}{
 		{
 			name:        "Success - Get all reports",
 			queryParams: "?limit=10&page=1",
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return([]*report.Report{
@@ -306,7 +305,7 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 		{
 			name:        "Success - Get all reports with empty result",
 			queryParams: "?limit=10&page=1",
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return([]*report.Report{}, nil)
@@ -317,7 +316,7 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 		{
 			name:        "Error - Database error",
 			queryParams: "?limit=10&page=1",
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
@@ -330,7 +329,14 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportRepo := report.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockReportRepo)
 
 			svc := &services.UseCase{
 				ReportRepo: mockReportRepo,
@@ -372,15 +378,8 @@ func Test_ReportHandler_GetAllReports(t *testing.T) {
 	}
 }
 
-func Test_ReportHandler_GetDownloadReport(t *testing.T) {
+func TestReportHandler_GetDownloadReport(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportRepo := report.NewMockRepository(ctrl)
-	mockTempRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := reportSeaweed.NewMockRepository(ctrl)
 
 	reportID := uuid.New()
 	tempID := uuid.New()
@@ -390,14 +389,14 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		reportID       uuid.UUID
-		mockSetup      func()
+		mockSetup      func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository)
 		expectedStatus int
 		expectError    bool
 	}{
 		{
 			name:     "Success - Download report",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(&report.Report{
@@ -426,7 +425,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 		{
 			name:     "Error - Report not found",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "report"))
@@ -437,7 +436,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 		{
 			name:     "Error - Report not finished",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(&report.Report{
@@ -453,7 +452,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 		{
 			name:     "Error - Template not found",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(&report.Report{
@@ -474,7 +473,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 		{
 			name:     "Error - File not found in SeaweedFS",
 			reportID: reportID,
-			mockSetup: func() {
+			mockSetup: func(mockReportRepo *report.MockRepository, mockTempRepo *template.MockRepository, mockSeaweedFS *reportSeaweed.MockRepository) {
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), reportID).
 					Return(&report.Report{
@@ -505,7 +504,16 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportRepo := report.NewMockRepository(ctrl)
+			mockTempRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := reportSeaweed.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockReportRepo, mockTempRepo, mockSeaweedFS)
 
 			svc := &services.UseCase{
 				ReportRepo:      mockReportRepo,
@@ -544,7 +552,7 @@ func Test_ReportHandler_GetDownloadReport(t *testing.T) {
 	}
 }
 
-func Test_NewReportHandler_NilService(t *testing.T) {
+func TestNewReportHandler_NilService(t *testing.T) {
 	t.Parallel()
 
 	handler, err := NewReportHandler(nil)
@@ -554,7 +562,7 @@ func Test_NewReportHandler_NilService(t *testing.T) {
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
-func Test_NewReportHandler_ValidService(t *testing.T) {
+func TestNewReportHandler_ValidService(t *testing.T) {
 	t.Parallel()
 
 	svc := &services.UseCase{}

@@ -181,3 +181,156 @@ func TestSafeDataSources_ConcurrentReadWrite_RaceDetector(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestSafeDataSources_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		fn   func(t *testing.T)
+	}{
+		{
+			name: "Get on nil receiver returns zero value and false",
+			fn: func(t *testing.T) {
+				t.Parallel()
+
+				var sds *SafeDataSources
+
+				ds, ok := sds.Get("any")
+				assert.False(t, ok)
+				assert.Equal(t, DataSource{}, ds)
+			},
+		},
+		{
+			name: "Set on nil receiver is no-op",
+			fn: func(t *testing.T) {
+				t.Parallel()
+
+				var sds *SafeDataSources
+
+				// Should not panic
+				assert.NotPanics(t, func() {
+					sds.Set("key", DataSource{DatabaseType: PostgreSQLType})
+				})
+			},
+		},
+		{
+			name: "GetAll on nil receiver returns empty map",
+			fn: func(t *testing.T) {
+				t.Parallel()
+
+				var sds *SafeDataSources
+
+				result := sds.GetAll()
+				assert.NotNil(t, result)
+				assert.Empty(t, result)
+			},
+		},
+		{
+			name: "Len on nil receiver returns 0",
+			fn: func(t *testing.T) {
+				t.Parallel()
+
+				var sds *SafeDataSources
+
+				assert.Equal(t, 0, sds.Len())
+			},
+		},
+		{
+			name: "ConnectDataSource on nil receiver returns error",
+			fn: func(t *testing.T) {
+				t.Parallel()
+
+				var sds *SafeDataSources
+
+				ds := &DataSource{DatabaseType: PostgreSQLType}
+				err := sds.ConnectDataSource("test", ds, nil)
+
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "SafeDataSources is nil")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			tt.fn(t)
+		})
+	}
+}
+
+func TestSafeDataSources_NewSafeDataSources_NilInitial(t *testing.T) {
+	t.Parallel()
+
+	sds := NewSafeDataSources(nil)
+	require.NotNil(t, sds)
+	assert.Equal(t, 0, sds.Len())
+
+	// Should still be usable after nil initialization
+	sds.Set("ds1", DataSource{DatabaseType: PostgreSQLType})
+
+	ds, exists := sds.Get("ds1")
+	assert.True(t, exists)
+	assert.Equal(t, PostgreSQLType, ds.DatabaseType)
+}
+
+func TestSafeDataSources_Set_OverwriteExisting(t *testing.T) {
+	t.Parallel()
+
+	sds := NewSafeDataSources(map[string]DataSource{
+		"ds1": {DatabaseType: PostgreSQLType, Initialized: false},
+	})
+
+	// Overwrite with a new value
+	sds.Set("ds1", DataSource{DatabaseType: MongoDBType, Initialized: true})
+
+	ds, exists := sds.Get("ds1")
+	assert.True(t, exists)
+	assert.Equal(t, MongoDBType, ds.DatabaseType)
+	assert.True(t, ds.Initialized)
+}
+
+func TestSafeDataSources_Len_AfterMutations(t *testing.T) {
+	t.Parallel()
+
+	sds := NewSafeDataSources(nil)
+	assert.Equal(t, 0, sds.Len())
+
+	sds.Set("ds1", DataSource{})
+	assert.Equal(t, 1, sds.Len())
+
+	sds.Set("ds2", DataSource{})
+	assert.Equal(t, 2, sds.Len())
+
+	// Overwrite does not increase length
+	sds.Set("ds1", DataSource{Initialized: true})
+	assert.Equal(t, 2, sds.Len())
+}
+
+func TestSafeDataSources_GetAll_EmptyMap(t *testing.T) {
+	t.Parallel()
+
+	sds := NewSafeDataSources(nil)
+
+	result := sds.GetAll()
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestSafeDataSources_NewSafeDataSources_DoesNotModifyOriginal(t *testing.T) {
+	t.Parallel()
+
+	original := map[string]DataSource{
+		"ds1": {DatabaseType: PostgreSQLType},
+	}
+
+	sds := NewSafeDataSources(original)
+
+	// Modify through SafeDataSources
+	sds.Set("ds2", DataSource{DatabaseType: MongoDBType})
+
+	// Original map should not be affected
+	_, exists := original["ds2"]
+	assert.False(t, exists, "original map should not be modified by SafeDataSources.Set")
+}

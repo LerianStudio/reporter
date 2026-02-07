@@ -25,6 +25,373 @@ import (
 	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
+func TestGetBaseCollectionName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Collection with organization suffix",
+			input:    "holders_org123",
+			expected: "holders",
+		},
+		{
+			name:     "Collection without underscore",
+			input:    "accounts",
+			expected: "accounts",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Collection with multiple underscores keeps all but last segment",
+			input:    "related_parties_org456",
+			expected: "related_parties",
+		},
+		{
+			name:     "Single underscore prefix",
+			input:    "holders_",
+			expected: "holders",
+		},
+		{
+			name:     "Underscore only",
+			input:    "_",
+			expected: "",
+		},
+	}
+
+	uc := &UseCase{}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.getBaseCollectionName(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestShouldIncludeFieldForPluginCRM(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		fieldName      string
+		collectionName string
+		expected       bool
+	}{
+		{
+			name:           "Search field is always included",
+			fieldName:      "search.document",
+			collectionName: "holders",
+			expected:       true,
+		},
+		{
+			name:           "Search parent object is included",
+			fieldName:      "search",
+			collectionName: "aliases",
+			expected:       true,
+		},
+		{
+			name:           "Top-level encrypted field document is excluded",
+			fieldName:      "document",
+			collectionName: "holders",
+			expected:       false,
+		},
+		{
+			name:           "Top-level encrypted field name is excluded",
+			fieldName:      "name",
+			collectionName: "holders",
+			expected:       false,
+		},
+		{
+			name:           "Nested encrypted field contact.primary_email is excluded",
+			fieldName:      "contact.primary_email",
+			collectionName: "holders",
+			expected:       false,
+		},
+		{
+			name:           "Nested encrypted field banking_details.account is excluded",
+			fieldName:      "banking_details.account",
+			collectionName: "aliases",
+			expected:       false,
+		},
+		{
+			name:           "Nested encrypted field legal_person.representative.name is excluded",
+			fieldName:      "legal_person.representative.name",
+			collectionName: "holders",
+			expected:       false,
+		},
+		{
+			name:           "Non-encrypted field in holders collection is included",
+			fieldName:      "external_id",
+			collectionName: "holders",
+			expected:       true,
+		},
+		{
+			name:           "Non-encrypted field in aliases collection is included",
+			fieldName:      "account_id",
+			collectionName: "aliases",
+			expected:       true,
+		},
+		{
+			name:           "Non-encrypted field in unknown collection is included",
+			fieldName:      "status",
+			collectionName: "other_collection",
+			expected:       true,
+		},
+		{
+			name:           "Empty field name for holders collection",
+			fieldName:      "",
+			collectionName: "holders",
+			expected:       true,
+		},
+		{
+			name:           "Empty collection name with regular field",
+			fieldName:      "some_field",
+			collectionName: "",
+			expected:       true,
+		},
+		{
+			name:           "Encrypted field excluded regardless of collection",
+			fieldName:      "document",
+			collectionName: "other_collection",
+			expected:       false,
+		},
+	}
+
+	uc := &UseCase{}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.shouldIncludeFieldForPluginCRM(tt.fieldName, tt.collectionName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetFieldsForPluginCRM(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		schema   mongodb.CollectionSchema
+		expected []string
+	}{
+		{
+			name: "Holders collection returns expanded fields",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "holders_org123",
+				Fields: []mongodb.FieldInformation{
+					{Name: "field1", DataType: "string"},
+				},
+			},
+			expected: []string{
+				"_id",
+				"external_id",
+				"type",
+				"addresses",
+				"created_at",
+				"updated_at",
+				"deleted_at",
+				"metadata",
+				"search.document",
+				"natural_person.favorite_name",
+				"natural_person.social_name",
+				"natural_person.gender",
+				"natural_person.birth_date",
+				"natural_person.civil_status",
+				"natural_person.nationality",
+				"natural_person.status",
+				"legal_person.trade_name",
+				"legal_person.activity",
+				"legal_person.type",
+				"legal_person.founding_date",
+				"legal_person.size",
+				"legal_person.status",
+				"legal_person.representative.role",
+			},
+		},
+		{
+			name: "Aliases collection returns expanded fields",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "aliases_org456",
+				Fields: []mongodb.FieldInformation{
+					{Name: "field1", DataType: "string"},
+				},
+			},
+			expected: []string{
+				"_id",
+				"account_id",
+				"holder_id",
+				"ledger_id",
+				"type",
+				"created_at",
+				"updated_at",
+				"deleted_at",
+				"metadata",
+				"search.document",
+				"search.banking_details_account",
+				"search.banking_details_iban",
+				"search.regulatory_fields_participant_document",
+				"search.related_party_documents",
+				"banking_details.branch",
+				"banking_details.type",
+				"banking_details.opening_date",
+				"banking_details.closing_date",
+				"banking_details.country_code",
+				"banking_details.bank_id",
+				"regulatory_fields",
+				"related_parties",
+				"related_parties._id",
+				"related_parties.role",
+				"related_parties.start_date",
+				"related_parties.end_date",
+			},
+		},
+		{
+			name: "Unknown collection falls back to field filtering",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "custom_org789",
+				Fields: []mongodb.FieldInformation{
+					{Name: "status", DataType: "string"},
+					{Name: "document", DataType: "string"},
+					{Name: "search.document", DataType: "string"},
+					{Name: "contact.primary_email", DataType: "string"},
+				},
+			},
+			expected: []string{"status", "search.document"},
+		},
+		{
+			name: "Unknown collection with all fields excluded",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "sensitive_org000",
+				Fields: []mongodb.FieldInformation{
+					{Name: "document", DataType: "string"},
+					{Name: "name", DataType: "string"},
+				},
+			},
+			expected: []string{},
+		},
+		{
+			name: "Unknown collection with empty fields list",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "empty_org111",
+				Fields:         []mongodb.FieldInformation{},
+			},
+			expected: []string{},
+		},
+		{
+			name: "Unknown collection with all fields included",
+			schema: mongodb.CollectionSchema{
+				CollectionName: "plain_org222",
+				Fields: []mongodb.FieldInformation{
+					{Name: "_id", DataType: "objectId"},
+					{Name: "status", DataType: "string"},
+					{Name: "created_at", DataType: "date"},
+				},
+			},
+			expected: []string{"_id", "status", "created_at"},
+		},
+	}
+
+	uc := &UseCase{}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.getFieldsForPluginCRM(tt.schema)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetExpandedFieldsForPluginCRM(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		collectionName string
+		expectNil      bool
+		expectLen      int
+		expectContains []string
+	}{
+		{
+			name:           "Holders collection returns expanded fields",
+			collectionName: "holders",
+			expectNil:      false,
+			expectLen:      23,
+			expectContains: []string{
+				"_id",
+				"external_id",
+				"type",
+				"search.document",
+				"natural_person.favorite_name",
+				"legal_person.representative.role",
+			},
+		},
+		{
+			name:           "Aliases collection returns expanded fields",
+			collectionName: "aliases",
+			expectNil:      false,
+			expectLen:      26,
+			expectContains: []string{
+				"_id",
+				"account_id",
+				"holder_id",
+				"search.banking_details_account",
+				"banking_details.branch",
+				"related_parties.role",
+			},
+		},
+		{
+			name:           "Unknown collection returns nil",
+			collectionName: "unknown",
+			expectNil:      true,
+		},
+		{
+			name:           "Empty collection name returns nil",
+			collectionName: "",
+			expectNil:      true,
+		},
+	}
+
+	uc := &UseCase{}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.getExpandedFieldsForPluginCRM(tt.collectionName)
+
+			if tt.expectNil {
+				assert.Nil(t, result)
+				return
+			}
+
+			assert.NotNil(t, result)
+			assert.Len(t, result, tt.expectLen)
+
+			for _, expected := range tt.expectContains {
+				assert.Contains(t, result, expected)
+			}
+		})
+	}
+}
+
 func TestGetDataSourceDetailsByID(t *testing.T) {
 	t.Parallel()
 

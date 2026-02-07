@@ -6,9 +6,7 @@ package services
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 
+	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,6 +61,7 @@ func TestCreateReport(t *testing.T) {
 		reportInput    *model.CreateReportInput
 		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
+		errContains    string
 		expectedResult *report.Report
 	}{
 		{
@@ -117,6 +117,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -142,6 +143,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -176,6 +178,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
@@ -192,6 +195,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    "not a valid UUID",
 			expectedResult: nil,
 		},
 		{
@@ -213,6 +217,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    "template",
 			expectedResult: nil,
 		},
 		{
@@ -243,6 +248,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    "data source",
 			expectedResult: nil,
 		},
 		{
@@ -277,6 +283,7 @@ func TestCreateReport(t *testing.T) {
 				}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 	}
@@ -295,7 +302,10 @@ func TestCreateReport(t *testing.T) {
 			result, err := reportSvc.CreateReport(ctx, tt.reportInput)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
 				assert.Nil(t, result)
 			} else {
 				require.NoError(t, err)
@@ -313,7 +323,7 @@ func hashRequestBody(t *testing.T, input *model.CreateReportInput) string {
 	data, err := json.Marshal(input)
 	require.NoError(t, err, "failed to marshal report input for hash computation")
 
-	return fmt.Sprintf("%x", sha256.Sum256(data))
+	return commons.HashSHA256(string(data))
 }
 
 func TestCreateReport_Idempotency(t *testing.T) {

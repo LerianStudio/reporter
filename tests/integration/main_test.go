@@ -63,6 +63,7 @@ func TestMain(m *testing.M) {
 
 	// Set environment variable for test helpers
 	os.Setenv("MANAGER_URL", managerAddr)
+	defer os.Unsetenv("MANAGER_URL")
 
 	// Start Worker service
 	fmt.Fprintf(os.Stderr, "Starting Worker service...\n")

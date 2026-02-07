@@ -37,11 +37,8 @@ func TestIntegration_Chaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 	t.Log("🎯 Starting Circuit Breaker chaos test...")
 
 	// Step 1: Wait for system to be healthy
-	t.Log("⏳ Waiting for system stability...")
-	time.Sleep(15 * time.Second)
-
 	t.Log("🔍 Verifying system health...")
-	if err := h.WaitForSystemHealth(ctx, cli, 60*time.Second); err != nil {
+	if err := h.WaitForSystemHealth(ctx, cli, 90*time.Second); err != nil {
 		t.Skip("System not ready for circuit breaker test")
 	}
 
@@ -109,7 +106,7 @@ func TestIntegration_Chaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 
 	t.Logf("📊 Results after 20 requests: %d successes, %d failures", successCount, failureCount)
 
-	// Step 5: Wait and check logs
+	// Step 5: Intentional wait: allow circuit breaker state machine to evaluate failure threshold
 	t.Log("⏳ Step 4: Waiting 5s for circuit breaker to process failures...")
 	time.Sleep(5 * time.Second)
 
@@ -149,7 +146,7 @@ func TestIntegration_Chaos_CircuitBreaker_OpenAndRecover(t *testing.T) {
 		t.Log("✅ plugin_crm MongoDB restarted")
 	}
 
-	// Step 8: Wait for circuit breaker to transition to half-open
+	// Step 8: Intentional wait: circuit breaker timeout must expire before transitioning to half-open
 	t.Log("⏳ Step 7: Waiting 35s for circuit breaker to transition to HALF-OPEN...")
 	time.Sleep(35 * time.Second)
 

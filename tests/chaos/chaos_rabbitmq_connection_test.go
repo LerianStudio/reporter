@@ -14,6 +14,8 @@ import (
 	"time"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestIntegration_Chaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
@@ -44,6 +46,7 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
 
+	// Intentional wait: allow RabbitMQ restart to propagate before testing disconnected behavior
 	time.Sleep(3 * time.Second)
 	t.Log("Step 3: Attempting to create report with RabbitMQ disconnected...")
 	payload := map[string]any{
@@ -53,27 +56,19 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 	code, body, err := cli.Request(ctx, "POST", "/v1/reports", headers, payload)
 	t.Log("Step 4: Analyzing system behavior with closed connection...")
+	t.Logf("Response: code=%d, err=%v, body=%s", code, err, string(body))
 
-	if err != nil {
-		t.Logf("✅ Expected behavior: Request failed due to connection error: %v", err)
-	} else if code >= 500 {
-		t.Logf("✅ Expected behavior: Server error (code=%d) due to RabbitMQ unavailability", code)
-	} else if code == 200 || code == 201 {
-		t.Logf("⚠️  Unexpected behavior: Request succeeded (code=%d) despite RabbitMQ being down", code)
-		t.Logf("Response body: %s", string(body))
-	} else {
-		t.Logf("📊 System behavior: HTTP %d - %s", code, string(body))
-	}
+	// During RabbitMQ outage, requests should fail with an error or server error status
+	assert.True(t, err != nil || code >= 400,
+		"Expected error or non-success status during RabbitMQ outage, got code=%d err=%v", code, err)
 
 	t.Log("Step 5: Verifying manager still responds to other requests...")
-	code, body, err = cli.Request(ctx, "GET", "/v1/templates?limit=1", headers, nil)
-	if err != nil {
-		t.Logf("⚠️  Manager not responding to other requests: %v", err)
-	} else if code != 200 {
-		t.Logf("⚠️  Manager responding with error to other requests: code=%d", code)
-	} else {
-		t.Logf("✅ Manager still responding to other requests normally")
-	}
+	code, _, err = cli.Request(ctx, "GET", "/v1/templates?limit=1", headers, nil)
+	t.Logf("Health probe during outage: code=%d, err=%v", code, err)
+
+	// Manager should still respond to non-queue requests (graceful degradation)
+	assert.NoError(t, err, "Manager should still accept HTTP connections during RabbitMQ outage")
+	assert.Equal(t, 200, code, "Manager should serve non-queue endpoints during RabbitMQ outage")
 
 	t.Log("Step 6: Restoring RabbitMQ connection...")
 	err = RestartRabbitMQ(10 * time.Second)
@@ -81,19 +76,21 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 		t.Fatalf("Failed to restore RabbitMQ: %v", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restore")
 
 	t.Log("Step 7: Verifying system recovery...")
 	code, _, err = cli.Request(ctx, "POST", "/v1/reports", headers, payload)
-	if err != nil {
-		t.Logf("⚠️  System not fully recovered: %v", err)
-	} else if code == 201 || code == 200 {
-		t.Logf("✅ System fully recovered - report creation working again")
-	} else {
-		t.Logf("📊 System recovery status: HTTP %d", code)
-	}
+	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
-	t.Log("🎯 RabbitMQ connection chaos test completed")
+	// After recovery, report creation should succeed
+	assert.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
+	assert.True(t, code == 200 || code == 201,
+		"Expected success status after RabbitMQ recovery, got code=%d", code)
+
+	t.Log("RabbitMQ connection chaos test completed")
 }
 
 // TestIntegration_Chaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
@@ -105,20 +102,17 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 		t.Skip("Skipping chaos test in short mode")
 	}
 
-	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
-	time.Sleep(30 * time.Second) // Give time for Manager and RabbitMQ to fully stabilize
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
-	t.Log("🔧 Starting RabbitMQ channel chaos test...")
-
-	t.Log("🔍 Verifying system health before channel chaos test...")
-	if err := h.WaitForSystemHealth(ctx, cli, 60*time.Second); err != nil {
+	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
+	if err := h.WaitForSystemHealth(ctx, cli, 90*time.Second); err != nil {
 		t.Logf("⚠️  System health check failed: %v", err)
 		t.Skip("System not ready for channel chaos test - likely recovering from previous test")
 	}
+
+	t.Log("🔧 Starting RabbitMQ channel chaos test...")
 
 	t.Log("Step 1: Verifying normal system operation...")
 	templateID, ok := getAnyTemplateIDWithRetry(ctx, t, cli, headers, 10, 2*time.Second)
@@ -132,6 +126,7 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
 
+	// Intentional wait: allow channel closure to take effect before testing behavior
 	time.Sleep(3 * time.Second)
 
 	t.Log("Step 3: Attempting to create report during channel issues...")
@@ -143,31 +138,28 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	code, body, err := cli.Request(ctx, "POST", "/v1/reports", headers, payload)
 
 	t.Log("Step 4: Analyzing behavior during channel issues...")
+	t.Logf("Response: code=%d, err=%v, body=%s", code, err, string(body))
 
-	if err != nil {
-		t.Logf("✅ Expected behavior: Request failed due to channel error: %v", err)
-	} else if code >= 500 {
-		t.Logf("✅ Expected behavior: Server error (code=%d) due to channel issues", code)
-	} else if code == 200 || code == 201 {
-		t.Logf("✅ System handled channel issue gracefully: code=%d", code)
-	} else {
-		t.Logf("📊 System behavior during channel issues: HTTP %d - %s", code, string(body))
-	}
+	// During channel issues, system should either fail gracefully or handle it transparently
+	assert.True(t, err != nil || code >= 200,
+		"Expected either an error or a valid HTTP response during channel issues, got code=%d err=%v", code, err)
 
 	t.Log("Step 5: Waiting for automatic recovery...")
-	time.Sleep(10 * time.Second)
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 30*time.Second, 1*time.Second, "service did not recover after channel closure")
 
 	t.Log("Step 6: Verifying automatic recovery...")
 	code, _, err = cli.Request(ctx, "POST", "/v1/reports", headers, payload)
-	if err != nil {
-		t.Logf("⚠️  System not fully recovered: %v", err)
-	} else if code == 201 || code == 200 {
-		t.Logf("✅ System automatically recovered - report creation working")
-	} else {
-		t.Logf("📊 System recovery status: HTTP %d", code)
-	}
+	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
-	t.Log("🎯 RabbitMQ channel chaos test completed")
+	// After recovery, report creation should succeed
+	assert.NoError(t, err, "Expected no HTTP error after channel recovery")
+	assert.True(t, code == 200 || code == 201,
+		"Expected success status after channel recovery, got code=%d", code)
+
+	t.Log("RabbitMQ channel chaos test completed")
 }
 
 // TestIntegration_Chaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
@@ -179,14 +171,11 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 		t.Skip("Skipping chaos test in short mode")
 	}
 
-	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
-	time.Sleep(30 * time.Second) // Increased from 15s to 30s for datasource reconnection
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
-	t.Log("🔍 Verifying system health before queue chaos test...")
+	t.Log("⏳ Waiting for full system recovery after previous chaos tests...")
 	if err := h.WaitForSystemHealth(ctx, cli, 90*time.Second); err != nil {
 		t.Logf("⚠️  System health check failed after 90s: %v", err)
 		t.Log("💡 This may be due to datasource initialization with retry - skipping test")
@@ -208,6 +197,7 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 		t.Fatalf("Failed to restart RabbitMQ: %v", err)
 	}
 
+	// Intentional wait: simulate queue unavailability window before testing rapid requests
 	time.Sleep(2 * time.Second)
 
 	t.Log("Step 3: Attempting rapid report creation during queue issues...")
@@ -235,15 +225,11 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 	}
 
 	t.Log("Step 4: Analyzing behavior during queue issues...")
-	t.Logf("📊 Results: %d successful, %d failed", successCount, errorCount)
+	t.Logf("Results: %d successful, %d failed out of 5 requests", successCount, errorCount)
 
-	if errorCount > successCount {
-		t.Logf("✅ Expected behavior: More failures during queue issues")
-	} else if successCount > 0 {
-		t.Logf("✅ System handled queue issues gracefully: %d successful requests", successCount)
-	} else {
-		t.Logf("📊 System behavior: All requests failed during queue issues")
-	}
+	// During queue issues, at least some requests should fail
+	assert.True(t, errorCount > 0 || successCount > 0,
+		"Expected at least some requests to complete (success or failure), got success=%d error=%d", successCount, errorCount)
 
 	t.Log("Step 5: Restoring RabbitMQ...")
 	err = RestartRabbitMQ(5 * time.Second)
@@ -251,19 +237,21 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 		t.Fatalf("Failed to restore RabbitMQ: %v", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restore")
 
 	t.Log("Step 6: Verifying system recovery...")
 	code, _, err := cli.Request(ctx, "POST", "/v1/reports", headers, payload)
-	if err != nil {
-		t.Logf("⚠️  System not fully recovered: %v", err)
-	} else if code == 201 || code == 200 {
-		t.Logf("✅ System fully recovered - report creation working again")
-	} else {
-		t.Logf("📊 System recovery status: HTTP %d", code)
-	}
+	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
-	t.Log("🎯 RabbitMQ queue chaos test completed")
+	// After recovery, report creation should succeed
+	assert.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
+	assert.True(t, code == 200 || code == 201,
+		"Expected success status after RabbitMQ recovery, got code=%d", code)
+
+	t.Log("RabbitMQ queue chaos test completed")
 }
 
 // getAnyTemplateIDWithRetry tries to fetch any template ID with retries/backoff to tolerate transient errors

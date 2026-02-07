@@ -270,7 +270,7 @@ func BenchmarkTemplateParsingPerformance(b *testing.B) {
 	}
 }
 
-// Context-aware property test
+// Context-aware property test: parsing is stateless and always returns a non-nil map.
 func TestProperty_TemplateParsingWithContext(t *testing.T) {
 	ctx := context.Background()
 
@@ -282,9 +282,11 @@ func TestProperty_TemplateParsingWithContext(t *testing.T) {
 			return true
 		}
 
-		// Should work without context dependency
+		// Should work without context dependency and always return a non-nil map
 		result := template_utils.MappedFieldsOfTemplate(template)
-		_ = result
+		if result == nil {
+			return false
+		}
 
 		return true
 	}

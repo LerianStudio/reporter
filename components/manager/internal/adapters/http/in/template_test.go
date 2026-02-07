@@ -79,21 +79,8 @@ func createMultipartForm(t *testing.T, filename, content, outputFormat, descript
 	return body, writer.FormDataContentType()
 }
 
-func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
+func TestTemplateHandler_GetTemplateByID(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
-
-	useCase := &services.UseCase{
-		TemplateRepo:      mockTemplateRepo,
-		TemplateSeaweedFS: mockSeaweedFS,
-	}
-
-	handler := &TemplateHandler{service: useCase}
 
 	templateID := uuid.New()
 	templateEntity := &template.Template{
@@ -108,14 +95,14 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 	tests := []struct {
 		name           string
 		templateID     string
-		mockSetup      func()
+		mockSetup      func(mockTemplateRepo *template.MockRepository)
 		expectedStatus int
 		expectError    bool
 	}{
 		{
 			name:       "Success - Get template by ID",
 			templateID: templateID.String(),
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindByID(gomock.Any(), templateID).
 					Return(templateEntity, nil)
@@ -126,7 +113,7 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 		{
 			name:       "Error - Template not found",
 			templateID: templateID.String(),
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindByID(gomock.Any(), templateID).
 					Return(nil, errors.New("template not found"))
@@ -137,7 +124,7 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 		{
 			name:           "Error - Invalid UUID",
 			templateID:     "invalid-uuid",
-			mockSetup:      func() {},
+			mockSetup:      func(mockTemplateRepo *template.MockRepository) {},
 			expectedStatus: http.StatusBadRequest,
 			expectError:    true,
 		},
@@ -146,7 +133,21 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTemplateRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockTemplateRepo)
+
+			useCase := &services.UseCase{
+				TemplateRepo:      mockTemplateRepo,
+				TemplateSeaweedFS: mockSeaweedFS,
+			}
+			handler := &TemplateHandler{service: useCase}
 
 			app := setupTemplateTestApp(handler)
 			app.Get("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.GetTemplateByID)
@@ -160,21 +161,8 @@ func Test_TemplateHandler_GetTemplateByID(t *testing.T) {
 	}
 }
 
-func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
+func TestTemplateHandler_GetAllTemplates(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
-
-	useCase := &services.UseCase{
-		TemplateRepo:      mockTemplateRepo,
-		TemplateSeaweedFS: mockSeaweedFS,
-	}
-
-	handler := &TemplateHandler{service: useCase}
 
 	templates := []*template.Template{
 		{
@@ -198,14 +186,14 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 	tests := []struct {
 		name           string
 		queryParams    string
-		mockSetup      func()
+		mockSetup      func(mockTemplateRepo *template.MockRepository)
 		expectedStatus int
 		expectError    bool
 	}{
 		{
 			name:        "Success - Get all templates with default pagination",
 			queryParams: "",
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(templates, nil)
@@ -216,7 +204,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 		{
 			name:        "Success - Get all templates with custom pagination",
 			queryParams: "?limit=5&page=2",
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(templates, nil)
@@ -227,7 +215,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 		{
 			name:        "Success - Get all templates with filter",
 			queryParams: "?outputFormat=HTML",
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return([]*template.Template{templates[0]}, nil)
@@ -238,7 +226,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 		{
 			name:        "Error - Repository error",
 			queryParams: "",
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("database error"))
@@ -249,7 +237,7 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 		{
 			name:           "Error - Invalid output format",
 			queryParams:    "?outputFormat=INVALID",
-			mockSetup:      func() {},
+			mockSetup:      func(mockTemplateRepo *template.MockRepository) {},
 			expectedStatus: http.StatusBadRequest,
 			expectError:    true,
 		},
@@ -258,7 +246,21 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTemplateRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockTemplateRepo)
+
+			useCase := &services.UseCase{
+				TemplateRepo:      mockTemplateRepo,
+				TemplateSeaweedFS: mockSeaweedFS,
+			}
+			handler := &TemplateHandler{service: useCase}
 
 			app := setupTemplateTestApp(handler)
 			app.Get("/templates", setupTemplateContextMiddleware(), handler.GetAllTemplates)
@@ -272,34 +274,22 @@ func Test_TemplateHandler_GetAllTemplates(t *testing.T) {
 	}
 }
 
-func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
+func TestTemplateHandler_DeleteTemplateByID(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
-
-	useCase := &services.UseCase{
-		TemplateRepo:      mockTemplateRepo,
-		TemplateSeaweedFS: mockSeaweedFS,
-	}
-
-	handler := &TemplateHandler{service: useCase}
 	templateID := uuid.New()
 
 	tests := []struct {
 		name           string
 		templateID     string
-		mockSetup      func()
+		mockSetup      func(mockTemplateRepo *template.MockRepository)
 		expectedStatus int
 		expectError    bool
 	}{
 		{
 			name:       "Success - Delete template",
 			templateID: templateID.String(),
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					Delete(gomock.Any(), templateID, false).
 					Return(nil)
@@ -310,7 +300,7 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 		{
 			name:       "Error - Template not found",
 			templateID: templateID.String(),
-			mockSetup: func() {
+			mockSetup: func(mockTemplateRepo *template.MockRepository) {
 				mockTemplateRepo.EXPECT().
 					Delete(gomock.Any(), templateID, false).
 					Return(errors.New("template not found"))
@@ -321,7 +311,7 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 		{
 			name:           "Error - Invalid UUID",
 			templateID:     "invalid-uuid",
-			mockSetup:      func() {},
+			mockSetup:      func(mockTemplateRepo *template.MockRepository) {},
 			expectedStatus: http.StatusBadRequest,
 			expectError:    true,
 		},
@@ -330,7 +320,21 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTemplateRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+			tt.mockSetup(mockTemplateRepo)
+
+			useCase := &services.UseCase{
+				TemplateRepo:      mockTemplateRepo,
+				TemplateSeaweedFS: mockSeaweedFS,
+			}
+			handler := &TemplateHandler{service: useCase}
 
 			app := setupTemplateTestApp(handler)
 			app.Delete("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.DeleteTemplateByID)
@@ -344,7 +348,7 @@ func Test_TemplateHandler_DeleteTemplateByID(t *testing.T) {
 	}
 }
 
-func Test_TemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
+func TestTemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -377,21 +381,8 @@ func Test_TemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
 	assert.Contains(t, string(body), "items")
 }
 
-func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
+func TestTemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
-
-	useCase := &services.UseCase{
-		TemplateRepo:      mockTemplateRepo,
-		TemplateSeaweedFS: mockSeaweedFS,
-	}
-
-	handler := &TemplateHandler{service: useCase}
 
 	tests := []struct {
 		name           string
@@ -438,6 +429,20 @@ func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTemplateRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+			useCase := &services.UseCase{
+				TemplateRepo:      mockTemplateRepo,
+				TemplateSeaweedFS: mockSeaweedFS,
+			}
+			handler := &TemplateHandler{service: useCase}
+
 			app := setupTemplateTestApp(handler)
 			app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
 
@@ -454,7 +459,7 @@ func Test_TemplateHandler_CreateTemplate_ValidationErrors(t *testing.T) {
 	}
 }
 
-func Test_TemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
+func TestTemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -497,7 +502,7 @@ func Test_TemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func Test_TemplateHandler_CreateTemplate_NoFile(t *testing.T) {
+func TestTemplateHandler_CreateTemplate_NoFile(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -535,21 +540,9 @@ func Test_TemplateHandler_CreateTemplate_NoFile(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
+func TestTemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockTemplateRepo := template.NewMockRepository(ctrl)
-	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
-
-	useCase := &services.UseCase{
-		TemplateRepo:      mockTemplateRepo,
-		TemplateSeaweedFS: mockSeaweedFS,
-	}
-
-	handler := &TemplateHandler{service: useCase}
 	templateID := uuid.New()
 
 	tests := []struct {
@@ -584,6 +577,20 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTemplateRepo := template.NewMockRepository(ctrl)
+			mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+			useCase := &services.UseCase{
+				TemplateRepo:      mockTemplateRepo,
+				TemplateSeaweedFS: mockSeaweedFS,
+			}
+			handler := &TemplateHandler{service: useCase}
+
 			app := setupTemplateTestApp(handler)
 			app.Patch("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.UpdateTemplateByID)
 
@@ -600,7 +607,7 @@ func Test_TemplateHandler_UpdateTemplateByID_ValidationErrors(t *testing.T) {
 	}
 }
 
-func Test_NewTemplateHandler_NilService(t *testing.T) {
+func TestNewTemplateHandler_NilService(t *testing.T) {
 	t.Parallel()
 
 	handler, err := NewTemplateHandler(nil)
@@ -610,7 +617,7 @@ func Test_NewTemplateHandler_NilService(t *testing.T) {
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
-func Test_NewTemplateHandler_ValidService(t *testing.T) {
+func TestNewTemplateHandler_ValidService(t *testing.T) {
 	t.Parallel()
 
 	svc := &services.UseCase{}

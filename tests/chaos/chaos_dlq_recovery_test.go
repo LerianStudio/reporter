@@ -14,6 +14,7 @@ import (
 	"time"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
+	"github.com/stretchr/testify/require"
 )
 
 // TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
@@ -24,9 +25,6 @@ func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping chaos test in short mode")
 	}
-	t.Log("⏳ Waiting for system stability...")
-	time.Sleep(5 * time.Second)
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
@@ -98,7 +96,7 @@ func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	}
 	t.Logf("📊 Initial status: %s", initialReport.Status)
 
-	// Wait a bit for message to be published to RabbitMQ
+	// Intentional wait: allow time for RabbitMQ publish to complete before stopping the broker
 	t.Log("⏳ Waiting for message to be published to RabbitMQ (2s)...")
 	time.Sleep(2 * time.Second)
 
@@ -109,7 +107,7 @@ func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	}
 	t.Log("✅ RabbitMQ stopped (simulating crash)")
 
-	// Wait during "downtime"
+	// Intentional wait: simulate actual downtime period to test behavior during outage
 	t.Log("⏳ Simulating downtime (5 seconds)...")
 	time.Sleep(5 * time.Second)
 
@@ -130,16 +128,14 @@ func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	if err := StartRabbitMQ(); err != nil {
 		t.Fatalf("❌ Failed to start RabbitMQ: %v", err)
 	}
-	time.Sleep(15 * time.Second) // Wait for RabbitMQ to be ready
-	t.Log("✅ RabbitMQ started successfully")
 
-	// Wait for RabbitMQ to fully initialize and load definitions
-	t.Log("⏳ Waiting for RabbitMQ to fully initialize (10s)...")
-	time.Sleep(10 * time.Second)
-
-	// Wait for worker to reconnect and process the message
-	t.Log("⏳ Step 7: Waiting for worker to reconnect and process message...")
-	time.Sleep(5 * time.Second)
+	// Wait for RabbitMQ to fully initialize and system to recover
+	t.Log("⏳ Waiting for RabbitMQ to fully initialize and worker to reconnect...")
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 60*time.Second, 2*time.Second, "system did not recover after RabbitMQ restart")
+	t.Log("✅ RabbitMQ started and system recovered")
 
 	// Check report status - should eventually be processed
 	t.Log("🔍 Step 8: Checking final report status...")

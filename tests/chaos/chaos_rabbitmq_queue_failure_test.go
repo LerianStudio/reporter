@@ -15,6 +15,7 @@ import (
 	"time"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
+	"github.com/stretchr/testify/require"
 )
 
 // TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration simulates a failure of the RabbitMQ queue during report generation
@@ -25,15 +26,12 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 	if testing.Short() {
 		t.Skip("Skipping chaos test in short mode")
 	}
-	t.Log("⏳ Waiting for system stability after previous chaos tests...")
-	time.Sleep(10 * time.Second)
-
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
-	t.Log("🔍 Verifying system health before chaos test...")
-	if err := h.WaitForSystemHealth(ctx, cli, 30*time.Second); err != nil {
+	t.Log("⏳ Verifying system health before chaos test...")
+	if err := h.WaitForSystemHealth(ctx, cli, 60*time.Second); err != nil {
 		t.Fatalf("❌ System not healthy before chaos test: %v", err)
 	}
 	t.Log("✅ System is healthy, proceeding with chaos test...")
@@ -89,6 +87,7 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 		return
 	}
 
+	// Intentional wait: allow time for message to be published before inducing chaos
 	t.Log("⏳ Waiting for message to be sent to RabbitMQ...")
 	time.Sleep(2 * time.Second)
 
@@ -100,7 +99,10 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 	t.Log("✅ RabbitMQ restarted successfully")
 
 	t.Log("⏳ Waiting for worker to reconnect...")
-	time.Sleep(5 * time.Second)
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restart")
 
 	t.Log("🔍 Checking report status...")
 	report, err := cli.GetReportStatus(ctx, reportResponse.ID, headers)
@@ -187,8 +189,13 @@ func TestIntegration_Chaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 		t.Fatalf("❌ Failed to restart RabbitMQ: %v", err)
 	}
 
-	t.Log("⏳ Waiting for processing...")
-	time.Sleep(20 * time.Second)
+	t.Log("⏳ Waiting for system to recover and process messages...")
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		return err == nil && code == 200
+	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restart")
+	// Intentional wait: allow extra time for worker to reprocess queued messages
+	time.Sleep(5 * time.Second)
 
 	reports, err := cli.ListReports(ctx, headers, "limit=10")
 	if err != nil {

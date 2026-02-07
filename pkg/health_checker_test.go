@@ -286,6 +286,50 @@ func TestHealthChecker_PingDataSource_UnknownType(t *testing.T) {
 	assert.False(t, result)
 }
 
+func TestHealthChecker_PingDataSource_PostgreSQLWithSchemas(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// DataSource with schemas configured but nil repository - should return false
+	ds := &DataSource{
+		DatabaseType:       PostgreSQLType,
+		PostgresRepository: nil,
+		Schemas:            []string{"public", "sales"},
+		Initialized:        true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "test_db", ds)
+	assert.False(t, result)
+}
+
+func TestHealthChecker_PingDataSource_PostgreSQLEmptySchemas(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// DataSource with empty schemas should default to public, but nil repo returns false
+	ds := &DataSource{
+		DatabaseType:       PostgreSQLType,
+		PostgresRepository: nil,
+		Schemas:            []string{},
+		Initialized:        true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "test_db", ds)
+	assert.False(t, result)
+}
+
 func TestHealthChecker_PingDataSource_NilPostgresRepository(t *testing.T) {
 	t.Parallel()
 
@@ -371,12 +415,61 @@ func TestHealthChecker_PerformHealthChecks_WithUnavailable(t *testing.T) {
 	})
 }
 
+func TestHealthChecker_Stop_WithoutStart(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Stop without Start should not block or panic
+	done := make(chan struct{})
+	go func() {
+		hc.Stop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success - Stop completed immediately when Start was never called
+	case <-time.After(2 * time.Second):
+		t.Fatal("Stop() blocked when Start() was never called")
+	}
+}
+
 func TestHealthCheckConstants(t *testing.T) {
 	t.Parallel()
 
 	// Verify health check constants are defined properly
 	assert.Equal(t, 30*time.Second, constant.HealthCheckInterval)
 	assert.Equal(t, 5*time.Second, constant.HealthCheckTimeout)
+}
+
+func TestHealthChecker_AttemptReconnection_UnsupportedDBType(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	ds := &DataSource{
+		DatabaseType:   "oracle", // unsupported type
+		Initialized:    false,
+		Status:         libConstants.DataSourceStatusUnavailable,
+		DatabaseConfig: nil,
+	}
+
+	// attemptReconnection should return false for unsupported type
+	result := hc.attemptReconnection("test_unsupported", ds)
+	assert.False(t, result)
+	assert.Equal(t, libConstants.DataSourceStatusUnavailable, ds.Status)
+	assert.NotNil(t, ds.LastError)
 }
 
 func TestHealthChecker_AttemptReconnection_NilConnection(t *testing.T) {
