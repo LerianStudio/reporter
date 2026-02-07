@@ -23,6 +23,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo \
 # Stage 2: Final minimal image with only the binary
 FROM alpine:3.21
 
+LABEL org.opencontainers.image.source="https://github.com/LerianStudio/reporter"
+LABEL org.opencontainers.image.description="Reporter Worker - Async Report Generator"
+LABEL org.opencontainers.image.vendor="Lerian Studio"
+LABEL org.opencontainers.image.licenses="Elastic-2.0"
+
 WORKDIR /app
 
 # Install Chromium and all required dependencies for chromedp

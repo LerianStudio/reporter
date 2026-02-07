@@ -1,3 +1,5 @@
+name: reporter-infra
+
 services:
   reporter-mongodb:
     container_name: reporter-mongodb
@@ -23,6 +25,13 @@ services:
       - reporter-mongodb-data:/data/db
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
 
   reporter-rabbitmq:
     image: rabbitmq:4.0-management-alpine
@@ -51,6 +60,13 @@ services:
       - reporter-rabbitmq-log:/var/log/rabbitmq
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
 
   reporter-seaweedfs:
     image: chrislusf/seaweedfs:3.97
@@ -72,10 +88,18 @@ services:
     networks:
       - reporter-infra-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
 
   reporter-keda:
     image: ghcr.io/kedacore/keda:2.16.0
     container_name: reporter-keda
+    restart: always
     env_file:
       - .env
     # Inline env mapping required: KEDA operator expects its own KEDA_OPERATOR_*
@@ -100,6 +124,13 @@ services:
         condition: service_healthy
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
 
   reporter-valkey:
     container_name: reporter-valkey
@@ -128,6 +159,13 @@ services:
       - reporter-redis-data:/data
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
 
 volumes:
   reporter-mongodb-data:

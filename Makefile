@@ -375,14 +375,15 @@ clean-docker:
 
 .PHONY: run
 run:
-	$(call print_title,"Running the application with .env config")
-	@go run cmd/app/main.go .env
+	$(call print_title,"Running the manager application")
+	@cd components/manager && go run cmd/app/main.go
 	@echo "[ok] Application started successfully ✔️"
 
 .PHONY: build-docker
 build-docker:
 	$(call print_title,"Building Docker images")
-	@$(DOCKER_CMD) -f docker-compose.yml build $(c)
+	@$(DOCKER_CMD) -f components/manager/docker-compose.yml build $(c)
+	@$(DOCKER_CMD) -f components/worker/docker-compose.yml build $(c)
 	@echo "[ok] Docker images built successfully ✔️"
 
 .PHONY: up

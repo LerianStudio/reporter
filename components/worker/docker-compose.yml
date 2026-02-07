@@ -1,3 +1,5 @@
+name: reporter-worker
+
 services:
   reporter-worker:
     container_name: reporter-worker
@@ -16,6 +18,18 @@ services:
     networks:
       - reporter-infra-network
       - infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+    # NOTE: depends_on with health conditions cannot reference services from
+    # components/infra/docker-compose.yml because they run as separate Compose
+    # projects. Infrastructure services must be started first via:
+    #   cd components/infra && make up
+    # before starting this service.
 
 networks:
   reporter-infra-network:

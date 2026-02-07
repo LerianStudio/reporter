@@ -23,6 +23,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo \
 # Stage 2: Final image (Manager is REST API only, no PDF generation needed)
 FROM alpine:3.21
 
+LABEL org.opencontainers.image.source="https://github.com/LerianStudio/reporter"
+LABEL org.opencontainers.image.description="Reporter Manager API"
+LABEL org.opencontainers.image.vendor="Lerian Studio"
+LABEL org.opencontainers.image.licenses="Elastic-2.0"
+
 WORKDIR /app
 
 # Install only essential runtime dependencies
