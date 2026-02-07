@@ -56,12 +56,40 @@ func NewReport(
 		return nil, fmt.Errorf("report status must not be empty: %w", constant.ErrMissingRequiredFields)
 	}
 
+	now := time.Now()
+
 	return &Report{
 		ID:         id,
 		TemplateID: templateID,
 		Status:     status,
 		Filters:    filters,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}, nil
+}
+
+// ReconstructReport creates a Report from persisted data without validation.
+// Used only for database hydration where data integrity is already ensured.
+func ReconstructReport(
+	id, templateID uuid.UUID,
+	status string,
+	filters map[string]map[string]map[string]model.FilterCondition,
+	metadata map[string]any,
+	completedAt *time.Time,
+	createdAt, updatedAt time.Time,
+	deletedAt *time.Time,
+) *Report {
+	return &Report{
+		ID:          id,
+		TemplateID:  templateID,
+		Status:      status,
+		Filters:     filters,
+		Metadata:    metadata,
+		CompletedAt: completedAt,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+		DeletedAt:   deletedAt,
+	}
 }
 
 // ReportMongoDBModel represents the MongoDB model for a report
@@ -77,33 +105,14 @@ type ReportMongoDBModel struct {
 	DeletedAt   *time.Time                                             `bson:"deleted_at"`
 }
 
-// ToEntity converts ReportMongoDBModel to Report
+// ToEntity converts ReportMongoDBModel to Report using ReconstructReport.
 func (rm *ReportMongoDBModel) ToEntity(filters map[string]map[string]map[string]model.FilterCondition) *Report {
-	return &Report{
-		ID:          rm.ID,
-		TemplateID:  rm.TemplateID,
-		Status:      rm.Status,
-		Filters:     filters,
-		CompletedAt: rm.CompletedAt,
-		CreatedAt:   rm.CreatedAt,
-		UpdatedAt:   rm.UpdatedAt,
-		DeletedAt:   rm.DeletedAt,
-	}
+	return ReconstructReport(rm.ID, rm.TemplateID, rm.Status, filters, nil, rm.CompletedAt, rm.CreatedAt, rm.UpdatedAt, rm.DeletedAt)
 }
 
-// ToEntityFindByID converts ReportMongoDBModel to Report
+// ToEntityFindByID converts ReportMongoDBModel to Report using ReconstructReport.
 func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
-	return &Report{
-		ID:          rm.ID,
-		TemplateID:  rm.TemplateID,
-		Status:      rm.Status,
-		Filters:     rm.Filters,
-		Metadata:    rm.Metadata,
-		CompletedAt: rm.CompletedAt,
-		CreatedAt:   rm.CreatedAt,
-		UpdatedAt:   rm.UpdatedAt,
-		DeletedAt:   rm.DeletedAt,
-	}
+	return ReconstructReport(rm.ID, rm.TemplateID, rm.Status, rm.Filters, rm.Metadata, rm.CompletedAt, rm.CreatedAt, rm.UpdatedAt, rm.DeletedAt)
 }
 
 // FromEntity converts Report to ReportMongoDBModel

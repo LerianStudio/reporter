@@ -12,6 +12,7 @@ linters:
     - forbidigo
     - gocognit
     - gocyclo
+    - goconst
     - gosec
     - govet
     - ineffassign

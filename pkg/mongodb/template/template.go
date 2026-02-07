@@ -60,6 +60,19 @@ func NewTemplate(id uuid.UUID, outputFormat, description, fileName string) (*Tem
 	}, nil
 }
 
+// ReconstructTemplate creates a Template from persisted data without validation.
+// Used only for database hydration where data integrity is already ensured.
+func ReconstructTemplate(id uuid.UUID, outputFormat, description, fileName string, createdAt, updatedAt time.Time) *Template {
+	return &Template{
+		ID:           id,
+		OutputFormat: outputFormat,
+		Description:  description,
+		FileName:     fileName,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}
+}
+
 // TemplateMongoDBModel represents the MongoDB model for a template
 type TemplateMongoDBModel struct {
 	ID           uuid.UUID                      `bson:"_id"`
@@ -72,16 +85,9 @@ type TemplateMongoDBModel struct {
 	DeletedAt    *time.Time                     `bson:"deleted_at"`
 }
 
-// ToEntity converts TemplateMongoDBModel to Template
+// ToEntity converts TemplateMongoDBModel to Template using ReconstructTemplate.
 func (tm *TemplateMongoDBModel) ToEntity() *Template {
-	return &Template{
-		ID:           tm.ID,
-		OutputFormat: tm.OutputFormat,
-		Description:  tm.Description,
-		FileName:     tm.FileName,
-		CreatedAt:    tm.CreatedAt,
-		UpdatedAt:    tm.UpdatedAt,
-	}
+	return ReconstructTemplate(tm.ID, tm.OutputFormat, tm.Description, tm.FileName, tm.CreatedAt, tm.UpdatedAt)
 }
 
 // FromEntity converts Template to TemplateMongoDBModel

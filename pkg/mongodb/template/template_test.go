@@ -354,6 +354,94 @@ func TestNewTemplate(t *testing.T) {
 	}
 }
 
+func TestReconstructTemplate(t *testing.T) {
+	t.Parallel()
+
+	id := uuid.New()
+	createdAt := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2025, 6, 16, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name         string
+		id           uuid.UUID
+		outputFormat string
+		description  string
+		fileName     string
+		createdAt    time.Time
+		updatedAt    time.Time
+	}{
+		{
+			name:         "reconstruct with all fields populated",
+			id:           id,
+			outputFormat: "PDF",
+			description:  "Financial Report",
+			fileName:     "template_123.tpl",
+			createdAt:    createdAt,
+			updatedAt:    updatedAt,
+		},
+		{
+			name:         "reconstruct with empty optional fields",
+			id:           id,
+			outputFormat: "HTML",
+			description:  "",
+			fileName:     "template_456.tpl",
+			createdAt:    createdAt,
+			updatedAt:    updatedAt,
+		},
+		{
+			name:         "reconstruct with nil UUID (trusts DB data)",
+			id:           uuid.Nil,
+			outputFormat: "",
+			description:  "",
+			fileName:     "",
+			createdAt:    time.Time{},
+			updatedAt:    time.Time{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := ReconstructTemplate(tt.id, tt.outputFormat, tt.description, tt.fileName, tt.createdAt, tt.updatedAt)
+
+			require.NotNil(t, got)
+			assert.Equal(t, tt.id, got.ID)
+			assert.Equal(t, tt.outputFormat, got.OutputFormat)
+			assert.Equal(t, tt.description, got.Description)
+			assert.Equal(t, tt.fileName, got.FileName)
+			assert.Equal(t, tt.createdAt, got.CreatedAt)
+			assert.Equal(t, tt.updatedAt, got.UpdatedAt)
+		})
+	}
+}
+
+func TestReconstructTemplate_MatchesToEntity(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	id := uuid.New()
+
+	mongoModel := &TemplateMongoDBModel{
+		ID:           id,
+		OutputFormat: "PDF",
+		Description:  "Financial Report Template",
+		FileName:     "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl",
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+
+	fromToEntity := mongoModel.ToEntity()
+	fromReconstruct := ReconstructTemplate(id, "PDF", "Financial Report Template", "0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl", now, now)
+
+	assert.Equal(t, fromToEntity.ID, fromReconstruct.ID)
+	assert.Equal(t, fromToEntity.OutputFormat, fromReconstruct.OutputFormat)
+	assert.Equal(t, fromToEntity.Description, fromReconstruct.Description)
+	assert.Equal(t, fromToEntity.FileName, fromReconstruct.FileName)
+	assert.Equal(t, fromToEntity.CreatedAt, fromReconstruct.CreatedAt)
+	assert.Equal(t, fromToEntity.UpdatedAt, fromReconstruct.UpdatedAt)
+}
+
 func TestTemplateMongoDBModel_BSONTags(t *testing.T) {
 	t.Parallel()
 

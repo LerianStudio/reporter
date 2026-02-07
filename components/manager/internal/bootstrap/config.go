@@ -101,6 +101,7 @@ func (c *Config) Validate() error {
 
 	errs = c.validateRequiredFields(errs)
 	errs = c.validateMongoPoolBounds(errs)
+	errs = c.validateProductionConfig(errs)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
@@ -162,6 +163,44 @@ func (c *Config) validateMongoPoolBounds(errs []string) []string {
 
 	if maxPool > 0 && minPool > maxPool {
 		errs = append(errs, "MONGO_MIN_POOL_SIZE must not exceed MONGO_MAX_POOL_SIZE")
+	}
+
+	return errs
+}
+
+// defaultPassword is the placeholder value that must be replaced before
+// deploying to production.
+const defaultPassword = "CHANGE_ME"
+
+// validateProductionConfig enforces stricter rules when EnvName is "production".
+// Telemetry, authentication, and real credentials are required in production.
+func (c *Config) validateProductionConfig(errs []string) []string {
+	if c.EnvName != "production" {
+		return errs
+	}
+
+	if !c.EnableTelemetry {
+		errs = append(errs, "ENABLE_TELEMETRY must be true in production")
+	}
+
+	if !c.AuthEnabled {
+		errs = append(errs, "PLUGIN_AUTH_ENABLED must be true in production")
+	}
+
+	secrets := []struct {
+		value string
+		name  string
+	}{
+		{c.MongoDBPassword, "MONGO_PASSWORD"},
+		{c.RabbitMQPass, "RABBITMQ_DEFAULT_PASS"},
+		{c.RedisPassword, "REDIS_PASSWORD"},
+		{c.ObjectStorageSecretKey, "OBJECT_STORAGE_SECRET_KEY"},
+	}
+
+	for _, s := range secrets {
+		if s.value == defaultPassword {
+			errs = append(errs, s.name+" must not use the default placeholder in production")
+		}
 	}
 
 	return errs
