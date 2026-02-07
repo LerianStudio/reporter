@@ -12,6 +12,7 @@ import (
 )
 
 func TestDataSourceInformation_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	info := DataSourceInformation{
 		Id:           "midaz_onboarding",
 		ExternalName: "onboarding",
@@ -26,6 +27,7 @@ func TestDataSourceInformation_JSONMarshal(t *testing.T) {
 }
 
 func TestDataSourceInformation_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	jsonData := `{"id":"test_db","externalName":"test","type":"mongodb"}`
 
 	var info DataSourceInformation
@@ -38,6 +40,7 @@ func TestDataSourceInformation_JSONUnmarshal(t *testing.T) {
 }
 
 func TestDataSourceDetails_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	details := DataSourceDetails{
 		Id:           "midaz_onboarding",
 		ExternalName: "onboarding",
@@ -71,6 +74,7 @@ func TestDataSourceDetails_JSONMarshal(t *testing.T) {
 }
 
 func TestDataSourceDetails_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	jsonData := `{
 		"id": "test_db",
 		"externalName": "test",
@@ -96,6 +100,7 @@ func TestDataSourceDetails_JSONUnmarshal(t *testing.T) {
 }
 
 func TestTableDetails_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	table := TableDetails{
 		Name:   "account",
 		Fields: []string{"id", "name", "type", "status"},
@@ -115,6 +120,7 @@ func TestTableDetails_JSONMarshal(t *testing.T) {
 }
 
 func TestTableDetails_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	jsonData := `{"name":"transactions","fields":["id","amount","currency","created_at"]}`
 
 	var table TableDetails
@@ -126,6 +132,7 @@ func TestTableDetails_JSONUnmarshal(t *testing.T) {
 }
 
 func TestDataSourceDetails_EmptyTables(t *testing.T) {
+	t.Parallel()
 	details := DataSourceDetails{
 		Id:           "empty_db",
 		ExternalName: "empty",
@@ -145,6 +152,7 @@ func TestDataSourceDetails_EmptyTables(t *testing.T) {
 }
 
 func TestTableDetails_EmptyFields(t *testing.T) {
+	t.Parallel()
 	table := TableDetails{
 		Name:   "empty_table",
 		Fields: []string{},
@@ -162,10 +170,13 @@ func TestTableDetails_EmptyFields(t *testing.T) {
 }
 
 func TestDataSourceInformation_AllTypes(t *testing.T) {
+	t.Parallel()
 	types := []string{"postgresql", "mongodb", "mysql", "mariadb"}
 
 	for _, dbType := range types {
+		dbType := dbType
 		t.Run("Type_"+dbType, func(t *testing.T) {
+			t.Parallel()
 			info := DataSourceInformation{
 				Id:           "test_" + dbType,
 				ExternalName: dbType,

@@ -13,6 +13,7 @@ import (
 )
 
 func TestFilterCondition_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filter   FilterCondition
@@ -69,7 +70,9 @@ func TestFilterCondition_JSONMarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			data, err := json.Marshal(tt.filter)
 			assert.NoError(t, err)
 			assert.JSONEq(t, tt.expected, string(data))
@@ -78,6 +81,7 @@ func TestFilterCondition_JSONMarshal(t *testing.T) {
 }
 
 func TestFilterCondition_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		json     string
@@ -116,7 +120,9 @@ func TestFilterCondition_JSONUnmarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var result FilterCondition
 			err := json.Unmarshal([]byte(tt.json), &result)
 			assert.NoError(t, err)
@@ -126,6 +132,7 @@ func TestFilterCondition_JSONUnmarshal(t *testing.T) {
 }
 
 func TestCreateReportInput_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	input := CreateReportInput{
 		TemplateID: "00000000-0000-0000-0000-000000000001",
 		Filters: map[string]map[string]map[string]FilterCondition{
@@ -151,6 +158,7 @@ func TestCreateReportInput_JSONMarshal(t *testing.T) {
 }
 
 func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	jsonData := `{
 		"templateId": "00000000-0000-0000-0000-000000000001",
 		"filters": {
@@ -174,6 +182,7 @@ func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
 }
 
 func TestReportMessage_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	templateID := uuid.New()
 	reportID := uuid.New()
 
@@ -210,6 +219,7 @@ func TestReportMessage_JSONMarshal(t *testing.T) {
 }
 
 func TestReportMessage_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	templateID := uuid.New()
 	reportID := uuid.New()
 
@@ -243,6 +253,7 @@ func TestReportMessage_JSONUnmarshal(t *testing.T) {
 }
 
 func TestFilterCondition_AllOperators(t *testing.T) {
+	t.Parallel()
 	filter := FilterCondition{
 		Equals:         []any{"value1"},
 		GreaterThan:    []any{10},
@@ -272,6 +283,7 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 }
 
 func TestReportMessage_EmptyFilters(t *testing.T) {
+	t.Parallel()
 	msg := ReportMessage{
 		TemplateID:   uuid.New(),
 		ReportID:     uuid.New(),

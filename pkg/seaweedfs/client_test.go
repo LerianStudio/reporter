@@ -16,6 +16,8 @@ import (
 )
 
 func TestNewSeaweedFSClient(t *testing.T) {
+	t.Parallel()
+
 	client := NewSeaweedFSClient("http://localhost:8888")
 
 	assert.NotNil(t, client)
@@ -25,6 +27,8 @@ func TestNewSeaweedFSClient(t *testing.T) {
 }
 
 func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		baseURL string
@@ -44,7 +48,10 @@ func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			client := NewSeaweedFSClient(tt.baseURL)
 			assert.Equal(t, tt.baseURL, client.GetBaseURL())
 		})
@@ -52,6 +59,8 @@ func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
 }
 
 func TestSeaweedFSClient_UploadFile(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
 		assert.Equal(t, "/bucket/test-file.txt", r.URL.Path)
@@ -71,6 +80,8 @@ func TestSeaweedFSClient_UploadFile(t *testing.T) {
 }
 
 func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		ttl         string
@@ -99,7 +110,10 @@ func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				if tt.ttl != "" {
@@ -119,6 +133,8 @@ func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
 }
 
 func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -142,7 +158,10 @@ func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Write([]byte(tt.response))
@@ -158,6 +177,8 @@ func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
 }
 
 func TestSeaweedFSClient_DownloadFile(t *testing.T) {
+	t.Parallel()
+
 	expectedContent := "downloaded file content"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,6 +196,8 @@ func TestSeaweedFSClient_DownloadFile(t *testing.T) {
 }
 
 func TestSeaweedFSClient_DownloadFile_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("file not found"))
@@ -188,6 +211,8 @@ func TestSeaweedFSClient_DownloadFile_Error(t *testing.T) {
 }
 
 func TestSeaweedFSClient_DeleteFile(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/bucket/delete-file.txt", r.URL.Path)
@@ -201,6 +226,8 @@ func TestSeaweedFSClient_DeleteFile(t *testing.T) {
 }
 
 func TestSeaweedFSClient_DeleteFile_NoContent(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -212,6 +239,8 @@ func TestSeaweedFSClient_DeleteFile_NoContent(t *testing.T) {
 }
 
 func TestSeaweedFSClient_DeleteFile_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("delete failed"))
@@ -225,6 +254,8 @@ func TestSeaweedFSClient_DeleteFile_Error(t *testing.T) {
 }
 
 func TestSeaweedFSClient_HealthCheck(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/status", r.URL.Path)
@@ -239,6 +270,8 @@ func TestSeaweedFSClient_HealthCheck(t *testing.T) {
 }
 
 func TestSeaweedFSClient_HealthCheck_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
@@ -251,6 +284,8 @@ func TestSeaweedFSClient_HealthCheck_Error(t *testing.T) {
 }
 
 func TestSeaweedFSClient_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate slow response
 		time.Sleep(2 * time.Second)
@@ -268,6 +303,8 @@ func TestSeaweedFSClient_ContextCancellation(t *testing.T) {
 }
 
 func TestSeaweedFSClient_UploadFile_Created(t *testing.T) {
+	t.Parallel()
+
 	// Test that HTTP 201 Created is also accepted
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
@@ -280,6 +317,8 @@ func TestSeaweedFSClient_UploadFile_Created(t *testing.T) {
 }
 
 func TestSeaweedFSClient_LargeFile(t *testing.T) {
+	t.Parallel()
+
 	// Create a 1MB file
 	largeContent := make([]byte, 1024*1024)
 	for i := range largeContent {

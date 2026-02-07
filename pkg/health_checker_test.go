@@ -17,6 +17,8 @@ import (
 )
 
 func TestNewHealthChecker(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -32,6 +34,8 @@ func TestNewHealthChecker(t *testing.T) {
 }
 
 func TestHealthChecker_StartAndStop(t *testing.T) {
+	t.Parallel()
+
 	// Skip this test in short mode since it requires waiting for the health checker's
 	// initial 5-second delay to complete before Stop() can take effect
 	if testing.Short() {
@@ -69,6 +73,8 @@ func TestHealthChecker_StartAndStop(t *testing.T) {
 }
 
 func TestHealthChecker_StartNotBlocking(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -95,6 +101,8 @@ func TestHealthChecker_StartNotBlocking(t *testing.T) {
 }
 
 func TestHealthChecker_NeedsHealing(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -164,7 +172,10 @@ func TestHealthChecker_NeedsHealing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt.setup()
 			result := hc.needsHealing(tt.datasourceName, tt.ds)
 			assert.Equal(t, tt.expected, result)
@@ -173,6 +184,8 @@ func TestHealthChecker_NeedsHealing(t *testing.T) {
 }
 
 func TestHealthChecker_GetHealthStatus(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -200,6 +213,8 @@ func TestHealthChecker_GetHealthStatus(t *testing.T) {
 }
 
 func TestHealthChecker_GetHealthStatus_Empty(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -213,6 +228,8 @@ func TestHealthChecker_GetHealthStatus_Empty(t *testing.T) {
 }
 
 func TestHealthChecker_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -250,6 +267,8 @@ func TestHealthChecker_ConcurrentAccess(t *testing.T) {
 }
 
 func TestHealthChecker_PingDataSource_UnknownType(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -268,6 +287,8 @@ func TestHealthChecker_PingDataSource_UnknownType(t *testing.T) {
 }
 
 func TestHealthChecker_PingDataSource_NilPostgresRepository(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -286,6 +307,8 @@ func TestHealthChecker_PingDataSource_NilPostgresRepository(t *testing.T) {
 }
 
 func TestHealthChecker_PingDataSource_NilMongoDBRepository(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -304,6 +327,8 @@ func TestHealthChecker_PingDataSource_NilMongoDBRepository(t *testing.T) {
 }
 
 func TestHealthChecker_PerformHealthChecks_AllHealthy(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -325,6 +350,8 @@ func TestHealthChecker_PerformHealthChecks_AllHealthy(t *testing.T) {
 }
 
 func TestHealthChecker_PerformHealthChecks_WithUnavailable(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -345,12 +372,16 @@ func TestHealthChecker_PerformHealthChecks_WithUnavailable(t *testing.T) {
 }
 
 func TestHealthCheckConstants(t *testing.T) {
+	t.Parallel()
+
 	// Verify health check constants are defined properly
 	assert.Equal(t, 30*time.Second, constant.HealthCheckInterval)
 	assert.Equal(t, 5*time.Second, constant.HealthCheckTimeout)
 }
 
 func TestHealthChecker_AttemptReconnection_NilConnection(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)
@@ -372,6 +403,8 @@ func TestHealthChecker_AttemptReconnection_NilConnection(t *testing.T) {
 }
 
 func TestHealthChecker_MultipleDataSources(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	dataSources := make(map[string]DataSource)

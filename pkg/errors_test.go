@@ -14,6 +14,8 @@ import (
 )
 
 func TestEntityNotFoundError_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      EntityNotFoundError
@@ -48,13 +50,18 @@ func TestEntityNotFoundError_Error(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.expected, tt.err.Error())
 		})
 	}
 }
 
 func TestEntityNotFoundError_Unwrap(t *testing.T) {
+	t.Parallel()
+
 	wrappedErr := errors.New("wrapped error")
 	err := EntityNotFoundError{
 		Err: wrappedErr,
@@ -64,6 +71,8 @@ func TestEntityNotFoundError_Unwrap(t *testing.T) {
 }
 
 func TestValidationError_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      ValidationError
@@ -87,13 +96,18 @@ func TestValidationError_Error(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.expected, tt.err.Error())
 		})
 	}
 }
 
 func TestValidationError_Unwrap(t *testing.T) {
+	t.Parallel()
+
 	wrappedErr := errors.New("wrapped error")
 	err := ValidationError{
 		Err: wrappedErr,
@@ -103,6 +117,8 @@ func TestValidationError_Unwrap(t *testing.T) {
 }
 
 func Test_validationErrorJSONSerialization(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name            string
 		validationError ValidationError
@@ -146,7 +162,10 @@ func Test_validationErrorJSONSerialization(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Marshal to JSON
 			jsonBytes, err := json.Marshal(tt.validationError)
 			assert.NoError(t, err)
@@ -171,6 +190,8 @@ func Test_validationErrorJSONSerialization(t *testing.T) {
 }
 
 func TestEntityConflictError_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      EntityConflictError
@@ -193,13 +214,18 @@ func TestEntityConflictError_Error(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.expected, tt.err.Error())
 		})
 	}
 }
 
 func TestEntityConflictError_Unwrap(t *testing.T) {
+	t.Parallel()
+
 	wrappedErr := errors.New("wrapped error")
 	err := EntityConflictError{
 		Err: wrappedErr,
@@ -209,6 +235,8 @@ func TestEntityConflictError_Unwrap(t *testing.T) {
 }
 
 func TestUnauthorizedError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := UnauthorizedError{
 		Message: "unauthorized access",
 	}
@@ -216,6 +244,8 @@ func TestUnauthorizedError_Error(t *testing.T) {
 }
 
 func TestForbiddenError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := ForbiddenError{
 		Message: "forbidden action",
 	}
@@ -223,6 +253,8 @@ func TestForbiddenError_Error(t *testing.T) {
 }
 
 func TestUnprocessableOperationError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := UnprocessableOperationError{
 		Message: "cannot process",
 	}
@@ -230,6 +262,8 @@ func TestUnprocessableOperationError_Error(t *testing.T) {
 }
 
 func TestHTTPError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := HTTPError{
 		Message: "http error",
 	}
@@ -237,6 +271,8 @@ func TestHTTPError_Error(t *testing.T) {
 }
 
 func TestFailedPreconditionError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := FailedPreconditionError{
 		Message: "precondition failed",
 	}
@@ -244,6 +280,8 @@ func TestFailedPreconditionError_Error(t *testing.T) {
 }
 
 func TestInternalServerError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := InternalServerError{
 		Message: "internal error",
 	}
@@ -251,6 +289,8 @@ func TestInternalServerError_Error(t *testing.T) {
 }
 
 func TestResponseError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := ResponseError{
 		Code:    500,
 		Title:   "Internal Error",
@@ -260,6 +300,8 @@ func TestResponseError_Error(t *testing.T) {
 }
 
 func TestValidationKnownFieldsError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := ValidationKnownFieldsError{
 		Message: "field validation error",
 		Fields: FieldValidations{
@@ -270,6 +312,8 @@ func TestValidationKnownFieldsError_Error(t *testing.T) {
 }
 
 func TestValidationUnknownFieldsError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := ValidationUnknownFieldsError{
 		Message: "unknown fields error",
 		Fields: UnknownFields{
@@ -280,6 +324,8 @@ func TestValidationUnknownFieldsError_Error(t *testing.T) {
 }
 
 func TestValidateInternalError(t *testing.T) {
+	t.Parallel()
+
 	originalErr := errors.New("database connection failed")
 	err := ValidateInternalError(originalErr, "report")
 
@@ -292,6 +338,8 @@ func TestValidateInternalError(t *testing.T) {
 }
 
 func TestValidateBadRequestFieldsError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name               string
 		requiredFields     map[string]string
@@ -335,7 +383,10 @@ func TestValidateBadRequestFieldsError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ValidateBadRequestFieldsError(tt.requiredFields, tt.knownInvalidFields, tt.entityType, tt.unknownFields)
 			assert.NotNil(t, err)
 
@@ -354,6 +405,8 @@ func TestValidateBadRequestFieldsError(t *testing.T) {
 }
 
 func TestValidateBusinessError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		err          error
@@ -441,7 +494,10 @@ func TestValidateBusinessError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := ValidateBusinessError(tt.err, tt.entityType, tt.args...)
 			assert.NotNil(t, result)
 
@@ -460,6 +516,8 @@ func TestValidateBusinessError(t *testing.T) {
 }
 
 func TestValidateBusinessError_AllMappedErrors(t *testing.T) {
+	t.Parallel()
+
 	// Test all mapped errors to ensure they return correct types
 	mappedErrors := []error{
 		constant.ErrInvalidDateFormat,
@@ -489,7 +547,10 @@ func TestValidateBusinessError_AllMappedErrors(t *testing.T) {
 	}
 
 	for _, err := range mappedErrors {
+		err := err
 		t.Run(err.Error(), func(t *testing.T) {
+			t.Parallel()
+
 			result := ValidateBusinessError(err, "test", "arg1", "arg2")
 			assert.NotNil(t, result)
 			// All mapped errors should return a different type than the original

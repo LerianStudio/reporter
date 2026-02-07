@@ -14,6 +14,8 @@ import (
 )
 
 func TestInferDataTypeFromDocument(t *testing.T) {
+	t.Parallel()
+
 	ds := &ExternalDataSource{}
 
 	testDoc := bson.M{
@@ -99,6 +101,8 @@ func TestInferDataTypeFromDocument(t *testing.T) {
 }
 
 func TestInferDataType(t *testing.T) {
+	t.Parallel()
+
 	ds := &ExternalDataSource{}
 
 	testCases := []struct {
@@ -134,6 +138,8 @@ func TestInferDataType(t *testing.T) {
 }
 
 func TestIsMoreSpecificType(t *testing.T) {
+	t.Parallel()
+
 	ds := &ExternalDataSource{}
 
 	testCases := []struct {
@@ -161,6 +167,8 @@ func TestIsMoreSpecificType(t *testing.T) {
 }
 
 func TestCalculateOptimalSampleSize(t *testing.T) {
+	t.Parallel()
+
 	ds := &ExternalDataSource{}
 
 	testCases := []struct {
@@ -188,6 +196,8 @@ func TestCalculateOptimalSampleSize(t *testing.T) {
 }
 
 func TestConvertBsonToMap(t *testing.T) {
+	t.Parallel()
+
 	testDoc := bson.M{
 		"_id":  primitive.ObjectID{},
 		"name": "Test",
@@ -245,6 +255,8 @@ func TestConvertBsonToMap(t *testing.T) {
 }
 
 func TestConvertBsonValue(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		value    any
@@ -293,7 +305,10 @@ func TestConvertBsonValue(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := convertBsonValue(tc.value)
 
 			switch tc.name {
@@ -327,6 +342,8 @@ func TestConvertBsonValue(t *testing.T) {
 }
 
 func TestIsFilterConditionEmpty(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name      string
 		condition map[string]any
@@ -368,7 +385,10 @@ func TestIsFilterConditionEmpty(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			condition := model.FilterCondition{}
 
 			if equals, ok := tc.condition["Equals"].([]any); ok {
@@ -405,6 +425,8 @@ func TestIsFilterConditionEmpty(t *testing.T) {
 }
 
 func TestFilterNestedFields(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		input    []string
@@ -458,7 +480,10 @@ func TestFilterNestedFields(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := FilterNestedFields(tc.input)
 
 			if len(result) != len(tc.expected) {
@@ -476,6 +501,8 @@ func TestFilterNestedFields(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaMongo(t *testing.T) {
+	t.Parallel()
+
 	schema := CollectionSchema{
 		CollectionName: "test_collection",
 		Fields: []FieldInformation{
@@ -541,7 +568,10 @@ func TestValidateFieldsInSchemaMongo(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			count := int32(0)
 			missing := ValidateFieldsInSchemaMongo(tc.expectedFields, schema, &count)
 
@@ -655,6 +685,8 @@ func BenchmarkConvertBsonToMap(b *testing.B) {
 
 // TestConvertFilterConditionToMongoFilter tests the conversion of FilterCondition to MongoDB filter
 func TestConvertFilterConditionToMongoFilter(t *testing.T) {
+	t.Parallel()
+
 	ds := &ExternalDataSource{}
 
 	testCases := []struct {
@@ -760,7 +792,10 @@ func TestConvertFilterConditionToMongoFilter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			result, err := ds.convertFilterConditionToMongoFilter(tc.field, tc.condition)
 
 			if tc.expectErr {

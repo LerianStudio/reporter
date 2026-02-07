@@ -12,6 +12,8 @@ import (
 )
 
 func TestMappedFieldsOfTemplate_CalcTag(t *testing.T) {
+	t.Parallel()
+
 	template := `{% for balance in midaz_transaction.balance %}
 Alias: {{ balance.alias }}
 Balance: {{ balance.available }}
@@ -40,6 +42,8 @@ Sum: {% calc midaz_transaction.balance.3.available + 1.2 %}`
 }
 
 func TestMappedFieldsOfTemplate_CalcTagComplex(t *testing.T) {
+	t.Parallel()
+
 	template := `{% calc (midaz_transaction.balance.0.initial_balance + midaz_transaction.balance.0.final_balance) * 1.2 %}`
 
 	result := MappedFieldsOfTemplate(template)
@@ -59,6 +63,8 @@ func TestMappedFieldsOfTemplate_CalcTagComplex(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_DIMPFilters(t *testing.T) {
+	t.Parallel()
+
 	template := `|0000|{{ midaz_onboarding.onboarding.0.legal_document|replace:".:"|replace:"/:"|replace:"-:" }}|{{ midaz_onboarding.onboarding.0.legal_name }}|
 {% for acc in midaz_onboarding.account|where:"type:cacc" %}|1100|SP|{{ acc.id }}|{{ acc.alias|replace:"@:"|replace:"_:/" }}|
 {% endfor %}|TOTAL_SP|{{ midaz_transaction.transaction|where:"status:APPROVED"|sum:"amount" }}|
@@ -103,6 +109,8 @@ func TestMappedFieldsOfTemplate_DIMPFilters(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_WhereFilter(t *testing.T) {
+	t.Parallel()
+
 	template := `{{ operations|where:"uf:SP"|sum:"value" }}`
 
 	result := MappedFieldsOfTemplate(template)
@@ -113,6 +121,8 @@ func TestMappedFieldsOfTemplate_WhereFilter(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_ChainedFilters(t *testing.T) {
+	t.Parallel()
+
 	template := `{{ midaz_data.records|where:"active:true"|where:"type:A"|sum:"amount"|count:"status:done" }}`
 
 	result := MappedFieldsOfTemplate(template)
@@ -131,6 +141,8 @@ func TestMappedFieldsOfTemplate_ChainedFilters(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_ForLoopWithWhereFilter(t *testing.T) {
+	t.Parallel()
+
 	template := `{% for item in midaz_source.items|where:"category:electronics" %}
 {{ item.name }} - {{ item.price }}
 {% endfor %}`
@@ -150,6 +162,8 @@ func TestMappedFieldsOfTemplate_ForLoopWithWhereFilter(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_CountByTagQuotedValues(t *testing.T) {
+	t.Parallel()
+
 	template := `{% count_by midaz_onboarding.account if type == "cacc" %}`
 
 	result := MappedFieldsOfTemplate(template)
@@ -174,6 +188,8 @@ func TestMappedFieldsOfTemplate_CountByTagQuotedValues(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_NestedLoopWithParentVariable(t *testing.T) {
+	t.Parallel()
+
 	template := `
 {% for alias in plugin_crm.aliases %}
   Alias ID: {{ alias.account_id }}
@@ -207,6 +223,8 @@ func TestMappedFieldsOfTemplate_NestedLoopWithParentVariable(t *testing.T) {
 }
 
 func TestParseDatabaseReference(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		ref            string
@@ -263,7 +281,10 @@ func TestParseDatabaseReference(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			database, schema, table, err := ParseDatabaseReference(tt.ref)
 
 			if tt.wantErr {
@@ -283,6 +304,8 @@ func TestParseDatabaseReference(t *testing.T) {
 }
 
 func TestResolveNestedVariables(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    map[string][]string
@@ -335,7 +358,10 @@ func TestResolveNestedVariables(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Make a copy to avoid modifying test data
 			input := make(map[string][]string)
 			for k, v := range tt.input {
@@ -352,6 +378,8 @@ func TestResolveNestedVariables(t *testing.T) {
 }
 
 func TestCleanPath(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		path     string
@@ -395,7 +423,10 @@ func TestCleanPath(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := CleanPath(tt.path)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -403,6 +434,8 @@ func TestCleanPath(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_SchemaFormat(t *testing.T) {
+	t.Parallel()
+
 	template := `{% for tx in external_db:sales.orders %}
 Transaction ID: {{ tx.id }}
 Amount: {{ tx.amount }}
@@ -424,6 +457,8 @@ Status: {{ tx.status }}
 }
 
 func TestMappedFieldsOfTemplate_MixedFormats(t *testing.T) {
+	t.Parallel()
+
 	// Template uses original syntax with dot (database:schema.table)
 	template := `{% for acc in midaz_onboarding.account %}
 Account: {{ acc.alias }}
@@ -447,6 +482,8 @@ Amount: {{ tx.amount }}
 }
 
 func TestMappedFieldsOfTemplate_ExplicitSchemaCalcTag(t *testing.T) {
+	t.Parallel()
+
 	template := `{% for tx in external_db:sales.orders %}
 Amount: {{ tx.amount }}
 {% endfor %}
@@ -460,6 +497,8 @@ Total: {% calc external_db:sales.orders.0.amount + external_db:sales.orders.1.am
 }
 
 func TestMappedFieldsOfTemplate_ExplicitSchemaIfTag(t *testing.T) {
+	t.Parallel()
+
 	template := `{% if external_db:sales.orders.0.status == "completed" %}
 Completed: {{ external_db:sales.orders.0.amount }}
 {% endif %}`
@@ -473,6 +512,8 @@ Completed: {{ external_db:sales.orders.0.amount }}
 }
 
 func TestExtractIfFromExpression_ExplicitSchemaSyntax(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		expr     string
@@ -501,7 +542,10 @@ func TestExtractIfFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := extractIfFromExpression(tt.expr)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -509,6 +553,8 @@ func TestExtractIfFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 }
 
 func TestExtractFieldsFromExpression_ExplicitSchemaSyntax(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		expr     string
@@ -532,7 +578,10 @@ func TestExtractFieldsFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := extractFieldsFromExpression(tt.expr)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -540,6 +589,8 @@ func TestExtractFieldsFromExpression_ExplicitSchemaSyntax(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_AllTagsWithExplicitSchema(t *testing.T) {
+	t.Parallel()
+
 	// Test all template tags with explicit schema syntax
 	template := `
 {# For loop with schema #}
@@ -592,6 +643,8 @@ Completed!
 }
 
 func TestMappedFieldsOfTemplate_MixedLegacyAndSchemaFormats(t *testing.T) {
+	t.Parallel()
+
 	// Template uses original syntax with dot (database:schema.table)
 	template := `
 {# Legacy format #}
@@ -623,6 +676,8 @@ func TestMappedFieldsOfTemplate_MixedLegacyAndSchemaFormats(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_AggregationNestedFields(t *testing.T) {
+	t.Parallel()
+
 	// Test that nested JSONB field paths in aggregation "by" clauses
 	// are correctly treated as field paths, not datasource references
 	template := `
@@ -684,6 +739,8 @@ func TestMappedFieldsOfTemplate_AggregationNestedFields(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_AggregationNestedFieldsNotTreatedAsDatasource(t *testing.T) {
+	t.Parallel()
+
 	// Regression test: ensure nested field paths like "fee_charge.totalAmount"
 	// are NOT incorrectly split and treated as datasource references
 	template := `{% sum_by db:schema.table by "fee_charge.totalAmount" if status == "COMPLETED" %}`
@@ -713,6 +770,8 @@ func TestMappedFieldsOfTemplate_AggregationNestedFieldsNotTreatedAsDatasource(t 
 }
 
 func TestMappedFieldsOfTemplate_AggregationCompoundConditions(t *testing.T) {
+	t.Parallel()
+
 	// Test that compound conditions with "and" extract all field names
 	template := `{% sum_by db:schema.transfers by "amount" if transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED" %}`
 
@@ -735,6 +794,8 @@ func TestMappedFieldsOfTemplate_AggregationCompoundConditions(t *testing.T) {
 }
 
 func TestMappedFieldsOfTemplate_AggregationNestedJSONBWithCompoundConditions(t *testing.T) {
+	t.Parallel()
+
 	// Regression test: nested JSONB field path in "by" clause combined with compound conditions
 	// This was causing TPL-0031 error because fee_charge.totalAmount was incorrectly treated as a datasource
 	template := `{% sum_by sales_db:payment.transfers by "fee_charge.totalAmount" if transfer_type == "CASHIN" and destination_person_type == "NATURAL_PERSON" and status == "COMPLETED" %}`
@@ -762,6 +823,8 @@ func TestMappedFieldsOfTemplate_AggregationNestedJSONBWithCompoundConditions(t *
 }
 
 func TestExtractFieldsFromConditions(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		conditions string
@@ -785,7 +848,10 @@ func TestExtractFieldsFromConditions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := extractFieldsFromConditions(tt.conditions)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -793,6 +859,8 @@ func TestExtractFieldsFromConditions(t *testing.T) {
 }
 
 func TestValidateNoScriptTag(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		template    string
@@ -923,7 +991,10 @@ func TestValidateNoScriptTag(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ValidateNoScriptTag(tt.template)
 
 			if tt.expectError {

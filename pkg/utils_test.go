@@ -13,6 +13,8 @@ import (
 )
 
 func TestGetMapNumKinds(t *testing.T) {
+	t.Parallel()
+
 	result := GetMapNumKinds()
 
 	// Verify expected numeric kinds are present
@@ -49,6 +51,8 @@ func TestGetMapNumKinds(t *testing.T) {
 }
 
 func TestIsNilOrEmpty(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    *string
@@ -112,7 +116,10 @@ func TestIsNilOrEmpty(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := IsNilOrEmpty(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -120,6 +127,8 @@ func TestIsNilOrEmpty(t *testing.T) {
 }
 
 func TestIsOutputFormatValuesValid(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -203,7 +212,10 @@ func TestIsOutputFormatValuesValid(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			input := tt.input
 			result := IsOutputFormatValuesValid(&input)
 			assert.Equal(t, tt.expected, result)
@@ -212,6 +224,8 @@ func TestIsOutputFormatValuesValid(t *testing.T) {
 }
 
 func TestValidateFormDataFields(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		outFormat   *string
@@ -275,7 +289,10 @@ func TestValidateFormDataFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ValidateFormDataFields(tt.outFormat, tt.description)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -287,6 +304,8 @@ func TestValidateFormDataFields(t *testing.T) {
 }
 
 func TestValidateFileFormat(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		outFormat    string
@@ -410,7 +429,10 @@ func TestValidateFileFormat(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := ValidateFileFormat(tt.outFormat, tt.templateFile)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -422,6 +444,8 @@ func TestValidateFileFormat(t *testing.T) {
 }
 
 func TestValidateServerAddress(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -495,7 +519,10 @@ func TestValidateServerAddress(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := ValidateServerAddress(tt.input)
 			assert.Equal(t, tt.expected, result, "For input %q", tt.input)
 		})
@@ -503,6 +530,8 @@ func TestValidateServerAddress(t *testing.T) {
 }
 
 func TestSafeInt64ToInt(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    int64
@@ -546,7 +575,10 @@ func TestSafeInt64ToInt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := SafeInt64ToInt(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -554,47 +586,65 @@ func TestSafeInt64ToInt(t *testing.T) {
 }
 
 func TestSafeInt64ToInt_BoundaryBehavior(t *testing.T) {
+	t.Parallel()
+
 	// On 64-bit systems, int and int64 have the same range,
 	// so the boundary conditions are only relevant on 32-bit systems
 	// This test verifies the function works correctly at boundary values
 
 	t.Run("MaxInt boundary", func(t *testing.T) {
+		t.Parallel()
+
 		result := SafeInt64ToInt(int64(math.MaxInt))
 		assert.Equal(t, math.MaxInt, result)
 	})
 
 	t.Run("MinInt boundary", func(t *testing.T) {
+		t.Parallel()
+
 		result := SafeInt64ToInt(int64(math.MinInt))
 		assert.Equal(t, math.MinInt, result)
 	})
 
 	t.Run("Just below MaxInt", func(t *testing.T) {
+		t.Parallel()
+
 		result := SafeInt64ToInt(int64(math.MaxInt) - 1)
 		assert.Equal(t, math.MaxInt-1, result)
 	})
 
 	t.Run("Just above MinInt", func(t *testing.T) {
+		t.Parallel()
+
 		result := SafeInt64ToInt(int64(math.MinInt) + 1)
 		assert.Equal(t, math.MinInt+1, result)
 	})
 }
 
 func TestSyscmd_ExecCmd(t *testing.T) {
+	t.Parallel()
+
 	syscmd := &Syscmd{}
 
 	t.Run("Execute echo command", func(t *testing.T) {
+		t.Parallel()
+
 		output, err := syscmd.ExecCmd("echo", "hello")
 		assert.NoError(t, err)
 		assert.Contains(t, string(output), "hello")
 	})
 
 	t.Run("Execute invalid command", func(t *testing.T) {
+		t.Parallel()
+
 		_, err := syscmd.ExecCmd("nonexistent_command_xyz")
 		assert.Error(t, err)
 	})
 }
 
 func TestDatabaseTypeConstants(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, "postgresql", PostgreSQLType)
 	assert.Equal(t, "mongodb", MongoDBType)
 }

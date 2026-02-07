@@ -16,6 +16,8 @@ import (
 )
 
 func TestTemplateMongoDBModel_ToEntity(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 
@@ -45,6 +47,8 @@ func TestTemplateMongoDBModel_ToEntity(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_ToEntity_EmptyFields(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 
@@ -65,10 +69,15 @@ func TestTemplateMongoDBModel_ToEntity_EmptyFields(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_ToEntity_AllOutputFormats(t *testing.T) {
+	t.Parallel()
+
 	formats := []string{"PDF", "HTML", "CSV", "XML", "TXT"}
 
 	for _, format := range formats {
+		format := format
 		t.Run("Format_"+format, func(t *testing.T) {
+			t.Parallel()
+
 			mongoModel := &TemplateMongoDBModel{
 				ID:           uuid.New(),
 				OutputFormat: format,
@@ -84,6 +93,8 @@ func TestTemplateMongoDBModel_ToEntity_AllOutputFormats(t *testing.T) {
 }
 
 func TestTemplate_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 
@@ -105,6 +116,8 @@ func TestTemplate_Struct(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	deletedAt := now.Add(time.Hour)
 	id := uuid.New()
@@ -141,6 +154,8 @@ func TestTemplateMongoDBModel_Struct(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_MappedFields(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		mappedFields map[string]map[string][]string
@@ -173,7 +188,10 @@ func TestTemplateMongoDBModel_MappedFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mongoModel := TemplateMongoDBModel{
 				ID:           uuid.New(),
 				MappedFields: tt.mappedFields,
@@ -187,6 +205,8 @@ func TestTemplateMongoDBModel_MappedFields(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_ToEntity_DoesNotIncludeMappedFields(t *testing.T) {
+	t.Parallel()
+
 	mappedFields := map[string]map[string][]string{
 		"ds1": {
 			"table1": {"col1", "col2"},
@@ -209,6 +229,8 @@ func TestTemplateMongoDBModel_ToEntity_DoesNotIncludeMappedFields(t *testing.T) 
 }
 
 func TestTemplateMongoDBModel_ToEntity_WithDeletedAt(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	deletedAt := now.Add(time.Hour)
 
@@ -230,6 +252,8 @@ func TestTemplateMongoDBModel_ToEntity_WithDeletedAt(t *testing.T) {
 }
 
 func TestTemplate_JSONTags(t *testing.T) {
+	t.Parallel()
+
 	template := Template{
 		ID:           uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 		OutputFormat: "PDF",
@@ -331,6 +355,8 @@ func TestNewTemplate(t *testing.T) {
 }
 
 func TestTemplateMongoDBModel_BSONTags(t *testing.T) {
+	t.Parallel()
+
 	deletedAt := time.Now()
 
 	mongoModel := TemplateMongoDBModel{

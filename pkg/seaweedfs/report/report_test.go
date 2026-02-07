@@ -70,6 +70,8 @@ func (m *mockObjectStorage) GeneratePresignedURL(ctx context.Context, key string
 }
 
 func TestStorageRepository_Put_Success(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockObjectStorage{}
 	repo := NewStorageRepository(mock)
 
@@ -86,6 +88,8 @@ func TestStorageRepository_Put_Success(t *testing.T) {
 }
 
 func TestStorageRepository_Put_Error(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockObjectStorage{
 		uploadErr: errors.New("upload failed"),
 	}
@@ -98,6 +102,8 @@ func TestStorageRepository_Put_Error(t *testing.T) {
 }
 
 func TestStorageRepository_Put_WithTTL_Success(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockObjectStorage{}
 	repo := NewStorageRepository(mock)
 
@@ -114,6 +120,8 @@ func TestStorageRepository_Put_WithTTL_Success(t *testing.T) {
 }
 
 func TestStorageRepository_Get_Success(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockObjectStorage{
 		downloadData: []byte("world"),
 	}
@@ -129,6 +137,8 @@ func TestStorageRepository_Get_Success(t *testing.T) {
 }
 
 func TestStorageRepository_Get_Error(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockObjectStorage{
 		downloadErr: errors.New("download failed"),
 	}

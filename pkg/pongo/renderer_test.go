@@ -14,6 +14,7 @@ import (
 )
 
 func TestRenderFromBytes_Success(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte("Hello, {{ person._.0.name }}!")
@@ -32,6 +33,7 @@ func TestRenderFromBytes_Success(t *testing.T) {
 }
 
 func TestRenderFromBytes_SyntaxError(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte("Hello, {{ name !")
@@ -49,6 +51,7 @@ func TestRenderFromBytes_SyntaxError(t *testing.T) {
 }
 
 func TestRender_ArithmeticExpression(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Initial Balance: {{ midaz_transaction.balance.0.initial_balance }}
@@ -71,6 +74,7 @@ Calculation: {% calc (100 + 200) * 1.2 %}`)
 }
 
 func TestRender_ArithmeticExpressionWithVariables(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Initial Balance: {{ midaz_transaction.balance.0.initial_balance }}
@@ -93,6 +97,7 @@ Calculation: {% calc (midaz_transaction.balance.0.initial_balance + midaz_transa
 }
 
 func TestRender_CalcTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% calc midaz_transaction.balance.0.initial_balance + midaz_transaction.balance.0.final_balance %}`)
@@ -111,6 +116,7 @@ func TestRender_CalcTag(t *testing.T) {
 }
 
 func TestRender_CalcTagWithEmptyValue(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -139,6 +145,7 @@ Sum: {% calc balance.available + 1.2 %}
 }
 
 func TestRender_CalcTagComplexExpression(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -170,6 +177,7 @@ Sum Complex: {% calc (balance.available + 1.2) * balance.on_hold - balance.avail
 }
 
 func TestRender_CalcTagPowerOperation(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -206,6 +214,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 }
 
 func TestRender_CalcTagIndexAccess(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -236,6 +245,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 }
 
 func TestRender_CalcTagScientificNotation(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Power Small: {% calc 0.1 ** 3 %}
@@ -258,6 +268,7 @@ Power Fractional: {% calc 2.5 ** 0.5 %}`)
 }
 
 func TestPreprocessSchemaReferences(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -296,7 +307,9 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := preprocessSchemaReferences(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -304,6 +317,7 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 }
 
 func TestRender_ExplicitSchemaFormat(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -329,6 +343,7 @@ ID: {{ order.id }}, Amount: {{ order.amount }}
 }
 
 func TestRender_ExplicitSchemaDirectAccess(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -352,6 +367,7 @@ First Amount: {{ external_db:sales.orders.0.amount }}`)
 }
 
 func TestRender_ExplicitSchemaIfTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -371,6 +387,7 @@ func TestRender_ExplicitSchemaIfTag(t *testing.T) {
 }
 
 func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -391,6 +408,7 @@ func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
 }
 
 func TestRender_MixedLegacyAndSchemaFormats(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 

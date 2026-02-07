@@ -12,6 +12,7 @@ import (
 )
 
 func TestPercentOfFilter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		num      any
@@ -27,7 +28,9 @@ func TestPercentOfFilter(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			val, err := percentOfFilter(pongo2.AsValue(test.num), pongo2.AsValue(test.total))
 			t.Logf("num=%v, total=%v → output=%s, err=%v", test.num, test.total, val.String(), err)
 
@@ -47,6 +50,7 @@ func TestPercentOfFilter(t *testing.T) {
 }
 
 func TestStripZerosFilter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    any
@@ -61,7 +65,9 @@ func TestStripZerosFilter(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			val, err := stripZerosFilter(pongo2.AsValue(test.input), pongo2.AsValue(""))
 			assert.Nil(t, err)
 			assert.Equal(t, test.expected, val.String())
@@ -70,12 +76,16 @@ func TestStripZerosFilter(t *testing.T) {
 }
 
 func TestStripZerosFilter_InvalidString(t *testing.T) {
+	t.Parallel()
 	val, err := stripZerosFilter(pongo2.AsValue("not_a_number"), pongo2.AsValue(""))
 	assert.NotNil(t, err)
+	assert.Equal(t, "strip_zeros", err.Sender)
+	assert.NotNil(t, err.OrigError)
 	assert.Equal(t, "NaN", val.String())
 }
 
 func TestSliceFilter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -94,7 +104,9 @@ func TestSliceFilter(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			val, err := sliceFilter(pongo2.AsValue(test.input), pongo2.AsValue(test.param))
 
 			if test.hasError {
@@ -108,18 +120,21 @@ func TestSliceFilter(t *testing.T) {
 }
 
 func TestSliceFilter_NegativeStart(t *testing.T) {
+	t.Parallel()
 	val, err := sliceFilter(pongo2.AsValue("Hello"), pongo2.AsValue("-5:5"))
 	assert.Nil(t, err)
 	assert.Equal(t, "Hello", val.String())
 }
 
 func TestSliceFilter_StartGreaterThanEnd(t *testing.T) {
+	t.Parallel()
 	val, err := sliceFilter(pongo2.AsValue("Hello"), pongo2.AsValue("5:2"))
 	assert.Nil(t, err)
 	assert.Equal(t, "", val.String())
 }
 
 func TestEvaluateArithmeticExpression_BasicOperations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		expression string
@@ -139,7 +154,9 @@ func TestEvaluateArithmeticExpression_BasicOperations(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := evaluateArithmeticExpression(tt.expression)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -152,25 +169,31 @@ func TestEvaluateArithmeticExpression_BasicOperations(t *testing.T) {
 }
 
 func TestEvaluateArithmeticExpression_Errors(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
-		name       string
-		expression string
+		name        string
+		expression  string
+		errContains string
 	}{
-		{"empty_expression", ""},
-		{"division_by_zero", "10/0"},
-		{"invalid_character", "5+abc"},
-		{"unmatched_parentheses", "(5+3"},
+		{"empty_expression", "", "empty expression"},
+		{"division_by_zero", "10/0", "division by zero"},
+		{"invalid_character", "5+abc", "unexpected character"},
+		{"unmatched_parentheses", "(5+3", "unmatched parentheses"},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := evaluateArithmeticExpression(tt.expression)
 			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
 		})
 	}
 }
 
 func TestEvaluateArithmeticExpression_Precedence(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		expression string
@@ -184,7 +207,9 @@ func TestEvaluateArithmeticExpression_Precedence(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := evaluateArithmeticExpression(tt.expression)
 			assert.NoError(t, err)
 			assert.InDelta(t, tt.expected, result, 0.0001)
@@ -193,6 +218,7 @@ func TestEvaluateArithmeticExpression_Precedence(t *testing.T) {
 }
 
 func TestParseNumber(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		input          string
@@ -208,7 +234,9 @@ func TestParseNumber(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			str, length := parseNumber(tt.input)
 			assert.Equal(t, tt.expectedStr, str)
 			assert.Equal(t, tt.expectedLength, length)
@@ -217,6 +245,7 @@ func TestParseNumber(t *testing.T) {
 }
 
 func TestIsDigit(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		char     byte
 		expected bool
@@ -232,7 +261,9 @@ func TestIsDigit(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(string(tt.char), func(t *testing.T) {
+			t.Parallel()
 			result := isDigit(tt.char)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -240,6 +271,7 @@ func TestIsDigit(t *testing.T) {
 }
 
 func TestFormatNumber(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    float64
@@ -252,7 +284,9 @@ func TestFormatNumber(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := formatNumber(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -260,6 +294,7 @@ func TestFormatNumber(t *testing.T) {
 }
 
 func TestTokenizeExpression(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		expression string
@@ -273,7 +308,9 @@ func TestTokenizeExpression(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tokens, err := tokenizeExpression(tt.expression)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -286,6 +323,7 @@ func TestTokenizeExpression(t *testing.T) {
 }
 
 func TestEvaluateTokens_EdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		tokens  []token
@@ -298,7 +336,9 @@ func TestEvaluateTokens_EdgeCases(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := evaluateTokens(tt.tokens)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -311,6 +351,7 @@ func TestEvaluateTokens_EdgeCases(t *testing.T) {
 }
 
 func TestEvaluateWithParentheses(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		expression string
@@ -324,7 +365,9 @@ func TestEvaluateWithParentheses(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := evaluateWithParentheses(tt.expression)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -337,6 +380,7 @@ func TestEvaluateWithParentheses(t *testing.T) {
 }
 
 func TestToken_Struct(t *testing.T) {
+	t.Parallel()
 	numToken := token{isOperator: false, value: 42.5}
 	assert.False(t, numToken.isOperator)
 	assert.Equal(t, 42.5, numToken.value)

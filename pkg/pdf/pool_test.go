@@ -15,6 +15,8 @@ import (
 // Use SKIP_CHROME_TESTS=1 to skip Chrome-dependent tests.
 
 func TestTask_Struct(t *testing.T) {
+	t.Parallel()
+
 	resultChan := make(chan error, 1)
 
 	task := Task{
@@ -29,6 +31,8 @@ func TestTask_Struct(t *testing.T) {
 }
 
 func TestWorkerPool_GetStats(t *testing.T) {
+	t.Parallel()
+
 	// Create pool but don't start workers (we'll test GetStats directly)
 	wp := &WorkerPool{
 		tasks:   make(chan Task, 10),
@@ -44,6 +48,8 @@ func TestWorkerPool_GetStats(t *testing.T) {
 }
 
 func TestWorkerPool_IsHealthy(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		workers  int
@@ -83,7 +89,10 @@ func TestWorkerPool_IsHealthy(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			wp := &WorkerPool{
 				workers: tt.workers,
 				timeout: tt.timeout,
@@ -95,6 +104,8 @@ func TestWorkerPool_IsHealthy(t *testing.T) {
 }
 
 func TestWorkerPool_GetStats_PendingTasks(t *testing.T) {
+	t.Parallel()
+
 	// Create a buffered channel and add some tasks
 	tasks := make(chan Task, 10)
 	tasks <- Task{HTML: "test1", Filename: "file1.pdf", Result: make(chan error, 1)}
@@ -112,6 +123,8 @@ func TestWorkerPool_GetStats_PendingTasks(t *testing.T) {
 }
 
 func TestWorkerPool_GetChromeOptions(t *testing.T) {
+	t.Parallel()
+
 	wp := &WorkerPool{}
 
 	options := wp.getChromeOptions()
@@ -123,6 +136,8 @@ func TestWorkerPool_GetChromeOptions(t *testing.T) {
 }
 
 func TestWorkerPool_Struct(t *testing.T) {
+	t.Parallel()
+
 	tasks := make(chan Task, 5)
 	timeout := 120 * time.Second
 
@@ -138,6 +153,8 @@ func TestWorkerPool_Struct(t *testing.T) {
 }
 
 func TestTask_ResultChannel(t *testing.T) {
+	t.Parallel()
+
 	resultChan := make(chan error, 1)
 	task := Task{
 		HTML:     "<html></html>",
@@ -156,6 +173,8 @@ func TestTask_ResultChannel(t *testing.T) {
 }
 
 func TestTask_ResultChannelWithError(t *testing.T) {
+	t.Parallel()
+
 	resultChan := make(chan error, 1)
 	task := Task{
 		HTML:     "<html></html>",
@@ -171,11 +190,12 @@ func TestTask_ResultChannelWithError(t *testing.T) {
 
 	// Receive the result
 	err := <-task.Result
-	assert.Error(t, err)
-	assert.Equal(t, expectedErr, err)
+	assert.ErrorIs(t, err, expectedErr)
 }
 
 func TestWorkerPool_Timeout_Values(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		timeout time.Duration
@@ -187,7 +207,10 @@ func TestWorkerPool_Timeout_Values(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			wp := &WorkerPool{
 				workers: 1,
 				timeout: tt.timeout,
@@ -200,6 +223,8 @@ func TestWorkerPool_Timeout_Values(t *testing.T) {
 }
 
 func TestWorkerPool_Workers_Values(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		workers int
@@ -210,7 +235,10 @@ func TestWorkerPool_Workers_Values(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			wp := &WorkerPool{
 				workers: tt.workers,
 				timeout: time.Minute,

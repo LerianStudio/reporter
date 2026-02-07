@@ -17,6 +17,8 @@ import (
 )
 
 func TestReportMongoDBModel_ToEntity(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	id := uuid.New()
@@ -57,6 +59,8 @@ func TestReportMongoDBModel_ToEntity(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntity_NilFilters(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -78,6 +82,8 @@ func TestReportMongoDBModel_ToEntity_NilFilters(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntityFindByID(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -125,6 +131,8 @@ func TestReportMongoDBModel_ToEntityFindByID(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntityFindByID_EmptyFields(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -149,6 +157,8 @@ func TestReportMongoDBModel_ToEntityFindByID_EmptyFields(t *testing.T) {
 }
 
 func TestReportMongoDBModel_FromEntity(t *testing.T) {
+	t.Parallel()
+
 	id := uuid.New()
 	templateID := uuid.New()
 	completedAt := time.Now()
@@ -190,6 +200,8 @@ func TestReportMongoDBModel_FromEntity(t *testing.T) {
 }
 
 func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		ID:         uuid.New(),
 		TemplateID: uuid.New(),
@@ -207,6 +219,8 @@ func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
 }
 
 func TestReport_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -252,6 +266,8 @@ func TestReport_Struct(t *testing.T) {
 }
 
 func TestReportMongoDBModel_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -296,10 +312,15 @@ func TestReportMongoDBModel_Struct(t *testing.T) {
 }
 
 func TestReportStatuses(t *testing.T) {
+	t.Parallel()
+
 	statuses := []string{"pending", "processing", "completed", "failed"}
 
 	for _, status := range statuses {
+		status := status
 		t.Run("Status_"+status, func(t *testing.T) {
+			t.Parallel()
+
 			report := Report{
 				ID:         uuid.New(),
 				TemplateID: uuid.New(),
@@ -314,6 +335,8 @@ func TestReportStatuses(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntity_WithComplexFilters(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -448,6 +471,8 @@ func TestNewReport(t *testing.T) {
 }
 
 func TestFilterCondition_AllOperators(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		filter model.FilterCondition
@@ -494,7 +519,10 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			filters := map[string]map[string]map[string]model.FilterCondition{
 				"table": {
 					"column": {

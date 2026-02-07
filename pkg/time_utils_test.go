@@ -12,6 +12,8 @@ import (
 )
 
 func TestIsValidDate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		date     string
@@ -95,7 +97,10 @@ func TestIsValidDate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := IsValidDate(tt.date)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -103,6 +108,8 @@ func TestIsValidDate(t *testing.T) {
 }
 
 func TestIsInitialDateBeforeFinalDate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		initial  time.Time
@@ -154,7 +161,10 @@ func TestIsInitialDateBeforeFinalDate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := IsInitialDateBeforeFinalDate(tt.initial, tt.final)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -162,6 +172,8 @@ func TestIsInitialDateBeforeFinalDate(t *testing.T) {
 }
 
 func TestIsDateRangeWithinMonthLimit(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		initial  time.Time
@@ -235,7 +247,10 @@ func TestIsDateRangeWithinMonthLimit(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := IsDateRangeWithinMonthLimit(tt.initial, tt.final, tt.limit)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -243,6 +258,8 @@ func TestIsDateRangeWithinMonthLimit(t *testing.T) {
 }
 
 func TestNormalizeDate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		date     time.Time
@@ -318,7 +335,10 @@ func TestNormalizeDate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := NormalizeDate(tt.date, tt.days)
 			assert.Equal(t, tt.expected, result)
 		})

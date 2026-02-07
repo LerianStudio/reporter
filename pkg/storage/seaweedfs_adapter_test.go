@@ -18,6 +18,8 @@ import (
 )
 
 func TestNewSeaweedFSAdapter(t *testing.T) {
+	t.Parallel()
+
 	client := seaweedfs.NewSeaweedFSClient("http://localhost:8888")
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
@@ -27,6 +29,8 @@ func TestNewSeaweedFSAdapter(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Upload(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
@@ -47,6 +51,8 @@ func TestSeaweedFSAdapter_Upload(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_UploadWithTTL(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
@@ -68,6 +74,8 @@ func TestSeaweedFSAdapter_UploadWithTTL(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Download(t *testing.T) {
+	t.Parallel()
+
 	expectedContent := "downloaded content"
 
 	// Create a test server
@@ -93,6 +101,8 @@ func TestSeaweedFSAdapter_Download(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Delete(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -109,6 +119,8 @@ func TestSeaweedFSAdapter_Delete(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Exists_True(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -125,6 +137,8 @@ func TestSeaweedFSAdapter_Exists_True(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Exists_False(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server that returns 404
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -141,6 +155,8 @@ func TestSeaweedFSAdapter_Exists_False(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_GeneratePresignedURL(t *testing.T) {
+	t.Parallel()
+
 	baseURL := "http://localhost:8888"
 	client := seaweedfs.NewSeaweedFSClient(baseURL)
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
@@ -151,6 +167,8 @@ func TestSeaweedFSAdapter_GeneratePresignedURL(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Upload_Error(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server that returns error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -169,6 +187,8 @@ func TestSeaweedFSAdapter_Upload_Error(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_Download_Error(t *testing.T) {
+	t.Parallel()
+
 	// Create a test server that returns error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -184,6 +204,8 @@ func TestSeaweedFSAdapter_Download_Error(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_ImplementsInterface(t *testing.T) {
+	t.Parallel()
+
 	client := seaweedfs.NewSeaweedFSClient("http://localhost:8888")
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
@@ -192,6 +214,8 @@ func TestSeaweedFSAdapter_ImplementsInterface(t *testing.T) {
 }
 
 func TestSeaweedFSAdapter_PathBuilding(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		bucket     string
@@ -219,7 +243,10 @@ func TestSeaweedFSAdapter_PathBuilding(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var capturedPath string
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				capturedPath = r.URL.Path

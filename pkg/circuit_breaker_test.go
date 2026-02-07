@@ -15,6 +15,8 @@ import (
 )
 
 func TestNewCircuitBreakerManager(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbm := NewCircuitBreakerManager(logger)
@@ -25,6 +27,8 @@ func TestNewCircuitBreakerManager(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_GetOrCreate(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -47,7 +51,11 @@ func TestCircuitBreakerManager_GetOrCreate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			// Note: Cannot use t.Parallel() because subtests share cbm state
+			// and the assertion after the loop depends on subtests completing
+
 			breaker := cbm.GetOrCreate(tt.datasourceName)
 			assert.NotNil(t, breaker)
 		})
@@ -58,6 +66,8 @@ func TestCircuitBreakerManager_GetOrCreate(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_Execute_Success(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -70,6 +80,8 @@ func TestCircuitBreakerManager_Execute_Success(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_Execute_Error(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -83,6 +95,8 @@ func TestCircuitBreakerManager_Execute_Error(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_GetState(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -109,7 +123,10 @@ func TestCircuitBreakerManager_GetState(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt.setup()
 			state := cbm.GetState(tt.datasourceName)
 			assert.Equal(t, tt.expectedState, state)
@@ -118,6 +135,8 @@ func TestCircuitBreakerManager_GetState(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_GetCounts(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -137,6 +156,8 @@ func TestCircuitBreakerManager_GetCounts(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_Reset(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -158,6 +179,8 @@ func TestCircuitBreakerManager_Reset(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_Reset_NonExistent(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -168,6 +191,8 @@ func TestCircuitBreakerManager_Reset_NonExistent(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_IsHealthy(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -194,7 +219,10 @@ func TestCircuitBreakerManager_IsHealthy(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt.setup()
 			result := cbm.IsHealthy(tt.datasourceName)
 			assert.Equal(t, tt.expected, result)
@@ -203,6 +231,8 @@ func TestCircuitBreakerManager_IsHealthy(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_ShouldAllowRetry(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 
@@ -229,7 +259,10 @@ func TestCircuitBreakerManager_ShouldAllowRetry(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt.setup()
 			result := cbm.ShouldAllowRetry(tt.datasourceName)
 			assert.Equal(t, tt.expected, result)
@@ -238,6 +271,8 @@ func TestCircuitBreakerManager_ShouldAllowRetry(t *testing.T) {
 }
 
 func TestCircuitBreakerManager_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbm := NewCircuitBreakerManager(logger)
 

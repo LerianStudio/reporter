@@ -15,6 +15,8 @@ import (
 )
 
 func TestS3Config_DefaultSeaweedS3Config(t *testing.T) {
+	t.Parallel()
+
 	bucket := "test-bucket"
 	cfg := DefaultSeaweedS3Config(bucket)
 
@@ -26,6 +28,8 @@ func TestS3Config_DefaultSeaweedS3Config(t *testing.T) {
 }
 
 func TestNewS3Client_RequiresBucket(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := S3Config{
 		Endpoint: "http://localhost:9000",
@@ -61,6 +65,8 @@ func createTestClient(t *testing.T) *S3Client {
 }
 
 func TestS3Client_UploadRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -71,6 +77,8 @@ func TestS3Client_UploadRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_UploadWithTTLRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -81,6 +89,8 @@ func TestS3Client_UploadWithTTLRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_DownloadRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -91,6 +101,8 @@ func TestS3Client_DownloadRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_DeleteRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -101,6 +113,8 @@ func TestS3Client_DeleteRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_ExistsRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -112,6 +126,8 @@ func TestS3Client_ExistsRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_GeneratePresignedURLRequiresKey(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -123,6 +139,8 @@ func TestS3Client_GeneratePresignedURLRequiresKey(t *testing.T) {
 }
 
 func TestS3Client_GeneratePresignedURL_Success(t *testing.T) {
+	t.Parallel()
+
 	client := createTestClient(t)
 	ctx := context.Background()
 
@@ -137,6 +155,8 @@ func TestS3Client_GeneratePresignedURL_Success(t *testing.T) {
 }
 
 func TestS3Config_WithAllOptions(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := S3Config{
 		Endpoint:        "http://custom-endpoint:9000",
@@ -155,6 +175,8 @@ func TestS3Config_WithAllOptions(t *testing.T) {
 }
 
 func TestS3Config_MinimalConfig(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := S3Config{
 		Bucket: "minimal-bucket",
@@ -168,6 +190,8 @@ func TestS3Config_MinimalConfig(t *testing.T) {
 }
 
 func TestS3Client_UploadWithTTL_IgnoresTTL(t *testing.T) {
+	t.Parallel()
+
 	// TTL should be ignored for S3 (not an error, just logged)
 	// We verify the function doesn't error with a TTL value
 	client := createTestClient(t)

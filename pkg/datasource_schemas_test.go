@@ -9,6 +9,8 @@ import (
 )
 
 func TestDataSourceConfig_GetSchemas(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	tests := []struct {
 		name       string
 		configName string
@@ -42,7 +44,10 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			// Note: Cannot use t.Parallel() because t.Setenv is used
+
 			if tt.envValue != "" {
 				envKey := "DATASOURCE_" + toEnvFormat(tt.configName) + "_SCHEMAS"
 				t.Setenv(envKey, tt.envValue)
@@ -69,6 +74,8 @@ func TestDataSourceConfig_GetSchemas(t *testing.T) {
 }
 
 func TestDataSource_SchemasField(t *testing.T) {
+	t.Parallel()
+
 	ds := DataSource{
 		DatabaseType: PostgreSQLType,
 		Schemas:      []string{"sales", "inventory"},

@@ -9,6 +9,8 @@ import (
 )
 
 func TestTableSchema_QualifiedName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		schema     TableSchema
@@ -41,7 +43,10 @@ func TestTableSchema_QualifiedName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := tt.schema.QualifiedName()
 			if got != tt.wantResult {
 				t.Errorf("QualifiedName() = %q, want %q", got, tt.wantResult)
@@ -51,6 +56,8 @@ func TestTableSchema_QualifiedName(t *testing.T) {
 }
 
 func TestTableSchema_SchemaNameField(t *testing.T) {
+	t.Parallel()
+
 	// Test that SchemaName field exists and can be set
 	ts := TableSchema{
 		SchemaName: "sales",
@@ -68,6 +75,8 @@ func TestTableSchema_SchemaNameField(t *testing.T) {
 }
 
 func TestQualifyTableName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		schemaName string
@@ -101,7 +110,10 @@ func TestQualifyTableName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := qualifyTableName(tt.schemaName, tt.tableName)
 			if got != tt.want {
 				t.Errorf("qualifyTableName(%q, %q) = %q, want %q", tt.schemaName, tt.tableName, got, tt.want)

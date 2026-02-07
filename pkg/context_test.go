@@ -15,6 +15,8 @@ import (
 )
 
 func TestNewLoggerFromContext(t *testing.T) {
+	t.Parallel()
+
 	// Create a shared logger instance for the "with logger" test case
 	sharedLogger := &log.NoneLogger{}
 
@@ -50,7 +52,10 @@ func TestNewLoggerFromContext(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := tt.setupCtx()
 			logger := NewLoggerFromContext(ctx)
 
@@ -67,6 +72,8 @@ func TestNewLoggerFromContext(t *testing.T) {
 }
 
 func TestNewTracerFromContext(t *testing.T) {
+	t.Parallel()
+
 	// Create a shared tracer instance for the "with tracer" test case
 	sharedTracer := noop.Tracer{}
 
@@ -101,7 +108,10 @@ func TestNewTracerFromContext(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := tt.setupCtx()
 			tracer := NewTracerFromContext(ctx)
 
@@ -116,7 +126,11 @@ func TestNewTracerFromContext(t *testing.T) {
 }
 
 func TestContextWithLogger(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Add logger to empty context", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger)
 
@@ -128,6 +142,8 @@ func TestContextWithLogger(t *testing.T) {
 	})
 
 	t.Run("Add logger to context with existing tracer", func(t *testing.T) {
+		t.Parallel()
+
 		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
@@ -143,6 +159,8 @@ func TestContextWithLogger(t *testing.T) {
 	})
 
 	t.Run("Replace existing logger", func(t *testing.T) {
+		t.Parallel()
+
 		logger1 := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger1)
 
@@ -155,7 +173,11 @@ func TestContextWithLogger(t *testing.T) {
 }
 
 func TestContextWithTracer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Add tracer to empty context", func(t *testing.T) {
+		t.Parallel()
+
 		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
@@ -167,6 +189,8 @@ func TestContextWithTracer(t *testing.T) {
 	})
 
 	t.Run("Add tracer to context with existing logger", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger)
 
@@ -183,12 +207,18 @@ func TestContextWithTracer(t *testing.T) {
 }
 
 func TestCustomContextKey(t *testing.T) {
+	t.Parallel()
+
 	// Verify the key is defined and is the expected type
 	assert.Equal(t, customContextKey("custom_context"), CustomContextKey)
 }
 
 func TestCustomContextKeyValue(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Create with both values", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
 		tracer := noop.Tracer{}
 
@@ -202,6 +232,8 @@ func TestCustomContextKeyValue(t *testing.T) {
 	})
 
 	t.Run("Create with nil values", func(t *testing.T) {
+		t.Parallel()
+
 		value := &CustomContextKeyValue{}
 
 		assert.Nil(t, value.Logger)

@@ -26,6 +26,8 @@ import (
 )
 
 func TestGetContentType(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		extension    string
@@ -49,7 +51,10 @@ func TestGetContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := getContentType(tt.extension)
 			if got != tt.expectedType {
 				t.Errorf("getContentType(%q) = %q; want %q", tt.extension, got, tt.expectedType)
@@ -59,6 +64,8 @@ func TestGetContentType(t *testing.T) {
 }
 
 func TestGenerateReport_Success(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -161,6 +168,8 @@ func TestGenerateReport_Success(t *testing.T) {
 }
 
 func TestGenerateReport_TemplateRepoError(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -208,6 +217,8 @@ func TestGenerateReport_TemplateRepoError(t *testing.T) {
 }
 
 func TestSaveReport_Success(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -240,6 +251,8 @@ func TestSaveReport_Success(t *testing.T) {
 }
 
 func TestSaveReport_ErrorOnPut(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -274,6 +287,8 @@ func TestSaveReport_ErrorOnPut(t *testing.T) {
 }
 
 func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -447,6 +462,8 @@ Conta Bancária: {{ plugin_crm.holders.0.banking_details.account }}`
 }
 
 func TestDecryptRegulatoryFieldsFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -511,7 +528,10 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptRegulatoryFieldsFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -531,6 +551,8 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 }
 
 func TestDecryptRelatedPartiesFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -632,7 +654,10 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptRelatedPartiesFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -664,6 +689,8 @@ func TestDecryptRelatedPartiesFields(t *testing.T) {
 }
 
 func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -697,7 +724,10 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			filter := map[string]model.FilterCondition{
 				tt.inputField: {
 					Equals: []any{tt.inputValue},
@@ -729,6 +759,8 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 }
 
 func TestShouldSkipProcessing(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -797,6 +829,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
@@ -809,6 +842,8 @@ func TestShouldSkipProcessing(t *testing.T) {
 }
 
 func TestParseMessage_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -832,6 +867,8 @@ func TestParseMessage_InvalidJSON(t *testing.T) {
 }
 
 func TestParseMessage_ValidJSON(t *testing.T) {
+	t.Parallel()
+
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -861,6 +898,8 @@ func TestParseMessage_ValidJSON(t *testing.T) {
 }
 
 func TestGetTableFilters(t *testing.T) {
+	t.Parallel()
+
 	baseFilter := map[string]model.FilterCondition{
 		"id": {Equals: []any{1, 2, 3}},
 	}
@@ -950,7 +989,10 @@ func TestGetTableFilters(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := getTableFilters(tt.databaseFilters, tt.tableName)
 			if tt.expectNil && result != nil {
 				t.Errorf("expected nil, got %v", result)
@@ -963,6 +1005,8 @@ func TestGetTableFilters(t *testing.T) {
 }
 
 func TestIsEncryptedField(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		field    string
 		expected bool
@@ -976,7 +1020,10 @@ func TestIsEncryptedField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.field, func(t *testing.T) {
+			t.Parallel()
+
 			result := isEncryptedField(tt.field)
 			if result != tt.expected {
 				t.Errorf("isEncryptedField(%q) = %v, want %v", tt.field, result, tt.expected)
@@ -986,6 +1033,8 @@ func TestIsEncryptedField(t *testing.T) {
 }
 
 func TestHashFilterValues(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1019,7 +1068,10 @@ func TestHashFilterValues(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := useCase.hashFilterValues(tt.values, crypto)
 			if len(result) != len(tt.values) {
 				t.Errorf("expected %d values, got %d", len(tt.values), len(result))
@@ -1042,6 +1094,8 @@ func TestHashFilterValues(t *testing.T) {
 }
 
 func TestDecryptContactFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1098,7 +1152,10 @@ func TestDecryptContactFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptContactFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -1118,6 +1175,8 @@ func TestDecryptContactFields(t *testing.T) {
 }
 
 func TestDecryptBankingDetailsFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1174,7 +1233,10 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptBankingDetailsFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -1194,6 +1256,8 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 }
 
 func TestDecryptLegalPersonFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1254,7 +1318,10 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptLegalPersonFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -1278,6 +1345,8 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 }
 
 func TestDecryptNaturalPersonFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1334,7 +1403,10 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptNaturalPersonFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -1354,6 +1426,8 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 }
 
 func TestDecryptFieldValue(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -1406,7 +1480,10 @@ func TestDecryptFieldValue(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptFieldValue(tt.container, tt.fieldName, tt.fieldValue, crypto)
 			if tt.expectError && err == nil {
 				t.Error("expected error but got none")
@@ -1419,6 +1496,8 @@ func TestDecryptFieldValue(t *testing.T) {
 }
 
 func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
+	t.Parallel()
+
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	_, span := tracer.Start(context.Background(), "test")
 
@@ -1441,6 +1520,8 @@ func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 }
 
 func TestQueryDatabase_UnknownDataSource(t *testing.T) {
+	t.Parallel()
+
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	useCase := &UseCase{
@@ -1466,6 +1547,8 @@ func TestQueryDatabase_UnknownDataSource(t *testing.T) {
 }
 
 func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
+	t.Parallel()
+
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)
@@ -1508,6 +1591,8 @@ func TestQueryDatabase_CircuitBreakerUnhealthy(t *testing.T) {
 }
 
 func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1544,6 +1629,8 @@ func TestQueryDatabase_UnsupportedDatabaseType(t *testing.T) {
 }
 
 func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
 
@@ -1557,6 +1644,7 @@ func TestTransformPluginCRMAdvancedFilters_NilFilter(t *testing.T) {
 }
 
 func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
+	// NOTE: t.Setenv is incompatible with t.Parallel()
 	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1578,6 +1666,8 @@ func TestTransformPluginCRMAdvancedFilters_MissingEnvVar(t *testing.T) {
 }
 
 func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1636,6 +1726,8 @@ func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 }
 
 func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -1661,6 +1753,8 @@ func TestTransformPluginCRMAdvancedFilters_NonMappedField(t *testing.T) {
 }
 
 func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1698,6 +1792,8 @@ func TestGenerateReport_ReportAlreadyFinished(t *testing.T) {
 }
 
 func TestUpdateReportWithErrors(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1735,6 +1831,7 @@ func TestUpdateReportWithErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
@@ -1754,6 +1851,8 @@ func TestUpdateReportWithErrors(t *testing.T) {
 }
 
 func TestMarkReportAsFinished(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1793,6 +1892,7 @@ func TestMarkReportAsFinished(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
@@ -1812,6 +1912,8 @@ func TestMarkReportAsFinished(t *testing.T) {
 }
 
 func TestCheckReportStatus(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1853,6 +1955,7 @@ func TestCheckReportStatus(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
@@ -1875,6 +1978,8 @@ func TestCheckReportStatus(t *testing.T) {
 }
 
 func TestSaveReport_WithTTL(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1908,6 +2013,8 @@ func TestSaveReport_WithTTL(t *testing.T) {
 }
 
 func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1988,6 +2095,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -2045,6 +2153,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 }
 
 func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
+	// NOTE: t.Setenv is incompatible with t.Parallel()
 	t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
 	t.Setenv("CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM", "")
 
@@ -2062,6 +2171,8 @@ func TestDecryptPluginCRMData_MissingEnvVars(t *testing.T) {
 }
 
 func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	useCase := &UseCase{}
 
@@ -2080,6 +2191,8 @@ func TestDecryptPluginCRMData_NoDecryptionNeeded(t *testing.T) {
 }
 
 func TestHandleErrorWithUpdate(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2122,6 +2235,7 @@ func TestHandleErrorWithUpdate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(tt.reportID)
 
@@ -2138,6 +2252,8 @@ func TestHandleErrorWithUpdate(t *testing.T) {
 }
 
 func TestDecryptNestedFields_AllTypes(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2235,6 +2351,8 @@ func TestDecryptNestedFields_AllTypes(t *testing.T) {
 }
 
 func TestDecryptRecord(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2290,7 +2408,10 @@ func TestDecryptRecord(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result, err := useCase.decryptRecord(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -2306,6 +2427,8 @@ func TestDecryptRecord(t *testing.T) {
 }
 
 func TestDecryptTopLevelFields(t *testing.T) {
+	t.Parallel()
+
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -2362,7 +2485,10 @@ func TestDecryptTopLevelFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := useCase.decryptTopLevelFields(tt.record, crypto)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -2378,6 +2504,8 @@ func TestDecryptTopLevelFields(t *testing.T) {
 }
 
 func TestGenerateReport_ReportInErrorState(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2415,6 +2543,8 @@ func TestGenerateReport_ReportInErrorState(t *testing.T) {
 }
 
 func TestQueryMongoDatabase_Success(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2461,6 +2591,8 @@ func TestQueryMongoDatabase_Success(t *testing.T) {
 }
 
 func TestQueryMongoDatabase_WithFilters(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2511,6 +2643,8 @@ func TestQueryMongoDatabase_WithFilters(t *testing.T) {
 }
 
 func TestProcessRegularMongoCollection(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2558,6 +2692,8 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 }
 
 func TestLoadTemplate_Success(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2592,6 +2728,8 @@ func TestLoadTemplate_Success(t *testing.T) {
 }
 
 func TestLoadTemplate_Error(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2628,6 +2766,8 @@ func TestLoadTemplate_Error(t *testing.T) {
 }
 
 func TestQueryExternalData_NoDataSources(t *testing.T) {
+	t.Parallel()
+
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 
 	cbManager := pkg.NewCircuitBreakerManager(logger)

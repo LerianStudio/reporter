@@ -19,6 +19,7 @@ import (
 // =============================================================================
 
 func TestReplaceFilter_RemoveHyphen(t *testing.T) {
+	t.Parallel()
 	// {{ "01310-100"|replace:"-:" }} → "01310100"
 	val, err := replaceFilter(pongo2.AsValue("01310-100"), pongo2.AsValue("-:"))
 	assert.Nil(t, err)
@@ -26,6 +27,7 @@ func TestReplaceFilter_RemoveHyphen(t *testing.T) {
 }
 
 func TestReplaceFilter_DotToComma(t *testing.T) {
+	t.Parallel()
 	// {{ "1234.56"|replace:".:," }} → "1234,56"
 	val, err := replaceFilter(pongo2.AsValue("1234.56"), pongo2.AsValue(".:,"))
 	assert.Nil(t, err)
@@ -33,6 +35,7 @@ func TestReplaceFilter_DotToComma(t *testing.T) {
 }
 
 func TestReplaceFilter_MultipleOccurrences(t *testing.T) {
+	t.Parallel()
 	// {{ "a-b-c-d"|replace:"-:_" }} → "a_b_c_d"
 	val, err := replaceFilter(pongo2.AsValue("a-b-c-d"), pongo2.AsValue("-:_"))
 	assert.Nil(t, err)
@@ -40,6 +43,7 @@ func TestReplaceFilter_MultipleOccurrences(t *testing.T) {
 }
 
 func TestReplaceFilter_NotFound(t *testing.T) {
+	t.Parallel()
 	// {{ "abc"|replace:"x:y" }} → "abc"
 	val, err := replaceFilter(pongo2.AsValue("abc"), pongo2.AsValue("x:y"))
 	assert.Nil(t, err)
@@ -47,6 +51,7 @@ func TestReplaceFilter_NotFound(t *testing.T) {
 }
 
 func TestReplaceFilter_EmptyReplacement(t *testing.T) {
+	t.Parallel()
 	// {{ "12.345.678"|replace:".:" }} → "12345678"
 	val, err := replaceFilter(pongo2.AsValue("12.345.678"), pongo2.AsValue(".:"))
 	assert.Nil(t, err)
@@ -54,6 +59,7 @@ func TestReplaceFilter_EmptyReplacement(t *testing.T) {
 }
 
 func TestReplaceFilter_EmptyInput(t *testing.T) {
+	t.Parallel()
 	// {{ ""|replace:"-:" }} → ""
 	val, err := replaceFilter(pongo2.AsValue(""), pongo2.AsValue("-:"))
 	assert.Nil(t, err)
@@ -61,12 +67,14 @@ func TestReplaceFilter_EmptyInput(t *testing.T) {
 }
 
 func TestReplaceFilter_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	// Missing separator
 	_, err := replaceFilter(pongo2.AsValue("test"), pongo2.AsValue("invalid"))
 	assert.NotNil(t, err)
 }
 
 func TestReplaceFilter_CNPJ(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: remove all punctuation from CNPJ
 	// Step 1: remove dots
 	val1, err := replaceFilter(pongo2.AsValue("12.345.678/0001-99"), pongo2.AsValue(".:"))
@@ -85,6 +93,7 @@ func TestReplaceFilter_CNPJ(t *testing.T) {
 }
 
 func TestReplaceFilter_Integration(t *testing.T) {
+	t.Parallel()
 	// Test with pongo2 template
 	tplStr := `{{ cnpj|replace:".:"|replace:"/:"|replace:"-:" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -100,6 +109,7 @@ func TestReplaceFilter_Integration(t *testing.T) {
 }
 
 func TestReplaceFilter_CEP(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: remove hyphen from CEP
 	tplStr := `{{ cep|replace:"-:" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -115,6 +125,7 @@ func TestReplaceFilter_CEP(t *testing.T) {
 }
 
 func TestReplaceFilter_DecimalComma(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: convert decimal point to comma for Brazilian format
 	tplStr := `{{ valor|replace:".:," }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -134,6 +145,7 @@ func TestReplaceFilter_DecimalComma(t *testing.T) {
 // =============================================================================
 
 func TestWhereFilter_SimpleField(t *testing.T) {
+	t.Parallel()
 	// {{ holders|where:"state:SP" }}
 	input := []map[string]any{
 		{"name": "Alice", "state": "SP"},
@@ -153,6 +165,7 @@ func TestWhereFilter_SimpleField(t *testing.T) {
 }
 
 func TestWhereFilter_NestedField(t *testing.T) {
+	t.Parallel()
 	// {{ holders|where:"address.state:SP" }}
 	input := []map[string]any{
 		{"name": "Alice", "address": map[string]any{"state": "SP", "city": "Sao Paulo"}},
@@ -171,6 +184,7 @@ func TestWhereFilter_NestedField(t *testing.T) {
 }
 
 func TestWhereFilter_EmptyArray(t *testing.T) {
+	t.Parallel()
 	// {{ []|where:"state:SP" }} → []
 	input := []map[string]any{}
 
@@ -183,6 +197,7 @@ func TestWhereFilter_EmptyArray(t *testing.T) {
 }
 
 func TestWhereFilter_NoMatch(t *testing.T) {
+	t.Parallel()
 	// {{ holders|where:"state:XX" }} → []
 	input := []map[string]any{
 		{"name": "Alice", "state": "SP"},
@@ -198,6 +213,7 @@ func TestWhereFilter_NoMatch(t *testing.T) {
 }
 
 func TestWhereFilter_PreservesOrder(t *testing.T) {
+	t.Parallel()
 	// Verify order is preserved
 	input := []map[string]any{
 		{"id": 1, "type": "A"},
@@ -219,6 +235,7 @@ func TestWhereFilter_PreservesOrder(t *testing.T) {
 }
 
 func TestWhereFilter_NumericValue(t *testing.T) {
+	t.Parallel()
 	// Filter by numeric value (as string comparison)
 	input := []map[string]any{
 		{"name": "Alice", "age": 30},
@@ -235,6 +252,7 @@ func TestWhereFilter_NumericValue(t *testing.T) {
 }
 
 func TestWhereFilter_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	input := []map[string]any{
 		{"name": "Alice"},
 	}
@@ -244,12 +262,14 @@ func TestWhereFilter_InvalidFormat(t *testing.T) {
 }
 
 func TestWhereFilter_InvalidInput(t *testing.T) {
+	t.Parallel()
 	// Not an array
 	_, err := whereFilter(pongo2.AsValue("not an array"), pongo2.AsValue("field:value"))
 	assert.NotNil(t, err)
 }
 
 func TestWhereFilter_Integration(t *testing.T) {
+	t.Parallel()
 	// Test with pongo2 template - filter by UF (DIMP use case)
 	tplStr := `{% for h in holders|where:"uf:SP" %}{{ h.name }};{% endfor %}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -269,6 +289,7 @@ func TestWhereFilter_Integration(t *testing.T) {
 }
 
 func TestWhereFilter_WithAnySlice(t *testing.T) {
+	t.Parallel()
 	// Test with []any input (common when data comes from JSON)
 	input := []any{
 		map[string]any{"name": "Alice", "state": "SP"},
@@ -285,6 +306,7 @@ func TestWhereFilter_WithAnySlice(t *testing.T) {
 }
 
 func TestWhereFilter_WithInvalidAnySlice(t *testing.T) {
+	t.Parallel()
 	// Test with []any containing non-map items
 	input := []any{
 		"not a map",
@@ -300,6 +322,7 @@ func TestWhereFilter_WithInvalidAnySlice(t *testing.T) {
 // =============================================================================
 
 func TestSumFilter_SimpleField(t *testing.T) {
+	t.Parallel()
 	// {{ operations|sum:"amount" }} → "5000.5"
 	input := []map[string]any{
 		{"name": "Op1", "amount": 1000.50},
@@ -313,6 +336,7 @@ func TestSumFilter_SimpleField(t *testing.T) {
 }
 
 func TestSumFilter_IntegerValues(t *testing.T) {
+	t.Parallel()
 	input := []map[string]any{
 		{"value": 100},
 		{"value": 200},
@@ -325,6 +349,7 @@ func TestSumFilter_IntegerValues(t *testing.T) {
 }
 
 func TestSumFilter_StringNumericValues(t *testing.T) {
+	t.Parallel()
 	input := []map[string]any{
 		{"amount": "1000.50"},
 		{"amount": "2000.25"},
@@ -336,6 +361,7 @@ func TestSumFilter_StringNumericValues(t *testing.T) {
 }
 
 func TestSumFilter_EmptyArray(t *testing.T) {
+	t.Parallel()
 	// {{ []|sum:"amount" }} → "0"
 	input := []map[string]any{}
 
@@ -345,6 +371,7 @@ func TestSumFilter_EmptyArray(t *testing.T) {
 }
 
 func TestSumFilter_MissingField(t *testing.T) {
+	t.Parallel()
 	// Items without field are skipped
 	input := []map[string]any{
 		{"amount": 100},
@@ -358,6 +385,7 @@ func TestSumFilter_MissingField(t *testing.T) {
 }
 
 func TestSumFilter_MixedTypes(t *testing.T) {
+	t.Parallel()
 	// int, int64, float64, string numeric values
 	input := []map[string]any{
 		{"value": 100},        // int
@@ -372,6 +400,7 @@ func TestSumFilter_MixedTypes(t *testing.T) {
 }
 
 func TestSumFilter_NestedField(t *testing.T) {
+	t.Parallel()
 	input := []map[string]any{
 		{"transaction": map[string]any{"amount": 100.0}},
 		{"transaction": map[string]any{"amount": 200.0}},
@@ -383,11 +412,13 @@ func TestSumFilter_NestedField(t *testing.T) {
 }
 
 func TestSumFilter_InvalidInput(t *testing.T) {
+	t.Parallel()
 	_, err := sumFilter(pongo2.AsValue("not an array"), pongo2.AsValue("field"))
 	assert.NotNil(t, err)
 }
 
 func TestSumFilter_DecimalPrecision(t *testing.T) {
+	t.Parallel()
 	// Test that decimal precision is maintained (no float artifacts)
 	input := []map[string]any{
 		{"amount": "0.1"},
@@ -401,6 +432,7 @@ func TestSumFilter_DecimalPrecision(t *testing.T) {
 }
 
 func TestSumFilter_Integration(t *testing.T) {
+	t.Parallel()
 	// Test with pongo2 template - DIMP total calculation
 	tplStr := `{{ operations|sum:"amount" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -420,6 +452,7 @@ func TestSumFilter_Integration(t *testing.T) {
 }
 
 func TestSumFilter_WithWhereChain(t *testing.T) {
+	t.Parallel()
 	// Test chaining where + sum (DIMP use case: sum by UF)
 	tplStr := `{{ operations|where:"uf:SP"|sum:"amount" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -439,6 +472,7 @@ func TestSumFilter_WithWhereChain(t *testing.T) {
 }
 
 func TestSumFilter_DecimalType(t *testing.T) {
+	t.Parallel()
 	// Test with decimal.Decimal type directly
 	dec1, _ := decimal.NewFromString("100.50")
 	dec2, _ := decimal.NewFromString("200.25")
@@ -454,6 +488,7 @@ func TestSumFilter_DecimalType(t *testing.T) {
 }
 
 func TestSumFilter_InvalidStringSkipped(t *testing.T) {
+	t.Parallel()
 	// Invalid string values are skipped
 	input := []map[string]any{
 		{"amount": "100"},
@@ -467,6 +502,7 @@ func TestSumFilter_InvalidStringSkipped(t *testing.T) {
 }
 
 func TestSumFilter_UnsupportedTypeSkipped(t *testing.T) {
+	t.Parallel()
 	// Unsupported types (like bool) are skipped
 	input := []map[string]any{
 		{"amount": 100},
@@ -484,6 +520,7 @@ func TestSumFilter_UnsupportedTypeSkipped(t *testing.T) {
 // =============================================================================
 
 func TestCountFilter_SimpleField(t *testing.T) {
+	t.Parallel()
 	// {{ operations|count:"nat_oper:6" }} → 3
 	input := []map[string]any{
 		{"name": "Op1", "nat_oper": "6"},
@@ -498,6 +535,7 @@ func TestCountFilter_SimpleField(t *testing.T) {
 }
 
 func TestCountFilter_NestedField(t *testing.T) {
+	t.Parallel()
 	// {{ holders|count:"address.state:SP" }} → 2
 	input := []map[string]any{
 		{"name": "Alice", "address": map[string]any{"state": "SP"}},
@@ -511,6 +549,7 @@ func TestCountFilter_NestedField(t *testing.T) {
 }
 
 func TestCountFilter_EmptyArray(t *testing.T) {
+	t.Parallel()
 	// {{ []|count:"state:SP" }} → 0
 	input := []map[string]any{}
 
@@ -520,6 +559,7 @@ func TestCountFilter_EmptyArray(t *testing.T) {
 }
 
 func TestCountFilter_NoMatch(t *testing.T) {
+	t.Parallel()
 	// {{ holders|count:"state:XX" }} → 0
 	input := []map[string]any{
 		{"name": "Alice", "state": "SP"},
@@ -532,6 +572,7 @@ func TestCountFilter_NoMatch(t *testing.T) {
 }
 
 func TestCountFilter_NumericValue(t *testing.T) {
+	t.Parallel()
 	// Count by numeric value (compared as string)
 	input := []map[string]any{
 		{"type": 1},
@@ -546,6 +587,7 @@ func TestCountFilter_NumericValue(t *testing.T) {
 }
 
 func TestCountFilter_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	input := []map[string]any{
 		{"name": "Alice"},
 	}
@@ -555,11 +597,13 @@ func TestCountFilter_InvalidFormat(t *testing.T) {
 }
 
 func TestCountFilter_InvalidInput(t *testing.T) {
+	t.Parallel()
 	_, err := countFilter(pongo2.AsValue("not an array"), pongo2.AsValue("field:value"))
 	assert.NotNil(t, err)
 }
 
 func TestCountFilter_Integration(t *testing.T) {
+	t.Parallel()
 	// Test with pongo2 template - DIMP 9900 record count
 	tplStr := `{{ records|count:"tipo_reg:0000" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -580,6 +624,7 @@ func TestCountFilter_Integration(t *testing.T) {
 }
 
 func TestCountFilter_WithWhereChain(t *testing.T) {
+	t.Parallel()
 	// Test chaining where + count (DIMP use case)
 	tplStr := `{{ operations|where:"uf:SP"|count:"tipo:credit" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -600,6 +645,7 @@ func TestCountFilter_WithWhereChain(t *testing.T) {
 }
 
 func TestCountFilter_AllMatch(t *testing.T) {
+	t.Parallel()
 	// All items match
 	input := []map[string]any{
 		{"status": "active"},
@@ -617,6 +663,7 @@ func TestCountFilter_AllMatch(t *testing.T) {
 // =============================================================================
 
 func TestDIMPFilters_AllRegistered(t *testing.T) {
+	t.Parallel()
 	// Verify all DIMP filters are registered and available
 	filters := []string{"replace", "where", "sum", "count"}
 
@@ -632,6 +679,7 @@ func TestDIMPFilters_AllRegistered(t *testing.T) {
 }
 
 func TestDIMPFilters_CNPJFormatting(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: format CNPJ without punctuation
 	tplStr := `{{ cnpj|replace:".:"|replace:"/:"|replace:"-:" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -655,6 +703,7 @@ func TestDIMPFilters_CNPJFormatting(t *testing.T) {
 }
 
 func TestDIMPFilters_CPFFormatting(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: format CPF without punctuation
 	tplStr := `{{ cpf|replace:".:"|replace:"-:" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -667,6 +716,7 @@ func TestDIMPFilters_CPFFormatting(t *testing.T) {
 }
 
 func TestDIMPFilters_CEPFormatting(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: format CEP without hyphen
 	tplStr := `{{ cep|replace:"-:" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -679,6 +729,7 @@ func TestDIMPFilters_CEPFormatting(t *testing.T) {
 }
 
 func TestDIMPFilters_DecimalBrazilianFormat(t *testing.T) {
+	t.Parallel()
 	// Real DIMP use case: convert decimal point to comma
 	tplStr := `{{ valor|replace:".:," }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -702,6 +753,7 @@ func TestDIMPFilters_DecimalBrazilianFormat(t *testing.T) {
 }
 
 func TestDIMPFilters_FilterAndSum(t *testing.T) {
+	t.Parallel()
 	// DIMP use case: sum amounts by UF (for records 1100/1110)
 	tplStr := `{{ operations|where:"uf:SP"|sum:"amount" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -723,6 +775,7 @@ func TestDIMPFilters_FilterAndSum(t *testing.T) {
 }
 
 func TestDIMPFilters_FilterAndCount(t *testing.T) {
+	t.Parallel()
 	// DIMP use case: count records by type (for record 9900)
 	tplStr := `{{ records|count:"tipo_reg:1100" }}`
 	tpl, err := pongo2.FromString(tplStr)
@@ -746,6 +799,7 @@ func TestDIMPFilters_FilterAndCount(t *testing.T) {
 }
 
 func TestDIMPFilters_CompleteWorkflow(t *testing.T) {
+	t.Parallel()
 	// Complete DIMP template simulation
 	tplStr := `|0000|{{ empresa.cnpj|replace:".:"|replace:"/:"|replace:"-:" }}|{{ empresa.nome }}|
 {% for op in operations|where:"uf:SP" %}|1100|SP|{{ op.amount }}|
@@ -782,6 +836,7 @@ func TestDIMPFilters_CompleteWorkflow(t *testing.T) {
 }
 
 func TestDIMPFilters_Record9900Generation(t *testing.T) {
+	t.Parallel()
 	// DIMP 9900 record: count each record type
 	tplStr := `|9900|0000|{{ records|count:"tipo:0000" }}|
 |9900|1100|{{ records|count:"tipo:1100" }}|
@@ -820,6 +875,7 @@ func TestDIMPFilters_Record9900Generation(t *testing.T) {
 }
 
 func TestDIMPFilters_SumByMultipleUFs(t *testing.T) {
+	t.Parallel()
 	// DIMP use case: sum by each UF
 	tplSP := `{{ ops|where:"uf:SP"|sum:"valor" }}`
 	tplRJ := `{{ ops|where:"uf:RJ"|sum:"valor" }}`
@@ -849,6 +905,7 @@ func TestDIMPFilters_SumByMultipleUFs(t *testing.T) {
 }
 
 func TestDIMPFilters_ChainAllFilters(t *testing.T) {
+	t.Parallel()
 	// Chain all 4 filters in one template
 	tplStr := `CNPJ:{{ data.cnpj|replace:".:"|replace:"/:"|replace:"-:" }}|COUNT:{{ data.ops|where:"active:true"|count:"type:A" }}|SUM:{{ data.ops|where:"active:true"|sum:"value" }}`
 

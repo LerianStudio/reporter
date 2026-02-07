@@ -11,6 +11,8 @@ import (
 )
 
 func TestValidateFieldsInSchemaPostgres_AllFieldsExist(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -32,6 +34,8 @@ func TestValidateFieldsInSchemaPostgres_AllFieldsExist(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_SomeMissing(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -53,6 +57,8 @@ func TestValidateFieldsInSchemaPostgres_SomeMissing(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_AllMissing(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -71,6 +77,8 @@ func TestValidateFieldsInSchemaPostgres_AllMissing(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_EmptyFields(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -88,6 +96,8 @@ func TestValidateFieldsInSchemaPostgres_EmptyFields(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_EmptySchema(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "empty_table",
@@ -104,6 +114,8 @@ func TestValidateFieldsInSchemaPostgres_EmptySchema(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_CaseInsensitive(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -125,6 +137,8 @@ func TestValidateFieldsInSchemaPostgres_CaseInsensitive(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_CountAccumulation(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "users",
@@ -141,6 +155,8 @@ func TestValidateFieldsInSchemaPostgres_CountAccumulation(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_NestedJSONBFields(t *testing.T) {
+	t.Parallel()
+
 	// Schema with a JSONB column called "fee_charge"
 	schema := TableSchema{
 		SchemaName: "payment",
@@ -173,6 +189,8 @@ func TestValidateFieldsInSchemaPostgres_NestedJSONBFields(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_NestedFieldMissingRootColumn(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "payment",
 		TableName:  "transfers",
@@ -194,6 +212,8 @@ func TestValidateFieldsInSchemaPostgres_NestedFieldMissingRootColumn(t *testing.
 }
 
 func TestValidateFieldsInSchemaPostgres_MixedSimpleAndNested(t *testing.T) {
+	t.Parallel()
+
 	schema := TableSchema{
 		SchemaName: "public",
 		TableName:  "orders",
@@ -221,6 +241,8 @@ func TestValidateFieldsInSchemaPostgres_MixedSimpleAndNested(t *testing.T) {
 }
 
 func TestValidateFieldsInSchemaPostgres_DottedPathOnNonJSONBColumn(t *testing.T) {
+	t.Parallel()
+
 	// Test that dotted paths are validated based on root column existence only.
 	// Note: The current implementation does NOT check if the column type is JSONB.
 	// It only validates that the root column exists, regardless of type.
@@ -256,6 +278,8 @@ func TestValidateFieldsInSchemaPostgres_DottedPathOnNonJSONBColumn(t *testing.T)
 }
 
 func TestColumnInformation_Struct(t *testing.T) {
+	t.Parallel()
+
 	col := ColumnInformation{
 		Name:         "user_id",
 		DataType:     "uuid",
@@ -270,6 +294,8 @@ func TestColumnInformation_Struct(t *testing.T) {
 }
 
 func TestConnection_Struct(t *testing.T) {
+	t.Parallel()
+
 	conn := Connection{
 		ConnectionString:   "postgres://user:pass@localhost:5432/db",
 		DBName:             "testdb",
@@ -287,6 +313,8 @@ func TestConnection_Struct(t *testing.T) {
 }
 
 func TestTableSchema_Struct(t *testing.T) {
+	t.Parallel()
+
 	columns := []ColumnInformation{
 		{Name: "id", DataType: "uuid", IsPrimaryKey: true},
 		{Name: "name", DataType: "varchar", IsNullable: true},
@@ -306,6 +334,8 @@ func TestTableSchema_Struct(t *testing.T) {
 }
 
 func TestExtractRootColumn_SimpleField(t *testing.T) {
+	t.Parallel()
+
 	// Simple fields should be returned as-is
 	assert.Equal(t, "id", extractRootColumn("id"))
 	assert.Equal(t, "amount", extractRootColumn("amount"))
@@ -313,6 +343,8 @@ func TestExtractRootColumn_SimpleField(t *testing.T) {
 }
 
 func TestExtractRootColumn_NestedField(t *testing.T) {
+	t.Parallel()
+
 	// Nested fields should return only the root column
 	assert.Equal(t, "fee_charge", extractRootColumn("fee_charge.totalAmount"))
 	assert.Equal(t, "metadata", extractRootColumn("metadata.version"))
@@ -321,6 +353,8 @@ func TestExtractRootColumn_NestedField(t *testing.T) {
 }
 
 func TestTransformFieldsForSelect(t *testing.T) {
+	t.Parallel()
+
 	fields := []string{
 		"id",
 		"amount",
@@ -341,6 +375,8 @@ func TestTransformFieldsForSelect(t *testing.T) {
 }
 
 func TestTransformFieldsForSelect_Deduplication(t *testing.T) {
+	t.Parallel()
+
 	// Multiple nested fields from the same root column should result in single column
 	fields := []string{
 		"id",
@@ -360,11 +396,15 @@ func TestTransformFieldsForSelect_Deduplication(t *testing.T) {
 }
 
 func TestTransformFieldsForSelect_EmptySlice(t *testing.T) {
+	t.Parallel()
+
 	result := transformFieldsForSelect([]string{})
 	assert.Empty(t, result)
 }
 
 func TestTransformFieldsForSelect_AllSimple(t *testing.T) {
+	t.Parallel()
+
 	fields := []string{"id", "name", "email"}
 	result := transformFieldsForSelect(fields)
 

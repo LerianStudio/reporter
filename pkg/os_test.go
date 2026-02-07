@@ -12,6 +12,8 @@ import (
 )
 
 func TestGetEnvOrDefault(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	tests := []struct {
 		name         string
 		envKey       string
@@ -55,7 +57,10 @@ func TestGetEnvOrDefault(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			// Note: Cannot use t.Parallel() because t.Setenv is used
+
 			// Ensure clean state before test
 			t.Setenv(tt.envKey, "")
 
@@ -70,6 +75,8 @@ func TestGetEnvOrDefault(t *testing.T) {
 }
 
 func TestGetenvBoolOrDefault(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	tests := []struct {
 		name         string
 		envKey       string
@@ -145,7 +152,10 @@ func TestGetenvBoolOrDefault(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			// Note: Cannot use t.Parallel() because t.Setenv is used
+
 			// Ensure clean state before test
 			t.Setenv(tt.envKey, "")
 
@@ -160,6 +170,8 @@ func TestGetenvBoolOrDefault(t *testing.T) {
 }
 
 func TestGetenvIntOrDefault(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	tests := []struct {
 		name         string
 		envKey       string
@@ -235,7 +247,10 @@ func TestGetenvIntOrDefault(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			// Note: Cannot use t.Parallel() because t.Setenv is used
+
 			// Ensure clean state before test
 			t.Setenv(tt.envKey, "")
 
@@ -250,6 +265,8 @@ func TestGetenvIntOrDefault(t *testing.T) {
 }
 
 func TestSetConfigFromEnvVars(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	type TestConfig struct {
 		StringField string `env:"TEST_STRING_FIELD"`
 		IntField    int64  `env:"TEST_INT_FIELD"`
@@ -258,6 +275,8 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	}
 
 	t.Run("Set all fields from env vars", func(t *testing.T) {
+		// Note: Cannot use t.Parallel() because t.Setenv is used
+
 		t.Setenv("TEST_STRING_FIELD", "test_string")
 		t.Setenv("TEST_INT_FIELD", "42")
 		t.Setenv("TEST_BOOL_FIELD", "true")
@@ -272,6 +291,8 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	})
 
 	t.Run("Non-pointer argument returns error", func(t *testing.T) {
+		t.Parallel()
+
 		config := TestConfig{}
 		err := SetConfigFromEnvVars(config)
 
@@ -280,6 +301,8 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	})
 
 	t.Run("Fields without env tag are not modified", func(t *testing.T) {
+		// Note: Cannot use t.Parallel() because t.Setenv is used
+
 		t.Setenv("TEST_STRING_FIELD", "value")
 
 		config := &TestConfig{NoTagField: "original"}
@@ -290,6 +313,8 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 	})
 
 	t.Run("Missing env vars result in zero values", func(t *testing.T) {
+		// Note: Cannot use t.Parallel() because t.Setenv is used
+
 		// Ensure vars are not set
 		t.Setenv("TEST_STRING_FIELD", "")
 		t.Setenv("TEST_INT_FIELD", "")
@@ -306,6 +331,8 @@ func TestSetConfigFromEnvVars(t *testing.T) {
 }
 
 func TestSetConfigFromEnvVars_AllIntTypes(t *testing.T) {
+	// Note: Cannot use t.Parallel() because t.Setenv is used
+
 	type IntTypesConfig struct {
 		Int   int   `env:"TEST_INT"`
 		Int8  int8  `env:"TEST_INT8"`
@@ -332,11 +359,15 @@ func TestSetConfigFromEnvVars_AllIntTypes(t *testing.T) {
 }
 
 func TestEnsureConfigFromEnvVars(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	type TestConfig struct {
 		Field string `env:"TEST_ENSURE_FIELD"`
 	}
 
 	t.Run("Valid pointer - returns config", func(t *testing.T) {
+		// Note: Cannot use t.Parallel() because t.Setenv is used
+
 		t.Setenv("TEST_ENSURE_FIELD", "value")
 
 		config := &TestConfig{}
@@ -348,6 +379,8 @@ func TestEnsureConfigFromEnvVars(t *testing.T) {
 	})
 
 	t.Run("Non-pointer - returns error", func(t *testing.T) {
+		t.Parallel()
+
 		config := TestConfig{}
 
 		result, err := EnsureConfigFromEnvVars(config)
@@ -358,10 +391,14 @@ func TestEnsureConfigFromEnvVars(t *testing.T) {
 }
 
 func TestLocalEnvConfig(t *testing.T) {
+	// Note: Cannot use t.Parallel() because subtests use t.Setenv
+
 	// Note: InitLocalEnvConfig uses sync.Once, so we can only test it once per process
 	// The test will depend on whether a .env file exists in the current directory
 
 	t.Run("Initialize local env config", func(t *testing.T) {
+		// Note: Cannot use t.Parallel() because t.Setenv is used
+
 		// Set ENV_NAME to something other than "local" to skip .env loading
 		// t.Setenv automatically saves and restores the original value
 		t.Setenv("ENV_NAME", "test")

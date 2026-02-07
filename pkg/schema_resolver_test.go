@@ -11,6 +11,8 @@ import (
 )
 
 func TestSchemaResolver_ResolveSchema(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		setup          func(r *SchemaResolver)
@@ -118,7 +120,10 @@ func TestSchemaResolver_ResolveSchema(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := NewSchemaResolver()
 			tt.setup(r)
 
@@ -159,6 +164,8 @@ func TestSchemaResolver_ResolveSchema(t *testing.T) {
 }
 
 func TestSchemaAmbiguityError_Error(t *testing.T) {
+	t.Parallel()
+
 	err := &SchemaAmbiguityError{
 		Database: "external_db",
 		Table:    "orders",
@@ -189,6 +196,8 @@ func TestSchemaAmbiguityError_Error(t *testing.T) {
 }
 
 func TestSchemaResolver_RegisterDatabase(t *testing.T) {
+	t.Parallel()
+
 	r := NewSchemaResolver()
 
 	tables := []postgres.TableSchema{

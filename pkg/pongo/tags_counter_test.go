@@ -20,6 +20,7 @@ func newTestContext() pongo2.Context {
 }
 
 func TestCounterTag_BasicIncrement(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1100" %}{% counter_show "1100" %}`)
 	require.NoError(t, err)
 
@@ -30,6 +31,7 @@ func TestCounterTag_BasicIncrement(t *testing.T) {
 }
 
 func TestCounterTag_MultipleCounters(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1101" %}{% counter "1101" %}{% counter "1101" %}{% counter_show "1100" %}-{% counter_show "1101" %}`)
 	require.NoError(t, err)
 
@@ -40,6 +42,7 @@ func TestCounterTag_MultipleCounters(t *testing.T) {
 }
 
 func TestCounterTag_SumMultipleCounters(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% counter "1100" %}{% counter "1100" %}{% counter "1101" %}{% counter "1101" %}{% counter "1101" %}{% counter_show "1100" "1101" %}`)
 	require.NoError(t, err)
 
@@ -50,6 +53,7 @@ func TestCounterTag_SumMultipleCounters(t *testing.T) {
 }
 
 func TestCounterTag_InLoop(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% for i in items %}|1100|{% counter "1100" %}{{ i.name }}|
 {% endfor %}Total: {% counter_show "1100" %}`)
 	require.NoError(t, err)
@@ -72,6 +76,7 @@ Total: 3`
 }
 
 func TestCounterTag_NestedLoops(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% for acc in accounts %}|1100|{% counter "1100" %}{{ acc.id }}|
 {% for det in acc.details %}|1101|{% counter "1101" %}{{ det.value }}|
 {% endfor %}{% endfor %}|9900|1100|{% counter_show "1100" %}|
@@ -105,6 +110,7 @@ func TestCounterTag_NestedLoops(t *testing.T) {
 }
 
 func TestCounterTag_ZeroCounter(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% counter_show "nonexistent" %}`)
 	require.NoError(t, err)
 
@@ -115,6 +121,7 @@ func TestCounterTag_ZeroCounter(t *testing.T) {
 }
 
 func TestCounterTag_IsolatedBetweenRenders(t *testing.T) {
+	t.Parallel()
 	// Each render has its own counter storage, so counters don't leak between renders
 	tpl, err := pongo2.FromString(`{% counter "test" %}{% counter "test" %}{% counter_show "test" %}`)
 	require.NoError(t, err)
@@ -131,6 +138,7 @@ func TestCounterTag_IsolatedBetweenRenders(t *testing.T) {
 }
 
 func TestCounterTag_DIMPExample(t *testing.T) {
+	t.Parallel()
 	// Simulates a DIMP report structure
 	tpl, err := pongo2.FromString(`|0000|12345678901234|EMPRESA|
 {% for acc in accounts %}|1100|{% counter "1100" %}SP|{{ acc.id }}|{{ acc.alias }}|
@@ -159,6 +167,7 @@ func TestCounterTag_DIMPExample(t *testing.T) {
 }
 
 func TestCounterTag_SumThreeCounters(t *testing.T) {
+	t.Parallel()
 	tpl, err := pongo2.FromString(`{% counter "A" %}{% counter "A" %}{% counter "B" %}{% counter "B" %}{% counter "B" %}{% counter "C" %}{% counter_show "A" "B" "C" %}`)
 	require.NoError(t, err)
 
@@ -169,6 +178,7 @@ func TestCounterTag_SumThreeCounters(t *testing.T) {
 }
 
 func TestCounterTag_ConcurrentRendersSafe(t *testing.T) {
+	t.Parallel()
 	// This test verifies that concurrent renders don't interfere with each other
 	tpl, err := pongo2.FromString(`{% counter "x" %}{% counter "x" %}{% counter "x" %}{% counter_show "x" %}`)
 	require.NoError(t, err)
