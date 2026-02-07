@@ -6,6 +6,7 @@ package template
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -43,16 +44,16 @@ type TemplateMongoDBRepository struct {
 }
 
 // NewTemplateMongoDBRepository returns a new instance of TemplateMongoDBRepository using the given MongoDB connection.
-func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) *TemplateMongoDBRepository {
+func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) (*TemplateMongoDBRepository, error) {
 	r := &TemplateMongoDBRepository{
 		connection: mc,
 		Database:   mc.Database,
 	}
 	if _, err := r.connection.GetDB(context.Background()); err != nil {
-		panic("Failed to connect mongo")
+		return nil, fmt.Errorf("failed to connect to mongodb for templates: %w", err)
 	}
 
-	return r
+	return r, nil
 }
 
 // FindByID retrieves a template from the mongodb using the provided entity_id.
@@ -136,7 +137,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 	}
 
 	if !filters.CreatedAt.IsZero() {
-		end := filters.CreatedAt.Add(24 * time.Hour)
+		end := filters.CreatedAt.Add(constant.HoursPerDay * time.Hour)
 		queryFilter["created_at"] = bson.M{
 			"$gte": filters.CreatedAt,
 			"$lt":  end,

@@ -87,11 +87,67 @@ type Config struct {
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
 }
 
+// Validate checks that all required configuration fields are present.
+// Returns a descriptive multi-error message listing all missing fields.
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.ServerAddress == "" {
+		errs = append(errs, "SERVER_ADDRESS is required")
+	}
+
+	if c.MongoDBHost == "" {
+		errs = append(errs, "MONGO_HOST is required")
+	}
+
+	if c.MongoDBName == "" {
+		errs = append(errs, "MONGO_NAME is required")
+	}
+
+	if c.RabbitMQHost == "" {
+		errs = append(errs, "RABBITMQ_HOST is required")
+	}
+
+	if c.RabbitMQPortAMQP == "" {
+		errs = append(errs, "RABBITMQ_PORT_AMQP is required")
+	}
+
+	if c.RabbitMQUser == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_USER is required")
+	}
+
+	if c.RabbitMQPass == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_PASS is required")
+	}
+
+	if c.RabbitMQGenerateReportQueue == "" {
+		errs = append(errs, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
+	}
+
+	if c.RedisHost == "" {
+		errs = append(errs, "REDIS_HOST is required")
+	}
+
+	if c.ObjectStorageEndpoint == "" {
+		errs = append(errs, "OBJECT_STORAGE_ENDPOINT is required")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
+	}
+
+	return nil
+}
+
 // InitServers initiate http and grpc servers.
-func InitServers() *Service {
+func InitServers() (*Service, error) {
 	cfg := &Config{}
 	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 
 	logger := zap.InitializeLogger()
@@ -122,7 +178,7 @@ func InitServers() *Service {
 
 	storageClient, err := storage.NewStorageClient(ctx, storageConfig)
 	if err != nil {
-		logger.Fatalf("Failed to create storage client: %v", err)
+		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
 
 	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.ObjectStorageBucket)
@@ -161,18 +217,25 @@ func InitServers() *Service {
 		Logger:                 logger,
 	}
 
-	templateMongoDBRepository := template.NewTemplateMongoDBRepository(mongoConnection)
-	reportMongoDBRepository := report.NewReportMongoDBRepository(mongoConnection)
+	templateMongoDBRepository, err := template.NewTemplateMongoDBRepository(mongoConnection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize template mongodb repository: %w", err)
+	}
+
+	reportMongoDBRepository, err := report.NewReportMongoDBRepository(mongoConnection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
+	}
 
 	// Create MongoDB indexes
 	logger.Info("Ensuring MongoDB indexes exist for templates and reports...")
 
 	if err = templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		logger.Fatalf("Failed to ensure template indexes: %v", err)
+		return nil, fmt.Errorf("failed to ensure template indexes: %w", err)
 	}
 
 	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		logger.Fatalf("Failed to ensure report indexes: %v", err)
+		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
 	}
 
 	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
@@ -197,7 +260,7 @@ func InitServers() *Service {
 
 	redisConsumerRepository, err := redis.NewConsumerRedis(redisConnection)
 	if err != nil {
-		logger.Fatalf("Failed to initialize Redis connection: %v", err)
+		return nil, fmt.Errorf("failed to initialize redis connection: %w", err)
 	}
 
 	templateService := &services.UseCase{
@@ -208,8 +271,9 @@ func InitServers() *Service {
 
 	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
 
-	templateHandler := &in2.TemplateHandler{
-		Service: templateService,
+	templateHandler, err := in2.NewTemplateHandler(templateService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize template handler: %w", err)
 	}
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
@@ -225,8 +289,9 @@ func InitServers() *Service {
 		ExternalDataSources: externalDataSources,
 	}
 
-	reportHandler := &in2.ReportHandler{
-		Service: reportService,
+	reportHandler, err := in2.NewReportHandler(reportService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize report handler: %w", err)
 	}
 
 	dataSourceService := &services.UseCase{
@@ -234,15 +299,23 @@ func InitServers() *Service {
 		RedisRepo:           redisConsumerRepository,
 	}
 
-	dataSourceHandler := &in2.DataSourceHandler{
-		Service: dataSourceService,
+	dataSourceHandler, err := in2.NewDataSourceHandler(dataSourceService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize data source handler: %w", err)
 	}
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient)
+	readinessDeps := &in2.ReadinessDeps{
+		MongoConnection:    mongoConnection,
+		RabbitMQConnection: rabbitMQConnection,
+		RedisConnection:    redisConnection,
+		StorageClient:      storageClient,
+	}
+
+	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	return &Service{
 		Server: serverAPI,
 		Logger: logger,
-	}
+	}, nil
 }

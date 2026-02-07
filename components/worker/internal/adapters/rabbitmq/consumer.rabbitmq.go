@@ -6,9 +6,17 @@ package rabbitmq
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"math/big"
+	"runtime/debug"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/LerianStudio/reporter/pkg"
+	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	constant "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -17,6 +25,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ConsumerRepository provides an interface for Consumer related to rabbitmq.
@@ -40,9 +49,9 @@ type ConsumerRoutes struct {
 }
 
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
-func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) *ConsumerRoutes {
+func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) (*ConsumerRoutes, error) {
 	if numWorkers == 0 {
-		numWorkers = 5
+		numWorkers = pkgConstant.DefaultWorkerCount
 	}
 
 	cr := &ConsumerRoutes{
@@ -55,10 +64,10 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 
 	_, err := conn.GetNewConnect()
 	if err != nil {
-		panic("Failed to connect rabbitmq")
+		return nil, fmt.Errorf("failed to connect to rabbitmq: %w", err)
 	}
 
-	return cr
+	return cr, nil
 }
 
 // Register add a new queue to handler.
@@ -92,6 +101,11 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 
 		go func(workerID int, queue string, handlerFunc QueueHandlerFunc) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					cr.Errorf("Panic recovered in RabbitMQ worker %d for queue %s: %v\nStack: %s", workerID, queue, r, string(debug.Stack()))
+				}
+			}()
 
 			for {
 				select {
@@ -148,14 +162,20 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		opentelemetry.HandleSpanError(&spanConsumer, "Failed to convert message to JSON string", err)
 	}
 
-	cr.Infof("Worker %d: Starting processing for queue %s", workerID, queue)
+	retryCount := getRetryCount(message)
+
+	spanConsumer.SetAttributes(
+		attribute.Int("app.request.rabbitmq.consumer.retry_count", retryCount),
+	)
+
+	cr.Infof("Worker %d: Starting processing for queue %s (attempt %d)", workerID, queue, retryCount+1)
 
 	err = handlerFunc(ctx, message.Body)
 	if err != nil {
 		cr.Errorf("Worker %d: Error processing message from queue %s: %v", workerID, queue, err)
 		opentelemetry.HandleSpanError(&spanConsumer, "Error processing message", err)
 
-		_ = message.Nack(false, false)
+		cr.handleFailedMessage(workerID, queue, message, err, retryCount, &spanConsumer)
 
 		return
 	}
@@ -179,5 +199,146 @@ func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Deli
 
 // setupQos configures QoS settings for the RabbitMQ channel to limit message prefetch count and improve message processing.
 func (cr *ConsumerRoutes) setupQos() error {
-	return cr.conn.Channel.Qos(1, 0, false)
+	return cr.conn.Channel.Qos(pkgConstant.DefaultPrefetchCount, 0, false)
+}
+
+// handleFailedMessage determines whether a failed message should be retried or sent to the DLQ.
+// Non-retryable errors (business validation) are immediately sent to DLQ via Nack.
+// Retryable errors are requeued with exponential backoff up to MaxMessageRetries attempts.
+func (cr *ConsumerRoutes) handleFailedMessage(workerID int, queue string, message amqp091.Delivery, err error, retryCount int, span *trace.Span) {
+	if !isRetryable(err) {
+		cr.Infof("Worker %d: Non-retryable error for queue %s, sending to DLQ: %v", workerID, queue, err)
+		opentelemetry.HandleSpanBusinessErrorEvent(span, "Non-retryable business error, routing to DLQ", err)
+
+		_ = message.Nack(false, false)
+
+		return
+	}
+
+	if retryCount >= pkgConstant.MaxMessageRetries {
+		cr.Errorf("Worker %d: Max retries (%d) exceeded for queue %s, sending to DLQ: %v",
+			workerID, pkgConstant.MaxMessageRetries, queue, err)
+		opentelemetry.HandleSpanError(span, "Max retries exceeded, routing to DLQ", err)
+
+		_ = message.Nack(false, false)
+
+		return
+	}
+
+	backoff := calculateBackoff(retryCount)
+
+	cr.Infof("Worker %d: Retryable error for queue %s (attempt %d/%d), backoff %v before requeue: %v",
+		workerID, queue, retryCount+1, pkgConstant.MaxMessageRetries, backoff, err)
+
+	time.Sleep(backoff)
+
+	_ = message.Nack(false, true)
+}
+
+// isRetryable classifies an error as retryable or non-retryable.
+// Business validation errors (TPL-XXXX codes) are non-retryable because retrying
+// will not change the outcome. Network, timeout, and unknown errors are retryable
+// as transient failures may resolve on subsequent attempts.
+func isRetryable(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Context cancellation and deadline exceeded are non-retryable
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+
+	// Business validation errors with TPL-XXXX codes are non-retryable.
+	// These represent input/validation failures that will not succeed on retry.
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "TPL-") {
+		return false
+	}
+
+	// Check for known non-retryable error types from the application
+	var validationErr pkg.ValidationError
+	if errors.As(err, &validationErr) {
+		return false
+	}
+
+	var notFoundErr pkg.EntityNotFoundError
+	if errors.As(err, &notFoundErr) {
+		return false
+	}
+
+	// Unknown errors default to retryable; DLQ handles exhausted retries
+	return true
+}
+
+// getRetryCount reads the retry count from the RabbitMQ message headers.
+// Returns 0 if the header is missing or cannot be parsed, ensuring safe default behavior
+// for messages that have not been retried yet.
+func getRetryCount(msg amqp091.Delivery) int {
+	if msg.Headers == nil {
+		return 0
+	}
+
+	val, exists := msg.Headers[pkgConstant.RetryCountHeader]
+	if !exists {
+		return 0
+	}
+
+	// RabbitMQ headers can store values as different numeric types depending on
+	// the publisher and serialization. Handle all common variants safely.
+	switch v := val.(type) {
+	case int:
+		if v < 0 {
+			return 0
+		}
+
+		return v
+	case int32:
+		if v < 0 {
+			return 0
+		}
+
+		return int(v)
+	case int64:
+		if v < 0 {
+			return 0
+		}
+
+		return int(v)
+	case float64:
+		if v < 0 {
+			return 0
+		}
+
+		return int(v)
+	default:
+		return 0
+	}
+}
+
+// calculateBackoff computes the delay before the next retry attempt using exponential backoff with jitter.
+// Formula: min(initialBackoff * 2^attempt, maxBackoff) + random_jitter(0, RetryJitterMax)
+// Jitter prevents thundering herd when multiple consumers retry simultaneously.
+func calculateBackoff(attempt int) time.Duration {
+	backoff := pkgConstant.RetryInitialBackoff
+
+	for i := 0; i < attempt; i++ {
+		backoff *= 2
+		if backoff > pkgConstant.RetryMaxBackoff {
+			backoff = pkgConstant.RetryMaxBackoff
+
+			break
+		}
+	}
+
+	// Add cryptographically secure random jitter to prevent synchronized retries
+	jitterMax := int64(pkgConstant.RetryJitterMax)
+	if jitterMax > 0 {
+		n, err := rand.Int(rand.Reader, big.NewInt(jitterMax))
+		if err == nil {
+			backoff += time.Duration(n.Int64())
+		}
+	}
+
+	return backoff
 }

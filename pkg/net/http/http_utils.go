@@ -64,8 +64,8 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		description  string
 		status       string
 		templateID   uuid.UUID
-		limit        = 10
-		page         = 1
+		limit        = constant.DefaultPaginationLimit
+		page         = constant.DefaultPaginationPage
 		sortOrder    = "desc"
 		useMetadata  = false
 	)
@@ -140,10 +140,7 @@ func GetFileFromHeader(fileHeader *multipart.FileHeader) (string, error) {
 	}
 
 	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			panic(0)
-		}
+		_ = file.Close()
 	}(file)
 
 	buf := new(bytes.Buffer)
@@ -167,7 +164,7 @@ func ReadMultipartFile(fileHeader *multipart.FileHeader) ([]byte, error) {
 }
 
 func validatePagination(cursor, sortOrder string, limit int) error {
-	maxPaginationLimit := pkg.SafeInt64ToInt(pkg.GetenvIntOrDefault("MAX_PAGINATION_LIMIT", 100))
+	maxPaginationLimit := pkg.SafeInt64ToInt(pkg.GetenvIntOrDefault("MAX_PAGINATION_LIMIT", constant.DefaultMaxPaginationLimit))
 
 	if limit > maxPaginationLimit {
 		return pkg.ValidateBusinessError(constant.ErrPaginationLimitExceeded, "", maxPaginationLimit)

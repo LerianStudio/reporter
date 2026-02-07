@@ -67,6 +67,7 @@ func (cbm *CircuitBreakerManager) GetOrCreate(datasourceName string) *gobreaker.
 		Timeout:     constant.CircuitBreakerTimeout,
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+
 			return counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold ||
 				(counts.Requests >= 10 && failureRatio >= 0.5)
 		},
@@ -163,6 +164,7 @@ func (cbm *CircuitBreakerManager) Reset(datasourceName string) {
 			Timeout:     constant.CircuitBreakerTimeout,
 			ReadyToTrip: func(counts gobreaker.Counts) bool {
 				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+
 				return counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold ||
 					(counts.Requests >= 10 && failureRatio >= 0.5)
 			},

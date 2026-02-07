@@ -17,12 +17,12 @@ import (
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"gopkg.in/go-playground/validator.v9"
 
 	cn "github.com/LerianStudio/reporter/pkg/constant"
 
-	en2 "github.com/go-playground/validator/translations/en"
+	en2 "github.com/go-playground/validator/v10/translations/en"
 )
 
 // DecodeHandlerFunc is a handler which works with withBody decorator.
@@ -220,7 +220,10 @@ func compareSlices(original, marshaled []any) []any {
 
 // ValidateStruct validates a struct against defined validation rules, using the validator package.
 func ValidateStruct(s any) error {
-	v, trans := newValidator()
+	v, trans, err := newValidator()
+	if err != nil {
+		return fmt.Errorf("failed to create validator: %w", err)
+	}
 
 	k := reflect.ValueOf(s).Kind()
 	if k == reflect.Ptr {
@@ -231,9 +234,9 @@ func ValidateStruct(s any) error {
 		return nil
 	}
 
-	err := v.Struct(s)
-	if err != nil {
-		for _, fieldError := range err.(validator.ValidationErrors) {
+	validationErr := v.Struct(s)
+	if validationErr != nil {
+		for _, fieldError := range validationErr.(validator.ValidationErrors) {
 			switch fieldError.Tag() {
 			case "keymax":
 				return pkg.ValidateBusinessError(cn.ErrMetadataKeyLengthExceeded, "", fieldError.Translate(trans), fieldError.Param())
@@ -244,7 +247,7 @@ func ValidateStruct(s any) error {
 			}
 		}
 
-		errPtr := malformedRequestErr(err.(validator.ValidationErrors), trans)
+		errPtr := malformedRequestErr(validationErr.(validator.ValidationErrors), trans)
 
 		return &errPtr
 	}
@@ -291,7 +294,7 @@ func malformedRequestErr(err validator.ValidationErrors, trans ut.Translator) pk
 }
 
 //nolint:ireturn
-func newValidator() (*validator.Validate, ut.Translator) {
+func newValidator() (*validator.Validate, ut.Translator, error) {
 	locale := en.New()
 	uni := ut.New(locale, locale)
 
@@ -300,11 +303,11 @@ func newValidator() (*validator.Validate, ut.Translator) {
 	v := validator.New()
 
 	if err := en2.RegisterDefaultTranslations(v, trans); err != nil {
-		panic(err)
+		return nil, nil, fmt.Errorf("failed to register default translations: %w", err)
 	}
 
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		name := strings.SplitN(fld.Tag.Get("json"), ",", cn.SplitKeyValueParts)[0]
 		if name == "-" {
 			return ""
 		}
@@ -364,7 +367,7 @@ func newValidator() (*validator.Validate, ut.Translator) {
 		return t
 	})
 
-	return v, trans
+	return v, trans, nil
 }
 
 // validateMetadataNestedValues checks if there are nested metadata structures
@@ -376,7 +379,7 @@ func validateMetadataNestedValues(fl validator.FieldLevel) bool {
 func validateMetadataKeyMaxLength(fl validator.FieldLevel) bool {
 	limitParam := fl.Param()
 
-	limit := 100 // default limit if no param configured
+	limit := cn.DefaultMetadataKeyMaxLength // default limit if no param configured
 
 	if limitParam != "" {
 		if parsedParam, err := strconv.Atoi(limitParam); err == nil {
@@ -391,7 +394,7 @@ func validateMetadataKeyMaxLength(fl validator.FieldLevel) bool {
 func validateMetadataValueMaxLength(fl validator.FieldLevel) bool {
 	limitParam := fl.Param()
 
-	limit := 2000 // default limit if no param configured
+	limit := cn.DefaultMetadataValueMaxLength // default limit if no param configured
 
 	if limitParam != "" {
 		if parsedParam, err := strconv.Atoi(limitParam); err == nil {

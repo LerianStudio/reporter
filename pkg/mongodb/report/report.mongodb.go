@@ -6,6 +6,7 @@ package report
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -39,16 +40,16 @@ type ReportMongoDBRepository struct {
 }
 
 // NewReportMongoDBRepository returns a new instance of ReportMongoDBRepository using the given MongoDB connection.
-func NewReportMongoDBRepository(mc *libMongo.MongoConnection) *ReportMongoDBRepository {
+func NewReportMongoDBRepository(mc *libMongo.MongoConnection) (*ReportMongoDBRepository, error) {
 	r := &ReportMongoDBRepository{
 		connection: mc,
 		Database:   mc.Database,
 	}
 	if _, err := r.connection.GetDB(context.Background()); err != nil {
-		panic("Failed to connect mongo")
+		return nil, fmt.Errorf("failed to connect to mongodb for reports: %w", err)
 	}
 
-	return r
+	return r, nil
 }
 
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.
@@ -272,7 +273,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 
 	// Filter by created_at date range
 	if !filters.CreatedAt.IsZero() {
-		end := filters.CreatedAt.Add(24 * time.Hour)
+		end := filters.CreatedAt.Add(constant.HoursPerDay * time.Hour)
 		queryFilter["created_at"] = bson.M{
 			"$gte": filters.CreatedAt,
 			"$lt":  end,

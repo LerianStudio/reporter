@@ -6,6 +6,7 @@ package pkg
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -55,7 +56,16 @@ func NewHealthChecker(
 func (hc *HealthChecker) Start() {
 	hc.wg.Add(1)
 
-	go hc.healthCheckLoop()
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				hc.logger.Errorf("Panic recovered in health check loop: %v\nStack: %s", r, string(debug.Stack()))
+				hc.wg.Done()
+			}
+		}()
+
+		hc.healthCheckLoop()
+	}()
 
 	hc.logger.Info("🏥 Health checker started - checking datasources every 30s")
 }

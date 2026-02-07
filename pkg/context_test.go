@@ -10,8 +10,8 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func TestNewLoggerFromContext(t *testing.T) {
@@ -68,7 +68,7 @@ func TestNewLoggerFromContext(t *testing.T) {
 
 func TestNewTracerFromContext(t *testing.T) {
 	// Create a shared tracer instance for the "with tracer" test case
-	sharedTracer := otel.Tracer("test-shared")
+	sharedTracer := noop.Tracer{}
 
 	tests := []struct {
 		name       string
@@ -83,20 +83,20 @@ func TestNewTracerFromContext(t *testing.T) {
 			expectSame: sharedTracer,
 		},
 		{
-			name: "Empty context - returns default tracer",
+			name: "Empty context - returns noop tracer",
 			setupCtx: func() context.Context {
 				return context.Background()
 			},
-			expectSame: nil, // Just verify not nil
+			expectSame: noop.Tracer{},
 		},
 		{
-			name: "Context with CustomContextKeyValue but nil tracer",
+			name: "Context with CustomContextKeyValue but nil tracer - returns noop tracer",
 			setupCtx: func() context.Context {
 				return context.WithValue(context.Background(), CustomContextKey, &CustomContextKeyValue{
 					Tracer: nil,
 				})
 			},
-			expectSame: nil, // Just verify not nil
+			expectSame: noop.Tracer{},
 		},
 	}
 
@@ -128,7 +128,7 @@ func TestContextWithLogger(t *testing.T) {
 	})
 
 	t.Run("Add logger to context with existing tracer", func(t *testing.T) {
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
 		logger := &log.NoneLogger{}
@@ -156,7 +156,7 @@ func TestContextWithLogger(t *testing.T) {
 
 func TestContextWithTracer(t *testing.T) {
 	t.Run("Add tracer to empty context", func(t *testing.T) {
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
 		assert.NotNil(t, ctx)
@@ -170,7 +170,7 @@ func TestContextWithTracer(t *testing.T) {
 		logger := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger)
 
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 		ctx = ContextWithTracer(ctx, tracer)
 
 		// Both should be retrievable
@@ -190,7 +190,7 @@ func TestCustomContextKey(t *testing.T) {
 func TestCustomContextKeyValue(t *testing.T) {
 	t.Run("Create with both values", func(t *testing.T) {
 		logger := &log.NoneLogger{}
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 
 		value := &CustomContextKeyValue{
 			Logger: logger,

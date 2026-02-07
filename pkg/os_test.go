@@ -340,18 +340,20 @@ func TestEnsureConfigFromEnvVars(t *testing.T) {
 		t.Setenv("TEST_ENSURE_FIELD", "value")
 
 		config := &TestConfig{}
-		result := EnsureConfigFromEnvVars(config)
+		result, err := EnsureConfigFromEnvVars(config)
 
+		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "value", config.Field)
 	})
 
-	t.Run("Non-pointer - panics", func(t *testing.T) {
+	t.Run("Non-pointer - returns error", func(t *testing.T) {
 		config := TestConfig{}
 
-		assert.Panics(t, func() {
-			EnsureConfigFromEnvVars(config)
-		})
+		result, err := EnsureConfigFromEnvVars(config)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
 	})
 }
 
@@ -360,18 +362,9 @@ func TestLocalEnvConfig(t *testing.T) {
 	// The test will depend on whether a .env file exists in the current directory
 
 	t.Run("Initialize local env config", func(t *testing.T) {
-		// Save original ENV_NAME and restore correctly based on whether it was set
-		originalEnvName, wasSet := os.LookupEnv("ENV_NAME")
-		defer func() {
-			if wasSet {
-				os.Setenv("ENV_NAME", originalEnvName)
-			} else {
-				os.Unsetenv("ENV_NAME")
-			}
-		}()
-
 		// Set ENV_NAME to something other than "local" to skip .env loading
-		os.Setenv("ENV_NAME", "test")
+		// t.Setenv automatically saves and restores the original value
+		t.Setenv("ENV_NAME", "test")
 
 		result := InitLocalEnvConfig()
 

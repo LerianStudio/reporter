@@ -8,13 +8,16 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
+	cn "github.com/LerianStudio/reporter/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/pdf"
+	"github.com/LerianStudio/reporter/pkg/pongo"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 	"github.com/LerianStudio/reporter/pkg/storage"
@@ -67,11 +70,64 @@ type Config struct {
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
 }
 
+// Validate checks that all required configuration fields are present.
+// Returns a descriptive multi-error message listing all missing fields.
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.RabbitMQHost == "" {
+		errs = append(errs, "RABBITMQ_HOST is required")
+	}
+
+	if c.RabbitMQPortAMQP == "" {
+		errs = append(errs, "RABBITMQ_PORT_AMQP is required")
+	}
+
+	if c.RabbitMQUser == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_USER is required")
+	}
+
+	if c.RabbitMQPass == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_PASS is required")
+	}
+
+	if c.RabbitMQGenerateReportQueue == "" {
+		errs = append(errs, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
+	}
+
+	if c.MongoDBHost == "" {
+		errs = append(errs, "MONGO_HOST is required")
+	}
+
+	if c.MongoDBName == "" {
+		errs = append(errs, "MONGO_NAME is required")
+	}
+
+	if c.ObjectStorageEndpoint == "" {
+		errs = append(errs, "OBJECT_STORAGE_ENDPOINT is required")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
+	}
+
+	return nil
+}
+
 // InitWorker initializes and configures the application's dependencies and returns the Service instance.
-func InitWorker() *Service {
+func InitWorker() (*Service, error) {
 	cfg := &Config{}
 	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Register pongo2 custom filters and tags before any template processing
+	if err := pongo.RegisterAll(); err != nil {
+		return nil, fmt.Errorf("failed to register pongo2 filters and tags: %w", err)
 	}
 
 	logger := libZap.InitializeLogger()
@@ -102,7 +158,10 @@ func InitWorker() *Service {
 		Logger:                 logger,
 	}
 
-	routes := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
+	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
+	}
 
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
@@ -119,7 +178,7 @@ func InitWorker() *Service {
 
 	storageClient, err := storage.NewStorageClient(ctx, storageConfig)
 	if err != nil {
-		logger.Fatalf("Failed to create storage client: %v", err)
+		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
 
 	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.ObjectStorageBucket)
@@ -138,7 +197,7 @@ func InitWorker() *Service {
 	}
 
 	if cfg.MaxPoolSize <= 0 {
-		cfg.MaxPoolSize = 100
+		cfg.MaxPoolSize = int(cn.MongoDBMaxPoolSize)
 	}
 
 	mongoConnection := &mongoDB.MongoConnection{
@@ -152,7 +211,10 @@ func InitWorker() *Service {
 	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
 
 	// Initialize MongoDB repositories
-	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
+	reportMongoDBRepository, err := reportData.NewReportMongoDBRepository(mongoConnection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
+	}
 
 	// Create MongoDB indexes for optimal performance
 	// Indexes are created automatically on startup to ensure they exist
@@ -194,5 +256,5 @@ func InitWorker() *Service {
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		healthChecker:      healthChecker,
-	}
+	}, nil
 }

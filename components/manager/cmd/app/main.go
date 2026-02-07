@@ -5,6 +5,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
@@ -18,5 +21,12 @@ import (
 // @BasePath		/
 func main() {
 	libCommons.InitLocalEnvConfig()
-	bootstrap.InitServers().Run()
+
+	svc, err := bootstrap.InitServers()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize manager: %v\n", err)
+		os.Exit(1)
+	}
+
+	svc.Run()
 }

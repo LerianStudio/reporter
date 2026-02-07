@@ -49,6 +49,12 @@ func (mq *MultiQueueConsumer) Run(l *commons.Launcher) error {
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				cancel()
+			}
+		}()
+
 		<-sigs
 		cancel()
 	}()

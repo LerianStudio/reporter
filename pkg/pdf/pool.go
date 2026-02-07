@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"time"
+
+	cn "github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/chromedp/cdproto/network"
@@ -55,7 +58,16 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 	for i := 0; i < num; i++ {
 		wp.wg.Add(1)
 
-		go wp.startWorker(i)
+		go func(workerID int) {
+			defer func() {
+				if r := recover(); r != nil {
+					wp.logger.Errorf("Panic recovered in PDF worker %d: %v\nStack: %s", workerID, r, string(debug.Stack()))
+					wp.wg.Done()
+				}
+			}()
+
+			wp.startWorker(workerID)
+		}(i)
 	}
 
 	return wp
@@ -88,8 +100,8 @@ func (wp *WorkerPool) getChromeOptions() []chromedp.ExecAllocatorOption {
 		chromedp.Flag("disable-renderer-backgrounding", true),
 		chromedp.Flag("disable-features", "TranslateUI,site-per-process"),
 
-		chromedp.Flag("max-old-space-size", "512"),
-		chromedp.Flag("js-flags", "--max-old-space-size=512"),
+		chromedp.Flag("max-old-space-size", cn.PDFChromeMaxOldSpaceSize),
+		chromedp.Flag("js-flags", "--max-old-space-size="+cn.PDFChromeMaxOldSpaceSize),
 		chromedp.Flag("disable-software-rasterizer", true),
 		chromedp.Flag("single-process", true),
 		chromedp.Flag("disable-namespace-sandbox", true),
@@ -100,10 +112,10 @@ func (wp *WorkerPool) getChromeOptions() []chromedp.ExecAllocatorOption {
 
 // processTask handles a single PDF generation task.
 func (wp *WorkerPool) processTask(allocCtx context.Context, task Task) {
-	htmlSizeKB := float64(len(task.HTML)) / 1024
+	htmlSizeKB := float64(len(task.HTML)) / cn.PDFBytesPerKB
 	wp.logger.Infof("Starting PDF generation for task: %s (HTML size: %.2f KB, timeout: %v)", task.Filename, htmlSizeKB, wp.timeout)
 
-	if len(task.HTML) > 500*1024 {
+	if len(task.HTML) > cn.PDFLargeHTMLThreshold {
 		wp.logger.Warnf("⚠️  Large HTML detected (%.2f KB). Consider increasing PDF_TIMEOUT_SECONDS if timeouts occur", htmlSizeKB)
 	}
 
@@ -142,7 +154,7 @@ func (wp *WorkerPool) createTempHTMLFile(html string) (string, error) {
 		wp.logger.Warnf("Failed to close temp file %s: %v", tmpFileName, err)
 	}
 
-	if err := os.WriteFile(tmpFileName, []byte(html), 0o600); err != nil {
+	if err := os.WriteFile(tmpFileName, []byte(html), cn.PDFFilePermissions); err != nil {
 		wp.logger.Errorf("Failed to write HTML to temp file: %v", err)
 
 		_ = os.Remove(tmpFileName)
@@ -167,18 +179,18 @@ func (wp *WorkerPool) generatePDFFromFile(ctx context.Context, htmlFilePath stri
 			return network.Enable().Do(ctx)
 		}),
 		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Sleep(500*time.Millisecond),
+		chromedp.Sleep(cn.PDFRenderSettleDelay),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var err error
 
 			pdfBuf, _, err = page.PrintToPDF().
 				WithPrintBackground(true).
-				WithPaperWidth(8.5).
-				WithPaperHeight(11).
-				WithMarginTop(0.5).
-				WithMarginBottom(0.5).
-				WithMarginLeft(0.5).
-				WithMarginRight(0.5).
+				WithPaperWidth(cn.PDFPaperWidthInches).
+				WithPaperHeight(cn.PDFPaperHeightInches).
+				WithMarginTop(cn.PDFMarginInches).
+				WithMarginBottom(cn.PDFMarginInches).
+				WithMarginLeft(cn.PDFMarginInches).
+				WithMarginRight(cn.PDFMarginInches).
 				WithDisplayHeaderFooter(false).
 				Do(ctx)
 
@@ -199,12 +211,12 @@ func (wp *WorkerPool) processPDFResult(pdfBuf []byte, filename string, err error
 		return err
 	}
 
-	if len(pdfBuf) < 1000 {
+	if len(pdfBuf) < cn.PDFMinValidSizeBytes {
 		wp.logger.Errorf("Final PDF too small: %d bytes", len(pdfBuf))
 		return fmt.Errorf("generated PDF is too small (%d bytes), likely empty", len(pdfBuf))
 	}
 
-	if err := os.WriteFile(filename, pdfBuf, 0o600); err != nil {
+	if err := os.WriteFile(filename, pdfBuf, cn.PDFFilePermissions); err != nil {
 		wp.logger.Errorf("Failed to write PDF file: %v", err)
 		return err
 	}
