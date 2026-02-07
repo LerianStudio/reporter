@@ -88,6 +88,7 @@ help:
 	@echo "  make sec                         - Run security checks (gosec + govulncheck)"
 	@echo "  make sec-gosec                   - Run gosec security scanner"
 	@echo "  make sec-govulncheck             - Run govulncheck vulnerability scanner"
+	@echo "  make sec-trivy                   - Run Trivy container vulnerability scan"
 	@echo ""
 	@echo ""
 	@echo "Git Hook Commands:"
@@ -109,6 +110,7 @@ help:
 	@echo "  make stop                         - Stop all containers"
 	@echo "  make restart                      - Restart all containers"
 	@echo "  make rebuild-up                   - Rebuild and restart all services"
+	@echo "  make wait-for-infra               - Wait for infrastructure services to become healthy"
 	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
 	@echo "  make logs                         - Show logs for all services"
 	@echo ""
@@ -337,6 +339,17 @@ sec-govulncheck:
 		echo "No Go files found, skipping govulncheck"; \
 	fi
 
+.PHONY: sec-trivy
+sec-trivy:
+	$(call print_title,"Running Trivy container vulnerability scan")
+	$(call check_command,trivy,"Install Trivy from https://aquasecurity.github.io/trivy/latest/getting-started/installation/")
+	@$(MAKE) build-docker
+	@echo "Scanning manager image..."
+	@trivy image reporter-manager:latest --severity HIGH,CRITICAL --exit-code 1 || true
+	@echo "Scanning worker image..."
+	@trivy image reporter-worker:latest --severity HIGH,CRITICAL --exit-code 1 || true
+	@echo "[ok] Trivy container scan completed ✔️"
+
 .PHONY: sec
 sec:
 	$(call print_title,"Running security checks")
@@ -382,9 +395,36 @@ run:
 .PHONY: build-docker
 build-docker:
 	$(call print_title,"Building Docker images")
-	@$(DOCKER_CMD) -f components/manager/docker-compose.yml build $(c)
-	@$(DOCKER_CMD) -f components/worker/docker-compose.yml build $(c)
+	@for dir in $(BACKEND_COMPONENTS); do \
+		component_name=$$(basename $$dir); \
+		echo "Building Docker image for $$component_name..."; \
+		(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml build $(c)) || exit 1; \
+	done
 	@echo "[ok] Docker images built successfully ✔️"
+
+# Maximum time (in seconds) to wait for infrastructure health checks.
+INFRA_HEALTH_TIMEOUT ?= 60
+# Polling interval (in seconds) between health-check attempts.
+INFRA_HEALTH_INTERVAL ?= 2
+
+.PHONY: wait-for-infra
+wait-for-infra:
+	@echo "Waiting for infrastructure services to become healthy..."
+	@cd $(INFRA_DIR) && \
+		attempts=$$(( $(INFRA_HEALTH_TIMEOUT) / $(INFRA_HEALTH_INTERVAL) )); \
+		for i in $$(seq 1 $$attempts); do \
+			HEALTHY=$$($(DOCKER_CMD) -f docker-compose.yml ps --format '{{.Health}}' 2>/dev/null | grep -c "healthy" || true); \
+			TOTAL=$$($(DOCKER_CMD) -f docker-compose.yml ps --format '{{.Health}}' 2>/dev/null | grep -c "." || true); \
+			if [ "$$HEALTHY" = "$$TOTAL" ] && [ "$$TOTAL" -gt 0 ]; then \
+				echo "All $$TOTAL infrastructure services are healthy"; \
+				exit 0; \
+			fi; \
+			echo "Waiting... ($$HEALTHY/$$TOTAL healthy, attempt $$i/$$attempts)"; \
+			sleep $(INFRA_HEALTH_INTERVAL); \
+		done; \
+		echo "[error] Infrastructure services failed to become healthy after $(INFRA_HEALTH_TIMEOUT)s"; \
+		cd $(INFRA_DIR) && $(DOCKER_CMD) -f docker-compose.yml ps; \
+		exit 1
 
 .PHONY: up
 up:
@@ -392,6 +432,7 @@ up:
 	$(call check_env_files)
 	@echo "Starting infrastructure services first..."
 	@cd $(INFRA_DIR) && $(MAKE) up
+	@$(MAKE) wait-for-infra
 	@echo "Starting backend components..."
 	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
@@ -404,8 +445,13 @@ up:
 .PHONY: start
 start:
 	$(call print_title,"Starting existing containers")
-	@$(DOCKER_CMD) -f docker-compose.yml start $(c)
-	@echo "[ok] Containers started successfully ✔️"
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "Starting containers in $$dir..."; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml start $(c)) || exit 1; \
+		fi; \
+	done
+	@echo "[ok] All containers started successfully ✔️"
 
 .PHONY: down
 down:
@@ -442,6 +488,7 @@ rebuild-up:
 	$(call print_title,"Rebuilding and restarting services")
 	@echo "Rebuilding infrastructure services..."
 	@cd $(INFRA_DIR) && ($(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate)
+	@$(MAKE) wait-for-infra
 	@echo "Rebuilding backend components..."
 	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
@@ -465,13 +512,20 @@ logs:
 
 .PHONY: logs-api
 logs-api:
-	$(call print_title,"Showing logs for reporter service")
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter
+	$(call print_title,"Showing logs for reporter-manager service")
+	@cd $(MANAGER_DIR) && $(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter-manager
 
 .PHONY: ps
 ps:
 	$(call print_title,"Listing container status")
-	@$(DOCKER_CMD) -f docker-compose.yml ps
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			component_name=$$(basename $$dir); \
+			echo "--- $$component_name ---"; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml ps) || true; \
+			echo ""; \
+		fi; \
+	done
 
 #-------------------------------------------------------
 # Docs Commands

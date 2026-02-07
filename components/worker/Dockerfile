@@ -23,10 +23,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo \
 # Stage 2: Final minimal image with only the binary
 FROM alpine:3.21
 
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
+
 LABEL org.opencontainers.image.source="https://github.com/LerianStudio/reporter"
 LABEL org.opencontainers.image.description="Reporter Worker - Async Report Generator"
 LABEL org.opencontainers.image.vendor="Lerian Studio"
 LABEL org.opencontainers.image.licenses="Elastic-2.0"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
 
 WORKDIR /app
 
@@ -66,8 +71,12 @@ USER appuser
 
 # Worker is a RabbitMQ consumer with no HTTP server; no port to expose.
 
-# Health check for container orchestrators (no HTTP server, use process check)
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+# Health check for container orchestrators (no HTTP server, use process check).
+# Limitation: pgrep only verifies the process is running, not that the worker
+# has an active RabbitMQ connection. A deeper health check would require the
+# worker to expose a health endpoint or write a status file on successful
+# queue connection. Interval set to 30s to reduce overhead for a non-HTTP service.
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=15s \
   CMD pgrep -f worker || exit 1
 
 # Set the entrypoint to the worker binary
