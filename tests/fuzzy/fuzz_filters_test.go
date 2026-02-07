@@ -15,9 +15,9 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// FuzzReportFilters tests report generation with various malformed filter inputs
+// FuzzReport_Filters tests report generation with various malformed filter inputs
 // Expected: Should handle gracefully without server crashes
-func FuzzReportFilters(f *testing.F) {
+func FuzzReport_Filters(f *testing.F) {
 	// Seed corpus with various filter patterns
 	f.Add(`{"eq": ["value"]}`)
 	f.Add(`{"gt": [100]}`)

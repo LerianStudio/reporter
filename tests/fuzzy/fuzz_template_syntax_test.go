@@ -17,9 +17,9 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// FuzzTemplateSyntaxErrors tests various template syntax errors
+// FuzzTemplate_SyntaxErrors tests various template syntax errors
 // Expected: Should be rejected at template creation with 4xx, never 5xx
-func FuzzTemplateSyntaxErrors(f *testing.F) {
+func FuzzTemplate_SyntaxErrors(f *testing.F) {
 	// Seed corpus with common syntax errors
 	seeds := []string{
 		// Unclosed tags
@@ -141,8 +141,8 @@ func FuzzTemplateSyntaxErrors(f *testing.F) {
 	})
 }
 
-// FuzzTemplateOutputFormats tests invalid output formats
-func FuzzTemplateOutputFormats(f *testing.F) {
+// FuzzTemplate_OutputFormats tests invalid output formats
+func FuzzTemplate_OutputFormats(f *testing.F) {
 	f.Add("TXT")
 	f.Add("HTML")
 	f.Add("CSV")
@@ -198,8 +198,8 @@ func FuzzTemplateOutputFormats(f *testing.F) {
 	})
 }
 
-// FuzzTemplateDescription tests various description inputs
-func FuzzTemplateDescription(f *testing.F) {
+// FuzzTemplate_Description tests various description inputs
+func FuzzTemplate_Description(f *testing.F) {
 	f.Add("Valid description")
 	f.Add("")
 	f.Add("<script>alert('xss')</script>")
@@ -259,8 +259,8 @@ func FuzzTemplateDescription(f *testing.F) {
 	})
 }
 
-// FuzzTemplateSize tests extremely large templates
-func FuzzTemplateSize(f *testing.F) {
+// FuzzTemplate_Size tests extremely large templates
+func FuzzTemplate_Size(f *testing.F) {
 	f.Add(100)
 	f.Add(1000)
 	f.Add(10000)

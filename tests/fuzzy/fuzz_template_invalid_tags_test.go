@@ -16,9 +16,9 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// FuzzTemplateInvalidTags tests templates with non-existent or malformed tags
+// FuzzTemplate_InvalidTags tests templates with non-existent or malformed tags
 // Expected: Should return 4xx errors, never 5xx (server errors)
-func FuzzTemplateInvalidTags(f *testing.F) {
+func FuzzTemplate_InvalidTags(f *testing.F) {
 	// Seed corpus with various malformed template patterns
 	f.Add("{{ nonexistent.field }}")
 	f.Add("{% for x in fake.table %}{{ x.id }}{% endfor %}")

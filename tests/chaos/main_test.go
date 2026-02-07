@@ -9,7 +9,7 @@ package chaos
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,20 +37,21 @@ func TestMain(m *testing.M) {
 	// Check if we should use testcontainers or existing infrastructure
 	if os.Getenv("USE_EXISTING_INFRA") == "true" {
 		// Use existing infrastructure (docker-compose)
-		log.Println("Using existing infrastructure from docker-compose")
+		fmt.Fprintf(os.Stderr, "Using existing infrastructure from docker-compose\n")
 		os.Exit(m.Run())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	log.Println("Starting test infrastructure with testcontainers for chaos tests...")
+	fmt.Fprintf(os.Stderr, "Starting test infrastructure with testcontainers for chaos tests...\n")
 
 	// Start infrastructure containers
 	var err error
 	testInfra, err = containers.StartInfrastructure(ctx)
 	if err != nil {
-		log.Fatalf("Failed to start infrastructure: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start infrastructure: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Store container references for chaos manipulation
@@ -59,46 +60,48 @@ func TestMain(m *testing.M) {
 	SeaweedContainer = testInfra.SeaweedFS
 	ValkeyContainer = testInfra.Valkey
 
-	log.Println("Infrastructure started successfully")
+	fmt.Fprintf(os.Stderr, "Infrastructure started successfully\n")
 
 	// Create service configuration from containers
 	cfg := services.NewConfigFromInfrastructure(testInfra)
 
 	// Start Manager service
-	log.Println("Starting Manager service...")
+	fmt.Fprintf(os.Stderr, "Starting Manager service...\n")
 	managerSvc, err = services.StartManager(ctx, cfg)
 	if err != nil {
 		testInfra.Stop(ctx)
-		log.Fatalf("Failed to start manager: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start manager: %v\n", err)
+		os.Exit(1)
 	}
 	managerAddr = managerSvc.Address()
-	log.Printf("Manager started at %s", managerAddr)
+	fmt.Fprintf(os.Stderr, "Manager started at %s\n", managerAddr)
 
 	// Set environment variable for test helpers
 	os.Setenv("MANAGER_URL", managerAddr)
 
 	// Start Worker service
-	log.Println("Starting Worker service...")
+	fmt.Fprintf(os.Stderr, "Starting Worker service...\n")
 	workerSvc, err = services.StartWorker(ctx, cfg)
 	if err != nil {
 		managerSvc.Stop(ctx)
 		testInfra.Stop(ctx)
-		log.Fatalf("Failed to start worker: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start worker: %v\n", err)
+		os.Exit(1)
 	}
-	log.Println("Worker started successfully")
+	fmt.Fprintf(os.Stderr, "Worker started successfully\n")
 
 	// Upload test templates for chaos tests
-	log.Println("Uploading test templates...")
+	fmt.Fprintf(os.Stderr, "Uploading test templates...\n")
 	if err := uploadTestTemplates(ctx, managerAddr); err != nil {
-		log.Printf("Warning: Failed to upload test templates: %v", err)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to upload test templates: %v\n", err)
 	}
 
 	// Run tests
-	log.Println("Running chaos tests...")
+	fmt.Fprintf(os.Stderr, "Running chaos tests...\n")
 	code := m.Run()
 
 	// Cleanup
-	log.Println("Cleaning up...")
+	fmt.Fprintf(os.Stderr, "Cleaning up...\n")
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cleanupCancel()
 
@@ -112,7 +115,7 @@ func TestMain(m *testing.M) {
 		testInfra.Stop(cleanupCtx)
 	}
 
-	log.Println("Cleanup complete")
+	fmt.Fprintf(os.Stderr, "Cleanup complete\n")
 	os.Exit(code)
 }
 
@@ -197,14 +200,14 @@ func uploadTestTemplates(ctx context.Context, managerURL string) error {
 	}
 
 	if len(templateFiles) == 0 {
-		log.Println("No template files found in chaos/templates directory")
+		fmt.Fprintf(os.Stderr, "No template files found in chaos/templates directory\n")
 		return nil
 	}
 
 	for _, tplFile := range templateFiles {
 		tplContent, err := os.ReadFile(tplFile)
 		if err != nil {
-			log.Printf("Failed to read template %s: %v", tplFile, err)
+			fmt.Fprintf(os.Stderr, "Failed to read template %s: %v\n", tplFile, err)
 			continue
 		}
 
@@ -219,7 +222,7 @@ func uploadTestTemplates(ctx context.Context, managerURL string) error {
 
 		code, body, err := cli.UploadMultipartForm(ctx, "POST", "/v1/templates", headers, formData, files)
 		if err != nil {
-			log.Printf("Failed to upload template %s: %v", tplName, err)
+			fmt.Fprintf(os.Stderr, "Failed to upload template %s: %v\n", tplName, err)
 			continue
 		}
 
@@ -228,10 +231,10 @@ func uploadTestTemplates(ctx context.Context, managerURL string) error {
 				ID string `json:"id"`
 			}
 			if json.Unmarshal(body, &resp) == nil {
-				log.Printf("Uploaded template %s with ID: %s", tplName, resp.ID)
+				fmt.Fprintf(os.Stderr, "Uploaded template %s with ID: %s\n", tplName, resp.ID)
 			}
 		} else {
-			log.Printf("Template upload returned %d: %s", code, string(body))
+			fmt.Fprintf(os.Stderr, "Template upload returned %d: %s\n", code, string(body))
 		}
 	}
 

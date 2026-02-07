@@ -16,8 +16,8 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// FuzzReportPayload tests various malformed report creation payloads
-func FuzzReportPayload(f *testing.F) {
+// FuzzReport_Payload tests various malformed report creation payloads
+func FuzzReport_Payload(f *testing.F) {
 	// Seed corpus with various payload patterns (realistic malformed requests)
 	seeds := []string{
 		`{"templateId": "00000000-0000-0000-0000-000000000000", "filters": {}}`,
@@ -74,8 +74,8 @@ func FuzzReportPayload(f *testing.F) {
 	})
 }
 
-// FuzzTemplateIDFormats tests various template ID formats
-func FuzzTemplateIDFormats(f *testing.F) {
+// FuzzTemplate_IDFormats tests various template ID formats
+func FuzzTemplate_IDFormats(f *testing.F) {
 	f.Add("00000000-0000-0000-0000-000000000000")
 	f.Add("not-a-uuid")
 	f.Add("")
@@ -131,8 +131,8 @@ func FuzzTemplateIDFormats(f *testing.F) {
 	})
 }
 
-// FuzzOrganizationID tests various organization ID inputs
-func FuzzOrganizationID(f *testing.F) {
+// FuzzOrganization_ID tests various organization ID inputs
+func FuzzOrganization_ID(f *testing.F) {
 	f.Add("06c4f684-19b0-449a-81f4-f9a4e503db83")
 	f.Add("00000000-0000-0000-0000-000000000000")
 	f.Add("")
@@ -178,8 +178,8 @@ func FuzzOrganizationID(f *testing.F) {
 	})
 }
 
-// FuzzNestedFilters tests deeply nested filter structures
-func FuzzNestedFilters(f *testing.F) {
+// FuzzFilter_NestedStructure tests deeply nested filter structures
+func FuzzFilter_NestedStructure(f *testing.F) {
 	f.Add(1)
 	f.Add(5)
 	f.Add(10)
@@ -228,8 +228,8 @@ func FuzzNestedFilters(f *testing.F) {
 	})
 }
 
-// FuzzConcurrentRequests tests system behavior under concurrent fuzzed requests
-func FuzzConcurrentRequests(f *testing.F) {
+// FuzzRequest_Concurrent tests system behavior under concurrent fuzzed requests
+func FuzzRequest_Concurrent(f *testing.F) {
 	f.Add("request1")
 	f.Add("request2")
 	f.Add("request3")
