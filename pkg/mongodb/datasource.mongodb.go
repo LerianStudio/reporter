@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -368,7 +369,7 @@ func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Conte
 
 	// Filter collections that end with _organizationID
 	filter := bson.M{
-		"name": bson.M{"$regex": "_" + organizationID + "$"},
+		"name": bson.M{"$regex": "_" + regexp.QuoteMeta(organizationID) + "$"},
 	}
 
 	collections, err := database.ListCollectionNames(schemaCtx, filter)

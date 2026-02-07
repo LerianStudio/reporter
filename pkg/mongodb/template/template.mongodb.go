@@ -7,6 +7,7 @@ package template
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -146,7 +147,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 
 	if !commons.IsNilOrEmpty(&filters.Description) {
 		queryFilter["description"] = bson.M{
-			"$regex":   filters.Description,
+			"$regex":   regexp.QuoteMeta(filters.Description),
 			"$options": "i", // "i" = case-insensitive
 		}
 	}
