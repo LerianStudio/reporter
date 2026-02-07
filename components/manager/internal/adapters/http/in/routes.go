@@ -51,6 +51,8 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	tlMid := commonsHttp.NewTelemetryMiddleware(tl)
 
 	f.Use(tlMid.WithTelemetry(tl))
+	f.Use(RecoverMiddleware())
+	f.Use(SecurityHeaders())
 	f.Use(cors.New())
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
 
