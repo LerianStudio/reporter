@@ -6,14 +6,17 @@ package in
 
 import (
 	"bytes"
+	"context"
 	"errors"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	_ "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
@@ -44,6 +47,7 @@ func NewReportHandler(service *services.UseCase) (*ReportHandler, error) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			Authorization	header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Param			X-Idempotency	header		string					false	"Client-provided idempotency key to prevent duplicate report creation"
 //	@Param			reports			body		model.CreateReportInput	true	"Report Input"
 //	@Success		201				{object}	report.Report
 //	@Failure		400				{object}	pkg.HTTPError
@@ -58,6 +62,14 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 
 	ctx, span := tracer.Start(ctx, "handler.report.create")
 	defer span.End()
+
+	// Extract X-Idempotency header and inject into context for the service layer
+	if idempotencyKey := c.Get(libConstants.IdempotencyKey); idempotencyKey != "" {
+		ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, idempotencyKey)
+	}
+
+	replayed := false
+	ctx = context.WithValue(ctx, constant.IdempotencyReplayedCtx, &replayed)
 
 	c.SetUserContext(ctx)
 
@@ -85,6 +97,10 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	}
 
 	logger.Infof("Successfully created a report %v", reportOut)
+
+	if replayed {
+		c.Set(libConstants.IdempotencyReplayed, "true")
+	}
 
 	return commonsHttp.Created(c, reportOut)
 }

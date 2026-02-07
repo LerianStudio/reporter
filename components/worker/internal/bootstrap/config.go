@@ -203,7 +203,7 @@ func InitWorker() (_ *Service, err error) {
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
-	logger.Infof("RabbitMQ connecting to %s:%s", cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
+	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
 
 	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
@@ -274,6 +274,8 @@ func InitWorker() (_ *Service, err error) {
 		cfg.MaxPoolSize = int(cn.MongoDBMaxPoolSize)
 	}
 
+	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
+
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
 		Database:               cfg.MongoDBName,
@@ -303,10 +305,11 @@ func InitWorker() (_ *Service, err error) {
 	// Create MongoDB indexes for optimal performance
 	// Indexes are created automatically on startup to ensure they exist
 	// This is idempotent and safe to run multiple times
+	// Index failure is treated as fatal to match the manager component behavior
 	logger.Info("Ensuring MongoDB indexes exist for reports...")
 
 	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
+		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
 	}
 
 	// Initialize circuit breaker manager for datasource resilience

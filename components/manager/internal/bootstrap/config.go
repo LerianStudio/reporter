@@ -46,13 +46,13 @@ type Config struct {
 	OtelColExporterEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	EnableTelemetry         bool   `env:"ENABLE_TELEMETRY"`
 	// Mongo configuration envs
-	MongoURI             string        `env:"MONGO_URI"`
-	MongoDBHost          string        `env:"MONGO_HOST"`
-	MongoDBName          string        `env:"MONGO_NAME"`
-	MongoDBUser          string        `env:"MONGO_USER"`
-	MongoDBPassword      string        `env:"MONGO_PASSWORD"`
-	MongoDBPort          string        `env:"MONGO_PORT"`
-	MongoDBParameters    string        `env:"MONGO_PARAMETERS"`
+	MongoURI             string `env:"MONGO_URI"`
+	MongoDBHost          string `env:"MONGO_HOST"`
+	MongoDBName          string `env:"MONGO_NAME"`
+	MongoDBUser          string `env:"MONGO_USER"`
+	MongoDBPassword      string `env:"MONGO_PASSWORD"`
+	MongoDBPort          string `env:"MONGO_PORT"`
+	MongoDBParameters    string `env:"MONGO_PARAMETERS"`
 	MongoMaxPoolSize     string `env:"MONGO_MAX_POOL_SIZE" default:"100"`
 	MongoMinPoolSize     string `env:"MONGO_MIN_POOL_SIZE" default:"10"`
 	MongoMaxConnIdleTime string `env:"MONGO_MAX_CONN_IDLE_TIME" default:"60s"`
@@ -288,6 +288,8 @@ func InitServers() (_ *Service, err error) {
 		mongoMaxPoolSize = 100
 	}
 
+	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
+
 	mongoConnection := &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
 		Database:               cfg.MongoDBName,
@@ -298,6 +300,8 @@ func InitServers() (_ *Service, err error) {
 	// Init rabbit MQ for producer
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
+
+	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
 
 	rabbitMQConnection := &libRabbitmq.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
@@ -382,6 +386,7 @@ func InitServers() (_ *Service, err error) {
 		TemplateRepo:        templateMongoDBRepository,
 		TemplateSeaweedFS:   templateSeaweedFSRepository,
 		ExternalDataSources: externalDataSources,
+		RedisRepo:           redisConsumerRepository,
 	}
 
 	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
@@ -393,12 +398,29 @@ func InitServers() (_ *Service, err error) {
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
 
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: closing RabbitMQ connection")
+
+		if rabbitMQConnection.Channel != nil {
+			if closeErr := rabbitMQConnection.Channel.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
+			}
+		}
+
+		if rabbitMQConnection.Connection != nil && !rabbitMQConnection.Connection.IsClosed() {
+			if closeErr := rabbitMQConnection.Connection.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
+			}
+		}
+	})
+
 	reportService := &services.UseCase{
 		ReportRepo:                reportMongoDBRepository,
 		RabbitMQRepo:              producerRabbitMQRepository,
 		TemplateRepo:              templateMongoDBRepository,
 		ReportSeaweedFS:           reportSeaweedFSRepository,
 		ExternalDataSources:       externalDataSources,
+		RedisRepo:                 redisConsumerRepository,
 		RabbitMQExchange:          cfg.RabbitMQExchange,
 		RabbitMQGenerateReportKey: cfg.RabbitMQGenerateReportKey,
 	}
@@ -428,11 +450,26 @@ func InitServers() (_ *Service, err error) {
 	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
+	// Build consolidated shutdown cleanup from the same cleanup stack used for
+	// init-failure recovery. Resources are closed in reverse initialization order
+	// (Redis -> RabbitMQ -> MongoDB -> Telemetry). Telemetry is flushed last so
+	// it captures any shutdown-related spans.
+	shutdown := func() {
+		for i := len(cleanups) - 1; i >= 0; i-- {
+			func(idx int) {
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Errorf("Cleanup panic at index %d: %v", idx, r)
+					}
+				}()
+				cleanups[idx]()
+			}(i)
+		}
+	}
+
 	return &Service{
-		Server:             serverAPI,
-		Logger:             logger,
-		mongoConnection:    mongoConnection,
-		rabbitMQConnection: rabbitMQConnection,
-		redisConnection:    redisConnection,
+		Server:  serverAPI,
+		Logger:  logger,
+		cleanup: shutdown,
 	}, nil
 }

@@ -6,7 +6,6 @@ package services
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -186,7 +185,7 @@ func (uc *UseCase) buildIdempotencyKey(ctx context.Context, reportInput *model.C
 		return "", fmt.Errorf("failed to marshal report input for idempotency hash: %w", err)
 	}
 
-	hash := fmt.Sprintf("%x", sha256.Sum256(data))
+	hash := commons.HashSHA256(string(data))
 	key := constant.IdempotencyKeyPrefix + ":" + hash
 
 	logger.Infof("Computed idempotency key from request body hash: %s", key)
@@ -226,6 +225,11 @@ func (uc *UseCase) handleDuplicateRequest(ctx context.Context, idempotencyKey st
 		libOpentelemetry.HandleSpanError(&childSpan, "Failed to unmarshal cached idempotency response", unmarshalErr)
 
 		return nil, fmt.Errorf("failed to unmarshal cached idempotency response: %w", unmarshalErr)
+	}
+
+	// Signal to the handler that this is a replayed response via pointer mutation in context
+	if replayedPtr, ok := ctx.Value(constant.IdempotencyReplayedCtx).(*bool); ok && replayedPtr != nil {
+		*replayedPtr = true
 	}
 
 	logger.Infof("Returning cached idempotent response for key: %s", idempotencyKey)

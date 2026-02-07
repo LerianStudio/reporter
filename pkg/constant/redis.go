@@ -20,4 +20,8 @@ const (
 
 	// IdempotencyKeyCtx is the context key for client-provided Idempotency-Key header values.
 	IdempotencyKeyCtx = contextKey("idempotency_key")
+
+	// IdempotencyReplayedCtx is the context key for signaling a replayed idempotent response
+	// from the service layer back to the handler.
+	IdempotencyReplayedCtx = contextKey("idempotency_replayed")
 )

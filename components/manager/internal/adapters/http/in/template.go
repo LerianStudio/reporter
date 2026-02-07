@@ -16,6 +16,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
@@ -48,7 +49,7 @@ func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
 //	@Accept			mpfd
 //	@Produce		json
 //	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			Idempotency-Key		header		string	false	"Client-provided idempotency key to prevent duplicate template creation"
+//	@Param			X-Idempotency		header		string	false	"Client-provided idempotency key to prevent duplicate template creation"
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description			formData	string	true	"Description of the template"
@@ -66,10 +67,13 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(ctx, "handler.template.create")
 	defer span.End()
 
-	// Extract Idempotency-Key header and inject into context for the service layer
-	if idempotencyKey := c.Get("Idempotency-Key"); idempotencyKey != "" {
+	// Extract X-Idempotency header and inject into context for the service layer
+	if idempotencyKey := c.Get(libConstants.IdempotencyKey); idempotencyKey != "" {
 		ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, idempotencyKey)
 	}
+
+	replayed := false
+	ctx = context.WithValue(ctx, constant.IdempotencyReplayedCtx, &replayed)
 
 	c.SetUserContext(ctx)
 
@@ -86,7 +90,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("template")
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get template file from form", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
@@ -134,6 +138,10 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	logger.Infof("Successfully created template %v", templateOut)
 
+	if replayed {
+		c.Set(libConstants.IdempotencyReplayed, "true")
+	}
+
 	return commonsHttp.Created(c, templateOut)
 }
 
@@ -179,7 +187,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("template")
 	if err != nil && err.Error() != errorFileAccepted {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get template file from form", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
