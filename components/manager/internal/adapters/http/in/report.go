@@ -46,6 +46,8 @@ func NewReportHandler(service *services.UseCase) (*ReportHandler, error) {
 //	@Param			reports			body		model.CreateReportInput	true	"Report Input"
 //	@Success		201				{object}	report.Report
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [post]
@@ -93,6 +95,8 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Param			id				path		string	true	"Report ID"
 //	@Success		200				{file}		any
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}/download [get]
@@ -139,6 +143,8 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
 //	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		401					{object}	pkg.HTTPError
+//	@Failure		403					{object}	pkg.HTTPError
 //	@Failure		404					{object}	pkg.HTTPError
 //	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}																					 [get]
@@ -184,6 +190,8 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 //	@Param			page			query		int		false	"Page"	default(1)
 //	@Success		200				{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [get]
 func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {

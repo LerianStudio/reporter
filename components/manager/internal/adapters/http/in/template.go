@@ -52,6 +52,8 @@ func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
 //	@Param			description		formData	string	true	"Description of the template"
 //	@Success		201				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
@@ -137,6 +139,8 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [patch]
@@ -197,6 +201,8 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //
@@ -244,6 +250,8 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Param			page			query		int		false	"Page"	default(1)
 //	@Success		200				{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates [get]
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
@@ -306,6 +314,8 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Param			id				path	string	true	"Template ID"
 //	@Success		204				"No content"
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]

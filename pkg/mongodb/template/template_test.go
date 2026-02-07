@@ -5,11 +5,14 @@
 package template
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTemplateMongoDBModel_ToEntity(t *testing.T) {
@@ -241,6 +244,90 @@ func TestTemplate_JSONTags(t *testing.T) {
 	assert.Equal(t, "PDF", template.OutputFormat)
 	assert.Equal(t, "Test", template.Description)
 	assert.Equal(t, "test.tpl", template.FileName)
+}
+
+func TestNewTemplate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		id           uuid.UUID
+		outputFormat string
+		description  string
+		fileName     string
+		wantErr      bool
+		expectedErr  error
+	}{
+		{
+			name:         "valid template with all fields",
+			id:           uuid.New(),
+			outputFormat: "pdf",
+			description:  "Financial Report",
+			fileName:     "template_123.tpl",
+			wantErr:      false,
+		},
+		{
+			name:         "valid template with empty description",
+			id:           uuid.New(),
+			outputFormat: "html",
+			description:  "",
+			fileName:     "template_456.tpl",
+			wantErr:      false,
+		},
+		{
+			name:         "nil ID returns error",
+			id:           uuid.Nil,
+			outputFormat: "pdf",
+			description:  "Test",
+			fileName:     "template.tpl",
+			wantErr:      true,
+			expectedErr:  constant.ErrMissingRequiredFields,
+		},
+		{
+			name:         "empty outputFormat returns error",
+			id:           uuid.New(),
+			outputFormat: "",
+			description:  "Test",
+			fileName:     "template.tpl",
+			wantErr:      true,
+			expectedErr:  constant.ErrMissingRequiredFields,
+		},
+		{
+			name:         "empty fileName returns error",
+			id:           uuid.New(),
+			outputFormat: "pdf",
+			description:  "Test",
+			fileName:     "",
+			wantErr:      true,
+			expectedErr:  constant.ErrMissingRequiredFields,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := NewTemplate(tt.id, tt.outputFormat, tt.description, tt.fileName)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, got)
+
+				if tt.expectedErr != nil {
+					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				}
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, got)
+				assert.Equal(t, tt.id, got.ID)
+				assert.Equal(t, tt.outputFormat, got.OutputFormat)
+				assert.Equal(t, tt.description, got.Description)
+				assert.Equal(t, tt.fileName, got.FileName)
+				assert.False(t, got.CreatedAt.IsZero())
+				assert.False(t, got.UpdatedAt.IsZero())
+			}
+		})
+	}
 }
 
 func TestTemplateMongoDBModel_BSONTags(t *testing.T) {

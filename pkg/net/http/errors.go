@@ -5,45 +5,70 @@
 package http
 
 import (
+	"errors"
+
 	"github.com/LerianStudio/reporter/pkg"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/pkg/errors"
 )
 
 // WithError returns an error with the given status code and message.
+// It uses errors.As() to correctly identify domain error types even when
+// they are wrapped with fmt.Errorf("%w") or multiple layers of wrapping.
 func WithError(c *fiber.Ctx, err error) error {
-	switch e := err.(type) {
-	case pkg.EntityNotFoundError:
-		return NotFound(c, e.Code, e.Title, e.Message)
-	case pkg.EntityConflictError:
-		return Conflict(c, e.Code, e.Title, e.Message)
-	case pkg.ValidationError:
+	var notFoundErr pkg.EntityNotFoundError
+	if errors.As(err, &notFoundErr) {
+		return NotFound(c, notFoundErr.Code, notFoundErr.Title, notFoundErr.Message)
+	}
+
+	var conflictErr pkg.EntityConflictError
+	if errors.As(err, &conflictErr) {
+		return Conflict(c, conflictErr.Code, conflictErr.Title, conflictErr.Message)
+	}
+
+	var validationKnownFieldsErr pkg.ValidationKnownFieldsError
+	if errors.As(err, &validationKnownFieldsErr) {
+		return BadRequest(c, validationKnownFieldsErr)
+	}
+
+	var validationUnknownFieldsErr pkg.ValidationUnknownFieldsError
+	if errors.As(err, &validationUnknownFieldsErr) {
+		return BadRequest(c, validationUnknownFieldsErr)
+	}
+
+	var validationErr pkg.ValidationError
+	if errors.As(err, &validationErr) {
 		return BadRequest(c, pkg.ValidationKnownFieldsError{
-			Code:    e.Code,
-			Title:   e.Title,
-			Message: e.Message,
+			Code:    validationErr.Code,
+			Title:   validationErr.Title,
+			Message: validationErr.Message,
 			Fields:  nil,
 		})
-	case pkg.UnprocessableOperationError:
-		return UnprocessableEntity(c, e.Code, e.Title, e.Message)
-	case pkg.UnauthorizedError:
-		return Unauthorized(c, e.Code, e.Title, e.Message)
-	case pkg.ForbiddenError:
-		return Forbidden(c, e.Code, e.Title, e.Message)
-	case pkg.ValidationKnownFieldsError, pkg.ValidationUnknownFieldsError:
-		return BadRequest(c, e)
-	case pkg.ResponseError:
-		var rErr pkg.ResponseError
-
-		_ = errors.As(err, &rErr)
-
-		return JSONResponseError(c, rErr)
-	default:
-		var iErr pkg.InternalServerError
-
-		_ = errors.As(pkg.ValidateInternalError(err, ""), &iErr)
-
-		return InternalServerError(c, iErr.Code, iErr.Title, iErr.Message)
 	}
+
+	var unprocessableErr pkg.UnprocessableOperationError
+	if errors.As(err, &unprocessableErr) {
+		return UnprocessableEntity(c, unprocessableErr.Code, unprocessableErr.Title, unprocessableErr.Message)
+	}
+
+	var unauthorizedErr pkg.UnauthorizedError
+	if errors.As(err, &unauthorizedErr) {
+		return Unauthorized(c, unauthorizedErr.Code, unauthorizedErr.Title, unauthorizedErr.Message)
+	}
+
+	var forbiddenErr pkg.ForbiddenError
+	if errors.As(err, &forbiddenErr) {
+		return Forbidden(c, forbiddenErr.Code, forbiddenErr.Title, forbiddenErr.Message)
+	}
+
+	var responseErr pkg.ResponseError
+	if errors.As(err, &responseErr) {
+		return JSONResponseError(c, responseErr)
+	}
+
+	var iErr pkg.InternalServerError
+
+	_ = errors.As(pkg.ValidateInternalError(err, ""), &iErr)
+
+	return InternalServerError(c, iErr.Code, iErr.Title, iErr.Message)
 }

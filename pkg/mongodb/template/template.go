@@ -5,7 +5,10 @@
 package template
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/google/uuid"
 )
@@ -18,6 +21,43 @@ type Template struct {
 	FileName     string    `json:"fileName" example:"0196159b-4f26-7300-b3d9-f4f68a7c85f3_1744119295.tpl"`
 	CreatedAt    time.Time `json:"createdAt" example:"2021-01-01T00:00:00Z"`
 	UpdatedAt    time.Time `json:"updatedAt" example:"2021-01-01T00:00:00Z"`
+}
+
+// NewTemplate creates a new Template entity with invariant validation.
+// This constructor ensures the Template can never exist in an invalid state.
+//
+// Parameters:
+//   - id: The template UUID (must not be uuid.Nil)
+//   - outputFormat: The output format (must not be empty)
+//   - description: Optional description (can be empty)
+//   - fileName: The template file name (must not be empty)
+//
+// Returns:
+//   - *Template: A validated Template entity
+//   - error: Wrapped ErrMissingRequiredFields if any invariant is violated
+func NewTemplate(id uuid.UUID, outputFormat, description, fileName string) (*Template, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("template id must not be nil: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if outputFormat == "" {
+		return nil, fmt.Errorf("template outputFormat must not be empty: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if fileName == "" {
+		return nil, fmt.Errorf("template fileName must not be empty: %w", constant.ErrMissingRequiredFields)
+	}
+
+	now := time.Now()
+
+	return &Template{
+		ID:           id,
+		OutputFormat: outputFormat,
+		Description:  description,
+		FileName:     fileName,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}, nil
 }
 
 // TemplateMongoDBModel represents the MongoDB model for a template

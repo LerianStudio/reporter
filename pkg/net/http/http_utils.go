@@ -90,9 +90,27 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 				templateID = parsedID
 			}
 		case strings.Contains(key, "limit"):
-			limit, _ = strconv.Atoi(value)
+			parsed, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "limit")
+			}
+
+			if parsed < 1 {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "limit")
+			}
+
+			limit = parsed
 		case strings.Contains(key, "page"):
-			page, _ = strconv.Atoi(value)
+			parsed, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "page")
+			}
+
+			if parsed < 1 {
+				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "page")
+			}
+
+			page = parsed
 		case strings.Contains(key, "cursor"):
 			cursor = value
 		case strings.Contains(key, "sortOrder"):

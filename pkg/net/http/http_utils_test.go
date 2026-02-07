@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateParameters_Defaults(t *testing.T) {
@@ -178,9 +179,9 @@ func TestValidateParameters_InvalidLimit(t *testing.T) {
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
-	// Invalid number defaults to 0
-	assert.Equal(t, 0, result.Limit)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "TPL-0019")
 }
 
 func TestValidateParameters_InvalidPage(t *testing.T) {
@@ -189,9 +190,9 @@ func TestValidateParameters_InvalidPage(t *testing.T) {
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
-	// Invalid number defaults to 0
-	assert.Equal(t, 0, result.Page)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "TPL-0019")
 }
 
 func TestQueryHeader_ToOffsetPagination(t *testing.T) {
@@ -234,4 +235,99 @@ func TestHeaderConstants(t *testing.T) {
 	assert.Equal(t, "User-Agent", headerUserAgent)
 	assert.Equal(t, ".tpl", fileExtension)
 	assert.Equal(t, "X-TTL", idempotencyTTL)
+}
+
+// TestValidateParameters_QueryParamParseErrors verifies that ValidateParameters
+// returns a validation error for non-numeric limit/page values and out-of-bounds
+// values instead of silently defaulting.
+// REFACTOR-005A: These tests must FAIL against the current code.
+func TestValidateParameters_QueryParamParseErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		params      map[string]string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "non-numeric limit returns error",
+			params:      map[string]string{"limit": "abc"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "non-numeric page returns error",
+			params:      map[string]string{"page": "xyz"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "negative limit returns error",
+			params:      map[string]string{"limit": "-1"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "zero page returns error",
+			params:      map[string]string{"page": "0"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "zero limit returns error",
+			params:      map[string]string{"limit": "0"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "negative page returns error",
+			params:      map[string]string{"page": "-5"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "float limit returns error",
+			params:      map[string]string{"limit": "10.5"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:        "float page returns error",
+			params:      map[string]string{"page": "1.5"},
+			wantErr:     true,
+			errContains: "TPL-0019",
+		},
+		{
+			name:    "valid limit and page succeeds",
+			params:  map[string]string{"limit": "10", "page": "1"},
+			wantErr: false,
+		},
+		{
+			name:    "valid large page succeeds",
+			params:  map[string]string{"limit": "25", "page": "100"},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := ValidateParameters(tt.params)
+
+			if tt.wantErr {
+				require.Error(t, err, "expected error for params %v but got nil", tt.params)
+				assert.Contains(t, err.Error(), tt.errContains,
+					"error should contain code %q, got: %s", tt.errContains, err.Error())
+				assert.Nil(t, result, "result should be nil when error is returned")
+			} else {
+				require.NoError(t, err, "unexpected error for params %v: %v", tt.params, err)
+				assert.NotNil(t, result, "result should not be nil for valid params")
+				assert.Greater(t, result.Limit, 0, "limit must be positive")
+				assert.GreaterOrEqual(t, result.Page, 1, "page must be >= 1")
+			}
+		})
+	}
 }

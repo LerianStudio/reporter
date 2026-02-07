@@ -5,12 +5,15 @@
 package report
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReportMongoDBModel_ToEntity(t *testing.T) {
@@ -351,6 +354,97 @@ func TestReportMongoDBModel_ToEntity_WithComplexFilters(t *testing.T) {
 	assert.Len(t, entity.Filters, 2)
 	assert.Len(t, entity.Filters["transactions"], 2)
 	assert.Len(t, entity.Filters["users"], 1)
+}
+
+func TestNewReport(t *testing.T) {
+	t.Parallel()
+
+	validTemplateID := uuid.New()
+	validFilters := map[string]map[string]map[string]model.FilterCondition{
+		"transactions": {
+			"amount": {
+				"range": {Equals: []any{"100"}},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		id          uuid.UUID
+		templateID  uuid.UUID
+		status      string
+		filters     map[string]map[string]map[string]model.FilterCondition
+		wantErr     bool
+		expectedErr error
+	}{
+		{
+			name:       "valid report with all fields",
+			id:         uuid.New(),
+			templateID: validTemplateID,
+			status:     constant.ProcessingStatus,
+			filters:    validFilters,
+			wantErr:    false,
+		},
+		{
+			name:       "valid report with nil filters",
+			id:         uuid.New(),
+			templateID: validTemplateID,
+			status:     constant.ProcessingStatus,
+			filters:    nil,
+			wantErr:    false,
+		},
+		{
+			name:        "nil ID returns error",
+			id:          uuid.Nil,
+			templateID:  validTemplateID,
+			status:      constant.ProcessingStatus,
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+		{
+			name:        "nil templateID returns error",
+			id:          uuid.New(),
+			templateID:  uuid.Nil,
+			status:      constant.ProcessingStatus,
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+		{
+			name:        "empty status returns error",
+			id:          uuid.New(),
+			templateID:  validTemplateID,
+			status:      "",
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := NewReport(tt.id, tt.templateID, tt.status, tt.filters)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, got)
+
+				if tt.expectedErr != nil {
+					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				}
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, got)
+				assert.Equal(t, tt.id, got.ID)
+				assert.Equal(t, tt.templateID, got.TemplateID)
+				assert.Equal(t, tt.status, got.Status)
+				assert.Equal(t, tt.filters, got.Filters)
+			}
+		})
+	}
 }
 
 func TestFilterCondition_AllOperators(t *testing.T) {

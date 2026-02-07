@@ -85,7 +85,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	// Create a filter using the UUID directly for matching the _id field stored as BinData
 	filter := bson.M{"_id": id}
 
-	ctx, spanUpdate := tracer.Start(ctx, "repository.report.update_status.update")
+	ctx, spanUpdate := tracer.Start(ctx, "repository.report.update_status_exec")
 	defer spanUpdate.End()
 
 	spanUpdate.SetAttributes(attributes...)
@@ -164,7 +164,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 		return nil, err
 	}
 
-	ctx, spanInsert := tracer.Start(ctx, "repository.report.create.insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.report.create_insert")
 
 	spanInsert.SetAttributes(attributes...)
 
@@ -210,7 +210,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 
 	var record *ReportMongoDBModel
 
-	ctx, spanFindOne := tracer.Start(ctx, "repository.report.find_by_id.find_one")
+	ctx, spanFindOne := tracer.Start(ctx, "repository.report.find_by_id_exec")
 
 	spanFindOne.SetAttributes(attributes...)
 
@@ -292,7 +292,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 		Sort:  bson.D{{Key: "created_at", Value: -1}}, // Sort by created_at desc
 	}
 
-	ctx, spanFind := tracer.Start(ctx, "repository.report.find_list.find")
+	ctx, spanFind := tracer.Start(ctx, "repository.report.find_list_exec")
 
 	spanFind.SetAttributes(attributes...)
 

@@ -81,7 +81,7 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID)
 
 	var record *TemplateMongoDBModel
 
-	ctx, spanFindOne := tracer.Start(ctx, "repository.template.find_by_id.find_one")
+	ctx, spanFindOne := tracer.Start(ctx, "repository.template.find_by_id_exec")
 
 	spanFindOne.SetAttributes(attributes...)
 
@@ -157,7 +157,7 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 	skip := int64(filters.Page*filters.Limit - filters.Limit)
 	opts := options.FindOptions{Limit: &limit, Skip: &skip}
 
-	ctx, spanFind := tracer.Start(ctx, "repository.template.find_list.find")
+	ctx, spanFind := tracer.Start(ctx, "repository.template.find_list_exec")
 
 	spanFind.SetAttributes(attributes...)
 
@@ -273,7 +273,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, spanInsert := tracer.Start(ctx, "repository.template.create.insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.template.create_insert")
 
 	spanInsert.SetAttributes(attributes...)
 
@@ -321,7 +321,7 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id uuid.UUID, u
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 	opts := options.Update().SetUpsert(false)
 
-	ctx, spanUpdate := tracer.Start(ctx, "repository.template.update.update_one")
+	ctx, spanUpdate := tracer.Start(ctx, "repository.template.update_exec")
 
 	spanUpdate.SetAttributes(attributes...)
 
@@ -368,7 +368,7 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, h
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, spanDelete := tracer.Start(ctx, "repository.template.delete.delete_one")
+	ctx, spanDelete := tracer.Start(ctx, "repository.template.delete_exec")
 
 	spanDelete.SetAttributes(attributes...)
 

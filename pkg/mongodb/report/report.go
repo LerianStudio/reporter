@@ -5,8 +5,10 @@
 package report
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/google/uuid"
@@ -23,6 +25,43 @@ type Report struct {
 	CreatedAt   time.Time                                              `json:"createdAt"`
 	UpdatedAt   time.Time                                              `json:"updatedAt"`
 	DeletedAt   *time.Time                                             `json:"deletedAt"`
+}
+
+// NewReport creates a new Report entity with invariant validation.
+// This constructor ensures the Report can never exist in an invalid state.
+//
+// Parameters:
+//   - id: The report UUID (must not be uuid.Nil)
+//   - templateID: The template UUID (must not be uuid.Nil)
+//   - status: The report status (must not be empty)
+//   - filters: Optional filter conditions for report generation (can be nil)
+//
+// Returns:
+//   - *Report: A validated Report entity
+//   - error: Wrapped ErrMissingRequiredFields if any invariant is violated
+func NewReport(
+	id, templateID uuid.UUID,
+	status string,
+	filters map[string]map[string]map[string]model.FilterCondition,
+) (*Report, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("report id must not be nil: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if templateID == uuid.Nil {
+		return nil, fmt.Errorf("report templateID must not be nil: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if status == "" {
+		return nil, fmt.Errorf("report status must not be empty: %w", constant.ErrMissingRequiredFields)
+	}
+
+	return &Report{
+		ID:         id,
+		TemplateID: templateID,
+		Status:     status,
+		Filters:    filters,
+	}, nil
 }
 
 // ReportMongoDBModel represents the MongoDB model for a report
