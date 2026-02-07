@@ -200,3 +200,119 @@ func TestUUIDPathParameter_Constant(t *testing.T) {
 
 	assert.Equal(t, "id", UUIDPathParameter)
 }
+
+func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		pathParam      string
+		expectedStatus int
+		expectError    bool
+		expectLocals   bool
+	}{
+		{
+			name:           "Success - Valid UUID for dataSourceId",
+			pathParam:      uuid.New().String(),
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+			expectLocals:   true,
+		},
+		{
+			name:           "Error - Non-UUID string for dataSourceId",
+			pathParam:      "mongo_ds",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Error - Empty-like string for dataSourceId",
+			pathParam:      "not-a-uuid",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Success - UUID with uppercase letters for dataSourceId",
+			pathParam:      "550E8400-E29B-41D4-A716-446655440000",
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+			expectLocals:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			app := fiber.New(fiber.Config{
+				DisableStartupMessage: true,
+			})
+
+			const paramName = "dataSourceId"
+
+			var capturedID uuid.UUID
+			var localsSet bool
+
+			app.Get("/data-sources/:dataSourceId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
+				if id, ok := c.Locals(paramName).(uuid.UUID); ok {
+					capturedID = id
+					localsSet = true
+				}
+				return c.SendStatus(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/data-sources/"+tt.pathParam, nil)
+			resp, err := app.Test(req)
+
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			if tt.expectLocals {
+				assert.True(t, localsSet, "Expected locals to be set")
+				assert.NotEqual(t, uuid.Nil, capturedID, "Expected valid UUID in locals")
+			}
+
+			if tt.expectError {
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+
+				var errorResponse map[string]interface{}
+				err = json.Unmarshal(body, &errorResponse)
+				require.NoError(t, err)
+
+				assert.Contains(t, errorResponse, "code")
+			}
+		})
+	}
+}
+
+func TestParseUUIDPathParam_SpecificUUID(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "dataSourceId"
+	expectedUUID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	var capturedID uuid.UUID
+
+	app.Get("/data-sources/:dataSourceId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
+		capturedID = c.Locals(paramName).(uuid.UUID)
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/data-sources/"+expectedUUID.String(), nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, expectedUUID, capturedID)
+}

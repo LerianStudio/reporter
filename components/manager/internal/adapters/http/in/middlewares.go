@@ -37,22 +37,34 @@ func RecoverMiddleware() fiber.Handler {
 	return recover.New()
 }
 
-// ParsePathParametersUUID convert and validate if the path parameter is UUID
+// ParseUUIDPathParam returns a Fiber middleware that validates the named path
+// parameter as a UUID. On success the parsed uuid.UUID is stored in
+// c.Locals(paramName) for downstream handlers. On failure a 400 Bad Request
+// response is returned with the standard ErrInvalidPathParameter error.
+func ParseUUIDPathParam(paramName string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		pathParam := c.Params(paramName)
+
+		if commons.IsNilOrEmpty(&pathParam) {
+			err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", paramName)
+			return http.WithError(c, err)
+		}
+
+		parsedPathUUID, errPath := uuid.Parse(pathParam)
+		if errPath != nil {
+			err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", paramName)
+			return http.WithError(c, err)
+		}
+
+		c.Locals(paramName, parsedPathUUID)
+
+		return c.Next()
+	}
+}
+
+// ParsePathParametersUUID convert and validate if the path parameter is UUID.
+// It validates the "id" path parameter. For other parameter names use
+// ParseUUIDPathParam(paramName).
 func ParsePathParametersUUID(c *fiber.Ctx) error {
-	pathParam := c.Params(UUIDPathParameter)
-
-	if commons.IsNilOrEmpty(&pathParam) {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", UUIDPathParameter)
-		return http.WithError(c, err)
-	}
-
-	parsedPathUUID, errPath := uuid.Parse(pathParam)
-	if errPath != nil {
-		err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", UUIDPathParameter)
-		return http.WithError(c, err)
-	}
-
-	c.Locals(UUIDPathParameter, parsedPathUUID)
-
-	return c.Next()
+	return ParseUUIDPathParam(UUIDPathParameter)(c)
 }

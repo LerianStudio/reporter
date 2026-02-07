@@ -19,6 +19,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -94,21 +95,25 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 		},
 	}
 
+	// Use a fixed UUID for test data source IDs so the middleware (and handler) accept them.
+	mongoDSUUID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	notFoundUUID := uuid.MustParse("660e8400-e29b-41d4-a716-446655440000")
+
 	tests := []struct {
 		name           string
-		dataSourceID   string
+		dataSourceUUID uuid.UUID
 		setupService   func() *services.UseCase
 		mockSetup      func()
 		expectedStatus int
 		expectError    bool
 	}{
 		{
-			name:         "Success - Returns MongoDB data source details",
-			dataSourceID: "mongo_ds",
+			name:           "Success - Returns MongoDB data source details",
+			dataSourceUUID: mongoDSUUID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
-						"mongo_ds": {
+						mongoDSUUID.String(): {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
@@ -128,8 +133,8 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name:         "Error - Data source not found",
-			dataSourceID: "not_found",
+			name:           "Error - Data source not found",
+			dataSourceUUID: notFoundUUID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
@@ -143,12 +148,12 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			expectError:    true,
 		},
 		{
-			name:         "Error - Database schema retrieval fails",
-			dataSourceID: "mongo_ds",
+			name:           "Error - Database schema retrieval fails",
+			dataSourceUUID: mongoDSUUID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
 					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
-						"mongo_ds": {
+						mongoDSUUID.String(): {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
@@ -179,12 +184,14 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 				service: tt.setupService(),
 			}
 
-			app.Get("/v1/data-sources/:dataSourceId", func(c *fiber.Ctx) error {
+			// Use the UUID middleware so c.Locals("dataSourceId") is a uuid.UUID,
+			// matching the production route wiring.
+			app.Get("/v1/data-sources/:dataSourceId", ParseUUIDPathParam("dataSourceId"), func(c *fiber.Ctx) error {
 				c.SetUserContext(context.Background())
 				return handler.GetDataSourceInformationByID(c)
 			})
 
-			req := httptest.NewRequest("GET", "/v1/data-sources/"+tt.dataSourceID, nil)
+			req := httptest.NewRequest("GET", "/v1/data-sources/"+tt.dataSourceUUID.String(), nil)
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := app.Test(req)
@@ -201,8 +208,68 @@ func Test_DataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 				err = json.Unmarshal(body, &result)
 				require.NoError(t, err)
 
-				assert.Equal(t, tt.dataSourceID, result.Id)
+				assert.Equal(t, tt.dataSourceUUID.String(), result.Id)
 			}
+		})
+	}
+}
+
+func Test_DataSourceHandler_GetDataSourceInformationByID_InvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	app := setupTestApp()
+
+	handler := &DataSourceHandler{
+		service: &services.UseCase{
+			ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
+		},
+	}
+
+	app.Get("/v1/data-sources/:dataSourceId", ParseUUIDPathParam("dataSourceId"), func(c *fiber.Ctx) error {
+		c.SetUserContext(context.Background())
+		return handler.GetDataSourceInformationByID(c)
+	})
+
+	tests := []struct {
+		name         string
+		dataSourceID string
+	}{
+		{
+			name:         "Error - Non-UUID string",
+			dataSourceID: "mongo_ds",
+		},
+		{
+			name:         "Error - Partial UUID",
+			dataSourceID: "550e8400-e29b-41d4",
+		},
+		{
+			name:         "Error - Path traversal attempt",
+			dataSourceID: "..%2F..%2Fetc%2Fpasswd",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest("GET", "/v1/data-sources/"+tt.dataSourceID, nil)
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var errorResponse map[string]interface{}
+			err = json.Unmarshal(body, &errorResponse)
+			require.NoError(t, err)
+
+			assert.Contains(t, errorResponse, "code")
 		})
 	}
 }
