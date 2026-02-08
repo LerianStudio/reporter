@@ -10,9 +10,34 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 )
+
+// Fixed host ports matching production (components/infra/.env.example).
+// Using fixed ports ensures containers survive restart without changing
+// the address the Manager process connects to.
+const (
+	HostPortRabbitAMQP = "3005"
+	HostPortRabbitMgmt = "3006"
+	HostPortMongo      = "5708"
+	HostPortValkey     = "5705"
+	HostPortSeaweedS3  = "8333"
+	HostPortSeaweedAdm = "9333"
+)
+
+// FixedPortBindings creates a nat.PortMap from container-port -> host-port pairs.
+func FixedPortBindings(mappings map[nat.Port]string) nat.PortMap {
+	pm := nat.PortMap{}
+	for containerPort, hostPort := range mappings {
+		pm[containerPort] = []nat.PortBinding{
+			{HostIP: "0.0.0.0", HostPort: hostPort},
+		}
+	}
+
+	return pm
+}
 
 // TestInfrastructure holds all test containers and provides connection information.
 type TestInfrastructure struct {
