@@ -69,15 +69,12 @@ COPY --from=builder /worker /app/worker
 # Switch to non-root user
 USER appuser
 
-# Worker is a RabbitMQ consumer with no HTTP server; no port to expose.
+# Expose health check port for container orchestrators
+EXPOSE 4006
 
-# Health check for container orchestrators (no HTTP server, use process check).
-# Limitation: pgrep only verifies the process is running, not that the worker
-# has an active RabbitMQ connection. A deeper health check would require the
-# worker to expose a health endpoint or write a status file on successful
-# queue connection. Interval set to 30s to reduce overhead for a non-HTTP service.
-HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=15s \
-  CMD pgrep -f worker || exit 1
+# Health check via the worker's HTTP health endpoint (checks RabbitMQ connectivity).
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=15s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4006/health || exit 1
 
 # Set the entrypoint to the worker binary
 ENTRYPOINT ["/app/worker"]

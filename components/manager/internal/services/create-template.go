@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"mime/multipart"
 	"strings"
-	"time"
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
@@ -97,16 +96,15 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	templateId := commons.GenerateUUIDv7()
 	fileName := fmt.Sprintf("%s.tpl", templateId.String())
 
-	templateModel := &template.TemplateMongoDBModel{
-		ID:           templateId,
-		OutputFormat: strings.ToLower(outFormat),
-		FileName:     fileName,
-		Description:  description,
-		MappedFields: transformedMappedFields,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		DeletedAt:    nil,
+	// Build domain entity with invariant validation, then convert to MongoDB model
+	templateEntity, err := template.NewTemplate(templateId, strings.ToLower(outFormat), description, fileName)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to create template entity", err)
+
+		return nil, err
 	}
+
+	templateModel := template.FromTemplateEntity(templateEntity, transformedMappedFields)
 
 	resultTemplateModel, err := uc.TemplateRepo.Create(ctx, templateModel)
 	if err != nil {

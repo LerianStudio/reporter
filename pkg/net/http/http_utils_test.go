@@ -237,6 +237,249 @@ func TestHeaderConstants(t *testing.T) {
 	assert.Equal(t, "X-TTL", idempotencyTTL)
 }
 
+// TestQueryParam_Helper verifies that queryParam checks snake_case first,
+// then falls back to camelCase, and returns false when neither key exists.
+func TestQueryParam_Helper(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		params    map[string]string
+		snake     string
+		camel     string
+		wantVal   string
+		wantFound bool
+	}{
+		{
+			name:      "snake_case key present",
+			params:    map[string]string{"output_format": "PDF"},
+			snake:     "output_format",
+			camel:     "outputFormat",
+			wantVal:   "PDF",
+			wantFound: true,
+		},
+		{
+			name:      "camelCase key present (fallback)",
+			params:    map[string]string{"outputFormat": "HTML"},
+			snake:     "output_format",
+			camel:     "outputFormat",
+			wantVal:   "HTML",
+			wantFound: true,
+		},
+		{
+			name:      "both keys present - snake_case wins",
+			params:    map[string]string{"output_format": "CSV", "outputFormat": "PDF"},
+			snake:     "output_format",
+			camel:     "outputFormat",
+			wantVal:   "CSV",
+			wantFound: true,
+		},
+		{
+			name:      "neither key present",
+			params:    map[string]string{"other_key": "value"},
+			snake:     "output_format",
+			camel:     "outputFormat",
+			wantVal:   "",
+			wantFound: false,
+		},
+		{
+			name:      "empty params map",
+			params:    map[string]string{},
+			snake:     "sort_order",
+			camel:     "sortOrder",
+			wantVal:   "",
+			wantFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			val, found := queryParam(tt.params, tt.snake, tt.camel)
+			assert.Equal(t, tt.wantVal, val)
+			assert.Equal(t, tt.wantFound, found)
+		})
+	}
+}
+
+// TestNormalizeParams verifies that normalizeParams converts camelCase query
+// parameter keys to snake_case while preserving already-correct keys and
+// giving snake_case precedence when both formats are present.
+func TestNormalizeParams(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		input  map[string]string
+		expect map[string]string
+	}{
+		{
+			name:   "camelCase keys are converted to snake_case",
+			input:  map[string]string{"outputFormat": "PDF", "sortOrder": "asc", "templateId": "abc", "createdAt": "2024-01-01"},
+			expect: map[string]string{"output_format": "PDF", "sort_order": "asc", "template_id": "abc", "created_at": "2024-01-01"},
+		},
+		{
+			name:   "snake_case keys are preserved unchanged",
+			input:  map[string]string{"output_format": "PDF", "sort_order": "asc"},
+			expect: map[string]string{"output_format": "PDF", "sort_order": "asc"},
+		},
+		{
+			name:   "snake_case wins when both formats present",
+			input:  map[string]string{"output_format": "CSV", "outputFormat": "PDF"},
+			expect: map[string]string{"output_format": "CSV"},
+		},
+		{
+			name:   "non-aliased keys are preserved",
+			input:  map[string]string{"limit": "10", "page": "1", "status": "Finished", "description": "test"},
+			expect: map[string]string{"limit": "10", "page": "1", "status": "Finished", "description": "test"},
+		},
+		{
+			name:   "metadata keys are preserved",
+			input:  map[string]string{"metadata.field": "val"},
+			expect: map[string]string{"metadata.field": "val"},
+		},
+		{
+			name:   "empty map returns empty map",
+			input:  map[string]string{},
+			expect: map[string]string{},
+		},
+		{
+			name:   "mixed aliased and non-aliased keys",
+			input:  map[string]string{"outputFormat": "HTML", "limit": "5", "sortOrder": "desc"},
+			expect: map[string]string{"output_format": "HTML", "limit": "5", "sort_order": "desc"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := normalizeParams(tt.input)
+			assert.Equal(t, tt.expect, result)
+		})
+	}
+}
+
+// TestValidateParameters_SnakeCaseParams verifies that ValidateParameters
+// accepts the new snake_case query parameter format.
+func TestValidateParameters_SnakeCaseParams(t *testing.T) {
+	t.Parallel()
+
+	templateID := uuid.New()
+
+	params := map[string]string{
+		"output_format": "PDF",
+		"description":   "Test description",
+		"status":        "Finished",
+		"template_id":   templateID.String(),
+		"limit":         "20",
+		"page":          "2",
+		"sort_order":    "asc",
+		"created_at":    "2024-01-15",
+	}
+
+	result, err := ValidateParameters(params)
+	require.NoError(t, err)
+
+	assert.Equal(t, "PDF", result.OutputFormat)
+	assert.Equal(t, "Test description", result.Description)
+	assert.Equal(t, "Finished", result.Status)
+	assert.Equal(t, templateID, result.TemplateID)
+	assert.Equal(t, 20, result.Limit)
+	assert.Equal(t, 2, result.Page)
+	assert.Equal(t, "asc", result.SortOrder)
+	assert.Equal(t, 2024, result.CreatedAt.Year())
+	assert.Equal(t, 1, int(result.CreatedAt.Month()))
+	assert.Equal(t, 15, result.CreatedAt.Day())
+}
+
+// TestValidateParameters_CamelCaseBackwardsCompat verifies that camelCase
+// query parameters still work (backwards compatibility).
+func TestValidateParameters_CamelCaseBackwardsCompat(t *testing.T) {
+	t.Parallel()
+
+	templateID := uuid.New()
+
+	params := map[string]string{
+		"outputFormat": "HTML",
+		"templateId":   templateID.String(),
+		"sortOrder":    "desc",
+		"createdAt":    "2025-06-30",
+	}
+
+	result, err := ValidateParameters(params)
+	require.NoError(t, err)
+
+	assert.Equal(t, "HTML", result.OutputFormat)
+	assert.Equal(t, templateID, result.TemplateID)
+	assert.Equal(t, "desc", result.SortOrder)
+	assert.Equal(t, 2025, result.CreatedAt.Year())
+	assert.Equal(t, 6, int(result.CreatedAt.Month()))
+	assert.Equal(t, 30, result.CreatedAt.Day())
+}
+
+// TestValidateParameters_SnakeCasePrecedence verifies that when both snake_case
+// and camelCase keys are present, the snake_case value takes precedence.
+func TestValidateParameters_SnakeCasePrecedence(t *testing.T) {
+	t.Parallel()
+
+	params := map[string]string{
+		"output_format": "CSV",
+		"outputFormat":  "PDF",
+		"sort_order":    "asc",
+		"sortOrder":     "desc",
+	}
+
+	result, err := ValidateParameters(params)
+	require.NoError(t, err)
+
+	assert.Equal(t, "CSV", result.OutputFormat, "snake_case output_format should take precedence")
+	assert.Equal(t, "asc", result.SortOrder, "snake_case sort_order should take precedence")
+}
+
+// TestValidateParameters_InvalidSnakeCaseOutputFormat verifies that validation
+// errors work the same way with snake_case parameter names.
+func TestValidateParameters_InvalidSnakeCaseOutputFormat(t *testing.T) {
+	t.Parallel()
+
+	params := map[string]string{
+		"output_format": "INVALID_FORMAT",
+	}
+
+	_, err := ValidateParameters(params)
+	assert.Error(t, err)
+}
+
+// TestValidateParameters_InvalidSnakeCaseSortOrder verifies that validation
+// errors work the same way with snake_case sort_order parameter.
+func TestValidateParameters_InvalidSnakeCaseSortOrder(t *testing.T) {
+	t.Parallel()
+
+	params := map[string]string{
+		"sort_order": "invalid",
+	}
+
+	_, err := ValidateParameters(params)
+	assert.Error(t, err)
+}
+
+// TestValidateParameters_InvalidSnakeCaseTemplateID verifies that an invalid
+// template_id (snake_case) results in a zero UUID, matching camelCase behavior.
+func TestValidateParameters_InvalidSnakeCaseTemplateID(t *testing.T) {
+	t.Parallel()
+
+	params := map[string]string{
+		"template_id": "not-a-uuid",
+	}
+
+	result, err := ValidateParameters(params)
+	require.NoError(t, err)
+	assert.Equal(t, uuid.UUID{}, result.TemplateID)
+}
+
 // TestValidateParameters_QueryParamParseErrors verifies that ValidateParameters
 // returns a validation error for non-numeric limit/page values and out-of-bounds
 // values instead of silently defaulting.

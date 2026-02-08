@@ -62,7 +62,7 @@ func createFileHeaderFromString(content, filename string) (*multipart.FileHeader
 	return files[0], nil
 }
 
-func TestUpdateTemplateByID(t *testing.T) {
+func TestUseCase_UpdateTemplateByID(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

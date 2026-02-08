@@ -22,6 +22,7 @@ type Service struct {
 	*MultiQueueConsumer
 	log.Logger
 	healthChecker      *pkg.HealthChecker
+	healthServer       *HealthServer
 	mongoConnection    *libMongo.MongoConnection
 	rabbitMQConnection *libRabbitMQ.RabbitMQConnection
 	pdfPool            *pdf.WorkerPool
@@ -31,6 +32,11 @@ type Service struct {
 // Run starts the application.
 // This is the only necessary code to run an app in main.go
 func (app *Service) Run() {
+	// Start health server before consumer so probes are available immediately
+	if app.healthServer != nil {
+		app.healthServer.Start()
+	}
+
 	commons.NewLauncher(
 		commons.WithLogger(app.Logger),
 		commons.RunApp("RabbitMQ Consumer", app.MultiQueueConsumer),
@@ -43,6 +49,13 @@ func (app *Service) Run() {
 	if app.healthChecker != nil {
 		app.Info("Stopping health checker...")
 		app.healthChecker.Stop()
+	}
+
+	// Stop health HTTP server
+	if app.healthServer != nil {
+		app.Info("Stopping health server...")
+		app.healthServer.Shutdown()
+		app.Info("Health server stopped")
 	}
 
 	// Close PDF worker pool (waits for in-progress tasks to complete)

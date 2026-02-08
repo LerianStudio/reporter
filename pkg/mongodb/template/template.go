@@ -13,7 +13,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Template represents the entity model for a template
+// Template represents the entity model for a template.
+// Public fields are required for JSON serialization (json tags) and Swagger documentation.
+// This is a documented deviation from Ring's private-field pattern; use NewTemplate() for programmatic creation.
 type Template struct {
 	ID           uuid.UUID `json:"id" example:"00000000-0000-0000-0000-000000000000"`
 	OutputFormat string    `json:"outputFormat" example:"HTML"`
@@ -90,7 +92,9 @@ func (tm *TemplateMongoDBModel) ToEntity() *Template {
 	return ReconstructTemplate(tm.ID, tm.OutputFormat, tm.Description, tm.FileName, tm.CreatedAt, tm.UpdatedAt)
 }
 
-// FromEntity converts Template to TemplateMongoDBModel
+// FromEntity populates TemplateMongoDBModel fields from a Template entity.
+// MappedFields and DeletedAt are not set by this method because they are
+// MongoDB-only concerns not present on the domain entity.
 func (tm *TemplateMongoDBModel) FromEntity(t *Template) {
 	tm.ID = t.ID
 	tm.OutputFormat = t.OutputFormat
@@ -98,4 +102,19 @@ func (tm *TemplateMongoDBModel) FromEntity(t *Template) {
 	tm.FileName = t.FileName
 	tm.CreatedAt = t.CreatedAt
 	tm.UpdatedAt = t.UpdatedAt
+}
+
+// FromTemplateEntity creates a new TemplateMongoDBModel from a Template domain entity
+// and the MongoDB-only fields (mappedFields, deletedAt) that live outside the domain.
+// This is the preferred way to build a complete model for persistence.
+func FromTemplateEntity(t *Template, mappedFields map[string]map[string][]string) *TemplateMongoDBModel {
+	return &TemplateMongoDBModel{
+		ID:           t.ID,
+		OutputFormat: t.OutputFormat,
+		Description:  t.Description,
+		FileName:     t.FileName,
+		MappedFields: mappedFields,
+		CreatedAt:    t.CreatedAt,
+		UpdatedAt:    t.UpdatedAt,
+	}
 }

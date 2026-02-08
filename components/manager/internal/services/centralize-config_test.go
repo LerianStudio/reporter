@@ -44,7 +44,7 @@ func TestUseCase_HasRabbitMQGenerateReportKeyField(t *testing.T) {
 // TestSendReportQueueReports_UsesUseCaseFields verifies that SendReportQueueReports
 // uses UseCase.RabbitMQExchange and UseCase.RabbitMQGenerateReportKey fields
 // instead of calling os.Getenv at runtime.
-func TestSendReportQueueReports_UsesUseCaseFields(t *testing.T) {
+func TestUseCase_SendReportQueueReports_UsesUseCaseFields(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -89,7 +89,7 @@ func TestSendReportQueueReports_UsesUseCaseFields(t *testing.T) {
 // TestSendReportQueueReports_DoesNotUseOsGetenv verifies that even when env vars
 // are set, the function reads from UseCase fields (not environment).
 // This proves config centralization is complete.
-func TestSendReportQueueReports_DoesNotUseOsGetenv(t *testing.T) {
+func TestUseCase_SendReportQueueReports_DoesNotUseOsGetenv(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

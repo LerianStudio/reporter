@@ -13,12 +13,16 @@ import (
 	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
 )
 
-// @title			Reporter
-// @version		1.0.0
-// @description	This is a swagger documentation for Reporter
-// @termsOfService	http://swagger.io/terms/
-// @host			localhost:4005
-// @BasePath		/
+// @title						Reporter
+// @version					1.0.0
+// @description				This is a swagger documentation for Reporter
+// @termsOfService				http://swagger.io/terms/
+// @host						localhost:4005
+// @BasePath					/
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				The authorization token in the 'Bearer access_token' format. Only required when auth plugin is enabled.
 func main() {
 	libCommons.InitLocalEnvConfig()
 

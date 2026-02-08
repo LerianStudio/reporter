@@ -21,7 +21,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestDownloadReport(t *testing.T) {
+func TestUseCase_DownloadReport(t *testing.T) {
 	t.Parallel()
 
 	reportId := uuid.New()

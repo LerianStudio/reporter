@@ -5,8 +5,12 @@
 package in
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/LerianStudio/reporter/components/manager/api"
@@ -218,4 +222,127 @@ func TestWithSwaggerEnvConfig_DelimiterSettings(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "[[", api.SwaggerInfo.LeftDelim)
 	assert.Equal(t, "]]", api.SwaggerInfo.RightDelim)
+}
+
+func TestSwaggerSpec_SecurityDefinitions(t *testing.T) {
+	t.Parallel()
+
+	_, currentFile, _, ok := runtime.Caller(0)
+	require.True(t, ok, "failed to get caller information")
+
+	// Navigate from the test file to the swagger.json location:
+	// test file:   components/manager/internal/adapters/http/in/swagger_test.go
+	// swagger.json: components/manager/api/swagger.json
+	swaggerPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "..", "api", "swagger.json")
+
+	swaggerBytes, err := os.ReadFile(swaggerPath)
+	require.NoError(t, err, "failed to read swagger.json at %s", swaggerPath)
+
+	var spec map[string]any
+	err = json.Unmarshal(swaggerBytes, &spec)
+	require.NoError(t, err, "failed to parse swagger.json")
+
+	tests := []struct {
+		name      string
+		assertion func(t *testing.T)
+	}{
+		{
+			name: "securityDefinitions contains BearerAuth",
+			assertion: func(t *testing.T) {
+				t.Helper()
+
+				secDefs, exists := spec["securityDefinitions"]
+				require.True(t, exists, "swagger.json must contain securityDefinitions")
+
+				secDefsMap, ok := secDefs.(map[string]any)
+				require.True(t, ok, "securityDefinitions must be an object")
+
+				bearerAuth, exists := secDefsMap["BearerAuth"]
+				require.True(t, exists, "securityDefinitions must contain BearerAuth")
+
+				bearerAuthMap, ok := bearerAuth.(map[string]any)
+				require.True(t, ok, "BearerAuth must be an object")
+
+				assert.Equal(t, "apiKey", bearerAuthMap["type"], "BearerAuth type must be apiKey")
+				assert.Equal(t, "Authorization", bearerAuthMap["name"], "BearerAuth name must be Authorization")
+				assert.Equal(t, "header", bearerAuthMap["in"], "BearerAuth in must be header")
+			},
+		},
+		{
+			name: "endpoints use security instead of Authorization parameter",
+			assertion: func(t *testing.T) {
+				t.Helper()
+
+				paths, exists := spec["paths"]
+				require.True(t, exists, "swagger.json must contain paths")
+
+				pathsMap, ok := paths.(map[string]any)
+				require.True(t, ok, "paths must be an object")
+
+				for pathName, pathItem := range pathsMap {
+					pathItemMap, ok := pathItem.(map[string]any)
+					require.True(t, ok, "path item %s must be an object", pathName)
+
+					for method, operation := range pathItemMap {
+						operationMap, ok := operation.(map[string]any)
+						if !ok {
+							continue
+						}
+
+						// Check that no endpoint has Authorization as a header parameter
+						if params, hasParams := operationMap["parameters"]; hasParams {
+							paramsSlice, ok := params.([]any)
+							if ok {
+								for _, param := range paramsSlice {
+									paramMap, ok := param.(map[string]any)
+									if !ok {
+										continue
+									}
+
+									if paramMap["name"] == "Authorization" && paramMap["in"] == "header" {
+										t.Errorf(
+											"%s %s still has @Param Authorization header; expected @Security BearerAuth instead",
+											method, pathName,
+										)
+									}
+								}
+							}
+						}
+
+						// Check that the endpoint has a security section with BearerAuth
+						security, hasSecurity := operationMap["security"]
+						require.True(t, hasSecurity,
+							"%s %s must have a security section with BearerAuth", method, pathName)
+
+						securitySlice, ok := security.([]any)
+						require.True(t, ok, "%s %s security must be an array", method, pathName)
+
+						found := false
+						for _, secItem := range securitySlice {
+							secItemMap, ok := secItem.(map[string]any)
+							if !ok {
+								continue
+							}
+
+							if _, hasBearerAuth := secItemMap["BearerAuth"]; hasBearerAuth {
+								found = true
+
+								break
+							}
+						}
+
+						assert.True(t, found,
+							"%s %s security must reference BearerAuth", method, pathName)
+					}
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tt.assertion(t)
+		})
+	}
 }

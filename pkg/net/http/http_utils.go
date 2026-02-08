@@ -54,8 +54,60 @@ func (qh *QueryHeader) ToOffsetPagination() Pagination {
 	}
 }
 
-// ValidateParameters validate and return struct of default parameters
+// queryParam retrieves a query parameter value from the params map, checking
+// the snake_case key first (new standard) and falling back to the camelCase key
+// (backwards compatibility). Returns the value and true if found, or empty string
+// and false if neither key exists.
+func queryParam(params map[string]string, snakeCase, camelCase string) (string, bool) {
+	if v, ok := params[snakeCase]; ok {
+		return v, true
+	}
+
+	if v, ok := params[camelCase]; ok {
+		return v, true
+	}
+
+	return "", false
+}
+
+// normalizeParams rewrites legacy camelCase query parameter keys to their
+// snake_case equivalents so the parsing loop only needs to match one format.
+// When both formats are present for the same parameter, snake_case takes precedence.
+func normalizeParams(params map[string]string) map[string]string {
+	aliases := map[string]string{
+		"outputFormat": "output_format",
+		"sortOrder":    "sort_order",
+		"templateId":   "template_id",
+		"createdAt":    "created_at",
+	}
+
+	normalized := make(map[string]string, len(params))
+
+	for k, v := range params {
+		normalized[k] = v
+	}
+
+	for camel, snake := range aliases {
+		if _, hasSnake := normalized[snake]; hasSnake {
+			// snake_case already present; remove legacy camelCase if it exists
+			delete(normalized, camel)
+			continue
+		}
+
+		if val, hasCamel := normalized[camel]; hasCamel {
+			normalized[snake] = val
+			delete(normalized, camel)
+		}
+	}
+
+	return normalized
+}
+
+// ValidateParameters validate and return struct of default parameters.
+// It accepts both snake_case (preferred) and camelCase (deprecated) query parameter names.
 func ValidateParameters(params map[string]string) (*QueryHeader, error) {
+	params = normalizeParams(params)
+
 	var (
 		metadata     *bson.M
 		createdAt    time.Time
@@ -75,21 +127,21 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 		case strings.Contains(key, "metadata."):
 			metadata = &bson.M{key: value}
 			useMetadata = true
-		case strings.Contains(key, "outputFormat"):
+		case key == "output_format":
 			if !pkg.IsOutputFormatValuesValid(&value) {
 				return nil, pkg.ValidateBusinessError(constant.ErrInvalidOutputFormat, "")
 			}
 
 			outputFormat = value
-		case strings.Contains(key, "description"):
+		case key == "description":
 			description = value
-		case strings.Contains(key, "status"):
+		case key == "status":
 			status = value
-		case strings.Contains(key, "templateId"):
+		case key == "template_id":
 			if parsedID, err := uuid.Parse(value); err == nil {
 				templateID = parsedID
 			}
-		case strings.Contains(key, "limit"):
+		case key == "limit":
 			parsed, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "limit")
@@ -100,7 +152,7 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 			}
 
 			limit = parsed
-		case strings.Contains(key, "page"):
+		case key == "page":
 			parsed, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "page")
@@ -111,11 +163,11 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 			}
 
 			page = parsed
-		case strings.Contains(key, "cursor"):
+		case key == "cursor":
 			cursor = value
-		case strings.Contains(key, "sortOrder"):
+		case key == "sort_order":
 			sortOrder = strings.ToLower(value)
-		case strings.Contains(key, "createdAt"):
+		case key == "created_at":
 			createdAt, _ = time.Parse("2006-01-02", value)
 		}
 	}

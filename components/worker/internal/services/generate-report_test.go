@@ -26,7 +26,10 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGenerateReport_Success(t *testing.T) {
+// NOTE: Kept separate from table-driven TestUseCase_GenerateReport_ErrorAndSkipPaths due to complex mock
+// wiring for the full success path (template repo, postgres schema, query, report upload, status update).
+// The error/skip table-driven test below covers negative and early-return paths with simpler setup.
+func TestUseCase_GenerateReport_Success(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -128,7 +131,7 @@ func TestGenerateReport_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGenerateReport_ErrorAndSkipPaths(t *testing.T) {
+func TestUseCase_GenerateReport_ErrorAndSkipPaths(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -234,7 +237,11 @@ func TestGenerateReport_ErrorAndSkipPaths(t *testing.T) {
 	}
 }
 
-func TestGenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
+// NOTE: Kept separate from table-driven TestUseCase_GenerateReport due to complex crypto setup requirements.
+// This test exercises the CRM plugin path with cipher initialization, hash generation, and encrypted
+// field decryption, which demands significantly different UseCase wiring (crypto keys, MongoDB mocks,
+// organization-scoped collections) that would bloat shared table-driven setup beyond readability.
+func TestUseCase_GenerateReport_PluginCRMWithEncryptedData(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -392,7 +399,7 @@ Conta Bancaria: {{ plugin_crm.holders.0.banking_details.account }}`
 	require.NoError(t, err)
 }
 
-func TestParseMessage(t *testing.T) {
+func TestUseCase_ParseMessage(t *testing.T) {
 	t.Parallel()
 
 	templateID := uuid.New()
@@ -463,26 +470,22 @@ func TestParseMessage(t *testing.T) {
 	}
 }
 
-func TestUpdateReportWithErrors(t *testing.T) {
+func TestUseCase_UpdateReportWithErrors(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportDataRepo := reportData.NewMockRepository(ctrl)
 
 	tests := []struct {
 		name         string
 		reportID     uuid.UUID
 		errorMessage string
-		mockSetup    func(reportID uuid.UUID)
+		mockSetup    func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID)
 		expectError  bool
+		errContains  string
 	}{
 		{
 			name:         "Success - Update report with error",
 			reportID:     uuid.New(),
 			errorMessage: "test error message",
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
 					Return(nil)
@@ -493,19 +496,26 @@ func TestUpdateReportWithErrors(t *testing.T) {
 			name:         "Error - Failed to update report",
 			reportID:     uuid.New(),
 			errorMessage: "test error message",
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
 					Return(errors.New("database error"))
 			},
 			expectError: true,
+			errContains: "database error",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup(tt.reportID)
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportDataRepo := reportData.NewMockRepository(ctrl)
+			tt.mockSetup(mockReportDataRepo, tt.reportID)
 
 			useCase := &UseCase{
 				ReportDataRepo: mockReportDataRepo,
@@ -514,6 +524,7 @@ func TestUpdateReportWithErrors(t *testing.T) {
 			err := useCase.updateReportWithErrors(context.Background(), tt.reportID, tt.errorMessage)
 			if tt.expectError {
 				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				require.NoError(t, err)
 			}
@@ -521,26 +532,20 @@ func TestUpdateReportWithErrors(t *testing.T) {
 	}
 }
 
-func TestMarkReportAsFinished(t *testing.T) {
+func TestUseCase_MarkReportAsFinished(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportDataRepo := reportData.NewMockRepository(ctrl)
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	_, span := tracer.Start(context.Background(), "test")
 
 	tests := []struct {
 		name        string
 		reportID    uuid.UUID
-		mockSetup   func(reportID uuid.UUID)
+		mockSetup   func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID)
 		expectError bool
+		errContains string
 	}{
 		{
 			name:     "Success - Mark report as finished",
 			reportID: uuid.New(),
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Finished", reportID, gomock.Any(), nil).
 					Return(nil)
@@ -550,7 +555,7 @@ func TestMarkReportAsFinished(t *testing.T) {
 		{
 			name:     "Error - Failed to mark as finished",
 			reportID: uuid.New(),
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Finished", reportID, gomock.Any(), nil).
 					Return(errors.New("database error"))
@@ -559,13 +564,23 @@ func TestMarkReportAsFinished(t *testing.T) {
 					Return(nil)
 			},
 			expectError: true,
+			errContains: "database error",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup(tt.reportID)
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportDataRepo := reportData.NewMockRepository(ctrl)
+			tt.mockSetup(mockReportDataRepo, tt.reportID)
+
+			logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+			_, span := tracer.Start(context.Background(), "test")
 
 			useCase := &UseCase{
 				ReportDataRepo: mockReportDataRepo,
@@ -574,6 +589,7 @@ func TestMarkReportAsFinished(t *testing.T) {
 			err := useCase.markReportAsFinished(context.Background(), tt.reportID, &span, logger)
 			if tt.expectError {
 				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				require.NoError(t, err)
 			}
@@ -581,54 +597,59 @@ func TestMarkReportAsFinished(t *testing.T) {
 	}
 }
 
-func TestHandleErrorWithUpdate(t *testing.T) {
+func TestUseCase_HandleErrorWithUpdate(t *testing.T) {
 	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockReportDataRepo := reportData.NewMockRepository(ctrl)
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	_, span := tracer.Start(context.Background(), "test")
 
 	tests := []struct {
 		name        string
 		reportID    uuid.UUID
 		errorMsg    string
 		inputErr    error
-		mockSetup   func(reportID uuid.UUID)
+		mockSetup   func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID)
 		expectError bool
+		errContains string
 	}{
 		{
 			name:     "Success - Log error and update report",
 			reportID: uuid.New(),
 			errorMsg: "Test error message",
 			inputErr: errors.New("original error"),
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectError: true, // Returns the original error
+			errContains: "original error",
 		},
 		{
 			name:     "Error - Failed to update report status",
 			reportID: uuid.New(),
 			errorMsg: "Test error message",
 			inputErr: errors.New("original error"),
-			mockSetup: func(reportID uuid.UUID) {
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
 				mockReportDataRepo.EXPECT().
 					UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
 					Return(errors.New("update failed"))
 			},
 			expectError: true,
+			errContains: "update failed",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup(tt.reportID)
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockReportDataRepo := reportData.NewMockRepository(ctrl)
+			tt.mockSetup(mockReportDataRepo, tt.reportID)
+
+			logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+			_, span := tracer.Start(context.Background(), "test")
 
 			useCase := &UseCase{
 				ReportDataRepo: mockReportDataRepo,
@@ -637,6 +658,7 @@ func TestHandleErrorWithUpdate(t *testing.T) {
 			err := useCase.handleErrorWithUpdate(context.Background(), tt.reportID, &span, tt.errorMsg, tt.inputErr, logger)
 			if tt.expectError {
 				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			}
 		})
 	}

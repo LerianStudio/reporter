@@ -19,7 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestLoadTemplate(t *testing.T) {
+func TestUseCase_LoadTemplate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -89,7 +89,10 @@ func TestLoadTemplate(t *testing.T) {
 	}
 }
 
-func TestConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
+// NOTE: Standalone test for the non-PDF early-return path. The PDF conversion path requires a live
+// chromedp worker pool (headless Chrome), making it an integration-level concern tested under
+// tests/integration/. A table-driven test combining both paths is not feasible at the unit level.
+func TestUseCase_ConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	t.Parallel()
 
 	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())

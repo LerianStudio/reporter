@@ -14,7 +14,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Report represents the entity model for a report
+// Report represents the entity model for a report.
+// Public fields are required for JSON serialization (json tags) and Swagger documentation.
+// This is a documented deviation from Ring's private-field pattern; use NewReport() for programmatic creation.
 type Report struct {
 	ID          uuid.UUID                                              `json:"id" example:"00000000-0000-0000-0000-000000000000"`
 	TemplateID  uuid.UUID                                              `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`

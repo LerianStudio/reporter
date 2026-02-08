@@ -19,7 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetAllReports(t *testing.T) {
+func TestUseCase_GetAllReports(t *testing.T) {
 	t.Parallel()
 
 	templateId := uuid.New()

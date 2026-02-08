@@ -26,7 +26,7 @@ import (
 
 // Test_createReport_setsOrganizationID verifies that CreateReport sets the
 // organization_id on the report entity before persisting it.
-func TestCreateReport_SetsOrganizationID(t *testing.T) {
+func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -117,7 +117,7 @@ func TestCreateReport_SetsOrganizationID(t *testing.T) {
 // Test_getReportByID_tenantIsolation verifies that GetReportByID enforces
 // tenant isolation by requiring organization_id and returning ErrEntityNotFound
 // when the report belongs to a different organization.
-func TestGetReportByID_TenantIsolation(t *testing.T) {
+func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -206,7 +206,7 @@ func TestGetReportByID_TenantIsolation(t *testing.T) {
 
 // Test_getAllReports_tenantIsolation verifies that GetAllReports only returns
 // reports belonging to the specified organization.
-func TestGetAllReports_TenantIsolation(t *testing.T) {
+func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -312,7 +312,7 @@ func TestGetAllReports_TenantIsolation(t *testing.T) {
 
 // Test_getTemplateByID_tenantIsolation verifies that GetTemplateByID enforces
 // tenant isolation by requiring organization_id.
-func TestGetTemplateByID_TenantIsolation(t *testing.T) {
+func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -396,7 +396,7 @@ func TestGetTemplateByID_TenantIsolation(t *testing.T) {
 
 // Test_getAllTemplates_tenantIsolation verifies that GetAllTemplates only returns
 // templates belonging to the specified organization.
-func TestGetAllTemplates_TenantIsolation(t *testing.T) {
+func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -490,7 +490,7 @@ func TestGetAllTemplates_TenantIsolation(t *testing.T) {
 
 // Test_deleteTemplateByID_tenantIsolation verifies that DeleteTemplateByID
 // enforces tenant isolation by requiring organization_id.
-func TestDeleteTemplateByID_TenantIsolation(t *testing.T) {
+func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -562,7 +562,7 @@ func TestDeleteTemplateByID_TenantIsolation(t *testing.T) {
 
 // Test_downloadReport_tenantIsolation verifies that DownloadReport enforces
 // tenant isolation by passing organization_id through to GetReportByID.
-func TestDownloadReport_TenantIsolation(t *testing.T) {
+func TestUseCase_DownloadReport_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)

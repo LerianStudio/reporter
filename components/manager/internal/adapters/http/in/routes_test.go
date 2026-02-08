@@ -45,6 +45,13 @@ func TestSecurityHeaders(t *testing.T) {
 			expectedHeader: "X-XSS-Protection",
 			expectedValue:  "0",
 		},
+		{
+			name:           "Strict-Transport-Security header is set with max-age and includeSubDomains",
+			method:         http.MethodGet,
+			path:           "/health",
+			expectedHeader: "Strict-Transport-Security",
+			expectedValue:  "max-age=31536000; includeSubDomains",
+		},
 	}
 
 	for _, tt := range tests {
@@ -102,13 +109,15 @@ func TestSecurityHeaders_AllHeadersOnSingleResponse(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// All three security headers must be present on a single response
+	// All four security headers must be present on a single response
 	assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"),
 		"X-Content-Type-Options must be nosniff")
 	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"),
 		"X-Frame-Options must be DENY")
 	assert.Equal(t, "0", resp.Header.Get("X-XSS-Protection"),
 		"X-XSS-Protection must be 0")
+	assert.Equal(t, "max-age=31536000; includeSubDomains", resp.Header.Get("Strict-Transport-Security"),
+		"Strict-Transport-Security must enforce HSTS with includeSubDomains")
 }
 
 func TestRecoverMiddleware_PanicDoesNotCrashServer(t *testing.T) {

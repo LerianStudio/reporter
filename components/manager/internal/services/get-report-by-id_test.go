@@ -19,7 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetReportByID(t *testing.T) {
+func TestUseCase_GetReportByID(t *testing.T) {
 	t.Parallel()
 
 	reportId := uuid.New()

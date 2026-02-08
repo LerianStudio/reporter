@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewCircuitBreakerManager(t *testing.T) {
+func TestCircuitBreakerManager_New(t *testing.T) {
 	t.Parallel()
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -65,33 +65,55 @@ func TestCircuitBreakerManager_GetOrCreate(t *testing.T) {
 	assert.Equal(t, 2, len(cbm.breakers))
 }
 
-func TestCircuitBreakerManager_Execute_Success(t *testing.T) {
+func TestCircuitBreakerManager_Execute(t *testing.T) {
 	t.Parallel()
 
-	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	cbm := NewCircuitBreakerManager(logger)
+	tests := []struct {
+		name           string
+		fn             func() (any, error)
+		expectedResult any
+		expectError    bool
+		errContains    string
+	}{
+		{
+			name: "Success - returns result without error",
+			fn: func() (any, error) {
+				return "success", nil
+			},
+			expectedResult: "success",
+			expectError:    false,
+		},
+		{
+			name: "Error - returns nil result with error",
+			fn: func() (any, error) {
+				return nil, errors.New("test error")
+			},
+			expectedResult: nil,
+			expectError:    true,
+			errContains:    "test error",
+		},
+	}
 
-	result, err := cbm.Execute("test_db", func() (any, error) {
-		return "success", nil
-	})
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.NoError(t, err)
-	assert.Equal(t, "success", result)
-}
+			logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+			cbm := NewCircuitBreakerManager(logger)
 
-func TestCircuitBreakerManager_Execute_Error(t *testing.T) {
-	t.Parallel()
+			result, err := cbm.Execute("test_db", tt.fn)
 
-	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
-	cbm := NewCircuitBreakerManager(logger)
-
-	result, err := cbm.Execute("test_db", func() (any, error) {
-		return nil, errors.New("test error")
-	})
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "test error")
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedResult, result)
+			}
+		})
+	}
 }
 
 func TestCircuitBreakerManager_GetState(t *testing.T) {

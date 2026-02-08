@@ -28,7 +28,11 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestCreateTemplate(t *testing.T) {
+func TestUseCase_CreateTemplate(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting
+	// mutates global state (registered datasource IDs). Running this test in parallel
+	// with other tests that call Reset/Register would cause data races on the shared map.
+	//
 	// Register datasource IDs once at the top level before subtests start.
 	// Subtests only READ this global state, so they can safely run in parallel.
 	pkg.ResetRegisteredDataSourceIDsForTesting()
@@ -414,8 +418,10 @@ func TestCreateTemplate(t *testing.T) {
 	}
 }
 
-func TestCreateTemplateWithPluginCRM(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
+func TestUseCase_CreateTemplateWithPluginCRM(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting
+	// mutates global state (registered datasource IDs). Running this test in parallel
+	// with other tests that call Reset/Register would cause data races on the shared map.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -524,7 +530,7 @@ func hashTemplateIdempotencyInput(t *testing.T, templateFile, outFormat, descrip
 	return commons.HashSHA256(string(data))
 }
 
-func TestCreateTemplate_Idempotency(t *testing.T) {
+func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 	t.Parallel()
 
 	// Register datasource IDs once at the top level before subtests start.

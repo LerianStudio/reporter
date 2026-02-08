@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetDataSourceInformation(t *testing.T) {
+func TestUseCase_GetDataSourceInformation(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctx := context.Background()
 

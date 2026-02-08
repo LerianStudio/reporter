@@ -149,10 +149,11 @@ services:
     environment:
       - REDIS_USER=${REDIS_USER}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-    # NOTE: Password is passed via command args (visible in process list).
-    # This is acceptable for local development only. In production, use a config file
-    # mounted as a volume or environment-based secret injection.
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}",  "--port", "${REDIS_PORT}" ]
+    # Config is generated at startup so the password is not exposed in process args.
+    command: >
+      sh -c 'echo "requirepass $$REDIS_PASSWORD" > /tmp/redis.conf &&
+             echo "port $$REDIS_PORT" >> /tmp/redis.conf &&
+             redis-server /tmp/redis.conf'
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
     volumes:

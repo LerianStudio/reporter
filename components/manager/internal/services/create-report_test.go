@@ -25,7 +25,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestCreateReport(t *testing.T) {
+func TestUseCase_CreateReport(t *testing.T) {
 	t.Parallel()
 
 	reportId := uuid.New()
@@ -326,7 +326,7 @@ func hashRequestBody(t *testing.T, input *model.CreateReportInput) string {
 	return commons.HashSHA256(string(data))
 }
 
-func TestCreateReport_Idempotency(t *testing.T) {
+func TestUseCase_CreateReport_Idempotency(t *testing.T) {
 	t.Parallel()
 
 	reportID := uuid.New()
@@ -622,7 +622,7 @@ func TestCreateReport_Idempotency(t *testing.T) {
 	}
 }
 
-func TestConvertFiltersToMappedFieldsType(t *testing.T) {
+func TestUseCase_ConvertFiltersToMappedFieldsType(t *testing.T) {
 	t.Parallel()
 
 	uc := &UseCase{}

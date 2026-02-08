@@ -46,7 +46,7 @@ func NewReportHandler(service *services.UseCase) (*ReportHandler, error) {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization	header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			X-Idempotency	header		string					false	"Client-provided idempotency key to prevent duplicate report creation"
 //	@Param			reports			body		model.CreateReportInput	true	"Report Input"
 //	@Success		201				{object}	report.Report
@@ -112,7 +112,7 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path		string	true	"Report ID"
 //	@Success		200				{file}		any
 //	@Failure		400				{object}	pkg.HTTPError
@@ -164,7 +164,7 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
 //	@Failure		400					{object}	pkg.HTTPError
@@ -211,10 +211,10 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 //	@Description	List all the reports
 //	@Tags			Reports
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			status			query		string	false	"Report status (processing, finished, error)"
-//	@Param			templateId		query		string	false	"Template ID"
-//	@Param			createdAt		query		string	false	"Created at date (YYYY-MM-DD)"
+//	@Param			template_id		query		string	false	"Template ID (also accepts templateId)"
+//	@Param			created_at		query		string	false	"Created at date, YYYY-MM-DD (also accepts createdAt)"
 //	@Param			limit			query		int		false	"Limit"	default(10)
 //	@Param			page			query		int		false	"Page"	default(1)
 //	@Success		200				{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}

@@ -18,7 +18,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestShouldSkipProcessing(t *testing.T) {
+func TestUseCase_ShouldSkipProcessing(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -99,7 +99,7 @@ func TestShouldSkipProcessing(t *testing.T) {
 	}
 }
 
-func TestCheckReportStatus(t *testing.T) {
+func TestUseCase_CheckReportStatus(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)

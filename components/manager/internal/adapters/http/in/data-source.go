@@ -41,7 +41,7 @@ func NewDataSourceHandler(service *services.UseCase) (*DataSourceHandler, error)
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Success		200				{object}	[]model.DataSourceInformation
 //	@Failure		401				{object}	pkg.HTTPError
 //	@Failure		403				{object}	pkg.HTTPError
@@ -74,7 +74,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 //	@Description	Retrieves a data sources information with data source id passed
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			dataSourceId	path		string	true	"Data source ID"
 //	@Success		200				{object}	model.DataSourceDetails
 //	@Failure		400				{object}	pkg.HTTPError

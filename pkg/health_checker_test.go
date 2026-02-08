@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewHealthChecker(t *testing.T) {
+func TestHealthChecker_New(t *testing.T) {
 	t.Parallel()
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())

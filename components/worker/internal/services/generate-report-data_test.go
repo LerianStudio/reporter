@@ -23,7 +23,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestQueryExternalData_NoDataSources(t *testing.T) {
+func TestUseCase_QueryExternalData_NoDataSources(t *testing.T) {
 	t.Parallel()
 
 	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
@@ -49,7 +49,7 @@ func TestQueryExternalData_NoDataSources(t *testing.T) {
 	assert.Empty(t, result, "expected empty result")
 }
 
-func TestQueryDatabase(t *testing.T) {
+func TestUseCase_QueryDatabase(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -135,7 +135,7 @@ func TestQueryDatabase(t *testing.T) {
 	}
 }
 
-func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
+func TestUseCase_QueryPostgresDatabase_SchemaFormats(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -273,7 +273,7 @@ func TestQueryPostgresDatabase_SchemaFormats(t *testing.T) {
 	}
 }
 
-func TestQueryMongoDatabase(t *testing.T) {
+func TestUseCase_QueryMongoDatabase(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -365,7 +365,7 @@ func TestQueryMongoDatabase(t *testing.T) {
 	}
 }
 
-func TestProcessRegularMongoCollection(t *testing.T) {
+func TestUseCase_ProcessRegularMongoCollection(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -409,7 +409,7 @@ func TestProcessRegularMongoCollection(t *testing.T) {
 	require.Len(t, result["shop_db"]["products"], 1)
 }
 
-func TestGetTableFilters(t *testing.T) {
+func TestUseCase_GetTableFilters(t *testing.T) {
 	t.Parallel()
 
 	baseFilter := map[string]model.FilterCondition{
@@ -515,7 +515,7 @@ func TestGetTableFilters(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
+func TestUseCase_TransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -577,7 +577,7 @@ func TestTransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 	}
 }
 
-func TestTransformPluginCRMAdvancedFilters_EdgeCases(t *testing.T) {
+func TestUseCase_TransformPluginCRMAdvancedFilters_EdgeCases(t *testing.T) {
 	t.Run("Success - Nil filter returns nil", func(t *testing.T) {
 		t.Parallel()
 
@@ -631,7 +631,7 @@ func TestTransformPluginCRMAdvancedFilters_EdgeCases(t *testing.T) {
 	})
 }
 
-func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
+func TestUseCase_TransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -671,7 +671,7 @@ func TestTransformPluginCRMAdvancedFilters_AllFilterConditions(t *testing.T) {
 	assert.NotEmpty(t, searchDoc.NotIn, "expected NotIn to be transformed")
 }
 
-func TestHashFilterValues(t *testing.T) {
+func TestUseCase_HashFilterValues(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -726,7 +726,7 @@ func TestHashFilterValues(t *testing.T) {
 	}
 }
 
-func TestIsEncryptedField(t *testing.T) {
+func TestUseCase_IsEncryptedField(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -752,7 +752,7 @@ func TestIsEncryptedField(t *testing.T) {
 	}
 }
 
-func TestDecryptPluginCRMData(t *testing.T) {
+func TestUseCase_DecryptPluginCRMData(t *testing.T) {
 	t.Run("Error - Missing env vars", func(t *testing.T) {
 		// NOTE: t.Setenv is incompatible with t.Parallel()
 		t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
@@ -785,7 +785,7 @@ func TestDecryptPluginCRMData(t *testing.T) {
 	})
 }
 
-func TestDecryptRecord(t *testing.T) {
+func TestUseCase_DecryptRecord(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -855,7 +855,7 @@ func TestDecryptRecord(t *testing.T) {
 	}
 }
 
-func TestDecryptTopLevelFields(t *testing.T) {
+func TestUseCase_DecryptTopLevelFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -926,7 +926,7 @@ func TestDecryptTopLevelFields(t *testing.T) {
 	}
 }
 
-func TestDecryptNestedFields_AllTypes(t *testing.T) {
+func TestUseCase_DecryptNestedFields_AllTypes(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1009,7 +1009,7 @@ func TestDecryptNestedFields_AllTypes(t *testing.T) {
 	assert.Equal(t, partyDoc, party["document"])
 }
 
-func TestDecryptFieldValue(t *testing.T) {
+func TestUseCase_DecryptFieldValue(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1076,7 +1076,7 @@ func TestDecryptFieldValue(t *testing.T) {
 	}
 }
 
-func TestDecryptContactFields(t *testing.T) {
+func TestUseCase_DecryptContactFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1149,7 +1149,7 @@ func TestDecryptContactFields(t *testing.T) {
 	}
 }
 
-func TestDecryptBankingDetailsFields(t *testing.T) {
+func TestUseCase_DecryptBankingDetailsFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1222,7 +1222,7 @@ func TestDecryptBankingDetailsFields(t *testing.T) {
 	}
 }
 
-func TestDecryptLegalPersonFields(t *testing.T) {
+func TestUseCase_DecryptLegalPersonFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1301,7 +1301,7 @@ func TestDecryptLegalPersonFields(t *testing.T) {
 	}
 }
 
-func TestDecryptNaturalPersonFields(t *testing.T) {
+func TestUseCase_DecryptNaturalPersonFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1374,7 +1374,7 @@ func TestDecryptNaturalPersonFields(t *testing.T) {
 	}
 }
 
-func TestDecryptRegulatoryFieldsFields(t *testing.T) {
+func TestUseCase_DecryptRegulatoryFieldsFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -1455,7 +1455,7 @@ func TestDecryptRegulatoryFieldsFields(t *testing.T) {
 	}
 }
 
-func TestDecryptRelatedPartiesFields(t *testing.T) {
+func TestUseCase_DecryptRelatedPartiesFields(t *testing.T) {
 	t.Parallel()
 
 	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

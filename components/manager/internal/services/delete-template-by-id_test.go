@@ -18,7 +18,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestDeleteTemplateByID(t *testing.T) {
+func TestUseCase_DeleteTemplateByID(t *testing.T) {
 	t.Parallel()
 
 	tempID := uuid.New()

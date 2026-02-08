@@ -12,6 +12,8 @@ import (
 
 // FilterCondition defines advanced filtering conditions for report generation.
 // Supports multiple operators for complex queries including range, equality, and list-based filters.
+// Public fields are required for JSON deserialization (json tags) and request validation (validate tags).
+// This is a documented deviation from Ring's private-field domain model pattern.
 type FilterCondition struct {
 	// Equals specifies exact value matches. Multiple values treated as OR conditions.
 	// Example: {"eq": ["active", "pending"]} matches records where field equals "active" OR "pending"
@@ -54,6 +56,8 @@ type FilterCondition struct {
 }
 
 // CreateReportInput is a struct designed to encapsulate request create payload data.
+// Public fields are required for JSON binding (json tags) and validation (validate tags).
+// This is a documented deviation from Ring's private-field pattern; use NewCreateReportInput() for programmatic creation.
 //
 // swagger:model CreateReportInput
 //

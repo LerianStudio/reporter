@@ -48,7 +48,7 @@ func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			X-Idempotency		header		string	false	"Client-provided idempotency key to prevent duplicate template creation"
 //	@Param			templateFile		formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
@@ -152,7 +152,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			templateFile	formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description		formData	string	true	"Description of the template"
@@ -221,7 +221,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Description	Get a template by id
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
@@ -271,8 +271,8 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Description	List all the templates
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			outputFormat	query		string	false	"XML, HTML, TXT and CSV"
+//	@Security		BearerAuth
+//	@Param			output_format	query		string	false	"Output format filter: XML, HTML, TXT, CSV (also accepts outputFormat)"
 //	@Param			description		query		string	false	"Description of template"
 //	@Param			limit			query		int		false	"Limit"	default(10)
 //	@Param			page			query		int		false	"Page"	default(1)
@@ -342,7 +342,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Description	SoftDelete a Template with the input ID. Returns 204 with no content on success.
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path	string	true	"Template ID"
 //	@Success		204				"No content"
 //	@Failure		400				{object}	pkg.HTTPError

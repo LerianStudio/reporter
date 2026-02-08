@@ -18,7 +18,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetContentType(t *testing.T) {
+func TestUseCase_GetContentType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -54,7 +54,7 @@ func TestGetContentType(t *testing.T) {
 	}
 }
 
-func TestSaveReport(t *testing.T) {
+func TestUseCase_SaveReport(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

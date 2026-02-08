@@ -33,6 +33,7 @@ import (
 type Config struct {
 	EnvName                     string `env:"ENV_NAME"`
 	LogLevel                    string `env:"LOG_LEVEL"`
+	HealthPort                  string `env:"HEALTH_PORT" default:"4006"`
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
 	RabbitMQPortHost            string `env:"RABBITMQ_PORT_HOST"`
@@ -352,10 +353,14 @@ func InitWorker() (_ *Service, err error) {
 
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue, logger)
 
+	healthServer := NewHealthServer(cfg.HealthPort, rabbitMQConnection, logger)
+	logger.Infof("Health server configured on port %s (/health, /ready)", cfg.HealthPort)
+
 	return &Service{
 		MultiQueueConsumer: multiQueueConsumer,
 		Logger:             logger,
 		healthChecker:      healthChecker,
+		healthServer:       healthServer,
 		mongoConnection:    mongoConnection,
 		rabbitMQConnection: rabbitMQConnection,
 		pdfPool:            pdfPool,

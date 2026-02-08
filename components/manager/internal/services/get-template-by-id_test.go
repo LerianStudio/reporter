@@ -20,7 +20,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetTemplateByID(t *testing.T) {
+func TestUseCase_GetTemplateByID(t *testing.T) {
 	t.Parallel()
 
 	tempId := uuid.New()

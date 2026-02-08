@@ -17,7 +17,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestSendReportQueueReports(t *testing.T) {
+func TestUseCase_SendReportQueueReports(t *testing.T) {
 	t.Parallel()
 
 	reportID := uuid.New()
@@ -135,7 +135,7 @@ func TestSendReportQueueReports(t *testing.T) {
 	}
 }
 
-func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
+func TestUseCase_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 	t.Parallel()
 
 	reportID := uuid.New()

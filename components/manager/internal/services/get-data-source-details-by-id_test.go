@@ -25,7 +25,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/postgres"
 )
 
-func TestGetBaseCollectionName(t *testing.T) {
+func TestUseCase_GetBaseCollectionName(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -78,7 +78,7 @@ func TestGetBaseCollectionName(t *testing.T) {
 	}
 }
 
-func TestShouldIncludeFieldForPluginCRM(t *testing.T) {
+func TestUseCase_ShouldIncludeFieldForPluginCRM(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -180,7 +180,7 @@ func TestShouldIncludeFieldForPluginCRM(t *testing.T) {
 	}
 }
 
-func TestGetFieldsForPluginCRM(t *testing.T) {
+func TestUseCase_GetFieldsForPluginCRM(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -318,7 +318,7 @@ func TestGetFieldsForPluginCRM(t *testing.T) {
 	}
 }
 
-func TestGetExpandedFieldsForPluginCRM(t *testing.T) {
+func TestUseCase_GetExpandedFieldsForPluginCRM(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -392,7 +392,7 @@ func TestGetExpandedFieldsForPluginCRM(t *testing.T) {
 	}
 }
 
-func TestGetDataSourceDetailsByID(t *testing.T) {
+func TestUseCase_GetDataSourceDetailsByID(t *testing.T) {
 	t.Parallel()
 
 	mongoSchema := []mongodb.CollectionSchema{

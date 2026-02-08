@@ -442,6 +442,142 @@ func TestReconstructTemplate_MatchesToEntity(t *testing.T) {
 	assert.Equal(t, fromToEntity.UpdatedAt, fromReconstruct.UpdatedAt)
 }
 
+func TestFromTemplateEntity(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	id := uuid.New()
+
+	mappedFields := map[string]map[string][]string{
+		"data_source_1": {
+			"table_a": {"col1", "col2", "col3"},
+			"table_b": {"id", "name"},
+		},
+		"data_source_2": {
+			"table_c": {"value", "timestamp"},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		entity       *Template
+		mappedFields map[string]map[string][]string
+	}{
+		{
+			name: "creates model with all fields and mapped fields",
+			entity: &Template{
+				ID:           id,
+				OutputFormat: "pdf",
+				Description:  "Financial Report",
+				FileName:     "template_123.tpl",
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			},
+			mappedFields: mappedFields,
+		},
+		{
+			name: "creates model with nil mapped fields",
+			entity: &Template{
+				ID:           id,
+				OutputFormat: "html",
+				Description:  "",
+				FileName:     "template_456.tpl",
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			},
+			mappedFields: nil,
+		},
+		{
+			name: "creates model with empty mapped fields",
+			entity: &Template{
+				ID:           id,
+				OutputFormat: "csv",
+				Description:  "Export",
+				FileName:     "template_789.tpl",
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			},
+			mappedFields: map[string]map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mongoModel := FromTemplateEntity(tt.entity, tt.mappedFields)
+
+			require.NotNil(t, mongoModel)
+			assert.Equal(t, tt.entity.ID, mongoModel.ID)
+			assert.Equal(t, tt.entity.OutputFormat, mongoModel.OutputFormat)
+			assert.Equal(t, tt.entity.Description, mongoModel.Description)
+			assert.Equal(t, tt.entity.FileName, mongoModel.FileName)
+			assert.Equal(t, tt.mappedFields, mongoModel.MappedFields)
+			assert.Equal(t, tt.entity.CreatedAt, mongoModel.CreatedAt)
+			assert.Equal(t, tt.entity.UpdatedAt, mongoModel.UpdatedAt)
+			// FromTemplateEntity never sets DeletedAt (new entities are not deleted)
+			assert.Nil(t, mongoModel.DeletedAt)
+		})
+	}
+}
+
+func TestFromTemplateEntity_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	id := uuid.New()
+	entity, err := NewTemplate(id, "pdf", "Financial Report", "template_123.tpl")
+	require.NoError(t, err)
+
+	mappedFields := map[string]map[string][]string{
+		"ds1": {"t1": {"c1", "c2"}},
+	}
+
+	mongoModel := FromTemplateEntity(entity, mappedFields)
+	roundTripped := mongoModel.ToEntity()
+
+	// Domain fields survive the round trip
+	assert.Equal(t, entity.ID, roundTripped.ID)
+	assert.Equal(t, entity.OutputFormat, roundTripped.OutputFormat)
+	assert.Equal(t, entity.Description, roundTripped.Description)
+	assert.Equal(t, entity.FileName, roundTripped.FileName)
+	assert.Equal(t, entity.CreatedAt, roundTripped.CreatedAt)
+	assert.Equal(t, entity.UpdatedAt, roundTripped.UpdatedAt)
+
+	// MappedFields is preserved in the MongoDB model but not in the domain entity
+	assert.Equal(t, mappedFields, mongoModel.MappedFields)
+}
+
+func TestFromTemplateEntity_MatchesFromEntityReceiver(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	id := uuid.New()
+
+	entity := &Template{
+		ID:           id,
+		OutputFormat: "pdf",
+		Description:  "Test Report",
+		FileName:     "test.tpl",
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+
+	// Build via standalone function
+	fromStandalone := FromTemplateEntity(entity, nil)
+
+	// Build via receiver method
+	fromReceiver := &TemplateMongoDBModel{}
+	fromReceiver.FromEntity(entity)
+
+	// Domain fields must match between both approaches
+	assert.Equal(t, fromReceiver.ID, fromStandalone.ID)
+	assert.Equal(t, fromReceiver.OutputFormat, fromStandalone.OutputFormat)
+	assert.Equal(t, fromReceiver.Description, fromStandalone.Description)
+	assert.Equal(t, fromReceiver.FileName, fromStandalone.FileName)
+	assert.Equal(t, fromReceiver.CreatedAt, fromStandalone.CreatedAt)
+	assert.Equal(t, fromReceiver.UpdatedAt, fromStandalone.UpdatedAt)
+}
+
 func TestTemplateMongoDBModel_BSONTags(t *testing.T) {
 	t.Parallel()
 

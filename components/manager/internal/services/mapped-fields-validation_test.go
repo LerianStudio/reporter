@@ -18,7 +18,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
+func TestUseCase_ValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -157,7 +157,7 @@ func TestValidateIfFieldsExistOnTables_PostgreSQL(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
+func TestUseCase_ValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -290,7 +290,7 @@ func TestValidateIfFieldsExistOnTables_MongoDB(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
+func TestUseCase_ValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 
 	// Register datasource IDs for testing - NOT including "unregistered_db"
@@ -352,7 +352,7 @@ func TestValidateIfFieldsExistOnTables_InvalidDataSource(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
+func TestUseCase_ValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 
 	// Register datasource IDs for testing
@@ -381,7 +381,7 @@ func TestValidateIfFieldsExistOnTables_UnsupportedDatabaseType(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported database type")
 }
 
-func TestTransformMappedFieldsForStorage(t *testing.T) {
+func TestUseCase_TransformMappedFieldsForStorage(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -476,7 +476,7 @@ func TestTransformMappedFieldsForStorage(t *testing.T) {
 	}
 }
 
-func TestGenerateCopyOfMappedFields(t *testing.T) {
+func TestUseCase_GenerateCopyOfMappedFields(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -565,7 +565,7 @@ func TestGenerateCopyOfMappedFields(t *testing.T) {
 	}
 }
 
-func TestValidateSchemaAmbiguity(t *testing.T) {
+func TestUseCase_ValidateSchemaAmbiguity(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -681,7 +681,7 @@ func TestValidateSchemaAmbiguity(t *testing.T) {
 	}
 }
 
-func TestValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
+func TestUseCase_ValidateIfFieldsExistOnTables_PostgresWithSchemaFormats(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
