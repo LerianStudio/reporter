@@ -14,7 +14,7 @@ import (
 func TestSumByTag(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% sum_by data by "amount" %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	assert.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -33,7 +33,7 @@ func TestSumByTag(t *testing.T) {
 func TestCountByTagWithFilter(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% count_by data if amount > 1000 %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	assert.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -52,7 +52,7 @@ func TestCountByTagWithFilter(t *testing.T) {
 func TestAvgByTag(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% avg_by data by "amount" %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	assert.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -71,7 +71,7 @@ func TestAvgByTag(t *testing.T) {
 func TestMinByTag(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% min_by data by "amount" %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	assert.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -90,7 +90,7 @@ func TestMinByTag(t *testing.T) {
 func TestMaxByTag(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% max_by data by "amount" %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	assert.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -126,7 +126,7 @@ func TestCalcTag_BasicOperations(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			tpl, err := pongo2.FromString(tt.template)
+			tpl, err := SafeFromString(tt.template)
 			assert.NoError(t, err)
 
 			out, err := tpl.Execute(pongo2.Context{})
@@ -184,7 +184,7 @@ func TestCalcTag_NegativeNumbers(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			tpl, err := pongo2.FromString(tt.template)
+			tpl, err := SafeFromString(tt.template)
 			assert.NoError(t, err, "template parsing should not fail")
 
 			out, err := tpl.Execute(pongo2.Context{})
@@ -196,7 +196,7 @@ func TestCalcTag_NegativeNumbers(t *testing.T) {
 
 func TestCalcTag_DivisionByZero(t *testing.T) {
 	t.Parallel()
-	tpl, err := pongo2.FromString(`{% calc 10 / 0 %}`)
+	tpl, err := SafeFromString(`{% calc 10 / 0 %}`)
 	assert.NoError(t, err, "template parsing should not fail")
 
 	_, err = tpl.Execute(pongo2.Context{})
@@ -244,7 +244,7 @@ func TestCalcTag_NegativeWithVariables(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			tpl, err := pongo2.FromString(tt.template)
+			tpl, err := SafeFromString(tt.template)
 			assert.NoError(t, err, "template parsing should not fail")
 
 			out, err := tpl.Execute(tt.context)
@@ -316,7 +316,7 @@ func TestSumByTag_CompoundConditions(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			tpl, err := pongo2.FromString(tt.template)
+			tpl, err := SafeFromString(tt.template)
 			assert.NoError(t, err, "template parsing should not fail for: %s", tt.template)
 
 			ctx := pongo2.Context{"data": data}

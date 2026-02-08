@@ -18,7 +18,7 @@ func TestAggregateBalance_BasicGrouping(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -39,7 +39,7 @@ func TestAggregateBalance_MultipleAccountsSameCosif(t *testing.T) {
 	tplStr := `{% aggregate_balance data by "available_balance_after" group_by "cosif_code" order_by "created_at" as balances %}{% for item in balances %}{{ item.group_value }};{{ item.balance }};{{ item.count }}
 {% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -64,7 +64,7 @@ func TestAggregateBalance_WithFilter(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" if type == "CREDIT" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -85,7 +85,7 @@ func TestAggregateBalance_EmptyCollection(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}count:{{ results|length }}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -101,7 +101,7 @@ func TestAggregateBalance_MissingFields(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -122,7 +122,7 @@ func TestAggregateBalance_SyntaxError_MissingBy(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data "balance" group_by "cosif_code" order_by "date" as results %}`
 
-	_, err := pongo2.FromString(tplStr)
+	_, err := SafeFromString(tplStr)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'by' keyword")
 }
@@ -131,7 +131,7 @@ func TestAggregateBalance_SyntaxError_MissingGroupBy(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" "cosif_code" order_by "date" as results %}`
 
-	_, err := pongo2.FromString(tplStr)
+	_, err := SafeFromString(tplStr)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'group_by' keyword")
 }
@@ -140,7 +140,7 @@ func TestAggregateBalance_SyntaxError_MissingOrderBy(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" "date" as results %}`
 
-	_, err := pongo2.FromString(tplStr)
+	_, err := SafeFromString(tplStr)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'order_by' keyword")
 }
@@ -149,7 +149,7 @@ func TestAggregateBalance_SyntaxError_MissingAs(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" results %}`
 
-	_, err := pongo2.FromString(tplStr)
+	_, err := SafeFromString(tplStr)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'as' keyword")
 }
@@ -158,7 +158,7 @@ func TestAggregateBalance_SyntaxError_MissingVarName(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as %}`
 
-	_, err := pongo2.FromString(tplStr)
+	_, err := SafeFromString(tplStr)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected variable name after 'as'")
 }
@@ -167,7 +167,7 @@ func TestAggregateBalance_WithAccountId(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -188,7 +188,7 @@ func TestAggregateBalance_WithIdFallback(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -208,7 +208,7 @@ func TestAggregateBalance_NoSubGroupKey(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -228,7 +228,7 @@ func TestAggregateBalance_RFC3339Date(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "created_at" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -248,7 +248,7 @@ func TestAggregateBalance_TimeTypeDate(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "created_at" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -267,7 +267,7 @@ func TestAggregateBalance_StringBalance(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -285,7 +285,7 @@ func TestAggregateBalance_IntBalance(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -303,7 +303,7 @@ func TestAggregateBalance_Int64Balance(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -321,7 +321,7 @@ func TestAggregateBalance_DecimalBalance(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -339,7 +339,7 @@ func TestAggregateBalance_InvalidBalanceType(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -358,7 +358,7 @@ func TestAggregateBalance_InvalidStringBalance(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -377,7 +377,7 @@ func TestAggregateBalance_RFC3339NanoDate(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "created_at" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -396,7 +396,7 @@ func TestAggregateBalance_InvalidDateFormat(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "created_at" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -418,7 +418,7 @@ func TestAggregateBalance_MultipleGroups(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "category" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }}:{{ item.count }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -442,7 +442,7 @@ func TestAggregateBalance_AllItemsFiltered(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" if active == true as results %}count:{{ results|length }}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -461,7 +461,7 @@ func TestAggregateBalance_NestedFields(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "account.balance" group_by "meta.code" order_by "meta.date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -488,7 +488,7 @@ func TestAggregateBalance_EmptyDateField(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.count }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -509,7 +509,7 @@ func TestAggregateBalance_SameTimestamp_DeterministicBehavior(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}{% for item in results %}{{ item.group_value }}:{{ item.balance }};{% endfor %}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -532,7 +532,7 @@ func TestAggregateBalance_InvalidCollectionType(t *testing.T) {
 	t.Parallel()
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as results %}done`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{

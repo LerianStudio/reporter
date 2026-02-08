@@ -96,7 +96,7 @@ func TestReplaceFilter_Integration(t *testing.T) {
 	t.Parallel()
 	// Test with pongo2 template
 	tplStr := `{{ cnpj|replace:".:"|replace:"/:"|replace:"-:" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -112,7 +112,7 @@ func TestReplaceFilter_CEP(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: remove hyphen from CEP
 	tplStr := `{{ cep|replace:"-:" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -128,7 +128,7 @@ func TestReplaceFilter_DecimalComma(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: convert decimal point to comma for Brazilian format
 	tplStr := `{{ valor|replace:".:," }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -272,7 +272,7 @@ func TestWhereFilter_Integration(t *testing.T) {
 	t.Parallel()
 	// Test with pongo2 template - filter by UF (DIMP use case)
 	tplStr := `{% for h in holders|where:"uf:SP" %}{{ h.name }};{% endfor %}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -435,7 +435,7 @@ func TestSumFilter_Integration(t *testing.T) {
 	t.Parallel()
 	// Test with pongo2 template - DIMP total calculation
 	tplStr := `{{ operations|sum:"amount" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -455,7 +455,7 @@ func TestSumFilter_WithWhereChain(t *testing.T) {
 	t.Parallel()
 	// Test chaining where + sum (DIMP use case: sum by UF)
 	tplStr := `{{ operations|where:"uf:SP"|sum:"amount" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -606,7 +606,7 @@ func TestCountFilter_Integration(t *testing.T) {
 	t.Parallel()
 	// Test with pongo2 template - DIMP 9900 record count
 	tplStr := `{{ records|count:"tipo_reg:0000" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -627,7 +627,7 @@ func TestCountFilter_WithWhereChain(t *testing.T) {
 	t.Parallel()
 	// Test chaining where + count (DIMP use case)
 	tplStr := `{{ operations|where:"uf:SP"|count:"tipo:credit" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -669,7 +669,7 @@ func TestDIMPFilters_AllRegistered(t *testing.T) {
 
 	for _, filterName := range filters {
 		tplStr := fmt.Sprintf(`{{ "test"|%s:"a:b" }}`, filterName)
-		_, err := pongo2.FromString(tplStr)
+		_, err := SafeFromString(tplStr)
 		// Should not get "filter does not exist" error
 		if err != nil {
 			assert.NotContains(t, err.Error(), "does not exist",
@@ -682,7 +682,7 @@ func TestDIMPFilters_CNPJFormatting(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: format CNPJ without punctuation
 	tplStr := `{{ cnpj|replace:".:"|replace:"/:"|replace:"-:" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -706,7 +706,7 @@ func TestDIMPFilters_CPFFormatting(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: format CPF without punctuation
 	tplStr := `{{ cpf|replace:".:"|replace:"-:" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{"cpf": "123.456.789-00"}
@@ -719,7 +719,7 @@ func TestDIMPFilters_CEPFormatting(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: format CEP without hyphen
 	tplStr := `{{ cep|replace:"-:" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{"cep": "01310-100"}
@@ -732,7 +732,7 @@ func TestDIMPFilters_DecimalBrazilianFormat(t *testing.T) {
 	t.Parallel()
 	// Real DIMP use case: convert decimal point to comma
 	tplStr := `{{ valor|replace:".:," }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -756,7 +756,7 @@ func TestDIMPFilters_FilterAndSum(t *testing.T) {
 	t.Parallel()
 	// DIMP use case: sum amounts by UF (for records 1100/1110)
 	tplStr := `{{ operations|where:"uf:SP"|sum:"amount" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -778,7 +778,7 @@ func TestDIMPFilters_FilterAndCount(t *testing.T) {
 	t.Parallel()
 	// DIMP use case: count records by type (for record 9900)
 	tplStr := `{{ records|count:"tipo_reg:1100" }}`
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -807,7 +807,7 @@ func TestDIMPFilters_CompleteWorkflow(t *testing.T) {
 |9900|1100|{{ operations|where:"uf:SP"|count:"tipo_reg:1100" }}|
 |9999|{{ total }}|`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -844,7 +844,7 @@ func TestDIMPFilters_Record9900Generation(t *testing.T) {
 |9900|9900|{{ records|count:"tipo:9900" }}|
 |9900|9999|{{ records|count:"tipo:9999" }}|`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{
@@ -881,9 +881,9 @@ func TestDIMPFilters_SumByMultipleUFs(t *testing.T) {
 	tplRJ := `{{ ops|where:"uf:RJ"|sum:"valor" }}`
 	tplMG := `{{ ops|where:"uf:MG"|sum:"valor" }}`
 
-	tplSPCompiled, _ := pongo2.FromString(tplSP)
-	tplRJCompiled, _ := pongo2.FromString(tplRJ)
-	tplMGCompiled, _ := pongo2.FromString(tplMG)
+	tplSPCompiled, _ := SafeFromString(tplSP)
+	tplRJCompiled, _ := SafeFromString(tplRJ)
+	tplMGCompiled, _ := SafeFromString(tplMG)
 
 	ctx := pongo2.Context{
 		"ops": []map[string]any{
@@ -909,7 +909,7 @@ func TestDIMPFilters_ChainAllFilters(t *testing.T) {
 	// Chain all 4 filters in one template
 	tplStr := `CNPJ:{{ data.cnpj|replace:".:"|replace:"/:"|replace:"-:" }}|COUNT:{{ data.ops|where:"active:true"|count:"type:A" }}|SUM:{{ data.ops|where:"active:true"|sum:"value" }}`
 
-	tpl, err := pongo2.FromString(tplStr)
+	tpl, err := SafeFromString(tplStr)
 	require.NoError(t, err)
 
 	ctx := pongo2.Context{

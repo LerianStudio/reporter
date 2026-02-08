@@ -386,7 +386,11 @@ func shouldSkipMatch(match string) bool {
 func resolveVariableFromContext(match string, context pongo2.Context) (string, bool) {
 	templateStr := fmt.Sprintf("{{ %s }}", match)
 
-	template, err := pongo2.FromString(templateStr)
+	// Use a per-call TemplateSet to avoid a race on pongo2's shared DefaultSet.
+	// See renderer.go for the detailed explanation.
+	ts := pongo2.NewSet("resolve", pongo2.DefaultLoader)
+
+	template, err := ts.FromString(templateStr)
 	if err != nil {
 		return "", false
 	}

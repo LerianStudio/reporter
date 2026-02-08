@@ -100,3 +100,12 @@ func doRegisterAll() error {
 
 	return nil
 }
+
+// SafeFromString parses a template string using a fresh pongo2.TemplateSet,
+// avoiding a data race on the global DefaultSet's unsynchronized
+// firstTemplateCreated field.  Filters and tags are registered globally in
+// pongo2 so they are available on every TemplateSet.
+func SafeFromString(tpl string) (*pongo2.Template, error) {
+	ts := pongo2.NewSet("safe", pongo2.DefaultLoader)
+	return ts.FromString(tpl)
+}
