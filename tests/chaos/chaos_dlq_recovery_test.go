@@ -132,9 +132,9 @@ func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
 	// Wait for RabbitMQ to fully initialize and system to recover
 	t.Log("⏳ Waiting for RabbitMQ to fully initialize and worker to reconnect...")
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 60*time.Second, 2*time.Second, "system did not recover after RabbitMQ restart")
+	}, 90*time.Second, 2*time.Second, "system did not recover after RabbitMQ restart")
 	t.Log("✅ RabbitMQ started and system recovered")
 
 	// Check report status - should eventually be processed

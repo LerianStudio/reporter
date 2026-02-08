@@ -77,9 +77,9 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	}
 
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restore")
+	}, 90*time.Second, 2*time.Second, "service did not become healthy after RabbitMQ restore")
 
 	t.Log("Step 7: Verifying system recovery...")
 	code, _, err = cli.Request(ctx, "POST", "/v1/reports", headers, payload)
@@ -146,9 +146,9 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 	t.Log("Step 5: Waiting for automatic recovery...")
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 30*time.Second, 1*time.Second, "service did not recover after channel closure")
+	}, 90*time.Second, 2*time.Second, "service did not recover after channel closure")
 
 	t.Log("Step 6: Verifying automatic recovery...")
 	code, _, err = cli.Request(ctx, "POST", "/v1/reports", headers, payload)
@@ -238,9 +238,9 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 	}
 
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restore")
+	}, 90*time.Second, 2*time.Second, "service did not become healthy after RabbitMQ restore")
 
 	t.Log("Step 6: Verifying system recovery...")
 	code, _, err := cli.Request(ctx, "POST", "/v1/reports", headers, payload)

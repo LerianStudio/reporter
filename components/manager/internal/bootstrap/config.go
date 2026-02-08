@@ -398,6 +398,20 @@ func InitServers() (_ *Service, err error) {
 
 	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
 
+	// Start background RabbitMQ connection monitor.
+	// This goroutine periodically checks if the connection is alive and
+	// calls EnsureChannel() to reconnect when needed, breaking the deadlock
+	// where /ready returns 503 but nothing triggers reconnection.
+	rabbitMQMonitor := NewRabbitMQMonitor(rabbitMQConnection, logger)
+	rabbitMQMonitor.Start()
+
+	logger.Info("RabbitMQ background connection monitor started")
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: stopping RabbitMQ connection monitor")
+		rabbitMQMonitor.Stop()
+	})
+
 	cleanups = append(cleanups, func() {
 		logger.Info("Cleanup: closing RabbitMQ connection")
 

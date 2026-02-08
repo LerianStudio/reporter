@@ -40,10 +40,10 @@ func TestIntegration_Chaos_RabbitMQ_RestartAndRecover(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 
 		return err == nil && code == 200
-	}, 60*time.Second, 2*time.Second, "Manager did not recover after RabbitMQ restart")
+	}, 90*time.Second, 2*time.Second, "Manager did not recover after RabbitMQ restart")
 
 	t.Log("Phase 3: Manager is healthy after RabbitMQ restart")
 }

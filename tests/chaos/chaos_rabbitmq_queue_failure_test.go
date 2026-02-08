@@ -100,9 +100,9 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 
 	t.Log("⏳ Waiting for worker to reconnect...")
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restart")
+	}, 90*time.Second, 2*time.Second, "service did not become healthy after RabbitMQ restart")
 
 	t.Log("🔍 Checking report status...")
 	report, err := cli.GetReportStatus(ctx, reportResponse.ID, headers)
@@ -191,9 +191,9 @@ func TestIntegration_Chaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 
 	t.Log("⏳ Waiting for system to recover and process messages...")
 	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
 		return err == nil && code == 200
-	}, 30*time.Second, 1*time.Second, "service did not become healthy after RabbitMQ restart")
+	}, 90*time.Second, 2*time.Second, "service did not become healthy after RabbitMQ restart")
 	// Intentional wait: allow extra time for worker to reprocess queued messages
 	time.Sleep(5 * time.Second)
 

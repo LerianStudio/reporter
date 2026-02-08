@@ -6,7 +6,7 @@ package constant
 
 import "time"
 
-// RabbitMQ Retry Configuration
+// RabbitMQ Consumer Retry Configuration
 const (
 	// MaxMessageRetries is the maximum number of retry attempts before sending to DLQ.
 	MaxMessageRetries = 5
@@ -25,4 +25,25 @@ const (
 
 	// RetryFailureReasonHeader is the RabbitMQ message header key for tracking the last failure reason.
 	RetryFailureReasonHeader = "x-failure-reason"
+)
+
+// RabbitMQ Producer Retry Configuration (midaz-style reconnection)
+const (
+	// ProducerMaxRetries is the maximum number of publish retry attempts before giving up.
+	ProducerMaxRetries = 5
+
+	// ProducerInitialBackoff is the initial delay before the first retry attempt.
+	ProducerInitialBackoff = 500 * time.Millisecond
+
+	// ProducerMaxBackoff is the upper bound for the producer retry backoff delay.
+	ProducerMaxBackoff = 10 * time.Second
+
+	// ProducerBackoffFactor is the multiplier applied to the backoff on each successive retry.
+	ProducerBackoffFactor = 2.0
+)
+
+// RabbitMQ Connection Monitor Configuration
+const (
+	// ConnectionMonitorInterval is the period between background RabbitMQ health checks.
+	ConnectionMonitorInterval = 10 * time.Second
 )
