@@ -43,7 +43,7 @@ jobs:
   update_gitops:
     needs: [build]
     if: (contains(github.ref, '-beta') || contains(github.ref, '-rc')) && needs.build.result == 'success'
-    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/gitops-update.yml@v1.10.2
+    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/gitops-update.yml@v1.11.0
     with:
       runner_type: "firmino-lxc-runners"
       gitops_repository: "LerianStudio/midaz-firmino-gitops"
