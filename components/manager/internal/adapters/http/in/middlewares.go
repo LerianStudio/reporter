@@ -5,6 +5,8 @@
 package in
 
 import (
+	"regexp"
+
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/net/http"
@@ -15,7 +17,13 @@ import (
 	"github.com/google/uuid"
 )
 
-var UUIDPathParameter = "id"
+var (
+	UUIDPathParameter = "id"
+
+	// validStringPathParam defines the allowlist pattern for non-UUID string path parameters.
+	// Starts with a letter (blocks path traversal), allows alphanumeric + underscore + hyphen, max 128 chars.
+	validStringPathParam = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]{0,127}$`)
+)
 
 // SecurityHeaders returns a Fiber middleware that sets standard HTTP security
 // headers on every response. The headers mitigate common browser-side attacks
@@ -68,4 +76,28 @@ func ParseUUIDPathParam(paramName string) fiber.Handler {
 // ParseUUIDPathParam(paramName).
 func ParsePathParametersUUID(c *fiber.Ctx) error {
 	return ParseUUIDPathParam(UUIDPathParameter)(c)
+}
+
+// ParseStringPathParam returns a Fiber middleware that validates the named path
+// parameter as a safe string identifier. On success the validated string is stored
+// in c.Locals(paramName) for downstream handlers. On failure a 400 Bad Request
+// response is returned with the standard ErrInvalidPathParameter error.
+func ParseStringPathParam(paramName string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		pathParam := c.Params(paramName)
+
+		if commons.IsNilOrEmpty(&pathParam) {
+			err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", paramName)
+			return http.WithError(c, err)
+		}
+
+		if !validStringPathParam.MatchString(pathParam) {
+			err := pkg.ValidateBusinessError(constant.ErrInvalidPathParameter, "", paramName)
+			return http.WithError(c, err)
+		}
+
+		c.Locals(paramName, pathParam)
+
+		return c.Next()
+	}
 }

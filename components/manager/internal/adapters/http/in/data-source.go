@@ -16,7 +16,6 @@ import (
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -91,7 +90,7 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(ctx, "handler.data_source.get_details_by_id")
 	defer span.End()
 
-	dataSourceID := c.Locals("dataSourceId").(uuid.UUID).String()
+	dataSourceID := c.Locals("dataSourceId").(string)
 
 	logger.Infof("Initiating retrieval data source information with ID: %s", dataSourceID)
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -201,7 +202,7 @@ func TestUUIDPathParameter_Constant(t *testing.T) {
 	assert.Equal(t, "id", UUIDPathParameter)
 }
 
-func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
+func TestParseStringPathParam(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -212,32 +213,67 @@ func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
 		expectLocals   bool
 	}{
 		{
-			name:           "Success - Valid UUID for dataSourceId",
-			pathParam:      uuid.New().String(),
+			name:           "Success - snake_case data source ID",
+			pathParam:      "midaz_onboarding",
 			expectedStatus: http.StatusOK,
 			expectError:    false,
 			expectLocals:   true,
 		},
 		{
-			name:           "Error - Non-UUID string for dataSourceId",
-			pathParam:      "mongo_ds",
-			expectedStatus: http.StatusBadRequest,
-			expectError:    true,
-			expectLocals:   false,
-		},
-		{
-			name:           "Error - Empty-like string for dataSourceId",
-			pathParam:      "not-a-uuid",
-			expectedStatus: http.StatusBadRequest,
-			expectError:    true,
-			expectLocals:   false,
-		},
-		{
-			name:           "Success - UUID with uppercase letters for dataSourceId",
-			pathParam:      "550E8400-E29B-41D4-A716-446655440000",
+			name:           "Success - short data source ID",
+			pathParam:      "pg_ds",
 			expectedStatus: http.StatusOK,
 			expectError:    false,
 			expectLocals:   true,
+		},
+		{
+			name:           "Success - hyphenated data source ID",
+			pathParam:      "A-valid-ID",
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+			expectLocals:   true,
+		},
+		{
+			name:           "Success - single letter",
+			pathParam:      "x",
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+			expectLocals:   true,
+		},
+		{
+			name:           "Error - starts with number",
+			pathParam:      "123abc",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Error - starts with underscore",
+			pathParam:      "_invalid",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Error - special characters (semicolon)",
+			pathParam:      "id;DROP",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Error - contains dots",
+			pathParam:      "some.dotted.id",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
+		},
+		{
+			name:           "Error - URL encoded path traversal",
+			pathParam:      "..%2Fetc",
+			expectedStatus: http.StatusBadRequest,
+			expectError:    true,
+			expectLocals:   false,
 		},
 	}
 
@@ -252,11 +288,11 @@ func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
 
 			const paramName = "dataSourceId"
 
-			var capturedID uuid.UUID
+			var capturedID string
 			var localsSet bool
 
-			app.Get("/data-sources/:dataSourceId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
-				if id, ok := c.Locals(paramName).(uuid.UUID); ok {
+			app.Get("/data-sources/:dataSourceId", ParseStringPathParam(paramName), func(c *fiber.Ctx) error {
+				if id, ok := c.Locals(paramName).(string); ok {
 					capturedID = id
 					localsSet = true
 				}
@@ -273,7 +309,7 @@ func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
 
 			if tt.expectLocals {
 				assert.True(t, localsSet, "Expected locals to be set")
-				assert.NotEqual(t, uuid.Nil, capturedID, "Expected valid UUID in locals")
+				assert.Equal(t, tt.pathParam, capturedID, "Expected path param stored in locals")
 			}
 
 			if tt.expectError {
@@ -290,7 +326,7 @@ func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
 	}
 }
 
-func TestParseUUIDPathParam_SpecificUUID(t *testing.T) {
+func TestParseStringPathParam_SpecificValue(t *testing.T) {
 	t.Parallel()
 
 	app := fiber.New(fiber.Config{
@@ -298,21 +334,55 @@ func TestParseUUIDPathParam_SpecificUUID(t *testing.T) {
 	})
 
 	const paramName = "dataSourceId"
-	expectedUUID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	const expectedID = "midaz_onboarding"
 
-	var capturedID uuid.UUID
+	var capturedID string
 
-	app.Get("/data-sources/:dataSourceId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
-		capturedID = c.Locals(paramName).(uuid.UUID)
+	app.Get("/data-sources/:dataSourceId", ParseStringPathParam(paramName), func(c *fiber.Ctx) error {
+		capturedID = c.Locals(paramName).(string)
 		return c.SendStatus(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/data-sources/"+expectedUUID.String(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/data-sources/"+expectedID, nil)
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, expectedUUID, capturedID)
+	assert.Equal(t, expectedID, capturedID)
+}
+
+func TestParseStringPathParam_MaxLength(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "dataSourceId"
+
+	app.Get("/data-sources/:dataSourceId", ParseStringPathParam(paramName), func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	// 128 chars: 1 letter + 127 alphanumeric = exactly at limit
+	validLong := "a" + strings.Repeat("b", 127)
+	req := httptest.NewRequest(http.MethodGet, "/data-sources/"+validLong, nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// 129 chars: exceeds limit
+	tooLong := "a" + strings.Repeat("b", 128)
+	req = httptest.NewRequest(http.MethodGet, "/data-sources/"+tooLong, nil)
+	resp, err = app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

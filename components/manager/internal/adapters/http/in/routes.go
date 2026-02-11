@@ -52,6 +52,7 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	tlMid := commonsHttp.NewTelemetryMiddleware(tl)
 
 	f.Use(tlMid.WithTelemetry(tl))
+	f.Use(RecoverMiddleware())
 	f.Use(otelfiber.Middleware(
 		otelfiber.WithNext(func(c *fiber.Ctx) bool {
 			// Skip tracing for health/ready endpoints to reduce noise
@@ -59,7 +60,6 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 			return path == "/health" || path == "/ready"
 		}),
 	))
-	f.Use(RecoverMiddleware())
 	f.Use(SecurityHeaders())
 	f.Use(cors.New())
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
@@ -80,7 +80,7 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 
 	// Data source routes
 	f.Get("/v1/data-sources", auth.Authorize(applicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformation)
-	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(applicationName, dataSourceResource, "get"), ParseUUIDPathParam("dataSourceId"), dataSourceHandler.GetDataSourceInformationByID)
+	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(applicationName, dataSourceResource, "get"), ParseStringPathParam("dataSourceId"), dataSourceHandler.GetDataSourceInformationByID)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)
