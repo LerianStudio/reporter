@@ -702,13 +702,13 @@ func TestReconstructReport_BypassesValidation(t *testing.T) {
 			deletedAt:   nil,
 		},
 		{
-			name:      "soft-deleted record",
-			id:        uuid.New(),
+			name:       "soft-deleted record",
+			id:         uuid.New(),
 			templateID: uuid.New(),
-			status:    constant.ErrorStatus,
-			deletedAt: timePtr(time.Now()),
-			createdAt: time.Now().Add(-2 * time.Hour),
-			updatedAt: time.Now().Add(-time.Hour),
+			status:     constant.ErrorStatus,
+			deletedAt:  timePtr(time.Now()),
+			createdAt:  time.Now().Add(-2 * time.Hour),
+			updatedAt:  time.Now().Add(-time.Hour),
 		},
 	}
 

@@ -1197,7 +1197,7 @@ func TestValidateFieldType(t *testing.T) {
 		{
 			name:    "string for int field returns error via unmarshal",
 			value:   "not-a-number",
-			fieldI:  1, // Age (int)
+			fieldI:  1,     // Age (int)
 			wantErr: false, // string to int is handled by unmarshal, not by type check in getTypeMismatch
 		},
 	}

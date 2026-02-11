@@ -16,6 +16,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
+
 	// otel/trace is used for trace.Span parameter types in internal helpers
 	"go.opentelemetry.io/otel/trace"
 )

@@ -314,9 +314,9 @@ func TestRepository_GetDatabaseSchemaForOrganization_Success(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		orgID  string
-		want   []CollectionSchema
+		name  string
+		orgID string
+		want  []CollectionSchema
 	}{
 		{
 			name:  "returns filtered collections for organization",

@@ -570,9 +570,9 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 		Type:                getDataSourceEnv(name, "TYPE"),
 		SSLMode:             getDataSourceEnv(name, "SSLMODE"),
 		SSLRootCert:         getDataSourceEnv(name, "SSLROOTCERT"),
-		SSL:                 getDataSourceEnv(name, "SSL"),     // For MongoDB SSL
-		SSLCA:               getDataSourceEnv(name, "SSLCA"),   // For MongoDB CA file
-		Options:             getDataSourceEnv(name, "OPTIONS"), // For MongoDB URI options
+		SSL:                 getDataSourceEnv(name, "SSL"),                   // For MongoDB SSL
+		SSLCA:               getDataSourceEnv(name, "SSLCA"),                 // For MongoDB CA file
+		Options:             getDataSourceEnv(name, "OPTIONS"),               // For MongoDB URI options
 		MidazOrganizationID: getDataSourceEnv(name, "MIDAZ_ORGANIZATION_ID"), // For CRM collection names
 	}
 

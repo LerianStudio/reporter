@@ -623,8 +623,8 @@ func TestNewS3Client_ConfigVariations(t *testing.T) {
 		{
 			name: "With static credentials",
 			cfg: S3Config{
-				Bucket:         "my-bucket",
-				AccessKeyID:    "AKID",
+				Bucket:          "my-bucket",
+				AccessKeyID:     "AKID",
 				SecretAccessKey: "SECRET",
 			},
 			wantErr: false,

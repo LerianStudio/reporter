@@ -10,6 +10,7 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+
 	// otel/trace is used for trace.Tracer parameter type in saveReport
 	"go.opentelemetry.io/otel/trace"
 )
