@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"runtime/debug"
 	"strings"
@@ -24,11 +25,17 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
+
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
 	// otel/trace is used for trace.Span parameter type in handleFailedMessage
 	"go.opentelemetry.io/otel/trace"
 )
+
+// sleepFunc is the function used for sleeping during retry backoff.
+// Overridable in tests for deterministic behavior.
+// TODO(review): migrate to a ConsumerRoutes field for test isolation; safe currently as no test overrides it.
+var sleepFunc = time.Sleep
 
 // ConsumerRepository provides an interface for Consumer related to rabbitmq.
 //
@@ -52,6 +59,10 @@ type ConsumerRoutes struct {
 
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
 func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) (*ConsumerRoutes, error) {
+	if telemetry == nil {
+		return nil, fmt.Errorf("telemetry must not be nil")
+	}
+
 	if numWorkers == 0 {
 		numWorkers = pkgConstant.DefaultWorkerCount
 	}
@@ -98,7 +109,7 @@ func (cr *ConsumerRoutes) RunConsumers(ctx context.Context, wg *sync.WaitGroup) 
 }
 
 func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, messages <-chan amqp091.Delivery, queueName string, handler QueueHandlerFunc) {
-	for i := 0; i < cr.numWorkers; i++ {
+	for i := range cr.numWorkers {
 		wg.Add(1)
 
 		go func(workerID int, queue string, handlerFunc QueueHandlerFunc) {
@@ -189,6 +200,10 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 
 // consumeMessages establishes a consumer for the specified queue and returns a channel for message deliveries.
 func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Delivery, error) {
+	if cr.conn.Channel == nil {
+		return nil, fmt.Errorf("rabbitmq channel is nil, cannot consume from queue %s", queueName)
+	}
+
 	return cr.conn.Channel.Consume(
 		queueName,
 		"",
@@ -201,18 +216,26 @@ func (cr *ConsumerRoutes) consumeMessages(queueName string) (<-chan amqp091.Deli
 
 // setupQos configures QoS settings for the RabbitMQ channel to limit message prefetch count and improve message processing.
 func (cr *ConsumerRoutes) setupQos() error {
+	if cr.conn.Channel == nil {
+		return fmt.Errorf("rabbitmq channel is nil, cannot setup QoS")
+	}
+
 	return cr.conn.Channel.Qos(pkgConstant.DefaultPrefetchCount, 0, false)
 }
 
 // handleFailedMessage determines whether a failed message should be retried or sent to the DLQ.
 // Non-retryable errors (business validation) are immediately sent to DLQ via Nack.
-// Retryable errors are requeued with exponential backoff up to MaxMessageRetries attempts.
+// Retryable errors are republished with an incremented retry counter and exponential backoff,
+// up to MaxMessageRetries attempts. When retries are exhausted, the message is Nack'd without
+// requeue so the broker routes it to the configured dead-letter exchange.
 func (cr *ConsumerRoutes) handleFailedMessage(workerID int, queue string, message amqp091.Delivery, err error, retryCount int, span *trace.Span) {
 	if !isRetryable(err) {
 		cr.Infof("Worker %d: Non-retryable error for queue %s, sending to DLQ: %v", workerID, queue, err)
 		opentelemetry.HandleSpanBusinessErrorEvent(span, "Non-retryable business error, routing to DLQ", err)
 
-		_ = message.Nack(false, false)
+		if nackErr := message.Nack(false, false); nackErr != nil {
+			cr.Errorf("Worker %d: Nack failed for queue %s: %v", workerID, queue, nackErr)
+		}
 
 		return
 	}
@@ -222,19 +245,73 @@ func (cr *ConsumerRoutes) handleFailedMessage(workerID int, queue string, messag
 			workerID, pkgConstant.MaxMessageRetries, queue, err)
 		opentelemetry.HandleSpanError(span, "Max retries exceeded, routing to DLQ", err)
 
-		_ = message.Nack(false, false)
+		if nackErr := message.Nack(false, false); nackErr != nil {
+			cr.Errorf("Worker %d: Nack failed for queue %s: %v", workerID, queue, nackErr)
+		}
 
 		return
 	}
 
 	backoff := calculateBackoff(retryCount)
 
-	cr.Infof("Worker %d: Retryable error for queue %s (attempt %d/%d), backoff %v before requeue: %v",
+	cr.Infof("Worker %d: Retryable error for queue %s (attempt %d/%d), backoff %v before republish: %v",
 		workerID, queue, retryCount+1, pkgConstant.MaxMessageRetries, backoff, err)
 
-	time.Sleep(backoff)
+	sleepFunc(backoff)
 
-	_ = message.Nack(false, true)
+	// Build new headers with incremented retry count
+	retryHeaders := buildRetryHeaders(message.Headers, retryCount, err)
+
+	// Republish message with updated headers to the same exchange/routing-key.
+	// We use the Exchange and RoutingKey from the delivery metadata, which the
+	// broker populates with the original publish destination.
+	if cr.conn.Channel == nil {
+		cr.Errorf("Worker %d: Channel is nil, cannot republish for retry on queue %s. Sending to DLQ.", workerID, queue)
+		opentelemetry.HandleSpanError(span, "Channel nil, cannot republish for retry, routing to DLQ", fmt.Errorf("rabbitmq channel is nil"))
+
+		if nackErr := message.Nack(false, false); nackErr != nil {
+			cr.Errorf("Worker %d: Nack failed for queue %s: %v", workerID, queue, nackErr)
+		}
+
+		return
+	}
+
+	publishErr := cr.conn.Channel.Publish(
+		message.Exchange,
+		message.RoutingKey,
+		false,
+		false,
+		amqp091.Publishing{
+			ContentType:  message.ContentType,
+			DeliveryMode: amqp091.Persistent,
+			Headers:      retryHeaders,
+			Body:         message.Body,
+		},
+	)
+
+	if publishErr != nil {
+		cr.Errorf("Worker %d: Failed to republish message for retry on queue %s: %v. Sending to DLQ.",
+			workerID, queue, publishErr)
+		opentelemetry.HandleSpanError(span, "Failed to republish for retry, routing to DLQ", publishErr)
+
+		// If we can't republish, Nack without requeue to send to DLQ rather than
+		// losing the message or creating an infinite loop.
+		if nackErr := message.Nack(false, false); nackErr != nil {
+			cr.Errorf("Worker %d: Nack failed for queue %s: %v", workerID, queue, nackErr)
+		}
+
+		return
+	}
+
+	// Ack the original message since we successfully republished with updated headers.
+	// This removes the old message from the queue, preventing duplicates.
+	if ackErr := message.Ack(false); ackErr != nil {
+		cr.Errorf("Worker %d: Ack failed after republish for queue %s: %v (message may be redelivered)",
+			workerID, queue, ackErr)
+	}
+
+	cr.Infof("Worker %d: Message republished for retry %d/%d on queue %s",
+		workerID, retryCount+1, pkgConstant.MaxMessageRetries, queue)
 }
 
 // isRetryable classifies an error as retryable or non-retryable.
@@ -246,7 +323,9 @@ func isRetryable(err error) bool {
 		return false
 	}
 
-	// Context cancellation and deadline exceeded are non-retryable
+	// Context cancellation and deadline exceeded are non-retryable.
+	// Deadline exceeded means the operation's time budget is exhausted; retrying would
+	// start with the same expired context. The message will route to DLQ for inspection.
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
@@ -282,6 +361,26 @@ func isRetryable(err error) bool {
 
 	var unprocessableErr pkg.UnprocessableOperationError
 	if errors.As(err, &unprocessableErr) {
+		return false
+	}
+
+	var conflictErr pkg.EntityConflictError
+	if errors.As(err, &conflictErr) {
+		return false
+	}
+
+	var forbiddenErr pkg.ForbiddenError
+	if errors.As(err, &forbiddenErr) {
+		return false
+	}
+
+	var unauthorizedErr pkg.UnauthorizedError
+	if errors.As(err, &unauthorizedErr) {
+		return false
+	}
+
+	var preconditionErr pkg.FailedPreconditionError
+	if errors.As(err, &preconditionErr) {
 		return false
 	}
 
@@ -334,13 +433,29 @@ func getRetryCount(msg amqp091.Delivery) int {
 	}
 }
 
+// buildRetryHeaders creates a new header table for a retry republish.
+// It copies all original headers, then overwrites the retry count (incremented)
+// and failure reason. This ensures tracing headers (e.g., traceparent) and
+// request IDs survive across retries.
+// TODO(review): consider sanitizing/truncating lastErr.Error() before storing in x-failure-reason
+// to avoid leaking internal infrastructure details (e.g., connection strings from DB driver errors).
+func buildRetryHeaders(original amqp091.Table, currentRetryCount int, lastErr error) amqp091.Table {
+	headers := make(amqp091.Table, len(original)+2)
+	maps.Copy(headers, original) // safe with nil source (no-op)
+
+	headers[pkgConstant.RetryCountHeader] = currentRetryCount + 1
+	headers[pkgConstant.RetryFailureReasonHeader] = lastErr.Error()
+
+	return headers
+}
+
 // calculateBackoff computes the delay before the next retry attempt using exponential backoff with jitter.
 // Formula: min(initialBackoff * 2^attempt, maxBackoff) + random_jitter(0, RetryJitterMax)
 // Jitter prevents thundering herd when multiple consumers retry simultaneously.
 func calculateBackoff(attempt int) time.Duration {
 	backoff := pkgConstant.RetryInitialBackoff
 
-	for i := 0; i < attempt; i++ {
+	for range attempt {
 		backoff *= 2
 		if backoff > pkgConstant.RetryMaxBackoff {
 			backoff = pkgConstant.RetryMaxBackoff
