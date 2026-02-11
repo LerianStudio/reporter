@@ -34,6 +34,10 @@ func StartWorker(ctx context.Context, cfg *ServiceConfig) (*WorkerService, error
 		return nil, fmt.Errorf("build worker: %w", err)
 	}
 
+	if cfg == nil {
+		return nil, fmt.Errorf("start worker: nil ServiceConfig")
+	}
+
 	// Create command with environment
 	cmd := exec.CommandContext(ctx, binaryPath)
 	cmd.Dir = findProjectRoot()

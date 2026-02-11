@@ -9,7 +9,6 @@ package integration
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
@@ -30,7 +29,9 @@ func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
 	var page1 struct {
 		Items []map[string]any `json:"items"`
 	}
-	_ = json.Unmarshal(body, &page1)
+	if err := json.Unmarshal(body, &page1); err != nil {
+		t.Fatalf("failed to unmarshal page1: %v", err)
+	}
 
 	path2 := "/v1/templates?limit=1&page=2&outputFormat=HTML"
 	code, body, err = cli.Request(ctx, "GET", path2, headers, nil)
@@ -40,7 +41,10 @@ func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
 	var page2 struct {
 		Items []map[string]any `json:"items"`
 	}
-	_ = json.Unmarshal(body, &page2)
+	err = json.Unmarshal(body, &page2)
+	if err != nil {
+		t.Fatalf("failed to unmarshal page2: %v", err)
+	}
 
 	seen := map[string]bool{}
 	for _, it := range page1.Items {
@@ -64,7 +68,7 @@ func TestIntegration_Templates_Create_BadRequest(t *testing.T) {
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
 	headers := h.AuthHeaders()
 
-	payload := map[string]any{"description": "x", "outputFormat": "HTML", "templateFile": fmt.Sprintf("%s", "not-binary")}
+	payload := map[string]any{"description": "x", "outputFormat": "HTML", "templateFile": "not-binary"}
 	code, body, err := cli.Request(ctx, "POST", "/v1/templates", headers, payload)
 	if err != nil {
 		t.Fatalf("request error: %v", err)

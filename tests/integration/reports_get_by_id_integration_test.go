@@ -36,7 +36,9 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"items"`
 	}
-	_ = json.Unmarshal(body, &reports)
+	if err := json.Unmarshal(body, &reports); err != nil {
+		t.Fatalf("parse list reports response: %v", err)
+	}
 
 	if len(reports.Items) == 0 {
 		t.Skip("No reports found to test GET by ID")
@@ -64,7 +66,9 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 		Filters     map[string]any `json:"filters"`
 		Metadata    map[string]any `json:"metadata"`
 	}
-	_ = json.Unmarshal(body, &report)
+	if err := json.Unmarshal(body, &report); err != nil {
+		t.Fatalf("parse report response: %v", err)
+	}
 
 	if report.ID == "" {
 		t.Fatalf("Report ID is empty")
@@ -131,7 +135,9 @@ func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 	}
-	_ = json.Unmarshal(body, &errorResp)
+	if err := json.Unmarshal(body, &errorResp); err != nil {
+		t.Fatalf("parse error response: %v", err)
+	}
 
 	if errorResp.Title == "" {
 		t.Fatalf("Error response missing title")

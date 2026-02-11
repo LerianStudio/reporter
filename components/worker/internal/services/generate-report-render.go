@@ -14,6 +14,7 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+
 	// otel/trace is used for trace.Tracer and trace.Span parameter types
 	"go.opentelemetry.io/otel/trace"
 )
@@ -38,7 +39,7 @@ func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, messag
 		return nil, err
 	}
 
-	logger.Infof("Template found: %s", string(fileBytes))
+	logger.Infof("Template loaded successfully (size: %d bytes)", len(fileBytes))
 
 	return fileBytes, nil
 }
