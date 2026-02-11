@@ -62,7 +62,6 @@ func NewWorkerPool(num int, timeout time.Duration, logger log.Logger) *WorkerPoo
 			defer func() {
 				if r := recover(); r != nil {
 					wp.logger.Errorf("Panic recovered in PDF worker %d: %v\nStack: %s", workerID, r, string(debug.Stack()))
-					wp.wg.Done()
 				}
 			}()
 

@@ -57,7 +57,9 @@ func (hc *HealthChecker) Start() {
 
 	GoWithCleanup(hc.logger, func() {
 		hc.healthCheckLoop()
-	}, nil)
+	}, func(_ any) {
+		hc.wg.Done()
+	})
 
 	hc.logger.Info("Health checker started - checking datasources every 30s")
 }
