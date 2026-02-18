@@ -37,6 +37,7 @@ WORKDIR /app
 
 # Install Chromium and all required dependencies for chromedp
 RUN apk add --no-cache \
+    ca-certificates \
     chromium \
     nss \
     freetype \

@@ -32,6 +32,7 @@ services:
           cpus: '1.0'
         reservations:
           memory: 256M
+          cpus: '0.5'
 
   reporter-rabbitmq:
     image: rabbitmq:4.0-management-alpine
@@ -67,6 +68,7 @@ services:
           cpus: '0.5'
         reservations:
           memory: 128M
+          cpus: '0.25'
 
   reporter-seaweedfs:
     image: chrislusf/seaweedfs:3.97
@@ -95,6 +97,7 @@ services:
           cpus: '0.5'
         reservations:
           memory: 128M
+          cpus: '0.25'
 
   reporter-keda:
     image: ghcr.io/kedacore/keda:2.16.0
@@ -131,6 +134,7 @@ services:
           cpus: '0.5'
         reservations:
           memory: 128M
+          cpus: '0.25'
 
   reporter-valkey:
     container_name: reporter-valkey
@@ -167,6 +171,7 @@ services:
           cpus: '0.25'
         reservations:
           memory: 64M
+          cpus: '0.10'
 
 volumes:
   reporter-mongodb-data:
