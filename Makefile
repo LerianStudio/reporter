@@ -131,6 +131,7 @@ help:
 	@echo "  make test-fuzzy                  - Run fuzz/robustness tests (brings up backend)"
 	@echo "  make test-chaos                  - Run chaos/resilience tests (brings up backend)"
 	@echo "  make test-property               - Run property-based tests"
+	@echo "  make test-all                    - Run all test suites (unit + integration + fuzz + chaos + property)"
 	@echo ""
 	@echo "Coverage Commands:"
 	@echo "  make coverage-unit               - Run unit tests with coverage report"

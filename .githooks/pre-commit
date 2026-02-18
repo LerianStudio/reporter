@@ -9,3 +9,23 @@ if [[ $branch == "main" || $branch == "develop" || $branch == release/* ]]; then
   echo "${bold}You can't commit directly to protected branches"
   exit 1
 fi
+
+# Block .env files from being committed
+env_files=$(git diff --cached --name-only | grep -E '\.env($|\.)')
+if [[ -n "$env_files" ]]; then
+  echo "${bold}Blocked: .env files must not be committed:${normal}"
+  echo "$env_files"
+  exit 1
+fi
+
+# Run gofmt on staged .go files
+staged_go_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$')
+if [[ -n "$staged_go_files" ]]; then
+  unformatted=$(echo "$staged_go_files" | xargs gofmt -l 2>/dev/null)
+  if [[ -n "$unformatted" ]]; then
+    echo "${bold}The following Go files need formatting (gofmt):${normal}"
+    echo "$unformatted"
+    echo "Run: gofmt -w <file>"
+    exit 1
+  fi
+fi
