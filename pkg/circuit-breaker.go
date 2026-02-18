@@ -14,7 +14,10 @@ import (
 	"github.com/sony/gobreaker"
 )
 
-//go:generate mockgen --destination=circuit-breaker.mock.go --package=pkg . CircuitBreakerExecutor
+//go:generate mockgen --destination=circuit-breaker.mock.go --package=pkg --copyright_file=../COPYRIGHT . CircuitBreakerExecutor
+
+// Compile-time interface satisfaction check.
+var _ CircuitBreakerExecutor = (*CircuitBreakerManager)(nil)
 
 // CircuitBreakerExecutor defines the interface for executing operations through a circuit breaker.
 type CircuitBreakerExecutor interface {

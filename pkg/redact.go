@@ -4,10 +4,11 @@
 
 package pkg
 
-import "net/url"
+import (
+	"net/url"
 
-// redactPlaceholder is the replacement value for masked credentials.
-const redactPlaceholder = "REDACTED"
+	"github.com/LerianStudio/reporter/pkg/constant"
+)
 
 // RedactConnectionString masks credentials in a connection URI.
 // It replaces the username and password with "REDACTED" to prevent accidental
@@ -19,7 +20,7 @@ func RedactConnectionString(uri string) string {
 	}
 
 	if u.User != nil {
-		u.User = url.UserPassword(redactPlaceholder, redactPlaceholder)
+		u.User = url.UserPassword(constant.RedactPlaceholder, constant.RedactPlaceholder)
 	}
 
 	return u.String()

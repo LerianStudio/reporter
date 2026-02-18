@@ -5,11 +5,11 @@
 package services
 
 import (
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
-	pkgConfig "github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
+	pkgRedis "github.com/LerianStudio/reporter/pkg/redis"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 )
@@ -29,13 +29,13 @@ type UseCase struct {
 	ReportSeaweedFS reportSeaweedFS.Repository
 
 	// RabbitMQRepo provides an abstraction on top of the producer rabbitmq.
-	RabbitMQRepo rabbitmq.ProducerRepository
+	RabbitMQRepo pkgRabbitmq.ProducerRepository
 
 	// ExternalDataSources holds a thread-safe map of external data sources identified by their names.
-	ExternalDataSources *pkgConfig.SafeDataSources
+	ExternalDataSources *pkg.SafeDataSources
 
 	// RedisRepo provides an abstraction on top of the redis consumer.
-	RedisRepo redis.RedisRepository
+	RedisRepo pkgRedis.RedisRepository
 
 	// RabbitMQExchange is the exchange name for publishing report generation messages.
 	RabbitMQExchange string

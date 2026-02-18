@@ -22,7 +22,7 @@ import (
 
 // Repository provides an interface for storage operations
 //
-//go:generate mockgen --destination=template.mock.go --package=template . Repository
+//go:generate mockgen --destination=template.mock.go --package=template --copyright_file=../../../COPYRIGHT . Repository
 type Repository interface {
 	Get(ctx context.Context, objectName string) ([]byte, error)
 	Put(ctx context.Context, objectName string, contentType string, data []byte) error

@@ -9,6 +9,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
+
 	"github.com/flosch/pongo2/v6"
 	"github.com/shopspring/decimal"
 )
@@ -103,10 +105,6 @@ func makeAggregateBalanceTag() pongo2.TagParser {
 	}
 }
 
-// maxAggregateBalanceCollectionSize is the maximum number of items allowed in a collection
-// to prevent resource exhaustion attacks.
-const maxAggregateBalanceCollectionSize = 100000
-
 // Execute processes the aggregate_balance tag.
 func (node *aggregateBalanceNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
 	// 1. Evaluate collection
@@ -116,8 +114,8 @@ func (node *aggregateBalanceNode) Execute(ctx *pongo2.ExecutionContext, writer p
 	}
 
 	// 2. Check collection size to prevent resource exhaustion
-	if len(list) > maxAggregateBalanceCollectionSize {
-		return ctx.Error(fmt.Sprintf("collection size %d exceeds maximum allowed %d", len(list), maxAggregateBalanceCollectionSize), nil)
+	if len(list) > constant.MaxAggregateBalanceCollectionSize {
+		return ctx.Error(fmt.Sprintf("collection size %d exceeds maximum allowed %d", len(list), constant.MaxAggregateBalanceCollectionSize), nil)
 	}
 
 	// 2. Get field names

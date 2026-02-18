@@ -61,6 +61,11 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return err
 	}
 
+	span.SetAttributes(
+		attribute.String("app.request.report_id", message.ReportID.String()),
+		attribute.String("app.request.template_id", message.TemplateID.String()),
+	)
+
 	if skip := uc.shouldSkipProcessing(ctx, message.ReportID, logger); skip {
 		return nil
 	}
@@ -161,12 +166,23 @@ func (uc *UseCase) handleErrorWithUpdate(ctx context.Context, reportID uuid.UUID
 
 // updateReportWithErrors updates the status of a report to "Error" with metadata containing the provided error message.
 func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUID, errorMessage string) error {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.report.update_report_with_errors")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.report_id", reportId.String()),
+	)
+
 	metadata := make(map[string]any)
 	metadata["error"] = errorMessage
 
 	errUpdate := uc.ReportDataRepo.UpdateReportStatusById(ctx, constant.ErrorStatus,
 		reportId, time.Now(), metadata)
 	if errUpdate != nil {
+		libOtel.HandleSpanError(&span, "Failed to update report with error status", errUpdate)
+
 		return errUpdate
 	}
 

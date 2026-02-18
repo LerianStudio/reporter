@@ -510,6 +510,30 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Title:      "Idempotency Conflict",
 			Message:    "A request with this idempotency key has already been processed.",
 		},
+		constant.ErrBucketRequired: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrBucketRequired.Error(),
+			Title:      "Bucket Required",
+			Message:    "The storage bucket name is required. Please check the storage configuration.",
+		},
+		constant.ErrObjectKeyRequired: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrObjectKeyRequired.Error(),
+			Title:      "Object Key Required",
+			Message:    "The object key is required for the storage operation.",
+		},
+		constant.ErrObjectNotFound: EntityNotFoundError{
+			EntityType: entityType,
+			Code:       constant.ErrObjectNotFound.Error(),
+			Title:      "Object Not Found",
+			Message:    "The requested object was not found in storage.",
+		},
+		constant.ErrTTLNotSupported: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrTTLNotSupported.Error(),
+			Title:      "TTL Not Supported",
+			Message:    "TTL parameter is not supported in S3 mode. Use bucket lifecycle policies instead.",
+		},
 	}
 
 	if mappedError, found := errorMap[err]; found {

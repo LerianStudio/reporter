@@ -18,6 +18,7 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg"
 	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
+	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	constant "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -37,28 +38,17 @@ import (
 // TODO(review): migrate to a ConsumerRoutes field for test isolation; safe currently as no test overrides it.
 var sleepFunc = time.Sleep
 
-// ConsumerRepository provides an interface for Consumer related to rabbitmq.
-//
-//go:generate mockgen --destination=consumer.mock.go --package=rabbitmq . ConsumerRepository
-type ConsumerRepository interface {
-	Register(queueName string, handler QueueHandlerFunc)
-	RunConsumers(ctx context.Context, wg *sync.WaitGroup) error
-}
-
-// QueueHandlerFunc is a function that processes a specific queue.
-type QueueHandlerFunc func(ctx context.Context, body []byte) error
-
 // ConsumerRoutes struct
 type ConsumerRoutes struct {
 	conn       *rabbitmq.RabbitMQConnection
-	routes     map[string]QueueHandlerFunc
+	routes     map[string]pkgRabbitmq.QueueHandlerFunc
 	numWorkers int
 	log.Logger
 	opentelemetry.Telemetry
 }
 
 // Compile-time interface satisfaction check.
-var _ ConsumerRepository = (*ConsumerRoutes)(nil)
+var _ pkgRabbitmq.ConsumerRepository = (*ConsumerRoutes)(nil)
 
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
 func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) (*ConsumerRoutes, error) {
@@ -72,7 +62,7 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 
 	cr := &ConsumerRoutes{
 		conn:       conn,
-		routes:     make(map[string]QueueHandlerFunc),
+		routes:     make(map[string]pkgRabbitmq.QueueHandlerFunc),
 		numWorkers: numWorkers,
 		Logger:     logger,
 		Telemetry:  *telemetry,
@@ -87,7 +77,7 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 }
 
 // Register add a new queue to handler.
-func (cr *ConsumerRoutes) Register(queueName string, handler QueueHandlerFunc) {
+func (cr *ConsumerRoutes) Register(queueName string, handler pkgRabbitmq.QueueHandlerFunc) {
 	cr.routes[queueName] = handler
 }
 
@@ -111,11 +101,11 @@ func (cr *ConsumerRoutes) RunConsumers(ctx context.Context, wg *sync.WaitGroup) 
 	return nil
 }
 
-func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, messages <-chan amqp091.Delivery, queueName string, handler QueueHandlerFunc) {
+func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, messages <-chan amqp091.Delivery, queueName string, handler pkgRabbitmq.QueueHandlerFunc) {
 	for i := range cr.numWorkers {
 		wg.Add(1)
 
-		go func(workerID int, queue string, handlerFunc QueueHandlerFunc) {
+		go func(workerID int, queue string, handlerFunc pkgRabbitmq.QueueHandlerFunc) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
@@ -142,7 +132,7 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 }
 
 // processMessage processes a single message from a specified queue using the provided handler function.
-func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc QueueHandlerFunc, message amqp091.Delivery) {
+func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc pkgRabbitmq.QueueHandlerFunc, message amqp091.Delivery) {
 	requestID, found := message.Headers[constant.HeaderID]
 	if !found {
 		requestID = commons.GenerateUUIDv7().String()
@@ -170,7 +160,7 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 	defer spanConsumer.End()
 
 	spanConsumer.SetAttributes(
-		attribute.String("app.request.rabbitmq.consumer.request_id", requestIDStr),
+		attribute.String("app.request.request_id", requestIDStr),
 	)
 
 	err := opentelemetry.SetSpanAttributesFromStruct(&spanConsumer, "app.request.rabbitmq.consumer.message", message)

@@ -14,7 +14,7 @@ import (
 	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
-	cn "github.com/LerianStudio/reporter/pkg/constant"
+	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/pdf"
 	"github.com/LerianStudio/reporter/pkg/pongo"
@@ -120,9 +120,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// defaultPassword is the placeholder value that must be replaced before
-// deploying to production.
-const defaultPassword = "CHANGE_ME"
 
 // validateProductionConfig enforces stricter rules when EnvName is "production".
 // Telemetry and real credentials are required in production.
@@ -149,7 +146,7 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 	for _, s := range secrets {
 		if s.value == "" {
 			errs = append(errs, s.name+" must not be empty in production")
-		} else if s.value == defaultPassword {
+		} else if s.value == pkgConstant.DefaultPasswordPlaceholder {
 			errs = append(errs, s.name+" must not use the default placeholder in production")
 		}
 	}
@@ -276,7 +273,7 @@ func InitWorker() (_ *Service, err error) {
 	}
 
 	if cfg.MaxPoolSize <= 0 {
-		cfg.MaxPoolSize = int(cn.MongoDBMaxPoolSize)
+		cfg.MaxPoolSize = int(pkgConstant.MongoDBMaxPoolSize)
 	}
 
 	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))

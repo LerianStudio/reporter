@@ -12,6 +12,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
+	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
@@ -20,13 +21,6 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel/attribute"
 )
-
-// ProducerRepository provides an interface for Producer related to rabbitmq.
-//
-//go:generate mockgen --destination=producer.mock.go --package=rabbitmq . ProducerRepository
-type ProducerRepository interface {
-	ProducerDefault(ctx context.Context, exchange, key string, message model.ReportMessage) (*string, error)
-}
 
 // sleepFunc is the function used for sleeping between retries.
 // Overridable in tests for deterministic behavior.
@@ -38,7 +32,7 @@ type ProducerRabbitMQRepository struct {
 }
 
 // Compile-time interface satisfaction check.
-var _ ProducerRepository = (*ProducerRabbitMQRepository)(nil)
+var _ pkgRabbitmq.ProducerRepository = (*ProducerRabbitMQRepository)(nil)
 
 // NewProducerRabbitMQ returns a new instance of ProducerRabbitMQRepository using the given rabbitmq connection.
 // Connection is established lazily on first use to avoid panic during initialization.

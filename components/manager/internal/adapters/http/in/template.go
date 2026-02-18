@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-const ErrFileAccepted = "there is no uploaded file associated with the given key"
 
 // TemplateHandler handles HTTP requests for template operations.
 type TemplateHandler struct {
@@ -102,14 +101,14 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	templateFile, errFile := http.GetFileFromHeader(fileHeader)
 	if errFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get file from header", errFile)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get file from header", errFile)
 
 		return http.WithError(c, errFile)
 	}
 
 	// Validate if form fields data is valid
 	if errValidate := pkg.ValidateFormDataFields(&outputFormat, &description); errValidate != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate form data fields", errValidate)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate form data fields", errValidate)
 
 		logger.Errorf("Error to validate form data fields, Error: %v", errValidate)
 
@@ -118,7 +117,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	// Validate if the file content matches the outputFormat
 	if errValidateFile := pkg.ValidateFileFormat(outputFormat, templateFile); errValidateFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate file format", errValidateFile)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate file format", errValidateFile)
 
 		logger.Errorf("Error to validate file format, Error: %v", errValidateFile)
 
@@ -186,7 +185,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	)
 
 	fileHeader, err := c.FormFile("template")
-	if err != nil && err.Error() != ErrFileAccepted {
+	if err != nil && err.Error() != constant.ErrFileAccepted {
 		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
@@ -292,7 +291,7 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 
 	headerParams, err := http.ValidateParameters(c.Queries())
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate query parameters", err)
 
 		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
 

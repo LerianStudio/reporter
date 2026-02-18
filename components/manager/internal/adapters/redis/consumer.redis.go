@@ -6,25 +6,18 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
+
+	pkgRedis "github.com/LerianStudio/reporter/pkg/redis"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	goRedis "github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"
 )
-
-// RedisRepository provides an interface for redis.
-// It defines methods for setting, getting, deleting keys, and incrementing values.
-//
-//go:generate mockgen --destination=consumer.redis.mock.go --package=redis . RedisRepository
-type RedisRepository interface {
-	Set(ctx context.Context, key, value string, ttl time.Duration) error
-	SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error)
-	Get(ctx context.Context, key string) (string, error)
-	Del(ctx context.Context, key string) error
-}
 
 // RedisConsumerRepository is a Redis implementation of the Redis consumer.
 type RedisConsumerRepository struct {
@@ -32,7 +25,7 @@ type RedisConsumerRepository struct {
 }
 
 // Compile-time interface satisfaction check.
-var _ RedisRepository = (*RedisConsumerRepository)(nil)
+var _ pkgRedis.RedisRepository = (*RedisConsumerRepository)(nil)
 
 // NewConsumerRedis returns a new instance of RedisRepository using the given Redis connection.
 func NewConsumerRedis(rc *libRedis.RedisConnection) (*RedisConsumerRepository, error) {
@@ -138,10 +131,18 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 
 	val, err := rds.Get(ctx, key).Result()
 	if err != nil {
+		if errors.Is(err, goRedis.Nil) {
+			span.SetAttributes(attribute.Bool("app.cache.hit", false))
+
+			return "", err
+		}
+
 		libOpentelemetry.HandleSpanError(&span, "Failed to get on redis", err)
 
 		return "", err
 	}
+
+	span.SetAttributes(attribute.Bool("app.cache.hit", true))
 
 	span.SetAttributes(
 		attribute.String("app.response.value", val),

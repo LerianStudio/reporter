@@ -15,6 +15,7 @@ import (
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -53,13 +54,13 @@ type S3Client struct {
 
 var (
 	// ErrBucketRequired indicates bucket name is missing.
-	ErrBucketRequired = errors.New("bucket name is required")
+	ErrBucketRequired = constant.ErrBucketRequired
 	// ErrKeyRequired indicates object key is missing.
-	ErrKeyRequired = errors.New("object key is required")
+	ErrKeyRequired = constant.ErrObjectKeyRequired
 	// ErrObjectNotFound indicates the object does not exist.
-	ErrObjectNotFound = errors.New("object not found")
+	ErrObjectNotFound = constant.ErrObjectNotFound
 	// ErrTTLNotSupported indicates TTL is not supported by S3 (use lifecycle policies instead).
-	ErrTTLNotSupported = errors.New("TTL parameter not supported in S3 mode - use bucket lifecycle policies instead")
+	ErrTTLNotSupported = constant.ErrTTLNotSupported
 )
 
 // NewS3Client creates a new S3 client with the given configuration.

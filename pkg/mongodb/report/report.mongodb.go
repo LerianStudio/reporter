@@ -25,7 +25,7 @@ import (
 
 // Repository provides an interface for operations related to reports collection in MongoDB.
 //
-//go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
+//go:generate mockgen --destination=report.mongodb.mock.go --package=report --copyright_file=../../../COPYRIGHT . Repository
 type Repository interface {
 	UpdateReportStatusById(ctx context.Context, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
 	Create(ctx context.Context, record *Report) (*Report, error)
@@ -127,7 +127,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	}
 
 	if result.MatchedCount == 0 {
-		libOpentelemetry.HandleSpanError(&spanUpdate, "No report found with the provided UUID", nil)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&spanUpdate, "No report found with the provided UUID", constant.ErrEntityNotFound)
 	}
 
 	return nil

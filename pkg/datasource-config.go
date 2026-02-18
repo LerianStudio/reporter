@@ -339,7 +339,7 @@ func ExternalDatasourceConnectionsLazy(logger log.Logger) map[string]DataSource 
 		case MongoDBType:
 			ds = initMongoDataSource(dataSource, logger)
 		case PostgreSQLType:
-			ds = initPostgresDataSource(dataSource, logger)
+			ds = initPostgresDataSource(dataSource, logger, true)
 		default:
 			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
 			continue
@@ -379,7 +379,7 @@ func ExternalDatasourceConnections(logger log.Logger) map[string]DataSource {
 		case MongoDBType:
 			ds = initMongoDataSource(dataSource, logger)
 		case PostgreSQLType:
-			ds = initPostgresDataSource(dataSource, logger)
+			ds = initPostgresDataSource(dataSource, logger, false)
 		default:
 			logger.Errorf("Unsupported database type '%s' for data source '%s'.", dataSource.Type, dataSource.Name)
 			continue
@@ -479,7 +479,7 @@ func initMongoDataSource(dataSource DataSourceConfig, logger log.Logger) DataSou
 	}
 }
 
-func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) DataSource {
+func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger, lazy bool) DataSource {
 	connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
 		dataSource.Type, dataSource.User, url.QueryEscape(dataSource.Password), dataSource.Host, dataSource.Port, dataSource.Database, dataSource.SSLMode)
 	if dataSource.SSLMode != "" {
@@ -493,21 +493,25 @@ func initPostgresDataSource(dataSource DataSourceConfig, logger log.Logger) Data
 		MaxOpenConnections: constant.PostgresMaxOpenConns,
 		MaxIdleConnections: constant.PostgresMaxIdleConns,
 	}
-	if err := connection.Connect(); err != nil {
-		logger.Errorf("Failed to connect to Postgres [%s]: %v", dataSource.ConfigName, err)
-	} else {
-		logger.Infof("Successfully connected to Postgres [%s] with pool config (max: %d, idle: %d)",
-			dataSource.ConfigName, constant.PostgresMaxOpenConns, constant.PostgresMaxIdleConns)
+
+	if !lazy {
+		if err := connection.Connect(); err != nil {
+			logger.Errorf("Failed to connect to Postgres [%s]: %v", dataSource.ConfigName, err)
+		} else {
+			logger.Infof("Successfully connected to Postgres [%s] with pool config (max: %d, idle: %d)",
+				dataSource.ConfigName, constant.PostgresMaxOpenConns, constant.PostgresMaxIdleConns)
+		}
 	}
 
 	return DataSource{
-		DatabaseType:   dataSource.Type,
-		DatabaseConfig: connection,
-		Initialized:    false,
-		Status:         libConstant.DataSourceStatusUnknown,
-		LastAttempt:    time.Time{},
-		RetryCount:     0,
-		Schemas:        dataSource.GetSchemas(),
+		DatabaseType:        dataSource.Type,
+		DatabaseConfig:      connection,
+		Initialized:         false,
+		Status:              libConstant.DataSourceStatusUnknown,
+		LastAttempt:         time.Time{},
+		RetryCount:          0,
+		Schemas:             dataSource.GetSchemas(),
+		MidazOrganizationID: dataSource.MidazOrganizationID,
 	}
 }
 
@@ -574,6 +578,11 @@ func buildDataSourceConfig(name string, logger log.Logger) (DataSourceConfig, bo
 		SSLCA:               getDataSourceEnv(name, "SSLCA"),                 // For MongoDB CA file
 		Options:             getDataSourceEnv(name, "OPTIONS"),               // For MongoDB URI options
 		MidazOrganizationID: getDataSourceEnv(name, "MIDAZ_ORGANIZATION_ID"), // For CRM collection names
+	}
+
+	if dataSource.ConfigName == "" {
+		logger.Warnf("Datasource '%s' has empty CONFIG_NAME - skipping", name)
+		return dataSource, false
 	}
 
 	logger.Infof("Found external data source: %s (config name: %s) with database: %s (type: %s, sslmode: %s, ssl: %s, sslca: %s)",

@@ -65,7 +65,7 @@ func (uc *UseCase) queryDatabase(
 
 	dataSource, exists := uc.ExternalDataSources.Get(databaseName)
 	if !exists {
-		libOtel.HandleSpanError(&dbSpan, "Unknown data source.", nil)
+		libOtel.HandleSpanBusinessErrorEvent(&dbSpan, "Unknown data source", fmt.Errorf("data source not found: %s", databaseName))
 		logger.Errorf("Unknown data source: %s", databaseName)
 
 		return nil // Continue with the next database
@@ -127,6 +127,15 @@ func (uc *UseCase) queryPostgresDatabase(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.report.query_postgres_database")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.database_name", databaseName),
+	)
+
 	// Use configured schemas or default to public
 	configuredSchemas := dataSource.Schemas
 	if len(configuredSchemas) == 0 {
@@ -317,6 +326,15 @@ func (uc *UseCase) processPluginCRMCollection(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.report.process_plugin_crm_collection")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.collection", collection),
+	)
+
 	// Get Midaz organization ID from datasource configuration (DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID)
 	if dataSource.MidazOrganizationID == "" {
 		logger.Errorf("Midaz Organization ID not configured for plugin_crm datasource. Set DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID environment variable.")
@@ -356,6 +374,16 @@ func (uc *UseCase) processRegularMongoCollection(
 	result map[string]map[string][]map[string]any,
 	logger log.Logger,
 ) error {
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.report.process_regular_mongo_collection")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.database_name", databaseName),
+		attribute.String("app.request.collection", collection),
+	)
+
 	collectionResult, err := uc.queryMongoCollectionWithFilters(ctx, dataSource, collection, fields, collectionFilters, logger, databaseName)
 	if err != nil {
 		return err

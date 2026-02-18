@@ -22,7 +22,10 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-//go:generate mockgen --destination=pool.mock.go --package=pdf . PDFGenerator
+//go:generate mockgen --destination=pool.mock.go --package=pdf --copyright_file=../../COPYRIGHT . PDFGenerator
+
+// Compile-time interface satisfaction check.
+var _ PDFGenerator = (*WorkerPool)(nil)
 
 // PDFGenerator defines the interface for submitting PDF generation tasks.
 type PDFGenerator interface {

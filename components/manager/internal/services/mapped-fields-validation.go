@@ -118,6 +118,15 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 
 // validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
 func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.template.validate_schemas_postgres")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.database_name", databaseName),
+	)
+
 	// Use configured schemas or default to public
 	configuredSchemas := dataSource.Schemas
 	if len(configuredSchemas) == 0 {
@@ -199,6 +208,15 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 
 // validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
 func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+	ctx, span := tracer.Start(ctx, "service.template.validate_schemas_mongo")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.database_name", databaseName),
+	)
+
 	var (
 		schema []mongodb.CollectionSchema
 		err    error

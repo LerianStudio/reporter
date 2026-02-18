@@ -10,7 +10,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
-	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
+	templateUtils "github.com/LerianStudio/reporter/pkg/templateutils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"

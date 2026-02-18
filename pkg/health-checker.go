@@ -15,7 +15,10 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
-//go:generate mockgen --destination=health-checker.mock.go --package=pkg . HealthCheckRunner
+//go:generate mockgen --destination=health-checker.mock.go --package=pkg --copyright_file=../COPYRIGHT . HealthCheckRunner
+
+// Compile-time interface satisfaction check.
+var _ HealthCheckRunner = (*HealthChecker)(nil)
 
 // HealthCheckRunner defines the interface for managing datasource health checks.
 type HealthCheckRunner interface {

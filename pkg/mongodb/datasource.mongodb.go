@@ -28,7 +28,7 @@ import (
 
 // Repository defines an interface for querying data from MongoDB collections.
 //
-//go:generate mockgen --destination=datasource.mongodb.mock.go --package=mongodb . Repository
+//go:generate mockgen --destination=datasource.mongodb.mock.go --package=mongodb --copyright_file=../../COPYRIGHT . Repository
 type Repository interface {
 	Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)

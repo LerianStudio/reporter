@@ -2,14 +2,864 @@
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
-package template_utils
+package templateutils
 
 import (
 	"testing"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestGetMimeType(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		outputFormat string
+		expected     string
+	}{
+		{
+			name:         "xml format",
+			outputFormat: "xml",
+			expected:     "application/xml",
+		},
+		{
+			name:         "html format",
+			outputFormat: "html",
+			expected:     "text/html",
+		},
+		{
+			name:         "csv format",
+			outputFormat: "csv",
+			expected:     "text/csv",
+		},
+		{
+			name:         "txt format",
+			outputFormat: "txt",
+			expected:     "text/plain",
+		},
+		{
+			name:         "pdf format",
+			outputFormat: "pdf",
+			expected:     "application/pdf",
+		},
+		{
+			name:         "unknown format falls back to octet-stream",
+			outputFormat: "unknown",
+			expected:     "application/octet-stream",
+		},
+		{
+			name:         "empty string falls back to octet-stream",
+			outputFormat: "",
+			expected:     "application/octet-stream",
+		},
+		{
+			name:         "uppercase XML is case-insensitive",
+			outputFormat: "XML",
+			expected:     "application/xml",
+		},
+		{
+			name:         "mixed case Html is case-insensitive",
+			outputFormat: "Html",
+			expected:     "text/html",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := GetMimeType(tt.outputFormat)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestRegexBlockForWithFilterOnPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		templateFile   string
+		wantVariable   string
+		wantPath       []string
+		wantFieldInMap bool
+		wantField      string
+	}{
+		{
+			name:           "for loop with filter function and single param",
+			templateFile:   `{% for acc in filter(midaz_onboarding.account, "type") %}{{ acc.id }}{% endfor %}`,
+			wantVariable:   "acc",
+			wantPath:       []string{"midaz_onboarding", "account"},
+			wantFieldInMap: true,
+			wantField:      "type",
+		},
+		{
+			name:           "for loop with filter function and multiple params",
+			templateFile:   `{% for item in filter(datasource.collection, "field1", "field2") %}{{ item.name }}{% endfor %}`,
+			wantVariable:   "item",
+			wantPath:       []string{"datasource", "collection"},
+			wantFieldInMap: true,
+			wantField:      "field1",
+		},
+		{
+			name:           "no filter function does not match",
+			templateFile:   `{% for item in datasource.collection %}{{ item.name }}{% endfor %}`,
+			wantVariable:   "",
+			wantPath:       nil,
+			wantFieldInMap: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			variableMap := map[string][]string{}
+			result := map[string]any{}
+
+			regexBlockForWithFilterOnPlaceholder(result, variableMap, tt.templateFile)
+
+			if tt.wantVariable == "" {
+				assert.Empty(t, variableMap)
+				return
+			}
+
+			assert.Contains(t, variableMap, tt.wantVariable)
+			assert.Equal(t, tt.wantPath, variableMap[tt.wantVariable])
+
+			if tt.wantFieldInMap {
+				dsMap, ok := result[tt.wantPath[0]].(map[string]any)
+				require.True(t, ok, "expected datasource map to exist")
+
+				fields, ok := dsMap[tt.wantPath[1]].([]any)
+				require.True(t, ok, "expected collection fields to exist")
+
+				assert.Contains(t, fields, tt.wantField)
+			}
+		})
+	}
+}
+
+func TestRegexBlockWithOnPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		templateFile string
+		wantVariable string
+		wantPath     []string
+	}{
+		{
+			name:         "simple with assignment",
+			templateFile: `{% with x = datasource.table %}{{ x }}{% endwith %}`,
+			wantVariable: "x",
+			wantPath:     []string{"datasource", "table"},
+		},
+		{
+			name:         "with filter function",
+			templateFile: `{% with x = filter(datasource.table, "param") %}{{ x }}{% endwith %}`,
+			wantVariable: "x",
+			wantPath:     []string{"datasource", "table"},
+		},
+		{
+			name:         "with nested path",
+			templateFile: `{% with data = external_db.orders %}{{ data.id }}{% endwith %}`,
+			wantVariable: "data",
+			wantPath:     []string{"external_db", "orders"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			variableMap := map[string][]string{}
+			result := regexBlockWithOnPlaceholder(variableMap, tt.templateFile)
+
+			assert.NotNil(t, result)
+			assert.Contains(t, variableMap, tt.wantVariable)
+			assert.Equal(t, tt.wantPath, variableMap[tt.wantVariable])
+		})
+	}
+}
+
+func TestProcessDIMPForLoops(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		templateFile    string
+		wantDatasource  string
+		wantCollection  string
+		wantFields      []string
+		expectNoResults bool
+	}{
+		{
+			name:           "where filter in for loop",
+			templateFile:   `{% for item in midaz_onboarding.account|where:"type:cacc" %}{{ item.id }}{% endfor %}`,
+			wantDatasource: "midaz_onboarding",
+			wantCollection: "account",
+			wantFields:     []string{"type"},
+		},
+		{
+			name:           "sum filter in for loop",
+			templateFile:   `{% for item in midaz_transaction.entries|sum:"amount" %}{{ item.id }}{% endfor %}`,
+			wantDatasource: "midaz_transaction",
+			wantCollection: "entries",
+			wantFields:     []string{"amount"},
+		},
+		{
+			name:           "count filter in for loop",
+			templateFile:   `{% for item in datasource.records|count:"status:active" %}{{ item.id }}{% endfor %}`,
+			wantDatasource: "datasource",
+			wantCollection: "records",
+			wantFields:     []string{"status"},
+		},
+		{
+			name:            "no filter does not match",
+			templateFile:    `{% for item in datasource.records %}{{ item.id }}{% endfor %}`,
+			expectNoResults: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resultRegex := map[string]any{}
+			processDIMPForLoops(tt.templateFile, resultRegex)
+
+			if tt.expectNoResults {
+				assert.Empty(t, resultRegex)
+				return
+			}
+
+			assert.Contains(t, resultRegex, tt.wantDatasource)
+
+			dsMap, ok := resultRegex[tt.wantDatasource].(map[string]any)
+			require.True(t, ok)
+			assert.Contains(t, dsMap, tt.wantCollection)
+
+			fields, ok := dsMap[tt.wantCollection].([]any)
+			require.True(t, ok)
+
+			for _, wantField := range tt.wantFields {
+				assert.Contains(t, fields, wantField)
+			}
+		})
+	}
+}
+
+func TestExtractDIMPBasePath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		expr        string
+		variableMap map[string][]string
+		expected    []string
+	}{
+		{
+			name:        "direct datasource.collection path",
+			expr:        `midaz_data.records|where:"active:true"`,
+			variableMap: map[string][]string{},
+			expected:    []string{"midaz_data", "records"},
+		},
+		{
+			name: "loop variable resolves to path",
+			expr: `item|where:"status:active"`,
+			variableMap: map[string][]string{
+				"item": {"datasource", "collection"},
+			},
+			expected: []string{"datasource", "collection"},
+		},
+		{
+			name:        "no pipe returns nil",
+			expr:        `justanexpression`,
+			variableMap: map[string][]string{},
+			expected:    nil,
+		},
+		{
+			name:        "single part before pipe returns nil",
+			expr:        `single|where:"f:v"`,
+			variableMap: map[string][]string{},
+			expected:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := extractDIMPBasePath(tt.expr, tt.variableMap)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractFieldsFromDIMPFilters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		expr       string
+		basePath   []string
+		wantFields []string
+	}{
+		{
+			name:       "where filter extracts field",
+			expr:       `midaz.records|where:"status:active"`,
+			basePath:   []string{"midaz", "records"},
+			wantFields: []string{"status"},
+		},
+		{
+			name:       "sum filter extracts field",
+			expr:       `midaz.records|sum:"amount"`,
+			basePath:   []string{"midaz", "records"},
+			wantFields: []string{"amount"},
+		},
+		{
+			name:       "count filter extracts field",
+			expr:       `midaz.records|count:"type:A"`,
+			basePath:   []string{"midaz", "records"},
+			wantFields: []string{"type"},
+		},
+		{
+			name:       "chained filters extract multiple fields",
+			expr:       `midaz.records|where:"status:active"|sum:"total"`,
+			basePath:   []string{"midaz", "records"},
+			wantFields: []string{"status", "total"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resultRegex := map[string]any{}
+			ensureMapStructure(resultRegex, tt.basePath)
+			extractFieldsFromDIMPFilters(tt.expr, resultRegex, tt.basePath)
+
+			dsMap, ok := resultRegex[tt.basePath[0]].(map[string]any)
+			require.True(t, ok)
+
+			fields, ok := dsMap[tt.basePath[1]].([]any)
+			require.True(t, ok)
+
+			for _, wantField := range tt.wantFields {
+				assert.Contains(t, fields, wantField)
+			}
+		})
+	}
+}
+
+func TestProcessDIMPExpressions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		templateFile    string
+		variableMap     map[string][]string
+		wantDatasource  string
+		wantCollection  string
+		wantFields      []string
+		expectNoResults bool
+	}{
+		{
+			name:           "expression with where filter",
+			templateFile:   `{{ midaz_data.records|where:"field:value" }}`,
+			variableMap:    map[string][]string{},
+			wantDatasource: "midaz_data",
+			wantCollection: "records",
+			wantFields:     []string{"field"},
+		},
+		{
+			name:           "expression with sum filter",
+			templateFile:   `{{ midaz_data.entries|sum:"amount" }}`,
+			variableMap:    map[string][]string{},
+			wantDatasource: "midaz_data",
+			wantCollection: "entries",
+			wantFields:     []string{"amount"},
+		},
+		{
+			name:           "expression with count filter",
+			templateFile:   `{{ midaz_data.entries|count:"type:A" }}`,
+			variableMap:    map[string][]string{},
+			wantDatasource: "midaz_data",
+			wantCollection: "entries",
+			wantFields:     []string{"type"},
+		},
+		{
+			name:            "expression without DIMP filter is ignored",
+			templateFile:    `{{ midaz_data.entries }}`,
+			variableMap:     map[string][]string{},
+			expectNoResults: true,
+		},
+		{
+			name:         "expression referencing loop variable",
+			templateFile: `{{ item|where:"status:active" }}`,
+			variableMap: map[string][]string{
+				"item": {"datasource", "collection"},
+			},
+			wantDatasource: "datasource",
+			wantCollection: "collection",
+			wantFields:     []string{"status"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resultRegex := map[string]any{}
+			processDIMPExpressions(tt.templateFile, resultRegex, tt.variableMap)
+
+			if tt.expectNoResults {
+				assert.Empty(t, resultRegex)
+				return
+			}
+
+			assert.Contains(t, resultRegex, tt.wantDatasource)
+
+			dsMap, ok := resultRegex[tt.wantDatasource].(map[string]any)
+			require.True(t, ok)
+			assert.Contains(t, dsMap, tt.wantCollection)
+
+			fields, ok := dsMap[tt.wantCollection].([]any)
+			require.True(t, ok)
+
+			for _, wantField := range tt.wantFields {
+				assert.Contains(t, fields, wantField)
+			}
+		})
+	}
+}
+
+func TestExtractBasePathFromFilterExpr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		expr     string
+		expected string
+	}{
+		{
+			name:     "expression with where filter",
+			expr:     `midaz_onboarding.account|where:"type:cacc"`,
+			expected: "midaz_onboarding.account",
+		},
+		{
+			name:     "expression with sum filter",
+			expr:     `midaz_transaction.entries|sum:"amount"`,
+			expected: "midaz_transaction.entries",
+		},
+		{
+			name:     "expression without filter",
+			expr:     "midaz_onboarding.account",
+			expected: "midaz_onboarding.account",
+		},
+		{
+			name:     "expression with spaces around pipe",
+			expr:     ` midaz_data.records |where:"active:true" `,
+			expected: "midaz_data.records",
+		},
+		{
+			name:     "single word without pipe",
+			expr:     "variable",
+			expected: "variable",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := extractBasePathFromFilterExpr(tt.expr)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestEnsureMapStructure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		path           []string
+		expectCreated  bool
+		wantDatasource string
+		wantCollection string
+	}{
+		{
+			name:           "creates nested structure for valid path",
+			path:           []string{"datasource", "collection"},
+			expectCreated:  true,
+			wantDatasource: "datasource",
+			wantCollection: "collection",
+		},
+		{
+			name:          "path too short does nothing",
+			path:          []string{"single"},
+			expectCreated: false,
+		},
+		{
+			name:          "empty path does nothing",
+			path:          []string{},
+			expectCreated: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := map[string]any{}
+			ensureMapStructure(m, tt.path)
+
+			if !tt.expectCreated {
+				assert.Empty(t, m)
+				return
+			}
+
+			assert.Contains(t, m, tt.wantDatasource)
+
+			dsMap, ok := m[tt.wantDatasource].(map[string]any)
+			require.True(t, ok)
+			assert.Contains(t, dsMap, tt.wantCollection)
+		})
+	}
+}
+
+func TestInsertFieldToPath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		path       []string
+		field      string
+		wantField  bool
+		setupExist bool
+	}{
+		{
+			name:       "inserts field to existing structure",
+			path:       []string{"datasource", "collection"},
+			field:      "status",
+			wantField:  true,
+			setupExist: true,
+		},
+		{
+			name:      "path too short does nothing",
+			path:      []string{"single"},
+			field:     "field",
+			wantField: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := map[string]any{}
+
+			if tt.setupExist {
+				ensureMapStructure(m, tt.path)
+			}
+
+			insertFieldToPath(m, tt.path, tt.field)
+
+			if !tt.wantField {
+				assert.Empty(t, m)
+				return
+			}
+
+			dsMap := m[tt.path[0]].(map[string]any)
+			fields := dsMap[tt.path[1]].([]any)
+			assert.Contains(t, fields, tt.field)
+		})
+	}
+}
+
+func TestContainsDIMPFilter(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		expr     string
+		expected bool
+	}{
+		{
+			name:     "contains where filter",
+			expr:     `collection|where:"field:value"`,
+			expected: true,
+		},
+		{
+			name:     "contains sum filter",
+			expr:     `collection|sum:"amount"`,
+			expected: true,
+		},
+		{
+			name:     "contains count filter",
+			expr:     `collection|count:"type:A"`,
+			expected: true,
+		},
+		{
+			name:     "no filter",
+			expr:     "collection.field",
+			expected: false,
+		},
+		{
+			name:     "empty string",
+			expr:     "",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := containsDIMPFilter(tt.expr)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsQuotedString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "double quoted string",
+			input:    `"hello"`,
+			expected: true,
+		},
+		{
+			name:     "single quoted string",
+			input:    `'hello'`,
+			expected: true,
+		},
+		{
+			name:     "unquoted string",
+			input:    "hello",
+			expected: false,
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: false,
+		},
+		{
+			name:     "single char",
+			input:    `"`,
+			expected: false,
+		},
+		{
+			name:     "mismatched quotes",
+			input:    `"hello'`,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := isQuotedString(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractFieldFromFilterArg(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		filterType string
+		filterArg  string
+		wantField  string
+		wantInsert bool
+	}{
+		{
+			name:       "where filter extracts field before colon",
+			filterType: "where",
+			filterArg:  "status:active",
+			wantField:  "status",
+			wantInsert: true,
+		},
+		{
+			name:       "count filter extracts field before colon",
+			filterType: "count",
+			filterArg:  "type:A",
+			wantField:  "type",
+			wantInsert: true,
+		},
+		{
+			name:       "sum filter extracts entire arg as field",
+			filterType: "sum",
+			filterArg:  "amount",
+			wantField:  "amount",
+			wantInsert: true,
+		},
+		{
+			name:       "where filter with no colon does not insert",
+			filterType: "where",
+			filterArg:  "nocolon",
+			wantInsert: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			basePath := []string{"ds", "coll"}
+			resultRegex := map[string]any{}
+			ensureMapStructure(resultRegex, basePath)
+
+			extractFieldFromFilterArg(resultRegex, basePath, tt.filterType, tt.filterArg)
+
+			dsMap, ok := resultRegex["ds"].(map[string]any)
+			require.True(t, ok)
+
+			fields, ok := dsMap["coll"].([]any)
+			require.True(t, ok)
+
+			if tt.wantInsert {
+				assert.Contains(t, fields, tt.wantField)
+			} else {
+				assert.Empty(t, fields)
+			}
+		})
+	}
+}
+
+func TestNormalizeStructure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    map[string]any
+		expected map[string]map[string][]string
+	}{
+		{
+			name: "simple structure with string fields",
+			input: map[string]any{
+				"datasource": map[string]any{
+					"collection": []any{"field1", "field2"},
+				},
+			},
+			expected: map[string]map[string][]string{
+				"datasource": {
+					"collection": {"field1", "field2"},
+				},
+			},
+		},
+		{
+			name:     "empty input returns empty result",
+			input:    map[string]any{},
+			expected: map[string]map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := normalizeStructure(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFlattenNestedFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    map[string]any
+		prefix   string
+		expected []string
+	}{
+		{
+			name: "flat fields without prefix",
+			input: map[string]any{
+				"field1": "value1",
+			},
+			prefix:   "",
+			expected: []string{"field1"},
+		},
+		{
+			name: "nested map with prefix",
+			input: map[string]any{
+				"nested": map[string]any{
+					"deep": "value",
+				},
+			},
+			prefix:   "parent",
+			expected: []string{"parent.nested.deep"},
+		},
+		{
+			name: "array with string items",
+			input: map[string]any{
+				"items": []any{"sub1", "sub2"},
+			},
+			prefix:   "",
+			expected: []string{"items", "items.sub1", "items.sub2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := flattenNestedFields(tt.input, tt.prefix)
+			assert.ElementsMatch(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetMapKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    map[string]any
+		expected []string
+	}{
+		{
+			name:     "multiple keys",
+			input:    map[string]any{"a": 1, "b": 2, "c": 3},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "empty map",
+			input:    map[string]any{},
+			expected: []string{},
+		},
+		{
+			name:     "single key",
+			input:    map[string]any{"only": true},
+			expected: []string{"only"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := getMapKeys(tt.input)
+			assert.ElementsMatch(t, tt.expected, result)
+		})
+	}
+}
 
 func TestMappedFieldsOfTemplate_CalcTag(t *testing.T) {
 	t.Parallel()
@@ -288,14 +1138,14 @@ func TestParseDatabaseReference(t *testing.T) {
 			database, schema, table, err := ParseDatabaseReference(tt.ref)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				if tt.wantErrContain != "" {
 					assert.Contains(t, err.Error(), tt.wantErrContain)
 				}
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantDatabase, database, "database mismatch")
 			assert.Equal(t, tt.wantSchema, schema, "schema mismatch")
 			assert.Equal(t, tt.wantTable, table, "table mismatch")
@@ -998,11 +1848,375 @@ func TestValidateNoScriptTag(t *testing.T) {
 			err := ValidateNoScriptTag(tt.template)
 
 			if tt.expectError {
-				assert.Error(t, err, "Expected error for template: %s", tt.template)
+				require.Error(t, err, "Expected error for template: %s", tt.template)
 				assert.Equal(t, constant.ErrScriptTagDetected, err, "Should return ErrScriptTagDetected")
 			} else {
-				assert.NoError(t, err, "Expected no error for template: %s", tt.template)
+				require.NoError(t, err, "Expected no error for template: %s", tt.template)
 			}
+		})
+	}
+}
+
+func TestAppendIfMissingAny(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		slice    []any
+		val      any
+		expected []any
+	}{
+		{
+			name:     "append new string to empty slice",
+			slice:    []any{},
+			val:      "field1",
+			expected: []any{"field1"},
+		},
+		{
+			name:     "skip duplicate string",
+			slice:    []any{"field1"},
+			val:      "field1",
+			expected: []any{"field1"},
+		},
+		{
+			name:     "append new string to existing slice",
+			slice:    []any{"field1"},
+			val:      "field2",
+			expected: []any{"field1", "field2"},
+		},
+		{
+			name:     "skip duplicate map by matching key",
+			slice:    []any{map[string]any{"key1": []any{"a"}}},
+			val:      map[string]any{"key1": []any{"b"}},
+			expected: []any{map[string]any{"key1": []any{"a"}}},
+		},
+		{
+			name:     "append new map with different key",
+			slice:    []any{map[string]any{"key1": []any{"a"}}},
+			val:      map[string]any{"key2": []any{"b"}},
+			expected: []any{map[string]any{"key1": []any{"a"}}, map[string]any{"key2": []any{"b"}}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := appendIfMissingAny(tt.slice, tt.val)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestInsertField(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		initial    map[string]any
+		path       []string
+		field      string
+		checkField func(t *testing.T, m map[string]any)
+	}{
+		{
+			name:    "empty path does nothing",
+			initial: map[string]any{},
+			path:    []string{},
+			field:   "test",
+			checkField: func(t *testing.T, m map[string]any) {
+				assert.Empty(t, m)
+			},
+		},
+		{
+			name:    "single path creates field array",
+			initial: map[string]any{},
+			path:    []string{"collection"},
+			field:   "field1",
+			checkField: func(t *testing.T, m map[string]any) {
+				fields, ok := m["collection"].([]any)
+				require.True(t, ok)
+				assert.Contains(t, fields, "field1")
+			},
+		},
+		{
+			name:    "nested path creates intermediate maps",
+			initial: map[string]any{},
+			path:    []string{"datasource", "collection"},
+			field:   "field1",
+			checkField: func(t *testing.T, m map[string]any) {
+				dsMap, ok := m["datasource"].(map[string]any)
+				require.True(t, ok)
+				fields, ok := dsMap["collection"].([]any)
+				require.True(t, ok)
+				assert.Contains(t, fields, "field1")
+			},
+		},
+		{
+			name:    "appends to existing field array",
+			initial: map[string]any{"collection": []any{"field1"}},
+			path:    []string{"collection"},
+			field:   "field2",
+			checkField: func(t *testing.T, m map[string]any) {
+				fields, ok := m["collection"].([]any)
+				require.True(t, ok)
+				assert.Contains(t, fields, "field1")
+				assert.Contains(t, fields, "field2")
+			},
+		},
+		{
+			name: "navigates through existing array with map",
+			initial: map[string]any{
+				"datasource": []any{
+					map[string]any{"collection": []any{"existing"}},
+				},
+			},
+			path:  []string{"datasource", "collection"},
+			field: "new_field",
+			checkField: func(t *testing.T, m map[string]any) {
+				dsArr, ok := m["datasource"].([]any)
+				require.True(t, ok)
+
+				dsMap, ok := dsArr[0].(map[string]any)
+				require.True(t, ok)
+
+				fields, ok := dsMap["collection"].([]any)
+				require.True(t, ok)
+				assert.Contains(t, fields, "existing")
+				assert.Contains(t, fields, "new_field")
+			},
+		},
+		{
+			name: "creates new map when array has no map items",
+			initial: map[string]any{
+				"datasource": []any{"just_a_string"},
+			},
+			path:  []string{"datasource", "collection"},
+			field: "field1",
+			checkField: func(t *testing.T, m map[string]any) {
+				dsArr, ok := m["datasource"].([]any)
+				require.True(t, ok)
+				// Should have appended a new map
+				assert.Len(t, dsArr, 2)
+			},
+		},
+		{
+			name: "overwrites non-nil non-array non-map value",
+			initial: map[string]any{
+				"datasource": "not_a_map",
+			},
+			path:  []string{"datasource", "collection"},
+			field: "field1",
+			checkField: func(t *testing.T, m map[string]any) {
+				dsMap, ok := m["datasource"].(map[string]any)
+				require.True(t, ok)
+				fields, ok := dsMap["collection"].([]any)
+				require.True(t, ok)
+				assert.Contains(t, fields, "field1")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			insertField(tt.initial, tt.path, tt.field)
+			tt.checkField(t, tt.initial)
+		})
+	}
+}
+
+func TestRegexBlockForOnPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		templateFile string
+		wantVars     map[string][]string
+	}{
+		{
+			name:         "simple for loop",
+			templateFile: `{% for item in datasource.collection %}{{ item.name }}{% endfor %}`,
+			wantVars: map[string][]string{
+				"item": {"datasource", "collection"},
+			},
+		},
+		{
+			name:         "for loop with DIMP where filter",
+			templateFile: `{% for acc in midaz.account|where:"type:cacc" %}{{ acc.id }}{% endfor %}`,
+			wantVars: map[string][]string{
+				"acc": {"midaz", "account"},
+			},
+		},
+		{
+			name:         "for loop with schema syntax",
+			templateFile: `{% for tx in db:schema.table %}{{ tx.id }}{% endfor %}`,
+			wantVars: map[string][]string{
+				"tx": {"db", "schema__table"},
+			},
+		},
+		{
+			name:         "multiple for loops",
+			templateFile: `{% for a in ds1.tbl1 %}{% endfor %}{% for b in ds2.tbl2 %}{% endfor %}`,
+			wantVars: map[string][]string{
+				"a": {"ds1", "tbl1"},
+				"b": {"ds2", "tbl2"},
+			},
+		},
+		{
+			name:         "for loop with three-part path",
+			templateFile: `{% for item in datasource.schema.collection %}{{ item.name }}{% endfor %}`,
+			wantVars: map[string][]string{
+				"item": {"datasource", "schema", "collection"},
+			},
+		},
+		{
+			name:         "no for loop produces empty map",
+			templateFile: `<html>{{ variable }}</html>`,
+			wantVars:     map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := regexBlockForOnPlaceholder(tt.templateFile)
+
+			for varName, expectedPath := range tt.wantVars {
+				assert.Contains(t, result, varName)
+				assert.Equal(t, expectedPath, result[varName])
+			}
+
+			assert.Len(t, result, len(tt.wantVars))
+		})
+	}
+}
+
+func TestInsertFieldToPath_NilCollection(t *testing.T) {
+	t.Parallel()
+
+	// Test when collection exists as nil in the map
+	m := map[string]any{
+		"datasource": map[string]any{
+			"collection": nil,
+		},
+	}
+
+	insertFieldToPath(m, []string{"datasource", "collection"}, "field1")
+
+	dsMap := m["datasource"].(map[string]any)
+	fields, ok := dsMap["collection"].([]any)
+	require.True(t, ok)
+	assert.Contains(t, fields, "field1")
+}
+
+func TestEnsureMapStructure_ExistingDatasource(t *testing.T) {
+	t.Parallel()
+
+	// Test when datasource exists but is not a map (edge case)
+	m := map[string]any{
+		"datasource": "not_a_map",
+	}
+
+	ensureMapStructure(m, []string{"datasource", "collection"})
+
+	dsMap, ok := m["datasource"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, dsMap, "collection")
+}
+
+func TestRegexBlockForWithFilterOnPlaceholder_WithVariableMapResolution(t *testing.T) {
+	t.Parallel()
+
+	// Test with a param that references a known loop variable
+	templateFile := `{% for item in filter(datasource.collection, related_party.field) %}{{ item.id }}{% endfor %}`
+	variableMap := map[string][]string{
+		"related_party": {"other_ds", "other_coll"},
+	}
+	result := map[string]any{}
+
+	regexBlockForWithFilterOnPlaceholder(result, variableMap, templateFile)
+
+	// "item" should be added to variableMap
+	assert.Contains(t, variableMap, "item")
+	assert.Equal(t, []string{"datasource", "collection"}, variableMap["item"])
+
+	// The resolved param should be inserted into the other datasource
+	assert.Contains(t, result, "other_ds")
+}
+
+func TestCleanPathLegacy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		path     string
+		expected []string
+	}{
+		{
+			name:     "simple path",
+			path:     "a.b.c",
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "path with numeric index",
+			path:     "a.0.b",
+			expected: []string{"a", "b"},
+		},
+		{
+			name:     "path with array bracket",
+			path:     "a[0].b",
+			expected: []string{"a", "b"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := cleanPathLegacy(tt.path)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractFieldsFromExpressionOfAggregation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		expr     string
+		expected []string
+	}{
+		{
+			name:     "simple if expression",
+			expr:     `collection if field == "value"`,
+			expected: []string{"collection", "field", `"value"`},
+		},
+		{
+			name:     "by clause with single condition",
+			expr:     `collection by "byField" if field == "value"`,
+			expected: []string{"collection", "byField", "field", `"value"`},
+		},
+		{
+			name:     "by clause with compound conditions",
+			expr:     `collection by "byField" if f1 == "v1" and f2 == "v2"`,
+			expected: []string{"collection", "byField", "f1", `"v1"`, "f2", `"v2"`},
+		},
+		{
+			name:     "no match returns empty",
+			expr:     "just_a_word",
+			expected: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := extractFieldsFromExpressionOfAggregation(tt.expr)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

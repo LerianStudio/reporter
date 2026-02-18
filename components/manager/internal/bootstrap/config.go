@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	in2 "github.com/LerianStudio/reporter/components/manager/internal/adapters/http/in"
+	httpIn "github.com/LerianStudio/reporter/components/manager/internal/adapters/http/in"
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
@@ -167,9 +167,6 @@ func (c *Config) validateMongoPoolBounds(errs []string) []string {
 	return errs
 }
 
-// defaultPassword is the placeholder value that must be replaced before
-// deploying to production.
-const defaultPassword = "CHANGE_ME"
 
 // validateProductionConfig enforces stricter rules when EnvName is "production".
 // Telemetry, authentication, and real credentials are required in production.
@@ -197,7 +194,7 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 	}
 
 	for _, s := range secrets {
-		if s.value == defaultPassword {
+		if s.value == constant.DefaultPasswordPlaceholder {
 			errs = append(errs, s.name+" must not use the default placeholder in production")
 		}
 	}
@@ -390,7 +387,7 @@ func InitServers() (_ *Service, err error) {
 
 	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
 
-	templateHandler, err := in2.NewTemplateHandler(templateService)
+	templateHandler, err := httpIn.NewTemplateHandler(templateService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize template handler: %w", err)
 	}
@@ -438,7 +435,7 @@ func InitServers() (_ *Service, err error) {
 		RabbitMQGenerateReportKey: cfg.RabbitMQGenerateReportKey,
 	}
 
-	reportHandler, err := in2.NewReportHandler(reportService)
+	reportHandler, err := httpIn.NewReportHandler(reportService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize report handler: %w", err)
 	}
@@ -448,19 +445,19 @@ func InitServers() (_ *Service, err error) {
 		RedisRepo:           redisConsumerRepository,
 	}
 
-	dataSourceHandler, err := in2.NewDataSourceHandler(dataSourceService)
+	dataSourceHandler, err := httpIn.NewDataSourceHandler(dataSourceService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize data source handler: %w", err)
 	}
 
-	readinessDeps := &in2.ReadinessDeps{
+	readinessDeps := &httpIn.ReadinessDeps{
 		MongoConnection:    mongoConnection,
 		RabbitMQConnection: rabbitMQConnection,
 		RedisConnection:    redisConnection,
 		StorageClient:      storageClient,
 	}
 
-	httpApp := in2.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps)
+	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	// Build consolidated shutdown cleanup from the same cleanup stack used for

@@ -12,13 +12,6 @@ import (
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 )
 
-// Compile-time interface satisfaction checks.
-var (
-	_ pkg.CircuitBreakerExecutor = (*pkg.CircuitBreakerManager)(nil)
-	_ pkg.HealthCheckRunner      = (*pkg.HealthChecker)(nil)
-	_ pdf.PDFGenerator           = (*pdf.WorkerPool)(nil)
-)
-
 // UseCase is a struct that coordinates the handling of template files, report storage, external data sources, and report data.
 type UseCase struct {
 	// TemplateSeaweedFS is a repository used to retrieve template files from SeaweedFS storage.

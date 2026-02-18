@@ -5,7 +5,7 @@
 // Package storage defines interfaces for object storage operations.
 package storage
 
-//go:generate mockgen --destination=ports.mock.go --package=storage . ObjectStorage
+//go:generate mockgen --destination=ports.mock.go --package=storage --copyright_file=../../COPYRIGHT . ObjectStorage
 
 import (
 	"context"

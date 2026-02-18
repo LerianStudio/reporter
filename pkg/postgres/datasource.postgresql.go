@@ -25,7 +25,7 @@ import (
 
 // Repository defines an interface for querying data from a specified table and fields.
 //
-//go:generate mockgen --destination=datasource.postgres.mock.go --package=postgres . Repository
+//go:generate mockgen --destination=datasource.postgresql.mock.go --package=postgres --copyright_file=../../COPYRIGHT . Repository
 type Repository interface {
 	Query(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
