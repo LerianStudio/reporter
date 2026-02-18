@@ -142,10 +142,14 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 		{c.MongoDBPassword, "MONGO_PASSWORD"},
 		{c.RabbitMQPass, "RABBITMQ_DEFAULT_PASS"},
 		{c.ObjectStorageSecretKey, "OBJECT_STORAGE_SECRET_KEY"},
+		{c.CryptoHashSecretKeyPluginCRM, "CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM"},
+		{c.CryptoEncryptSecretKeyPluginCRM, "CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM"},
 	}
 
 	for _, s := range secrets {
-		if s.value == defaultPassword {
+		if s.value == "" {
+			errs = append(errs, s.name+" must not be empty in production")
+		} else if s.value == defaultPassword {
 			errs = append(errs, s.name+" must not use the default placeholder in production")
 		}
 	}

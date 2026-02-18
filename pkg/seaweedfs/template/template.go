@@ -33,6 +33,9 @@ type StorageRepository struct {
 	storage storage.ObjectStorage
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*StorageRepository)(nil)
+
 // NewStorageRepository creates a new instance of StorageRepository with the given storage client.
 func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepository {
 	return &StorageRepository{

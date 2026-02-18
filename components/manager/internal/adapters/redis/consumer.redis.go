@@ -31,6 +31,9 @@ type RedisConsumerRepository struct {
 	conn *libRedis.RedisConnection
 }
 
+// Compile-time interface satisfaction check.
+var _ RedisRepository = (*RedisConsumerRepository)(nil)
+
 // NewConsumerRedis returns a new instance of RedisRepository using the given Redis connection.
 func NewConsumerRedis(rc *libRedis.RedisConnection) (*RedisConsumerRepository, error) {
 	r := &RedisConsumerRepository{

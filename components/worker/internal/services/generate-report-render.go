@@ -12,17 +12,24 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/pongo"
 
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 
+	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
+	"go.opentelemetry.io/otel/attribute"
 	// otel/trace is used for trace.Tracer and trace.Span parameter types
 	"go.opentelemetry.io/otel/trace"
 )
 
 // loadTemplate loads template file from SeaweedFS.
 func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, span *trace.Span, logger log.Logger) ([]byte, error) {
+	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, spanTemplate := tracer.Start(ctx, "service.report.get_template")
 	defer spanTemplate.End()
+
+	spanTemplate.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	fileBytes, err := uc.TemplateSeaweedFS.Get(ctx, message.TemplateID.String())
 	if err != nil {
@@ -46,8 +53,12 @@ func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, messag
 
 // renderTemplate renders the template with data from external sources.
 func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span, logger log.Logger) (string, error) {
+	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, spanRender := tracer.Start(ctx, "service.report.render_template")
 	defer spanRender.End()
+
+	spanRender.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	renderer := pongo.NewTemplateRenderer()
 
@@ -75,8 +86,12 @@ func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, tracer trace.Tracer
 		return htmlOutput, nil
 	}
 
-	_, spanPDF := tracer.Start(ctx, "service.report.convert_to_pdf")
+	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
+	ctx, spanPDF := tracer.Start(ctx, "service.report.convert_to_pdf")
 	defer spanPDF.End()
+
+	spanPDF.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	logger.Infof("Converting HTML to PDF for report %s (HTML size: %d bytes)", message.ReportID, len(htmlOutput))
 

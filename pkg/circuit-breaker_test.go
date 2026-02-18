@@ -501,6 +501,81 @@ func TestCircuitBreakerManager_Reset_MultipleResets(t *testing.T) {
 	}
 }
 
+func TestCircuitBreakerManager_ReadyToTrip_FailureRatio(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Intersperse successes and failures to avoid hitting the consecutive failure
+	// threshold (15), while reaching MinRequests (10) with >= 50% failure ratio.
+	// Pattern: fail, success, fail, success, fail, success, fail, success, fail, fail
+	// = 10 requests, 6 failures, 4 successes → ratio 0.6 >= 0.5
+
+	cb := cbm.GetOrCreate("ratio_db")
+	pattern := []bool{false, true, false, true, false, true, false, true, false, false}
+
+	for _, success := range pattern {
+		if success {
+			_, _ = cb.Execute(func() (any, error) {
+				return "ok", nil
+			})
+		} else {
+			_, _ = cb.Execute(func() (any, error) {
+				return nil, errors.New("failure")
+			})
+		}
+	}
+
+	// Circuit breaker should have tripped due to failure ratio
+	state := cbm.GetState("ratio_db")
+	assert.Equal(t, constant.CircuitBreakerStateOpen, state,
+		"circuit breaker should open via failure ratio path (6/10 = 0.6 >= 0.5)")
+}
+
+func TestCircuitBreakerManager_ReadyToTrip_BelowMinRequests(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Send fewer than MinRequests (10) with high failure ratio
+	// but not enough consecutive failures to hit threshold (15)
+	cb := cbm.GetOrCreate("below_min_db")
+	pattern := []bool{false, true, false, true, false} // 5 requests, 3 failures
+
+	for _, success := range pattern {
+		if success {
+			_, _ = cb.Execute(func() (any, error) {
+				return "ok", nil
+			})
+		} else {
+			_, _ = cb.Execute(func() (any, error) {
+				return nil, errors.New("failure")
+			})
+		}
+	}
+
+	// Should stay closed: below MinRequests and below consecutive threshold
+	state := cbm.GetState("below_min_db")
+	assert.Equal(t, constant.CircuitBreakerStateClosed, state,
+		"circuit breaker should stay closed when below MinRequests")
+}
+
+func TestCircuitBreakerManager_ReadyToTrip_ZeroRequests(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Create breaker but don't send any requests - should not panic
+	cbm.GetOrCreate("zero_db")
+
+	state := cbm.GetState("zero_db")
+	assert.Equal(t, constant.CircuitBreakerStateClosed, state,
+		"circuit breaker should stay closed with zero requests")
+}
+
 func TestCircuitBreakerManager_GetOrCreate_Idempotent(t *testing.T) {
 	t.Parallel()
 

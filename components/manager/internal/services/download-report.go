@@ -9,6 +9,7 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -36,7 +37,11 @@ func (uc *UseCase) DownloadReport(ctx context.Context, id uuid.UUID) ([]byte, st
 	// Fetch the report
 	reportModel, err := uc.GetReportByID(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		if pkgHTTP.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve report on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
@@ -47,6 +52,8 @@ func (uc *UseCase) DownloadReport(ctx context.Context, id uuid.UUID) ([]byte, st
 	if reportModel.Status != constant.FinishedStatus {
 		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
 
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Report status is not finished", errStatus)
+
 		logger.Errorf("Report with ID %s is not Finished", id)
 
 		return nil, "", "", errStatus
@@ -55,7 +62,11 @@ func (uc *UseCase) DownloadReport(ctx context.Context, id uuid.UUID) ([]byte, st
 	// Fetch the associated template for output format
 	templateModel, err := uc.GetTemplateByID(ctx, reportModel.TemplateID)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		if pkgHTTP.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve template on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", reportModel.TemplateID, err.Error())
 

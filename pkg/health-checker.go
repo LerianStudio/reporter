@@ -15,7 +15,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 )
 
-//go:generate mockgen --destination=health_checker.mock.go --package=pkg . HealthCheckRunner
+//go:generate mockgen --destination=health-checker.mock.go --package=pkg . HealthCheckRunner
 
 // HealthCheckRunner defines the interface for managing datasource health checks.
 type HealthCheckRunner interface {

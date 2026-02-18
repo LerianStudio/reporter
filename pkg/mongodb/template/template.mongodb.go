@@ -44,6 +44,9 @@ type TemplateMongoDBRepository struct {
 	Database   string
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*TemplateMongoDBRepository)(nil)
+
 // NewTemplateMongoDBRepository returns a new instance of TemplateMongoDBRepository using the given MongoDB connection.
 func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) (*TemplateMongoDBRepository, error) {
 	r := &TemplateMongoDBRepository{
@@ -274,7 +277,7 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 
 	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
-	ctx, spanInsert := tracer.Start(ctx, "repository.template.create_insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.template.create_exec")
 
 	spanInsert.SetAttributes(attributes...)
 

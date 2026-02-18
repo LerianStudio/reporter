@@ -15,6 +15,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
@@ -72,6 +73,8 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	if errParseUUID != nil {
 		errInvalidID := pkg.ValidateBusinessError(constant.ErrInvalidTemplateID, "")
 
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Invalid template ID format", errInvalidID)
+
 		return nil, errInvalidID
 	}
 
@@ -81,7 +84,11 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		logger.Errorf("Error to find template by id, Error: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+			errNotFound := pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Template not found", errNotFound)
+
+			return nil, errNotFound
 		}
 
 		libOpentelemetry.HandleSpanError(&span, "Failed to find template by ID", err)
@@ -92,7 +99,11 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	if reportInput.Filters != nil {
 		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
 		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, filtersMapped); errValidateFields != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
+			if pkgHTTP.IsBusinessError(errValidateFields) {
+				libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate filter fields existence on tables", errValidateFields)
+			} else {
+				libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
+			}
 
 			return nil, errValidateFields
 		}
@@ -106,7 +117,11 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 		reportInput.Filters,
 	)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create report entity", err)
+		if pkgHTTP.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create report entity", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create report entity", err)
+		}
 
 		return nil, err
 	}
@@ -163,10 +178,12 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 // If a client-provided Idempotency-Key header value exists in context, it is used as-is.
 // Otherwise, a SHA256 hash of the JSON-serialized request body is computed.
 func (uc *UseCase) buildIdempotencyKey(ctx context.Context, reportInput *model.CreateReportInput) (string, error) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.report.build_idempotency_key")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	// Check for client-provided idempotency key from context
 	if clientKey, ok := ctx.Value(constant.IdempotencyKeyCtx).(string); ok && clientKey != "" {
@@ -198,10 +215,12 @@ func (uc *UseCase) buildIdempotencyKey(ctx context.Context, reportInput *model.C
 // it is unmarshaled and returned. If no cached response exists yet (in-flight request),
 // an error is returned indicating a duplicate in-flight request.
 func (uc *UseCase) handleDuplicateRequest(ctx context.Context, idempotencyKey string) (*report.Report, error) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, childSpan := tracer.Start(ctx, "service.report.handle_duplicate_request")
 	defer childSpan.End()
+
+	childSpan.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	logger.Infof("Duplicate request detected for idempotency key: %s", idempotencyKey)
 
@@ -240,10 +259,12 @@ func (uc *UseCase) handleDuplicateRequest(ctx context.Context, idempotencyKey st
 // cacheIdempotencyResult caches the successful report creation result in Redis
 // so that future duplicate requests can return the cached response.
 func (uc *UseCase) cacheIdempotencyResult(ctx context.Context, idempotencyKey string, result *report.Report) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.report.cache_idempotency_result")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	data, marshalErr := json.Marshal(result)
 	if marshalErr != nil {

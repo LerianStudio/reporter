@@ -138,6 +138,119 @@ func TestConfig_Validate_MultipleFieldsMissing(t *testing.T) {
 	assert.GreaterOrEqual(t, len(lines), 4) // header + 3 errors
 }
 
+func TestConfig_ValidateProductionConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		modify      func(cfg *Config)
+		expectErr   bool
+		errContains []string
+	}{
+		{
+			name: "valid production config",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "production"
+				cfg.EnableTelemetry = true
+				cfg.MongoDBPassword = "real-secret"
+				cfg.RabbitMQPass = "real-secret"
+				cfg.ObjectStorageSecretKey = "real-secret"
+				cfg.CryptoHashSecretKeyPluginCRM = "real-secret"
+				cfg.CryptoEncryptSecretKeyPluginCRM = "real-secret"
+			},
+			expectErr: false,
+		},
+		{
+			name: "production requires telemetry enabled",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "production"
+				cfg.EnableTelemetry = false
+				cfg.MongoDBPassword = "real-secret"
+				cfg.RabbitMQPass = "real-secret"
+				cfg.ObjectStorageSecretKey = "real-secret"
+				cfg.CryptoHashSecretKeyPluginCRM = "real-secret"
+				cfg.CryptoEncryptSecretKeyPluginCRM = "real-secret"
+			},
+			expectErr:   true,
+			errContains: []string{"ENABLE_TELEMETRY must be true in production"},
+		},
+		{
+			name: "production rejects default placeholder password",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "production"
+				cfg.EnableTelemetry = true
+				cfg.MongoDBPassword = "CHANGE_ME"
+				cfg.RabbitMQPass = "real-secret"
+				cfg.ObjectStorageSecretKey = "real-secret"
+				cfg.CryptoHashSecretKeyPluginCRM = "real-secret"
+				cfg.CryptoEncryptSecretKeyPluginCRM = "real-secret"
+			},
+			expectErr:   true,
+			errContains: []string{"MONGO_PASSWORD must not use the default placeholder in production"},
+		},
+		{
+			name: "production rejects empty secrets",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "production"
+				cfg.EnableTelemetry = true
+				cfg.MongoDBPassword = ""
+				cfg.RabbitMQPass = ""
+				cfg.ObjectStorageSecretKey = "real-secret"
+				cfg.CryptoHashSecretKeyPluginCRM = "real-secret"
+				cfg.CryptoEncryptSecretKeyPluginCRM = "real-secret"
+			},
+			expectErr:   true,
+			errContains: []string{"MONGO_PASSWORD must not be empty in production", "RABBITMQ_DEFAULT_PASS must not be empty in production"},
+		},
+		{
+			name: "production rejects empty crypto keys",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "production"
+				cfg.EnableTelemetry = true
+				cfg.MongoDBPassword = "real-secret"
+				cfg.RabbitMQPass = "real-secret"
+				cfg.ObjectStorageSecretKey = "real-secret"
+				cfg.CryptoHashSecretKeyPluginCRM = ""
+				cfg.CryptoEncryptSecretKeyPluginCRM = ""
+			},
+			expectErr: true,
+			errContains: []string{
+				"CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM must not be empty in production",
+				"CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM must not be empty in production",
+			},
+		},
+		{
+			name: "non-production skips production validation",
+			modify: func(cfg *Config) {
+				cfg.EnvName = "staging"
+				cfg.EnableTelemetry = false
+				cfg.MongoDBPassword = "CHANGE_ME"
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := validWorkerConfig()
+			tt.modify(cfg)
+
+			err := cfg.Validate()
+
+			if tt.expectErr {
+				require.Error(t, err)
+				for _, expected := range tt.errContains {
+					assert.Contains(t, err.Error(), expected)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestConfig_Validate_OptionalFieldsCanBeEmpty(t *testing.T) {
 	t.Parallel()
 

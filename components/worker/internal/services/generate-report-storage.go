@@ -8,9 +8,12 @@ import (
 	"context"
 	"strings"
 
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 
+	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
+	"go.opentelemetry.io/otel/attribute"
 	// otel/trace is used for trace.Tracer parameter type in saveReport
 	"go.opentelemetry.io/otel/trace"
 )
@@ -28,8 +31,12 @@ var mimeTypes = map[string]string{
 // If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
 func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
+	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, spanSaveReport := tracer.Start(ctx, "service.report.save_report")
 	defer spanSaveReport.End()
+
+	spanSaveReport.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	outputFormat := strings.ToLower(message.OutputFormat)
 	contentType := getContentType(outputFormat)

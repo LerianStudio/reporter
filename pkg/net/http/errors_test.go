@@ -142,6 +142,83 @@ func TestWithError_WrappedErrors(t *testing.T) {
 	}
 }
 
+// TestIsBusinessError verifies that IsBusinessError correctly identifies all
+// business/domain error types and rejects non-business errors.
+func TestIsBusinessError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "EntityNotFoundError is business error",
+			err:      pkg.EntityNotFoundError{Code: "E001", Title: "Not Found", Message: "not found"},
+			expected: true,
+		},
+		{
+			name:     "EntityConflictError is business error",
+			err:      pkg.EntityConflictError{Code: "E002", Title: "Conflict", Message: "conflict"},
+			expected: true,
+		},
+		{
+			name:     "ValidationKnownFieldsError is business error",
+			err:      pkg.ValidationKnownFieldsError{Code: "E003", Title: "Validation", Message: "bad fields"},
+			expected: true,
+		},
+		{
+			name:     "ValidationUnknownFieldsError is business error",
+			err:      pkg.ValidationUnknownFieldsError{Code: "E004", Title: "Validation", Message: "unknown fields"},
+			expected: true,
+		},
+		{
+			name:     "ValidationError is business error",
+			err:      pkg.ValidationError{Code: "E005", Title: "Validation", Message: "invalid"},
+			expected: true,
+		},
+		{
+			name:     "UnprocessableOperationError is business error",
+			err:      pkg.UnprocessableOperationError{Code: "E006", Title: "Unprocessable", Message: "cannot process"},
+			expected: true,
+		},
+		{
+			name:     "UnauthorizedError is business error",
+			err:      pkg.UnauthorizedError{Code: "E007", Title: "Unauthorized", Message: "no auth"},
+			expected: true,
+		},
+		{
+			name:     "ForbiddenError is business error",
+			err:      pkg.ForbiddenError{Code: "E008", Title: "Forbidden", Message: "denied"},
+			expected: true,
+		},
+		{
+			name:     "wrapped EntityNotFoundError is business error",
+			err:      fmt.Errorf("service: %w", pkg.EntityNotFoundError{Code: "E001", Title: "Not Found", Message: "wrapped"}),
+			expected: true,
+		},
+		{
+			name:     "generic error is not business error",
+			err:      fmt.Errorf("database connection failed"),
+			expected: false,
+		},
+		{
+			name:     "nil error is not business error",
+			err:      nil,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := IsBusinessError(tt.err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 // TestWithError_UnwrappedErrors verifies that the current type-switch still
 // works correctly for direct (unwrapped) errors. These tests should PASS
 // with both the old and new implementation, acting as regression guards.

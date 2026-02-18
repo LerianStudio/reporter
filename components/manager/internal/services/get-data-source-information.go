@@ -20,7 +20,7 @@ import (
 func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSourceInformation {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "service.datasource.get_information")
+	ctx, span := tracer.Start(ctx, "service.datasource.get_information")
 	defer span.End()
 
 	span.SetAttributes(

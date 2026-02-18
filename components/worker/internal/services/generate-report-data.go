@@ -28,10 +28,12 @@ import (
 
 // queryExternalData retrieves data from external data sources specified in the message and populates the result map.
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.report.query_external_data")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	for databaseName, tables := range message.DataQueries {
 		if err := uc.queryDatabase(ctx, databaseName, tables, message.Filters, result, logger, tracer); err != nil {
@@ -52,8 +54,12 @@ func (uc *UseCase) queryDatabase(
 	logger log.Logger,
 	tracer trace.Tracer,
 ) error {
+	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, dbSpan := tracer.Start(ctx, "service.report.query_database")
 	defer dbSpan.End()
+
+	dbSpan.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	logger.Infof("Querying database %s", databaseName)
 
@@ -138,7 +144,11 @@ func (uc *UseCase) queryPostgresDatabase(
 		return err
 	}
 
-	schema := schemaResult.([]postgres.TableSchema)
+	schema, ok := schemaResult.([]postgres.TableSchema)
+	if !ok {
+		logger.Errorf("Unexpected schema result type for database %s: %T", databaseName, schemaResult)
+		return fmt.Errorf("unexpected schema result type for database %s", databaseName)
+	}
 
 	// Initialize SchemaResolver with discovered tables
 	resolver := pkg.NewSchemaResolver()
@@ -198,7 +208,10 @@ func (uc *UseCase) queryPostgresDatabase(
 			return err
 		}
 
-		tableResult = queryResult.([]map[string]any)
+		tableResult, ok := queryResult.([]map[string]any)
+		if !ok {
+			return fmt.Errorf("unexpected query result type for table %s.%s in %s", schemaName, tableName, databaseName)
+		}
 
 		if len(tableFilters) > 0 {
 			logger.Infof("Successfully queried table %s.%s with advanced filters (circuit breaker: %s)",
@@ -259,12 +272,12 @@ func (uc *UseCase) processMongoCollection(
 	logger log.Logger,
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
-	_ = reqId // reqId available for future trace correlation if needed
 
 	ctx, span := tracer.Start(ctx, "service.report.process_mongo_collection")
 	defer span.End()
 
 	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.database_name", databaseName),
 		attribute.String("app.request.collection", collection),
 	)
@@ -364,12 +377,12 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 	databaseName string,
 ) ([]map[string]any, error) {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
-	_ = reqId // reqId available for future trace correlation if needed
 
 	ctx, span := tracer.Start(ctx, "service.report.query_mongo_filters")
 	defer span.End()
 
 	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.database_name", databaseName),
 		attribute.String("app.request.collection", collection),
 	)
@@ -400,7 +413,10 @@ func (uc *UseCase) queryMongoCollectionWithFilters(
 		return nil, err
 	}
 
-	collectionResult := queryResult.([]map[string]any)
+	collectionResult, ok := queryResult.([]map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("unexpected query result type for collection %s in %s", collection, databaseName)
+	}
 
 	if len(collectionFilters) > 0 {
 		logger.Infof("Successfully queried collection %s with advanced filters (circuit breaker: %s)",

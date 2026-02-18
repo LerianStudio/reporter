@@ -42,7 +42,7 @@ var sleepFunc = time.Sleep
 //go:generate mockgen --destination=consumer.mock.go --package=rabbitmq . ConsumerRepository
 type ConsumerRepository interface {
 	Register(queueName string, handler QueueHandlerFunc)
-	RunConsumers() error
+	RunConsumers(ctx context.Context, wg *sync.WaitGroup) error
 }
 
 // QueueHandlerFunc is a function that processes a specific queue.
@@ -56,6 +56,9 @@ type ConsumerRoutes struct {
 	log.Logger
 	opentelemetry.Telemetry
 }
+
+// Compile-time interface satisfaction check.
+var _ ConsumerRepository = (*ConsumerRoutes)(nil)
 
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
 func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) (*ConsumerRoutes, error) {

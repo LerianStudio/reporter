@@ -17,6 +17,7 @@ import (
 	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
@@ -143,8 +144,6 @@ func (c *Config) validateRequiredFields(errs []string) []string {
 // validateMongoPoolBounds checks that MongoDB connection pool size
 // parameters are within allowed ranges and consistent with each other.
 func (c *Config) validateMongoPoolBounds(errs []string) []string {
-	const mongoMaxPoolSizeUpperBound = 10000
-
 	maxPool, err := strconv.ParseUint(c.MongoMaxPoolSize, 10, 64)
 	if err != nil && c.MongoMaxPoolSize != "" {
 		errs = append(errs, "MONGO_MAX_POOL_SIZE must be a valid integer")
@@ -157,8 +156,8 @@ func (c *Config) validateMongoPoolBounds(errs []string) []string {
 		return errs
 	}
 
-	if maxPool > mongoMaxPoolSizeUpperBound {
-		errs = append(errs, "MONGO_MAX_POOL_SIZE must not exceed 10000")
+	if maxPool > constant.MongoMaxPoolSizeUpperBound {
+		errs = append(errs, fmt.Sprintf("MONGO_MAX_POOL_SIZE must not exceed %d", constant.MongoMaxPoolSizeUpperBound))
 	}
 
 	if maxPool > 0 && minPool > maxPool {
@@ -285,7 +284,7 @@ func InitServers() (_ *Service, err error) {
 
 	mongoMaxPoolSize, _ := strconv.ParseUint(cfg.MongoMaxPoolSize, 10, 64)
 	if mongoMaxPoolSize == 0 {
-		mongoMaxPoolSize = 100
+		mongoMaxPoolSize = constant.MongoDefaultMaxPoolSize
 	}
 
 	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))

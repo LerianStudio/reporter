@@ -12,6 +12,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -35,12 +36,22 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 	for databaseName := range mappedFields {
 		if !pkg.IsValidDataSourceID(databaseName) {
 			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
-			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+			errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Unknown data source not in immutable registry", errMissing)
+
+			return errMissing
 		}
 
 		if _, exists := allDataSources[databaseName]; !exists {
 			logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
-			return pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+			errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Data source not in runtime map", errMissing)
+
+			return errMissing
 		}
 	}
 
@@ -62,7 +73,12 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 
 			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
 			if errValidate != nil {
-				libOpentelemetry.HandleSpanError(&span, "Failed to validate schemas of postgres", errValidate)
+				if pkgHTTP.IsBusinessError(errValidate) {
+					libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate schemas of postgres", errValidate)
+				} else {
+					libOpentelemetry.HandleSpanError(&span, "Failed to validate schemas of postgres", errValidate)
+				}
+
 				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
 
 				return errValidate
@@ -79,7 +95,12 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 
 			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
 			if errValidate != nil {
-				libOpentelemetry.HandleSpanError(&span, "Failed to validate collections of mongo", errValidate)
+				if pkgHTTP.IsBusinessError(errValidate) {
+					libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate collections of mongo", errValidate)
+				} else {
+					libOpentelemetry.HandleSpanError(&span, "Failed to validate collections of mongo", errValidate)
+				}
+
 				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
 
 				return errValidate

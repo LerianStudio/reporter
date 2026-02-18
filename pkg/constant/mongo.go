@@ -85,6 +85,12 @@ const (
 const (
 	// MongoMaxPoolSizeExternal is the max connection pool size for external data source connections.
 	MongoMaxPoolSizeExternal = 100
+
+	// MongoMaxPoolSizeUpperBound is the maximum allowed value for MongoDB connection pool size configuration.
+	MongoMaxPoolSizeUpperBound = 10000
+
+	// MongoDefaultMaxPoolSize is the default connection pool size when MONGO_MAX_POOL_SIZE is not set or zero.
+	MongoDefaultMaxPoolSize = 100
 )
 
 // Time-related constants.

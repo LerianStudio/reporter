@@ -39,6 +39,9 @@ type ReportMongoDBRepository struct {
 	Database   string
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*ReportMongoDBRepository)(nil)
+
 // NewReportMongoDBRepository returns a new instance of ReportMongoDBRepository using the given MongoDB connection.
 func NewReportMongoDBRepository(mc *libMongo.MongoConnection) (*ReportMongoDBRepository, error) {
 	r := &ReportMongoDBRepository{
@@ -164,7 +167,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 		return nil, err
 	}
 
-	ctx, spanInsert := tracer.Start(ctx, "repository.report.create_insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.report.create_exec")
 
 	spanInsert.SetAttributes(attributes...)
 

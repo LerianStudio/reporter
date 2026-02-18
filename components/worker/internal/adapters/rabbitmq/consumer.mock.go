@@ -14,7 +14,9 @@
 package rabbitmq
 
 import (
+	context "context"
 	reflect "reflect"
+	sync "sync"
 
 	gomock "go.uber.org/mock/gomock"
 )
@@ -56,15 +58,15 @@ func (mr *MockConsumerRepositoryMockRecorder) Register(queueName, handler any) *
 }
 
 // RunConsumers mocks base method.
-func (m *MockConsumerRepository) RunConsumers() error {
+func (m *MockConsumerRepository) RunConsumers(ctx context.Context, wg *sync.WaitGroup) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunConsumers")
+	ret := m.ctrl.Call(m, "RunConsumers", ctx, wg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RunConsumers indicates an expected call of RunConsumers.
-func (mr *MockConsumerRepositoryMockRecorder) RunConsumers() *gomock.Call {
+func (mr *MockConsumerRepositoryMockRecorder) RunConsumers(ctx, wg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunConsumers", reflect.TypeOf((*MockConsumerRepository)(nil).RunConsumers))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunConsumers", reflect.TypeOf((*MockConsumerRepository)(nil).RunConsumers), ctx, wg)
 }

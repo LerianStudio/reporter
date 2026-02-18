@@ -14,7 +14,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
-	"github.com/LerianStudio/reporter/pkg/net/http"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -66,14 +66,22 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	// Block <script> tags
 	if err := templateUtils.ValidateNoScriptTag(templateFile); err != nil {
-		return nil, pkg.ValidateBusinessError(constant.ErrScriptTagDetected, "")
+		errScript := pkg.ValidateBusinessError(constant.ErrScriptTagDetected, "")
+
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Script tag detected in template", errScript)
+
+		return nil, errScript
 	}
 
 	mappedFields := templateUtils.MappedFieldsOfTemplate(templateFile)
 	logger.Infof("Mapped Fields is valid to continue %v", mappedFields)
 
 	if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, mappedFields); errValidateFields != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
+		if pkgHTTP.IsBusinessError(errValidateFields) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate fields existence on tables", errValidateFields)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to validate fields existence on tables", errValidateFields)
+		}
 
 		logger.Errorf("Error to validate fields existence on tables, Error: %v", errValidateFields)
 
@@ -99,7 +107,11 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	// Build domain entity with invariant validation, then convert to MongoDB model
 	templateEntity, err := template.NewTemplate(templateId, strings.ToLower(outFormat), description, fileName)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create template entity", err)
+		if pkgHTTP.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create template entity", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create template entity", err)
+		}
 
 		return nil, err
 	}
@@ -116,7 +128,7 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	}
 
 	// Read file bytes and upload to object storage
-	fileBytes, err := http.ReadMultipartFile(fileHeader)
+	fileBytes, err := pkgHTTP.ReadMultipartFile(fileHeader)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
 
@@ -163,10 +175,12 @@ type templateIdempotencyInput struct {
 // If a client-provided Idempotency-Key header value exists in context, it is used as-is.
 // Otherwise, a SHA256 hash of the JSON-serialized request fields is computed.
 func (uc *UseCase) buildTemplateIdempotencyKey(ctx context.Context, templateFile, outFormat, description string) (string, error) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.template.build_idempotency_key")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	// Check for client-provided idempotency key from context
 	if clientKey, ok := ctx.Value(constant.IdempotencyKeyCtx).(string); ok && clientKey != "" {
@@ -204,10 +218,12 @@ func (uc *UseCase) buildTemplateIdempotencyKey(ctx context.Context, templateFile
 // it is unmarshaled and returned. If no cached response exists yet (in-flight request),
 // an error is returned indicating a duplicate in-flight request.
 func (uc *UseCase) handleDuplicateTemplateRequest(ctx context.Context, idempotencyKey string) (*template.Template, error) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, childSpan := tracer.Start(ctx, "service.template.handle_duplicate_request")
 	defer childSpan.End()
+
+	childSpan.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	logger.Infof("Duplicate template request detected for idempotency key: %s", idempotencyKey)
 
@@ -246,10 +262,12 @@ func (uc *UseCase) handleDuplicateTemplateRequest(ctx context.Context, idempoten
 // cacheTemplateIdempotencyResult caches the successful template creation result in Redis
 // so that future duplicate requests can return the cached response.
 func (uc *UseCase) cacheTemplateIdempotencyResult(ctx context.Context, idempotencyKey string, result *template.Template) {
-	logger, tracer, _, _ := commons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.template.cache_idempotency_result")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	data, marshalErr := json.Marshal(result)
 	if marshalErr != nil {

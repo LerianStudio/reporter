@@ -37,6 +37,9 @@ type ProducerRabbitMQRepository struct {
 	conn *libRabbitmq.RabbitMQConnection
 }
 
+// Compile-time interface satisfaction check.
+var _ ProducerRepository = (*ProducerRabbitMQRepository)(nil)
+
 // NewProducerRabbitMQ returns a new instance of ProducerRabbitMQRepository using the given rabbitmq connection.
 // Connection is established lazily on first use to avoid panic during initialization.
 func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRepository {

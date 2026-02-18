@@ -14,7 +14,7 @@ import (
 	"github.com/sony/gobreaker"
 )
 
-//go:generate mockgen --destination=circuit_breaker.mock.go --package=pkg . CircuitBreakerExecutor
+//go:generate mockgen --destination=circuit-breaker.mock.go --package=pkg . CircuitBreakerExecutor
 
 // CircuitBreakerExecutor defines the interface for executing operations through a circuit breaker.
 type CircuitBreakerExecutor interface {
@@ -41,6 +41,40 @@ func NewCircuitBreakerManager(logger log.Logger) *CircuitBreakerManager {
 	}
 }
 
+// newSettings returns the default gobreaker.Settings for a given datasource name.
+func (cbm *CircuitBreakerManager) newSettings(datasourceName string) gobreaker.Settings {
+	return gobreaker.Settings{
+		Name:        fmt.Sprintf("datasource-%s", datasourceName),
+		MaxRequests: constant.CircuitBreakerMaxRequests,
+		Interval:    constant.CircuitBreakerInterval,
+		Timeout:     constant.CircuitBreakerTimeout,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			if counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold {
+				return true
+			}
+
+			if counts.Requests >= constant.CircuitBreakerMinRequests {
+				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+				return failureRatio >= constant.CircuitBreakerFailureRatio
+			}
+
+			return false
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
+
+			switch to {
+			case gobreaker.StateOpen:
+				cbm.logger.Errorf("Circuit Breaker [%s] OPENED - datasource is unhealthy, requests will fast-fail", name)
+			case gobreaker.StateHalfOpen:
+				cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
+			case gobreaker.StateClosed:
+				cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
+			}
+		},
+	}
+}
+
 // GetOrCreate returns existing circuit breaker or creates a new one
 func (cbm *CircuitBreakerManager) GetOrCreate(datasourceName string) *gobreaker.CircuitBreaker {
 	cbm.mu.RLock()
@@ -59,33 +93,7 @@ func (cbm *CircuitBreakerManager) GetOrCreate(datasourceName string) *gobreaker.
 		return breaker
 	}
 
-	// Create new circuit breaker with configuration
-	settings := gobreaker.Settings{
-		Name:        fmt.Sprintf("datasource-%s", datasourceName),
-		MaxRequests: constant.CircuitBreakerMaxRequests,
-		Interval:    constant.CircuitBreakerInterval,
-		Timeout:     constant.CircuitBreakerTimeout,
-		ReadyToTrip: func(counts gobreaker.Counts) bool {
-			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-
-			return counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold ||
-				(counts.Requests >= 10 && failureRatio >= 0.5)
-		},
-		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
-
-			switch to {
-			case gobreaker.StateOpen:
-				cbm.logger.Errorf("Circuit Breaker [%s] OPENED - datasource is unhealthy, requests will fast-fail", name)
-			case gobreaker.StateHalfOpen:
-				cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
-			case gobreaker.StateClosed:
-				cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
-			}
-		},
-	}
-
-	breaker = gobreaker.NewCircuitBreaker(settings)
+	breaker = gobreaker.NewCircuitBreaker(cbm.newSettings(datasourceName))
 	cbm.breakers[datasourceName] = breaker
 
 	cbm.logger.Infof("Created circuit breaker for datasource: %s", datasourceName)
@@ -157,33 +165,7 @@ func (cbm *CircuitBreakerManager) Reset(datasourceName string) {
 	if _, exists := cbm.breakers[datasourceName]; exists {
 		cbm.logger.Infof("Manually resetting circuit breaker for datasource: %s", datasourceName)
 
-		settings := gobreaker.Settings{
-			Name:        fmt.Sprintf("datasource-%s", datasourceName),
-			MaxRequests: constant.CircuitBreakerMaxRequests,
-			Interval:    constant.CircuitBreakerInterval,
-			Timeout:     constant.CircuitBreakerTimeout,
-			ReadyToTrip: func(counts gobreaker.Counts) bool {
-				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-
-				return counts.ConsecutiveFailures >= constant.CircuitBreakerThreshold ||
-					(counts.Requests >= 10 && failureRatio >= 0.5)
-			},
-			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-				cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
-
-				switch to {
-				case gobreaker.StateOpen:
-					cbm.logger.Errorf("Circuit Breaker [%s] OPENED - datasource is unhealthy, requests will fast-fail", name)
-				case gobreaker.StateHalfOpen:
-					cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
-				case gobreaker.StateClosed:
-					cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
-				}
-			},
-		}
-
-		breaker := gobreaker.NewCircuitBreaker(settings)
-		cbm.breakers[datasourceName] = breaker
+		cbm.breakers[datasourceName] = gobreaker.NewCircuitBreaker(cbm.newSettings(datasourceName))
 		cbm.logger.Infof("Circuit breaker reset completed for datasource: %s", datasourceName)
 	}
 }

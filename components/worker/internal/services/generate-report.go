@@ -11,12 +11,15 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
 
+	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
+	"go.opentelemetry.io/otel/attribute"
 	// otel/trace is used for trace.Span parameter types in internal helpers
 	"go.opentelemetry.io/otel/trace"
 )
@@ -46,10 +49,12 @@ type GenerateReportMessage struct {
 // GenerateReport handles a report generation request by loading a template file,
 // processing it, and storing the final report in the report repository.
 func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.report.generate")
 	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	message, err := uc.parseMessage(ctx, body, &span, logger)
 	if err != nil {
@@ -143,7 +148,12 @@ func (uc *UseCase) handleErrorWithUpdate(ctx context.Context, reportID uuid.UUID
 		return errUpdate
 	}
 
-	libOtel.HandleSpanError(span, errorMsg, err)
+	if pkgHTTP.IsBusinessError(err) {
+		libOtel.HandleSpanBusinessErrorEvent(span, errorMsg, err)
+	} else {
+		libOtel.HandleSpanError(span, errorMsg, err)
+	}
+
 	logger.Errorf("%s: %s", errorMsg, err.Error())
 
 	return err

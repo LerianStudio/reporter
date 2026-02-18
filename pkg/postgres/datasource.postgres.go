@@ -69,6 +69,9 @@ type ExternalDataSource struct {
 	connection *Connection
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*ExternalDataSource)(nil)
+
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided postgres.Connection, initializing the database connection.
 // Returns nil and error if connection fails.
 func NewDataSourceRepository(pc *Connection) (*ExternalDataSource, error) {
@@ -111,7 +114,7 @@ func (ds *ExternalDataSource) CloseConnection() error {
 func (ds *ExternalDataSource) Query(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string][]any) ([]map[string]any, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "repository.datasource_postgres.query")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query")
 	defer span.End()
 
 	span.SetAttributes(
@@ -182,7 +185,7 @@ type tableInfo struct {
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context, schemas []string) ([]TableSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "repository.datasource_postgres.get_database_schema")
+	ctx, span := tracer.Start(ctx, "repository.datasource.get_database_schema")
 	defer span.End()
 
 	span.SetAttributes(
@@ -478,7 +481,7 @@ func transformFieldsForSelect(fields []string) []string {
 func (ds *ExternalDataSource) ValidateTableAndFields(ctx context.Context, tableName string, requestedFields []string, schema []TableSchema) ([]string, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "repository.datasource_postgres.validate_table_and_fields")
+	_, span := tracer.Start(ctx, "repository.datasource.validate_table_and_fields")
 	defer span.End()
 
 	span.SetAttributes(
@@ -609,7 +612,7 @@ func applyFilter(queryBuilder squirrel.SelectBuilder, fieldName string, values [
 func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, schema []TableSchema, schemaName string, table string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "repository.datasource_postgres.query_with_advanced_filters")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query_with_advanced_filters")
 	defer span.End()
 
 	span.SetAttributes(

@@ -24,7 +24,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-const errorFileAccepted = "there is no uploaded file associated with the given key"
+const ErrFileAccepted = "there is no uploaded file associated with the given key"
 
 // TemplateHandler handles HTTP requests for template operations.
 type TemplateHandler struct {
@@ -186,7 +186,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	)
 
 	fileHeader, err := c.FormFile("template")
-	if err != nil && err.Error() != errorFileAccepted {
+	if err != nil && err.Error() != ErrFileAccepted {
 		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))

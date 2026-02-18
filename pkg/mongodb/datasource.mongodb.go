@@ -55,6 +55,9 @@ type ExternalDataSource struct {
 	Database   string
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*ExternalDataSource)(nil)
+
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided MongoDB connection string and database name.
 // Returns nil and error if connection fails.
 func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) (*ExternalDataSource, error) {
