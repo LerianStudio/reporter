@@ -8,7 +8,7 @@ services:
       - .env
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet"]
+      test: [ "CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
     container_name: reporter-rabbitmq
     restart: always
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,12 +77,12 @@ services:
     env_file:
       - .env
     ports:
-      - "8333:8333"  # S3 API
-      - "9333:9333"  # Admin/Master API (optional)
+      - "8333:8333" # S3 API
+      - "9333:9333" # Admin/Master API (optional)
     volumes:
       - reporter-seaweedfs-data:/data
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,6 +108,7 @@ services:
     # Inline env mapping required: KEDA operator expects its own KEDA_OPERATOR_*
     # prefixed vars, mapped from our .env RabbitMQ connection settings.
     environment:
+      - WATCH_NAMESPACE=
       - KEDA_OPERATOR_LOG_LEVEL=info
       - KEDA_OPERATOR_RABBITMQ_HOST=reporter-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
@@ -117,7 +118,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8000/healthz || exit 1"]
+      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1:8000/healthz || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -141,7 +142,7 @@ services:
     image: valkey/valkey:8.0-alpine
     restart: always
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -180,7 +181,10 @@ volumes:
   reporter-rabbitmq-data:
   reporter-rabbitmq-log:
 
+
 networks:
   reporter-infra-network:
     name: reporter-infra-network
     driver: bridge
+  infra-network:
+    external: true

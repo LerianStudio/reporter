@@ -132,9 +132,13 @@ test:
 
 .PHONY: set-env
 set-env:
-	@echo "Setting up environment files..."
-	cp -r ./.env.example ./.env
-	@echo "Environment files created successfully"
+	@if [ -f ./.env ]; then \
+		echo ".env already exists, skipping (use 'cp .env.example .env' to overwrite manually)"; \
+	else \
+		echo "Setting up environment files..."; \
+		cp -r ./.env.example ./.env; \
+		echo "Environment files created successfully"; \
+	fi
 
 .PHONY: build
 build:

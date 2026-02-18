@@ -8,7 +8,7 @@ services:
       context: ../../
       dockerfile: ./components/worker/Dockerfile
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4006/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4006/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -16,8 +16,8 @@ services:
     env_file:
       - .env
     networks:
+      - reporter-worker-network
       - reporter-infra-network
-      - infra-network
     deploy:
       resources:
         limits:
@@ -35,7 +35,10 @@ services:
     # then start this service.
 
 networks:
+  reporter-worker-network:
+    driver: bridge
   reporter-infra-network:
     external: true
-  infra-network:  # Shared network from broader Lerian platform (created by midaz infra)
+  infra-network:
+    # Shared network from broader Lerian platform (created by midaz infra)
     external: true

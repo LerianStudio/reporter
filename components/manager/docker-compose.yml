@@ -8,7 +8,7 @@ services:
       context: ../../
       dockerfile: ./components/manager/Dockerfile
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4005/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4005/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,7 +19,6 @@ services:
       - ${SERVER_PORT}:${SERVER_PORT}
     networks:
       - reporter-infra-network
-      - infra-network
       - reporter-manager-network
     deploy:
       resources:
@@ -40,7 +39,8 @@ services:
 networks:
   reporter-infra-network:
     external: true
-  infra-network:  # Shared network from broader Lerian platform (created by midaz infra)
+  infra-network:
+    # Shared network from broader Lerian platform (created by midaz infra)
     external: true
   reporter-manager-network:
     driver: bridge
