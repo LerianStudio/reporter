@@ -38,7 +38,7 @@ func TestConfig_Validate_ValidConfig(t *testing.T) {
 
 	cfg := validManagerConfig()
 	err := cfg.Validate()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestConfig_Validate_AllFieldsMissing(t *testing.T) {
@@ -183,5 +183,5 @@ func TestConfig_Validate_OptionalFieldsCanBeEmpty(t *testing.T) {
 	cfg.AuthAddress = ""
 
 	err := cfg.Validate()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

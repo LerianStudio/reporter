@@ -549,7 +549,6 @@ func TestUseCase_UpdateTemplateByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
@@ -561,6 +560,136 @@ func TestUseCase_UpdateTemplateByID(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestUseCase_UpdateTemplateByID_OutputFormatWithoutFile(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{})
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
+	}
+
+	// Attempt to update outputFormat without providing a file
+	ctx := context.Background()
+	_, err := tempSvc.UpdateTemplateByID(ctx, "xml", "Updated Desc", uuid.New(), nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), constant.ErrOutputFormatWithoutTemplateFile.Error())
+}
+
+func TestUseCase_UpdateTemplateByID_NilOutputFormatFromDB(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization"})
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+
+	mongoSchemas := []mongodb.CollectionSchema{
+		{
+			CollectionName: "organization",
+			Fields: []mongodb.FieldInformation{
+				{Name: "legal_document", DataType: "string"},
+			},
+		},
+	}
+
+	externalDataSourcesMap := map[string]pkg.DataSource{
+		"midaz_organization": {
+			DatabaseType:      "mongodb",
+			MongoDBRepository: mockDataSourceMongo,
+			MongoDBName:       "organization",
+			Initialized:       true,
+		},
+	}
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
+	}
+
+	templateContent := `{% for org in midaz_organization.organization %}<Doc>{{ org.legal_document }}</Doc>{% endfor %}`
+	fileHeader, errFh := createFileHeaderFromString(templateContent, "test_template.tpl")
+	require.NoError(t, errFh)
+
+	mockDataSourceMongo.EXPECT().
+		GetDatabaseSchema(gomock.Any()).
+		Return(mongoSchemas, nil)
+	mockDataSourceMongo.EXPECT().
+		CloseConnection(gomock.Any()).
+		Return(nil)
+
+	// FindOutputFormatByID returns nil output format
+	mockTempRepo.EXPECT().
+		FindOutputFormatByID(gomock.Any(), gomock.Any()).
+		Return(nil, nil)
+
+	ctx := context.Background()
+	_, err := tempSvc.UpdateTemplateByID(ctx, "", "Updated Desc", uuid.New(), fileHeader)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "output format not found for template")
+}
+
+func TestUseCase_BuildSetFields(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	tests := []struct {
+		name         string
+		description  string
+		outputFormat string
+		mappedFields map[string]map[string][]string
+		expectKeys   []string
+	}{
+		{
+			name:         "All fields provided",
+			description:  "Updated description",
+			outputFormat: "xml",
+			mappedFields: map[string]map[string][]string{"ds": {"table": {"col"}}},
+			expectKeys:   []string{"description", "output_format", "mapped_fields", "updated_at"},
+		},
+		{
+			name:         "Only description",
+			description:  "New desc",
+			outputFormat: "",
+			mappedFields: nil,
+			expectKeys:   []string{"description", "updated_at"},
+		},
+		{
+			name:         "No optional fields",
+			description:  "",
+			outputFormat: "",
+			mappedFields: nil,
+			expectKeys:   []string{"updated_at"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.buildSetFields(tt.description, tt.outputFormat, tt.mappedFields)
+
+			for _, key := range tt.expectKeys {
+				assert.Contains(t, result, key)
 			}
 		})
 	}

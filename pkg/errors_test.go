@@ -11,6 +11,7 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEntityNotFoundError_Error(t *testing.T) {
@@ -168,12 +169,12 @@ func Test_validationErrorJSONSerialization(t *testing.T) {
 
 			// Marshal to JSON
 			jsonBytes, err := json.Marshal(tt.validationError)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Unmarshal to map for flexible comparison
 			var result map[string]any
 			err = json.Unmarshal(jsonBytes, &result)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify each expected field
 			for key, expectedValue := range tt.expectedJSON {

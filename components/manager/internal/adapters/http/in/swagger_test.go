@@ -167,6 +167,7 @@ func TestWithSwaggerEnvConfig(t *testing.T) {
 }
 
 func TestWithSwaggerEnvConfig_EmptyValues(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test modifies global api.SwaggerInfo state and uses t.Setenv.
 	originalTitle := api.SwaggerInfo.Title
 
 	defer func() {
@@ -194,6 +195,7 @@ func TestWithSwaggerEnvConfig_EmptyValues(t *testing.T) {
 }
 
 func TestWithSwaggerEnvConfig_DelimiterSettings(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test modifies global api.SwaggerInfo state and uses t.Setenv.
 	originalLeftDelim := api.SwaggerInfo.LeftDelim
 	originalRightDelim := api.SwaggerInfo.RightDelim
 

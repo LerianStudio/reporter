@@ -15,6 +15,7 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/seaweedfs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSeaweedFSAdapter(t *testing.T) {
@@ -46,7 +47,7 @@ func TestSeaweedFSAdapter_Upload(t *testing.T) {
 	reader := bytes.NewReader(data)
 
 	key, err := adapter.Upload(context.Background(), "test-key", reader, "text/plain")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "test-key", key)
 }
 
@@ -69,7 +70,7 @@ func TestSeaweedFSAdapter_UploadWithTTL(t *testing.T) {
 	reader := bytes.NewReader(data)
 
 	key, err := adapter.UploadWithTTL(context.Background(), "ttl-key", reader, "text/plain", "5m")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ttl-key", key)
 }
 
@@ -91,12 +92,12 @@ func TestSeaweedFSAdapter_Download(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	reader, err := adapter.Download(context.Background(), "download-key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, reader)
 	defer reader.Close()
 
 	content, err := io.ReadAll(reader)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expectedContent, string(content))
 }
 
@@ -115,7 +116,7 @@ func TestSeaweedFSAdapter_Delete(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	err := adapter.Delete(context.Background(), "delete-key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSAdapter_Exists_True(t *testing.T) {
@@ -132,7 +133,7 @@ func TestSeaweedFSAdapter_Exists_True(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	exists, err := adapter.Exists(context.Background(), "existing-key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -150,7 +151,7 @@ func TestSeaweedFSAdapter_Exists_False(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	exists, err := adapter.Exists(context.Background(), "non-existing-key")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, exists)
 }
 
@@ -162,7 +163,7 @@ func TestSeaweedFSAdapter_GeneratePresignedURL(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	url, err := adapter.GeneratePresignedURL(context.Background(), "my-file.pdf", 1*time.Hour)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "http://localhost:8888/test-bucket/my-file.pdf", url)
 }
 
@@ -183,7 +184,7 @@ func TestSeaweedFSAdapter_Upload_Error(t *testing.T) {
 	reader := bytes.NewReader(data)
 
 	_, err := adapter.Upload(context.Background(), "fail-key", reader, "text/plain")
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestSeaweedFSAdapter_Download_Error(t *testing.T) {
@@ -200,7 +201,7 @@ func TestSeaweedFSAdapter_Download_Error(t *testing.T) {
 	adapter := NewSeaweedFSAdapter(client, "test-bucket")
 
 	_, err := adapter.Download(context.Background(), "fail-key")
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestSeaweedFSAdapter_ImplementsInterface(t *testing.T) {

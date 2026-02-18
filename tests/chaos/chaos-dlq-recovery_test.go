@@ -19,6 +19,7 @@ import (
 
 // TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure tests that messages are not lost when RabbitMQ crashes
 func TestIntegration_Chaos_DLQ_RecoveryAfterRabbitMQFailure(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (stops/starts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

@@ -187,7 +187,7 @@ func TestReportMongoDBModel_FromEntity(t *testing.T) {
 	mongoModel := &ReportMongoDBModel{}
 	err := mongoModel.FromEntity(report)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, mongoModel.ID)
 	assert.Equal(t, templateID, mongoModel.TemplateID)
 	assert.Equal(t, "completed", mongoModel.Status)
@@ -211,7 +211,7 @@ func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
 	mongoModel := &ReportMongoDBModel{}
 	err := mongoModel.FromEntity(report)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, report.ID, mongoModel.ID)
 	assert.Equal(t, report.TemplateID, mongoModel.TemplateID)
 	assert.Equal(t, "pending", mongoModel.Status)
@@ -318,7 +318,7 @@ func TestReportStatuses(t *testing.T) {
 
 	for _, status := range statuses {
 		status := status
-		t.Run("Status_"+status, func(t *testing.T) {
+		t.Run("Success - Status_"+status, func(t *testing.T) {
 			t.Parallel()
 
 			report := Report{

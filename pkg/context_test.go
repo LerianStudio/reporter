@@ -128,7 +128,7 @@ func TestNewTracerFromContext(t *testing.T) {
 func TestContextWithLogger(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Add logger to empty context", func(t *testing.T) {
+	t.Run("Success - Add logger to empty context", func(t *testing.T) {
 		t.Parallel()
 
 		logger := &log.NoneLogger{}
@@ -141,7 +141,7 @@ func TestContextWithLogger(t *testing.T) {
 		assert.Equal(t, logger, retrievedLogger)
 	})
 
-	t.Run("Add logger to context with existing tracer", func(t *testing.T) {
+	t.Run("Success - Add logger to context with existing tracer", func(t *testing.T) {
 		t.Parallel()
 
 		tracer := noop.Tracer{}
@@ -158,7 +158,7 @@ func TestContextWithLogger(t *testing.T) {
 		assert.NotNil(t, retrievedTracer)
 	})
 
-	t.Run("Replace existing logger", func(t *testing.T) {
+	t.Run("Success - Replace existing logger", func(t *testing.T) {
 		t.Parallel()
 
 		logger1 := &log.NoneLogger{}
@@ -175,7 +175,7 @@ func TestContextWithLogger(t *testing.T) {
 func TestContextWithTracer(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Add tracer to empty context", func(t *testing.T) {
+	t.Run("Success - Add tracer to empty context", func(t *testing.T) {
 		t.Parallel()
 
 		tracer := noop.Tracer{}
@@ -188,7 +188,7 @@ func TestContextWithTracer(t *testing.T) {
 		assert.NotNil(t, retrievedTracer)
 	})
 
-	t.Run("Add tracer to context with existing logger", func(t *testing.T) {
+	t.Run("Success - Add tracer to context with existing logger", func(t *testing.T) {
 		t.Parallel()
 
 		logger := &log.NoneLogger{}
@@ -216,7 +216,7 @@ func TestCustomContextKey(t *testing.T) {
 func TestCustomContextKeyValue(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Create with both values", func(t *testing.T) {
+	t.Run("Success - Create with both values", func(t *testing.T) {
 		t.Parallel()
 
 		logger := &log.NoneLogger{}
@@ -231,7 +231,7 @@ func TestCustomContextKeyValue(t *testing.T) {
 		assert.Equal(t, tracer, value.Tracer)
 	})
 
-	t.Run("Create with nil values", func(t *testing.T) {
+	t.Run("Success - Create with nil values", func(t *testing.T) {
 		t.Parallel()
 
 		value := &CustomContextKeyValue{}

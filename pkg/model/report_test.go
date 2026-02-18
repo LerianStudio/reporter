@@ -75,7 +75,7 @@ func TestFilterCondition_JSONMarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			data, err := json.Marshal(tt.filter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.JSONEq(t, tt.expected, string(data))
 		})
 	}
@@ -126,7 +126,7 @@ func TestFilterCondition_JSONUnmarshal(t *testing.T) {
 			t.Parallel()
 			var result FilterCondition
 			err := json.Unmarshal([]byte(tt.json), &result)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -148,11 +148,11 @@ func TestCreateReportInput_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", result["templateId"])
 	assert.NotNil(t, result["filters"])
@@ -173,7 +173,7 @@ func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
 
 	var input CreateReportInput
 	err := json.Unmarshal([]byte(jsonData), &input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", input.TemplateID)
 	assert.NotNil(t, input.Filters)
@@ -208,11 +208,11 @@ func TestReportMessage_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, templateID.String(), result["templateId"])
 	assert.Equal(t, reportID.String(), result["reportId"])
@@ -244,7 +244,7 @@ func TestReportMessage_JSONUnmarshal(t *testing.T) {
 
 	var msg ReportMessage
 	err := json.Unmarshal([]byte(jsonData), &msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, templateID, msg.TemplateID)
 	assert.Equal(t, reportID, msg.ReportID)
@@ -267,11 +267,11 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 	}
 
 	data, err := json.Marshal(filter)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result FilterCondition
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.NotNil(t, result.Equals)
 	assert.NotNil(t, result.GreaterThan)
@@ -294,11 +294,11 @@ func TestReportMessage_EmptyFilters(t *testing.T) {
 	}
 
 	data, err := json.Marshal(msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result ReportMessage
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Nil(t, result.Filters)
 	assert.Nil(t, result.MappedFields)

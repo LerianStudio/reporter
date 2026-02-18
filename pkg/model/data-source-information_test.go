@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDataSourceInformation_JSONMarshal(t *testing.T) {
@@ -20,7 +21,7 @@ func TestDataSourceInformation_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(info)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	expected := `{"id":"midaz_onboarding","externalName":"onboarding","type":"postgresql"}`
 	assert.JSONEq(t, expected, string(data))
@@ -32,7 +33,7 @@ func TestDataSourceInformation_JSONUnmarshal(t *testing.T) {
 
 	var info DataSourceInformation
 	err := json.Unmarshal([]byte(jsonData), &info)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "test_db", info.Id)
 	assert.Equal(t, "test", info.ExternalName)
@@ -58,11 +59,11 @@ func TestDataSourceDetails_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(details)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "midaz_onboarding", result["id"])
 	assert.Equal(t, "onboarding", result["externalName"])
@@ -89,7 +90,7 @@ func TestDataSourceDetails_JSONUnmarshal(t *testing.T) {
 
 	var details DataSourceDetails
 	err := json.Unmarshal([]byte(jsonData), &details)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "test_db", details.Id)
 	assert.Equal(t, "test", details.ExternalName)
@@ -107,11 +108,11 @@ func TestTableDetails_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(table)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "account", result["name"])
 	fields, ok := result["fields"].([]interface{})
@@ -125,7 +126,7 @@ func TestTableDetails_JSONUnmarshal(t *testing.T) {
 
 	var table TableDetails
 	err := json.Unmarshal([]byte(jsonData), &table)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "transactions", table.Name)
 	assert.Equal(t, []string{"id", "amount", "currency", "created_at"}, table.Fields)
@@ -141,11 +142,11 @@ func TestDataSourceDetails_EmptyTables(t *testing.T) {
 	}
 
 	data, err := json.Marshal(details)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result DataSourceDetails
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "empty_db", result.Id)
 	assert.Empty(t, result.Tables)
@@ -159,11 +160,11 @@ func TestTableDetails_EmptyFields(t *testing.T) {
 	}
 
 	data, err := json.Marshal(table)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result TableDetails
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "empty_table", result.Name)
 	assert.Empty(t, result.Fields)
@@ -175,7 +176,7 @@ func TestDataSourceInformation_AllTypes(t *testing.T) {
 
 	for _, dbType := range types {
 		dbType := dbType
-		t.Run("Type_"+dbType, func(t *testing.T) {
+		t.Run("Success - Type_"+dbType, func(t *testing.T) {
 			t.Parallel()
 			info := DataSourceInformation{
 				Id:           "test_" + dbType,
@@ -184,11 +185,11 @@ func TestDataSourceInformation_AllTypes(t *testing.T) {
 			}
 
 			data, err := json.Marshal(info)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			var result DataSourceInformation
 			err = json.Unmarshal(data, &result)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Equal(t, dbType, result.Type)
 		})

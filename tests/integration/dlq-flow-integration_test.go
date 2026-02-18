@@ -15,10 +15,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestDLQMessage_MetadataStructure validates DLQ message schema
 func TestIntegration_DLQ_MetadataStructure(t *testing.T) {
+	t.Parallel()
+
 	reportID := uuid.New()
 	reportMessage := model.ReportMessage{
 		ReportID:     reportID,
@@ -27,7 +30,7 @@ func TestIntegration_DLQ_MetadataStructure(t *testing.T) {
 	}
 
 	bodyBytes, err := json.Marshal(reportMessage)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	headers := amqp091.Table{
 		"x-retry-count":    int32(3),
@@ -57,6 +60,8 @@ func TestIntegration_DLQ_MetadataStructure(t *testing.T) {
 
 // TestDLQConfiguration_TTLAndLimits validates DLQ queue configuration
 func TestIntegration_DLQ_TTLAndLimits(t *testing.T) {
+	t.Parallel()
+
 	expectedTTL := 7 * 24 * time.Hour
 	expectedMaxLength := 10000
 
@@ -67,6 +72,8 @@ func TestIntegration_DLQ_TTLAndLimits(t *testing.T) {
 
 // TestReportStatus_UpdatedOnDLQ validates report status update
 func TestIntegration_ReportStatus_UpdatedOnDLQ(t *testing.T) {
+	t.Parallel()
+
 	expectedStatus := "Error"
 	expectedMetadata := map[string]any{
 		"error":         "Database connection timeout",
@@ -83,6 +90,8 @@ func TestIntegration_ReportStatus_UpdatedOnDLQ(t *testing.T) {
 
 // TestExponentialBackoff_Timing validates retry delays
 func TestIntegration_ExponentialBackoff_Timing(t *testing.T) {
+	t.Parallel()
+
 	expectedBackoffs := []time.Duration{
 		1 * time.Second, // 2^0
 		2 * time.Second, // 2^1

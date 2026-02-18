@@ -9,6 +9,7 @@ import (
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPercentOfFilter(t *testing.T) {
@@ -159,9 +160,9 @@ func TestEvaluateArithmeticExpression_BasicOperations(t *testing.T) {
 			t.Parallel()
 			result, err := evaluateArithmeticExpression(tt.expression)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.expected, result, 0.0001)
 			}
 		})
@@ -186,7 +187,7 @@ func TestEvaluateArithmeticExpression_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			_, err := evaluateArithmeticExpression(tt.expression)
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errContains)
 		})
 	}
@@ -211,7 +212,7 @@ func TestEvaluateArithmeticExpression_Precedence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result, err := evaluateArithmeticExpression(tt.expression)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.InDelta(t, tt.expected, result, 0.0001)
 		})
 	}
@@ -313,9 +314,9 @@ func TestTokenizeExpression(t *testing.T) {
 			t.Parallel()
 			tokens, err := tokenizeExpression(tt.expression)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Len(t, tokens, tt.numTokens)
 			}
 		})
@@ -341,9 +342,9 @@ func TestEvaluateTokens_EdgeCases(t *testing.T) {
 			t.Parallel()
 			result, err := evaluateTokens(tt.tokens)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.want, result, 0.0001)
 			}
 		})
@@ -370,9 +371,9 @@ func TestEvaluateWithParentheses(t *testing.T) {
 			t.Parallel()
 			result, err := evaluateWithParentheses(tt.expression)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.InDelta(t, tt.expected, result, 0.0001)
 			}
 		})
@@ -388,4 +389,401 @@ func TestToken_Struct(t *testing.T) {
 	opToken := token{isOperator: true, operator: "+"}
 	assert.True(t, opToken.isOperator)
 	assert.Equal(t, "+", opToken.operator)
+}
+
+// ---------------------------------------------------------------------------
+// evaluatePowerTokens error paths
+// ---------------------------------------------------------------------------
+
+func TestEvaluatePowerTokens_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		tokens      []token
+		errContains string
+	}{
+		{
+			name: "power_operator_at_position_zero",
+			tokens: []token{
+				{isOperator: true, operator: "**"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "invalid ** operator position",
+		},
+		{
+			name: "power_operator_at_last_position",
+			tokens: []token{
+				{isOperator: false, value: 2},
+				{isOperator: true, operator: "**"},
+			},
+			errContains: "invalid ** operator position",
+		},
+		{
+			name: "adjacent_power_operators",
+			tokens: []token{
+				{isOperator: false, value: 2},
+				{isOperator: true, operator: "**"},
+				{isOperator: true, operator: "**"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "missing operand for ** operator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := evaluatePowerTokens(tt.tokens)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// parseMinusToken edge cases
+// ---------------------------------------------------------------------------
+
+func TestParseMinusToken_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		expression  string
+		expected    float64
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:       "minus_as_operator_between_numbers",
+			expression: "10-3",
+			expected:   7,
+		},
+		{
+			name:       "negative_sign_at_start",
+			expression: "-7+2",
+			expected:   -5,
+		},
+		{
+			name:       "negative_after_operator",
+			expression: "5*-2",
+			expected:   -10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := evaluateArithmeticExpression(tt.expression)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				require.NoError(t, err)
+				assert.InDelta(t, tt.expected, result, 0.0001)
+			}
+		})
+	}
+}
+
+func TestParseMinusToken_NegativeSignWithoutDigits(t *testing.T) {
+	t.Parallel()
+	// A bare minus at the end of the expression: negative sign with no following digits
+	_, err := evaluateArithmeticExpression("5+-")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid number")
+}
+
+// ---------------------------------------------------------------------------
+// evaluateAddSubTokens error paths
+// ---------------------------------------------------------------------------
+
+func TestEvaluateAddSubTokens_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		tokens      []token
+		errContains string
+	}{
+		{
+			name:        "empty_expression",
+			tokens:      []token{},
+			errContains: "empty expression",
+		},
+		{
+			name: "operator_at_start",
+			tokens: []token{
+				{isOperator: true, operator: "+"},
+				{isOperator: false, value: 5},
+			},
+			errContains: "expression cannot start with operator",
+		},
+		{
+			name: "missing_operand_after_operator",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: true, operator: "+"},
+			},
+			errContains: "missing operand after operator",
+		},
+		{
+			name: "two_consecutive_operators",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: true, operator: "+"},
+				{isOperator: true, operator: "-"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "expected number, got operator",
+		},
+		{
+			name: "two_consecutive_numbers_without_operator",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: false, value: 3},
+			},
+			errContains: "expected operator at position",
+		},
+		{
+			name: "single_operator_token",
+			tokens: []token{
+				{isOperator: true, operator: "-"},
+			},
+			errContains: "expected number, got operator",
+		},
+		{
+			name: "unexpected_operator_in_addsub_pass",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: true, operator: "*"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "unexpected operator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := evaluateAddSubTokens(tt.tokens)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// evaluateMulDivTokens error paths
+// ---------------------------------------------------------------------------
+
+func TestEvaluateMulDivTokens_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		tokens      []token
+		errContains string
+	}{
+		{
+			name: "multiply_at_position_zero",
+			tokens: []token{
+				{isOperator: true, operator: "*"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "invalid * operator position",
+		},
+		{
+			name: "divide_at_last_position",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: true, operator: "/"},
+			},
+			errContains: "invalid / operator position",
+		},
+		{
+			name: "missing_operand_for_multiply",
+			tokens: []token{
+				{isOperator: false, value: 5},
+				{isOperator: true, operator: "*"},
+				{isOperator: true, operator: "+"},
+				{isOperator: false, value: 3},
+			},
+			errContains: "missing operand for * operator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := evaluateMulDivTokens(tt.tokens)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// stripZerosFilter - default (fallback) type branch
+// ---------------------------------------------------------------------------
+
+func TestStripZerosFilter_FallbackType(t *testing.T) {
+	t.Parallel()
+	// Pass a bool value, which hits the default branch (fallback to string formatting)
+	val, err := stripZerosFilter(pongo2.AsValue(true), pongo2.AsValue(""))
+	assert.Nil(t, err)
+	assert.Equal(t, "true", val.String())
+}
+
+func TestStripZerosFilter_FallbackStructType(t *testing.T) {
+	t.Parallel()
+	type custom struct{ X int }
+	val, err := stripZerosFilter(pongo2.AsValue(custom{X: 42}), pongo2.AsValue(""))
+	assert.Nil(t, err)
+	assert.Equal(t, "{42}", val.String())
+}
+
+// ---------------------------------------------------------------------------
+// percentOfFilter - additional type coverage
+// ---------------------------------------------------------------------------
+
+func TestPercentOfFilter_Int64Inputs(t *testing.T) {
+	t.Parallel()
+	val, err := percentOfFilter(pongo2.AsValue(int64(50)), pongo2.AsValue(int64(200)))
+	assert.Nil(t, err)
+	assert.Equal(t, "25.00%", val.String())
+}
+
+func TestPercentOfFilter_Float64Inputs(t *testing.T) {
+	t.Parallel()
+	val, err := percentOfFilter(pongo2.AsValue(25.0), pongo2.AsValue(50.0))
+	assert.Nil(t, err)
+	assert.Equal(t, "50.00%", val.String())
+}
+
+func TestPercentOfFilter_UnsupportedType(t *testing.T) {
+	t.Parallel()
+	// bool is not a supported type in toDec -> triggers unsupported type error
+	val, err := percentOfFilter(pongo2.AsValue(true), pongo2.AsValue(100))
+	assert.NotNil(t, err)
+	assert.Equal(t, "NaN", val.String())
+}
+
+func TestPercentOfFilter_UnsupportedDenominatorType(t *testing.T) {
+	t.Parallel()
+	// unsupported type for denominator
+	val, err := percentOfFilter(pongo2.AsValue(50), pongo2.AsValue(true))
+	assert.NotNil(t, err)
+	assert.Equal(t, "NaN", val.String())
+}
+
+// ---------------------------------------------------------------------------
+// parseNumberToken error path
+// ---------------------------------------------------------------------------
+
+func TestParseNumberToken_OnlyDecimalPoint(t *testing.T) {
+	t.Parallel()
+	// A lone decimal point should fail to produce a valid number (hasDigit=false)
+	numStr, length := parseNumber(".")
+	assert.Equal(t, "", numStr)
+	assert.Equal(t, 0, length)
+}
+
+func TestParseNumberToken_LoneDotInExpression(t *testing.T) {
+	t.Parallel()
+	// A lone "." triggers parseNumberToken with length=0, exercising the error branch
+	_, err := evaluateArithmeticExpression("5+.")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid number")
+}
+
+func TestParseNumberToken_DirectCall(t *testing.T) {
+	t.Parallel()
+	// Directly call parseNumberToken with a lone dot to hit length==0 error path
+	_, _, err := parseNumberToken(".", 0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid number at position 0")
+}
+
+func TestParseNumber_NegativeWithoutDigits(t *testing.T) {
+	t.Parallel()
+	// Just a negative sign with no digits after it
+	numStr, length := parseNumber("-")
+	assert.Equal(t, "", numStr)
+	assert.Equal(t, 0, length)
+}
+
+func TestParseNumber_NegativeFollowedByNonDigit(t *testing.T) {
+	t.Parallel()
+	// Negative sign followed by a non-digit, non-dot character
+	numStr, length := parseNumber("-abc")
+	assert.Equal(t, "", numStr)
+	assert.Equal(t, 0, length)
+}
+
+// ---------------------------------------------------------------------------
+// evaluateWithParentheses error paths
+// ---------------------------------------------------------------------------
+
+func TestEvaluateWithParentheses_InnerExpressionError(t *testing.T) {
+	t.Parallel()
+	// Inner expression contains an error (empty parens)
+	_, err := evaluateWithParentheses("()")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty expression")
+}
+
+func TestEvaluateWithParentheses_UnmatchedOpenParen(t *testing.T) {
+	t.Parallel()
+	_, err := evaluateWithParentheses("(5+3")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unmatched parentheses")
+}
+
+func TestEvaluateWithParentheses_NoParentheses(t *testing.T) {
+	t.Parallel()
+	// Expression without parentheses goes through the no-paren branch
+	result, err := evaluateWithParentheses("5+3*2")
+	require.NoError(t, err)
+	assert.InDelta(t, 11.0, result, 0.0001)
+}
+
+// ---------------------------------------------------------------------------
+// Integration-level tests exercising error paths through evaluateArithmeticExpression
+// ---------------------------------------------------------------------------
+
+func TestEvaluateArithmeticExpression_AdditionalErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		expression  string
+		errContains string
+	}{
+		{
+			name:        "only_operator",
+			expression:  "+",
+			errContains: "expected number, got operator",
+		},
+		{
+			name:        "only_power_operator",
+			expression:  "**",
+			errContains: "invalid ** operator position",
+		},
+		{
+			name:        "parentheses_with_error_inside",
+			expression:  "(5+)",
+			errContains: "missing operand after operator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := evaluateArithmeticExpression(tt.expression)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
 }

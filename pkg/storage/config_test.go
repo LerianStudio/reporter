@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_Struct(t *testing.T) {
@@ -41,7 +42,7 @@ func TestNewStorageClient_MissingBucket(t *testing.T) {
 	}
 
 	_, err := NewStorageClient(context.Background(), cfg)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bucket name is required")
 }
 

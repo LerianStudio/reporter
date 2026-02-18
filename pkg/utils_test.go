@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetMapNumKinds(t *testing.T) {
@@ -295,9 +296,9 @@ func TestValidateFormDataFields(t *testing.T) {
 
 			err := ValidateFormDataFields(tt.outFormat, tt.description)
 			if tt.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -435,9 +436,9 @@ func TestValidateFileFormat(t *testing.T) {
 
 			err := ValidateFileFormat(tt.outFormat, tt.templateFile)
 			if tt.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -592,28 +593,28 @@ func TestSafeInt64ToInt_BoundaryBehavior(t *testing.T) {
 	// so the boundary conditions are only relevant on 32-bit systems
 	// This test verifies the function works correctly at boundary values
 
-	t.Run("MaxInt boundary", func(t *testing.T) {
+	t.Run("Success - MaxInt boundary", func(t *testing.T) {
 		t.Parallel()
 
 		result := SafeInt64ToInt(int64(math.MaxInt))
 		assert.Equal(t, math.MaxInt, result)
 	})
 
-	t.Run("MinInt boundary", func(t *testing.T) {
+	t.Run("Success - MinInt boundary", func(t *testing.T) {
 		t.Parallel()
 
 		result := SafeInt64ToInt(int64(math.MinInt))
 		assert.Equal(t, math.MinInt, result)
 	})
 
-	t.Run("Just below MaxInt", func(t *testing.T) {
+	t.Run("Success - Just below MaxInt", func(t *testing.T) {
 		t.Parallel()
 
 		result := SafeInt64ToInt(int64(math.MaxInt) - 1)
 		assert.Equal(t, math.MaxInt-1, result)
 	})
 
-	t.Run("Just above MinInt", func(t *testing.T) {
+	t.Run("Success - Just above MinInt", func(t *testing.T) {
 		t.Parallel()
 
 		result := SafeInt64ToInt(int64(math.MinInt) + 1)
@@ -626,19 +627,19 @@ func TestSyscmd_ExecCmd(t *testing.T) {
 
 	syscmd := &Syscmd{}
 
-	t.Run("Execute echo command", func(t *testing.T) {
+	t.Run("Success - Execute echo command", func(t *testing.T) {
 		t.Parallel()
 
 		output, err := syscmd.ExecCmd("echo", "hello")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, string(output), "hello")
 	})
 
-	t.Run("Execute invalid command", func(t *testing.T) {
+	t.Run("Error - Execute invalid command", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := syscmd.ExecCmd("nonexistent_command_xyz")
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 

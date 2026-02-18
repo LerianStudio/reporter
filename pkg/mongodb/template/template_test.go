@@ -75,7 +75,7 @@ func TestTemplateMongoDBModel_ToEntity_AllOutputFormats(t *testing.T) {
 
 	for _, format := range formats {
 		format := format
-		t.Run("Format_"+format, func(t *testing.T) {
+		t.Run("Success - Format_"+format, func(t *testing.T) {
 			t.Parallel()
 
 			mongoModel := &TemplateMongoDBModel{

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
@@ -554,7 +554,7 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 				require.Error(t, err)
 				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

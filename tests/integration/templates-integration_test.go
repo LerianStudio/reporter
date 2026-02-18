@@ -16,6 +16,7 @@ import (
 
 // GET /v1/templates — filters and pagination
 func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -63,6 +64,7 @@ func TestIntegration_Templates_ListWithFiltersAndPagination(t *testing.T) {
 
 // POST /v1/templates — create template with invalid payload
 func TestIntegration_Templates_Create_BadRequest(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

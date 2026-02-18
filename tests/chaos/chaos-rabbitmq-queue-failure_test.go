@@ -20,6 +20,7 @@ import (
 
 // TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration simulates a failure of the RabbitMQ queue during report generation
 func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -143,6 +144,7 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 
 // TestIntegration_Chaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
 func TestIntegration_Chaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

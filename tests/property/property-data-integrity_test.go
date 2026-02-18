@@ -18,6 +18,7 @@ import (
 
 // Property 1: Report criado deve sempre existir no MongoDB
 func TestProperty_Report_ExistsAfterCreation(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}
@@ -83,6 +84,7 @@ func TestProperty_Report_ExistsAfterCreation(t *testing.T) {
 
 // Property 2: Report metadata deve conter campos obrigatórios
 func TestProperty_Report_RequiredMetadata(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}
@@ -138,6 +140,7 @@ func TestProperty_Report_RequiredMetadata(t *testing.T) {
 
 // Property 3: Lista de reports deve incluir report recém-criado
 func TestProperty_Report_AppearsInList(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}
@@ -217,6 +220,7 @@ func TestProperty_Report_AppearsInList(t *testing.T) {
 
 // Property 4: Output format do report deve corresponder ao template
 func TestProperty_Report_OutputFormatMatches(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}
@@ -276,6 +280,7 @@ func TestProperty_Report_OutputFormatMatches(t *testing.T) {
 
 // Property 5: Timestamps devem ser ordenados (createdAt <= updatedAt)
 func TestProperty_Report_TimestampOrdering(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}

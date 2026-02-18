@@ -123,6 +123,20 @@ func TestUseCase_GetAllReports(t *testing.T) {
 			expectedResult: []*report.Report{},
 			expectedCount:  0,
 		},
+		{
+			name:    "Success - Nil result set returns empty slice",
+			filters: filters,
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockReportRepo.EXPECT().
+					FindList(gomock.Any(), gomock.Any()).
+					Return(nil, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
+			},
+			expectErr:      false,
+			expectedResult: []*report.Report{},
+			expectedCount:  0,
+		},
 	}
 
 	for _, tt := range tests {

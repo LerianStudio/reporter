@@ -635,6 +635,19 @@ func TestUseCase_HandleErrorWithUpdate(t *testing.T) {
 			expectError: true,
 			errContains: "update failed",
 		},
+		{
+			name:     "Success - Business error uses HandleSpanBusinessErrorEvent",
+			reportID: uuid.New(),
+			errorMsg: "Validation failed",
+			inputErr: pkg.ValidationError{Code: "VAL001", Title: "Validation", Message: "invalid input"},
+			mockSetup: func(mockReportDataRepo *reportData.MockRepository, reportID uuid.UUID) {
+				mockReportDataRepo.EXPECT().
+					UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expectError: true,
+			errContains: "invalid input",
+		},
 	}
 
 	for _, tt := range tests {
@@ -662,4 +675,61 @@ func TestUseCase_HandleErrorWithUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUseCase_ParseMessage_UpdateReportAlsoFails(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
+
+	// When parseMessage fails on invalid JSON, it calls updateReportWithErrors.
+	// If that also fails, it should return the updateReportWithErrors error.
+	mockReportDataRepo.EXPECT().
+		UpdateReportStatusById(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(errors.New("database connection lost"))
+
+	useCase := &UseCase{
+		ReportDataRepo: mockReportDataRepo,
+	}
+
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	_, span := tracer.Start(context.Background(), "test")
+
+	_, err := useCase.parseMessage(context.Background(), []byte("invalid json"), &span, logger)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "database connection lost")
+}
+
+func TestUseCase_MarkReportAsFinished_NestedErrorWhenUpdateAlsoFails(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockReportDataRepo := reportData.NewMockRepository(ctrl)
+	reportID := uuid.New()
+
+	// First call: UpdateReportStatusById for "Finished" fails
+	mockReportDataRepo.EXPECT().
+		UpdateReportStatusById(gomock.Any(), "Finished", reportID, gomock.Any(), nil).
+		Return(errors.New("first update failed"))
+
+	// Second call: updateReportWithErrors also fails
+	mockReportDataRepo.EXPECT().
+		UpdateReportStatusById(gomock.Any(), "Error", reportID, gomock.Any(), gomock.Any()).
+		Return(errors.New("second update also failed"))
+
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	_, span := tracer.Start(context.Background(), "test")
+
+	useCase := &UseCase{
+		ReportDataRepo: mockReportDataRepo,
+	}
+
+	err := useCase.markReportAsFinished(context.Background(), reportID, &span, logger)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "second update also failed")
 }

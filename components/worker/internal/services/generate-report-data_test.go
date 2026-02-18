@@ -578,6 +578,7 @@ func TestUseCase_TransformPluginCRMAdvancedFilters_NewFields(t *testing.T) {
 }
 
 func TestUseCase_TransformPluginCRMAdvancedFilters_EdgeCases(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because some subtests use t.Setenv which is incompatible with parallel execution.
 	t.Run("Success - Nil filter returns nil", func(t *testing.T) {
 		t.Parallel()
 
@@ -753,6 +754,7 @@ func TestUseCase_IsEncryptedField(t *testing.T) {
 }
 
 func TestUseCase_DecryptPluginCRMData(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because some subtests use t.Setenv which is incompatible with parallel execution.
 	t.Run("Error - Missing env vars", func(t *testing.T) {
 		// NOTE: t.Setenv is incompatible with t.Parallel()
 		t.Setenv("CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM", "")
@@ -1581,4 +1583,1211 @@ func TestUseCase_DecryptRelatedPartiesFields(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUseCase_ProcessPluginCRMCollection(t *testing.T) {
+	t.Parallel()
+
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	t.Run("Success - happy path queries and decrypts CRM data", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		cbManager := pkg.NewCircuitBreakerManager(logger)
+
+		crypto := &libCrypto.Crypto{
+			HashSecretKey:    hashKey,
+			EncryptSecretKey: encryptKey,
+			Logger:           logger,
+		}
+		err := crypto.InitializeCipher()
+		require.NoError(t, err)
+
+		nameStr := "John Doe"
+		encryptedName, _ := crypto.Encrypt(&nameStr)
+
+		organizationID := "org-123"
+		expectedCollection := "holders_" + organizationID
+
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), expectedCollection, []string{"name"}, nil).
+			Return([]map[string]any{
+				{"name": *encryptedName, "id": "rec-1"},
+			}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:         true,
+			DatabaseType:        "mongodb",
+			MongoDBRepository:   mockMongoRepo,
+			MidazOrganizationID: organizationID,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager:           cbManager,
+			CryptoHashSecretKeyPluginCRM:    hashKey,
+			CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["plugin_crm"] = make(map[string][]map[string]any)
+
+		err = useCase.processPluginCRMCollection(
+			context.Background(),
+			dataSource,
+			"holders",
+			[]string{"name"},
+			nil,
+			result,
+			logger,
+		)
+		require.NoError(t, err)
+		require.Len(t, result["plugin_crm"]["holders"], 1)
+		assert.Equal(t, nameStr, result["plugin_crm"]["holders"][0]["name"])
+	})
+
+	t.Run("Error - missing MidazOrganizationID returns error", func(t *testing.T) {
+		t.Parallel()
+
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		dataSource := &pkg.DataSource{
+			Initialized:         true,
+			DatabaseType:        "mongodb",
+			MidazOrganizationID: "",
+		}
+
+		useCase := &UseCase{
+			CryptoHashSecretKeyPluginCRM:    hashKey,
+			CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["plugin_crm"] = make(map[string][]map[string]any)
+
+		err := useCase.processPluginCRMCollection(
+			context.Background(),
+			dataSource,
+			"holders",
+			[]string{"name"},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "DATASOURCE_CRM_MIDAZ_ORGANIZATION_ID")
+	})
+
+	t.Run("Error - MongoDB query failure propagates error", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		cbManager := pkg.NewCircuitBreakerManager(logger)
+
+		organizationID := "org-456"
+		expectedCollection := "holders_" + organizationID
+
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), expectedCollection, []string{"name"}, nil).
+			Return(nil, errors.New("connection refused"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:         true,
+			DatabaseType:        "mongodb",
+			MongoDBRepository:   mockMongoRepo,
+			MidazOrganizationID: organizationID,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager:           cbManager,
+			CryptoHashSecretKeyPluginCRM:    hashKey,
+			CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["plugin_crm"] = make(map[string][]map[string]any)
+
+		err := useCase.processPluginCRMCollection(
+			context.Background(),
+			dataSource,
+			"holders",
+			[]string{"name"},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+
+	t.Run("Error - decryption failure returns business error", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		cbManager := pkg.NewCircuitBreakerManager(logger)
+
+		organizationID := "org-789"
+		expectedCollection := "holders_" + organizationID
+
+		// Return data with an invalid encrypted value to trigger decryption failure
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), expectedCollection, []string{"document"}, nil).
+			Return([]map[string]any{
+				{"document": "invalid-encrypted-data", "id": "rec-1"},
+			}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:         true,
+			DatabaseType:        "mongodb",
+			MongoDBRepository:   mockMongoRepo,
+			MidazOrganizationID: organizationID,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager:           cbManager,
+			CryptoHashSecretKeyPluginCRM:    hashKey,
+			CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["plugin_crm"] = make(map[string][]map[string]any)
+
+		err := useCase.processPluginCRMCollection(
+			context.Background(),
+			dataSource,
+			"holders",
+			[]string{"document"},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+	})
+}
+
+func TestUseCase_ProcessMongoCollection_PluginCRMOrganizationSkip(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbManager := pkg.NewCircuitBreakerManager(logger)
+
+	useCase := &UseCase{
+		CircuitBreakerManager: cbManager,
+	}
+
+	dataSource := &pkg.DataSource{
+		Initialized:         true,
+		DatabaseType:        "mongodb",
+		MidazOrganizationID: "org-123",
+	}
+
+	result := make(map[string]map[string][]map[string]any)
+	result["plugin_crm"] = make(map[string][]map[string]any)
+
+	// The "organization" collection should be silently skipped for plugin_crm
+	err := useCase.processMongoCollection(
+		context.Background(),
+		dataSource,
+		"plugin_crm",
+		"organization",
+		[]string{"name"},
+		nil,
+		result,
+		logger,
+	)
+	require.NoError(t, err)
+	assert.Empty(t, result["plugin_crm"], "organization collection should be skipped for plugin_crm")
+}
+
+func TestUseCase_QueryMongoCollectionWithFilters_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Error - circuit breaker Execute returns error", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return(nil, errors.New("circuit breaker open"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "mongodb",
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		_, err := useCase.queryMongoCollectionWithFilters(
+			context.Background(),
+			dataSource,
+			"users",
+			[]string{"name"},
+			nil,
+			logger,
+			"test_db",
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "circuit breaker open")
+	})
+
+	t.Run("Error - unexpected query result type", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// Return a non-slice type to trigger the type assertion failure.
+		// The circuit breaker directly returns a string instead of []map[string]any.
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return("not-a-slice", nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "mongodb",
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		_, err := useCase.queryMongoCollectionWithFilters(
+			context.Background(),
+			dataSource,
+			"users",
+			[]string{"name"},
+			nil,
+			logger,
+			"test_db",
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected query result type")
+	})
+
+	t.Run("Error - filter transform error within query flow", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// The circuit breaker executes the function which internally calls
+		// transformPluginCRMAdvancedFilters. When CryptoHashSecretKeyPluginCRM is empty,
+		// the transform fails.
+		mockCB.EXPECT().
+			Execute("plugin_crm", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return fn()
+			})
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "mongodb",
+		}
+
+		// Use a collection name that contains underscore (to trigger CRM filter transform path)
+		// and provide filters to activate the transform
+		collectionFilters := map[string]model.FilterCondition{
+			"document": {
+				Equals: []any{"12345678901"},
+			},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager:       mockCB,
+			CryptoHashSecretKeyPluginCRM: "", // Empty key triggers transform error
+		}
+
+		_, err := useCase.queryMongoCollectionWithFilters(
+			context.Background(),
+			dataSource,
+			"holders_org123", // Contains underscore, not "organization" -> triggers transform
+			[]string{"name"},
+			collectionFilters,
+			logger,
+			"plugin_crm",
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "error transforming advanced filters")
+	})
+
+	t.Run("Success - query with filters uses QueryWithAdvancedFilters", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return fn()
+			})
+		mockCB.EXPECT().
+			GetState("test_db").
+			Return("closed")
+
+		mockMongoRepo.EXPECT().
+			QueryWithAdvancedFilters(gomock.Any(), "users", []string{"name"}, gomock.Any()).
+			Return([]map[string]any{{"name": "John"}}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:       true,
+			DatabaseType:      "mongodb",
+			MongoDBRepository: mockMongoRepo,
+		}
+
+		// Use a collection name without underscore so the CRM filter transform is NOT triggered
+		collectionFilters := map[string]model.FilterCondition{
+			"status": {
+				Equals: []any{"active"},
+			},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result, err := useCase.queryMongoCollectionWithFilters(
+			context.Background(),
+			dataSource,
+			"users",
+			[]string{"name"},
+			collectionFilters,
+			logger,
+			"test_db",
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "John", result[0]["name"])
+	})
+
+	t.Run("Success - query without filters uses legacy Query method", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return fn()
+			})
+		mockCB.EXPECT().
+			GetState("test_db").
+			Return("closed")
+
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), "users", []string{"name"}, nil).
+			Return([]map[string]any{{"name": "Jane"}}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:       true,
+			DatabaseType:      "mongodb",
+			MongoDBRepository: mockMongoRepo,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result, err := useCase.queryMongoCollectionWithFilters(
+			context.Background(),
+			dataSource,
+			"users",
+			[]string{"name"},
+			nil,
+			logger,
+			"test_db",
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "Jane", result[0]["name"])
+	})
+}
+
+func TestUseCase_QueryDatabase_DataSourceUnavailable(t *testing.T) {
+	t.Parallel()
+
+	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbManager := pkg.NewCircuitBreakerManager(logger)
+
+	useCase := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"test_db": {
+				Initialized:  false,
+				DatabaseType: "postgresql",
+				Status:       "Unavailable",
+			},
+		}),
+		CircuitBreakerManager: cbManager,
+	}
+
+	result := make(map[string]map[string][]map[string]any)
+
+	err := useCase.queryDatabase(
+		context.Background(),
+		"test_db",
+		map[string][]string{"table": {"field"}},
+		nil,
+		result,
+		logger,
+		tracer,
+	)
+	require.Error(t, err)
+}
+
+func TestUseCase_DecryptNestedFields_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	err := crypto.InitializeCipher()
+	require.NoError(t, err, "Failed to initialize cipher")
+
+	useCase := &UseCase{}
+
+	tests := []struct {
+		name        string
+		record      map[string]any
+		errContains string
+	}{
+		{
+			name: "Error - contact field decryption failure",
+			record: map[string]any{
+				"contact": map[string]any{
+					"primary_email": "invalid-encrypted-data",
+				},
+			},
+			errContains: "contact.primary_email",
+		},
+		{
+			name: "Error - banking_details field decryption failure",
+			record: map[string]any{
+				"banking_details": map[string]any{
+					"account": "invalid-encrypted-data",
+				},
+			},
+			errContains: "banking_details.account",
+		},
+		{
+			name: "Error - legal_person representative decryption failure",
+			record: map[string]any{
+				"legal_person": map[string]any{
+					"representative": map[string]any{
+						"name": "invalid-encrypted-data",
+					},
+				},
+			},
+			errContains: "legal_person.representative.name",
+		},
+		{
+			name: "Error - natural_person field decryption failure",
+			record: map[string]any{
+				"natural_person": map[string]any{
+					"mother_name": "invalid-encrypted-data",
+				},
+			},
+			errContains: "natural_person.mother_name",
+		},
+		{
+			name: "Error - regulatory_fields decryption failure",
+			record: map[string]any{
+				"regulatory_fields": map[string]any{
+					"participant_document": "invalid-encrypted-data",
+				},
+			},
+			errContains: "regulatory_fields.participant_document",
+		},
+		{
+			name: "Error - related_parties document decryption failure",
+			record: map[string]any{
+				"related_parties": []any{
+					map[string]any{
+						"document": "invalid-encrypted-data",
+					},
+				},
+			},
+			errContains: "related_parties[0].document",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := useCase.decryptNestedFields(tt.record, crypto)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
+}
+
+func TestUseCase_DecryptNestedFields_NoNestedFields(t *testing.T) {
+	t.Parallel()
+
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	err := crypto.InitializeCipher()
+	require.NoError(t, err)
+
+	useCase := &UseCase{}
+
+	// Record with no nested fields at all - all decrypt functions should return nil
+	record := map[string]any{
+		"id":     "test-123",
+		"status": "active",
+	}
+
+	err = useCase.decryptNestedFields(record, crypto)
+	require.NoError(t, err)
+}
+
+func TestUseCase_DecryptRelatedPartiesFields_NonMapElement(t *testing.T) {
+	t.Parallel()
+
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	crypto := &libCrypto.Crypto{
+		HashSecretKey:    hashKey,
+		EncryptSecretKey: encryptKey,
+		Logger:           logger,
+	}
+
+	err := crypto.InitializeCipher()
+	require.NoError(t, err)
+
+	useCase := &UseCase{}
+
+	// related_parties with a non-map element should be skipped via continue
+	record := map[string]any{
+		"related_parties": []any{
+			"not-a-map",
+			42,
+			nil,
+		},
+	}
+
+	err = useCase.decryptRelatedPartiesFields(record, crypto)
+	require.NoError(t, err)
+}
+
+func TestUseCase_QueryPostgresDatabase_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Error - circuit breaker error on schema query", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return(nil, errors.New("circuit breaker open"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "postgresql",
+			Schemas:      []string{"public"},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "circuit breaker open")
+	})
+
+	t.Run("Error - unexpected schema result type", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// Return a string instead of []postgres.TableSchema
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return("not-a-schema", nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "postgresql",
+			Schemas:      []string{"public"},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected schema result type")
+	})
+
+	t.Run("Error - schema resolve error", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// Return valid schema but for a different table so resolution fails
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return([]postgres2.TableSchema{
+				{
+					SchemaName: "public",
+					TableName:  "other_table",
+					Columns:    []postgres2.ColumnInformation{{Name: "id", DataType: "integer"}},
+				},
+			}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "postgresql",
+			Schemas:      []string{"public"},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"nonexistent_table": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+	})
+
+	t.Run("Error - circuit breaker error on table query", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// First call (schema) succeeds, second call (query) fails
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return([]postgres2.TableSchema{
+				{
+					SchemaName: "public",
+					TableName:  "users",
+					Columns:    []postgres2.ColumnInformation{{Name: "name", DataType: "text"}},
+				},
+			}, nil)
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return(nil, errors.New("query timeout"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "postgresql",
+			Schemas:      []string{"public"},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "query timeout")
+	})
+
+	t.Run("Error - unexpected query result type", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		// First call (schema) succeeds, second call returns wrong type
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return([]postgres2.TableSchema{
+				{
+					SchemaName: "public",
+					TableName:  "users",
+					Columns:    []postgres2.ColumnInformation{{Name: "name", DataType: "text"}},
+				},
+			}, nil)
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			Return("not-a-slice", nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:  true,
+			DatabaseType: "postgresql",
+			Schemas:      []string{"public"},
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected query result type")
+	})
+
+	t.Run("Success - query with advanced filters", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		mockPostgresRepo := postgres2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		schema := []postgres2.TableSchema{
+			{
+				SchemaName: "public",
+				TableName:  "users",
+				Columns:    []postgres2.ColumnInformation{{Name: "name", DataType: "text"}},
+			},
+		}
+
+		// First call (schema) succeeds
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return schema, nil
+			})
+		// Second call (query with filters) succeeds
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return fn()
+			})
+		mockCB.EXPECT().
+			GetState("test_db").
+			Return("closed")
+
+		mockPostgresRepo.EXPECT().
+			QueryWithAdvancedFilters(gomock.Any(), gomock.Any(), "public", "users", []string{"name"}, gomock.Any()).
+			Return([]map[string]any{{"name": "FilteredUser"}}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:        true,
+			DatabaseType:       "postgresql",
+			Schemas:            []string{"public"},
+			PostgresRepository: mockPostgresRepo,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		tableFilters := map[string]map[string]model.FilterCondition{
+			"users": {
+				"status": {Equals: []any{"active"}},
+			},
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			tableFilters,
+			result,
+			logger,
+		)
+		require.NoError(t, err)
+		require.Len(t, result["test_db"]["users"], 1)
+		assert.Equal(t, "FilteredUser", result["test_db"]["users"][0]["name"])
+	})
+
+	t.Run("Success - empty schemas defaults to public", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockCB := pkg.NewMockCircuitBreakerExecutor(ctrl)
+		mockPostgresRepo := postgres2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+		schema := []postgres2.TableSchema{
+			{
+				SchemaName: "public",
+				TableName:  "users",
+				Columns:    []postgres2.ColumnInformation{{Name: "name", DataType: "text"}},
+			},
+		}
+
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return schema, nil
+			})
+		mockCB.EXPECT().
+			Execute("test_db", gomock.Any()).
+			DoAndReturn(func(name string, fn func() (any, error)) (any, error) {
+				return fn()
+			})
+		mockCB.EXPECT().
+			GetState("test_db").
+			Return("closed")
+
+		mockPostgresRepo.EXPECT().
+			Query(gomock.Any(), gomock.Any(), "public", "users", []string{"name"}, nil).
+			Return([]map[string]any{{"name": "Test"}}, nil)
+
+		dataSource := &pkg.DataSource{
+			Initialized:        true,
+			DatabaseType:       "postgresql",
+			Schemas:            nil, // Empty schemas should default to "public"
+			PostgresRepository: mockPostgresRepo,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: mockCB,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["test_db"] = make(map[string][]map[string]any)
+
+		err := useCase.queryPostgresDatabase(
+			context.Background(),
+			dataSource,
+			"test_db",
+			map[string][]string{"users": {"name"}},
+			nil,
+			result,
+			logger,
+		)
+		require.NoError(t, err)
+		require.Len(t, result["test_db"]["users"], 1)
+	})
+}
+
+func TestUseCase_ProcessMongoCollection_ErrorPropagation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Error - processPluginCRMCollection error propagates", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		cbManager := pkg.NewCircuitBreakerManager(logger)
+
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), "holders_org-123", []string{"name"}, nil).
+			Return(nil, errors.New("mongo connection error"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:         true,
+			DatabaseType:        "mongodb",
+			MongoDBRepository:   mockMongoRepo,
+			MidazOrganizationID: "org-123",
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager:           cbManager,
+			CryptoHashSecretKeyPluginCRM:    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			CryptoEncryptSecretKeyPluginCRM: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["plugin_crm"] = make(map[string][]map[string]any)
+
+		err := useCase.processMongoCollection(
+			context.Background(),
+			dataSource,
+			"plugin_crm",
+			"holders",
+			[]string{"name"},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+	})
+
+	t.Run("Error - processRegularMongoCollection error propagates", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+		logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		cbManager := pkg.NewCircuitBreakerManager(logger)
+
+		mockMongoRepo.EXPECT().
+			Query(gomock.Any(), "products", []string{"name"}, nil).
+			Return(nil, errors.New("query failed"))
+
+		dataSource := &pkg.DataSource{
+			Initialized:       true,
+			DatabaseType:      "mongodb",
+			MongoDBRepository: mockMongoRepo,
+		}
+
+		useCase := &UseCase{
+			CircuitBreakerManager: cbManager,
+		}
+
+		result := make(map[string]map[string][]map[string]any)
+		result["shop_db"] = make(map[string][]map[string]any)
+
+		err := useCase.processMongoCollection(
+			context.Background(),
+			dataSource,
+			"shop_db",
+			"products",
+			[]string{"name"},
+			nil,
+			result,
+			logger,
+		)
+		require.Error(t, err)
+	})
+}
+
+func TestUseCase_QueryMongoDatabase_ErrorPropagation(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMongoRepo := mongodb2.NewMockRepository(ctrl)
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbManager := pkg.NewCircuitBreakerManager(logger)
+
+	mockMongoRepo.EXPECT().
+		Query(gomock.Any(), "users", []string{"name"}, nil).
+		Return(nil, errors.New("collection not found"))
+
+	dataSource := &pkg.DataSource{
+		Initialized:       true,
+		DatabaseType:      "mongodb",
+		MongoDBRepository: mockMongoRepo,
+	}
+
+	useCase := &UseCase{
+		CircuitBreakerManager: cbManager,
+	}
+
+	result := make(map[string]map[string][]map[string]any)
+	result["test_db"] = make(map[string][]map[string]any)
+
+	err := useCase.queryMongoDatabase(
+		context.Background(),
+		dataSource,
+		"test_db",
+		map[string][]string{"users": {"name"}},
+		nil,
+		result,
+		logger,
+	)
+	require.Error(t, err)
+}
+
+func TestUseCase_DecryptPluginCRMData_CipherInitFailure(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	useCase := &UseCase{
+		CryptoEncryptSecretKeyPluginCRM: "invalid-key-too-short",
+		CryptoHashSecretKeyPluginCRM:    "valid-hash-key",
+	}
+
+	collectionResult := []map[string]any{
+		{"document": "encrypted_value"},
+	}
+
+	_, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"document"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "initialize cipher")
+}
+
+func TestUseCase_DecryptPluginCRMData_MissingHashKey(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	useCase := &UseCase{
+		CryptoEncryptSecretKeyPluginCRM: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		CryptoHashSecretKeyPluginCRM:    "",
+	}
+
+	collectionResult := []map[string]any{
+		{"document": "encrypted_value"},
+	}
+
+	_, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"document"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM")
+}
+
+func TestUseCase_DecryptPluginCRMData_RecordDecryptionFailure(t *testing.T) {
+	t.Parallel()
+
+	hashKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	encryptKey := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	useCase := &UseCase{
+		CryptoEncryptSecretKeyPluginCRM: encryptKey,
+		CryptoHashSecretKeyPluginCRM:    hashKey,
+	}
+
+	// Second record has invalid data, triggering mid-collection failure
+	collectionResult := []map[string]any{
+		{"id": "rec-1", "status": "active"},
+		{"id": "rec-2", "document": "invalid-encrypted-data"},
+	}
+
+	_, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"document"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decrypt record 1")
+}
+
+func TestUseCase_DecryptPluginCRMData_NestedFieldsTriggerDecryption(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	useCase := &UseCase{
+		CryptoEncryptSecretKeyPluginCRM: "",
+		CryptoHashSecretKeyPluginCRM:    "some-key",
+	}
+
+	// Fields with dots trigger needsDecryption=true via the nested field check
+	collectionResult := []map[string]any{
+		{"contact.email": "test@example.com"},
+	}
+
+	_, err := useCase.decryptPluginCRMData(logger, collectionResult, []string{"contact.email"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM")
 }

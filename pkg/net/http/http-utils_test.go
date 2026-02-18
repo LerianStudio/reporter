@@ -5,8 +5,10 @@
 package http
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"mime/multipart"
 	"testing"
 
 	"github.com/google/uuid"
@@ -15,10 +17,12 @@ import (
 )
 
 func TestValidateParameters_Defaults(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Check default values
 	assert.Equal(t, 10, result.Limit)
@@ -33,6 +37,8 @@ func TestValidateParameters_Defaults(t *testing.T) {
 }
 
 func TestValidateParameters_AllParameters(t *testing.T) {
+	t.Parallel()
+
 	templateID := uuid.New()
 
 	params := map[string]string{
@@ -47,7 +53,7 @@ func TestValidateParameters_AllParameters(t *testing.T) {
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "PDF", result.OutputFormat)
 	assert.Equal(t, "Test description", result.Description)
@@ -62,62 +68,76 @@ func TestValidateParameters_AllParameters(t *testing.T) {
 }
 
 func TestValidateParameters_Metadata(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"metadata.customField": "customValue",
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.True(t, result.UseMetadata)
 	assert.NotNil(t, result.Metadata)
 }
 
 func TestValidateParameters_InvalidOutputFormat(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"outputFormat": "INVALID_FORMAT",
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestValidateParameters_ValidOutputFormats(t *testing.T) {
+	t.Parallel()
+
 	formats := []string{"PDF", "pdf", "HTML", "html", "CSV", "csv", "XML", "xml", "TXT", "txt"}
 
 	for _, format := range formats {
-		t.Run("Format_"+format, func(t *testing.T) {
+		t.Run("Success - Format_"+format, func(t *testing.T) {
+			t.Parallel()
+
 			params := map[string]string{
 				"outputFormat": format,
 			}
 
 			result, err := ValidateParameters(params)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, format, result.OutputFormat)
 		})
 	}
 }
 
 func TestValidateParameters_InvalidSortOrder(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"sortOrder": "invalid",
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestValidateParameters_ValidSortOrders(t *testing.T) {
+	t.Parallel()
+
 	sortOrders := []string{"asc", "ASC", "desc", "DESC", "Asc", "Desc"}
 
 	for _, order := range sortOrders {
-		t.Run("SortOrder_"+order, func(t *testing.T) {
+		t.Run("Success - SortOrder_"+order, func(t *testing.T) {
+			t.Parallel()
+
 			params := map[string]string{
 				"sortOrder": order,
 			}
 
 			result, err := ValidateParameters(params)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			// Result is lowercased
 			assert.Contains(t, []string{"asc", "desc"}, result.SortOrder)
 		})
@@ -125,7 +145,7 @@ func TestValidateParameters_ValidSortOrders(t *testing.T) {
 }
 
 func TestValidateParameters_PaginationLimitExceeded(t *testing.T) {
-	// Set max pagination limit for test
+	// NOTE: Cannot use t.Parallel() because t.Setenv is incompatible with parallel execution.
 	t.Setenv("MAX_PAGINATION_LIMIT", "100")
 
 	params := map[string]string{
@@ -133,10 +153,12 @@ func TestValidateParameters_PaginationLimitExceeded(t *testing.T) {
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestValidateParameters_ValidCursor(t *testing.T) {
+	t.Parallel()
+
 	cursor := Cursor{
 		ID:         "123",
 		PointsNext: true,
@@ -149,53 +171,63 @@ func TestValidateParameters_ValidCursor(t *testing.T) {
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, encodedCursor, result.Cursor)
 }
 
 func TestValidateParameters_InvalidCursor(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"cursor": "invalid-cursor-not-base64",
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestValidateParameters_InvalidTemplateID(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"templateId": "not-a-uuid",
 	}
 
 	result, err := ValidateParameters(params)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Invalid UUID results in zero UUID
 	assert.Equal(t, uuid.UUID{}, result.TemplateID)
 }
 
 func TestValidateParameters_InvalidLimit(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"limit": "not-a-number",
 	}
 
 	result, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "TPL-0019")
 }
 
 func TestValidateParameters_InvalidPage(t *testing.T) {
+	t.Parallel()
+
 	params := map[string]string{
 		"page": "not-a-number",
 	}
 
 	result, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "TPL-0019")
 }
 
 func TestQueryHeader_ToOffsetPagination(t *testing.T) {
+	t.Parallel()
+
 	qh := &QueryHeader{
 		Limit:     20,
 		Page:      3,
@@ -215,6 +247,8 @@ func TestQueryHeader_ToOffsetPagination(t *testing.T) {
 }
 
 func TestPagination_Struct(t *testing.T) {
+	t.Parallel()
+
 	pagination := Pagination{
 		Limit:     10,
 		Page:      1,
@@ -231,6 +265,8 @@ func TestPagination_Struct(t *testing.T) {
 }
 
 func TestHeaderConstants(t *testing.T) {
+	t.Parallel()
+
 	// Test that constants are defined
 	assert.Equal(t, "User-Agent", headerUserAgent)
 	assert.Equal(t, ".tpl", fileExtension)
@@ -450,7 +486,7 @@ func TestValidateParameters_InvalidSnakeCaseOutputFormat(t *testing.T) {
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 // TestValidateParameters_InvalidSnakeCaseSortOrder verifies that validation
@@ -463,7 +499,7 @@ func TestValidateParameters_InvalidSnakeCaseSortOrder(t *testing.T) {
 	}
 
 	_, err := ValidateParameters(params)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 // TestValidateParameters_InvalidSnakeCaseTemplateID verifies that an invalid
@@ -478,6 +514,116 @@ func TestValidateParameters_InvalidSnakeCaseTemplateID(t *testing.T) {
 	result, err := ValidateParameters(params)
 	require.NoError(t, err)
 	assert.Equal(t, uuid.UUID{}, result.TemplateID)
+}
+
+// ---------------------------------------------------------------------------
+// GetFileFromHeader tests
+// ---------------------------------------------------------------------------
+
+func TestGetFileFromHeader_InvalidExtension(t *testing.T) {
+	t.Parallel()
+
+	header := createTestFileHeader(t, "template.txt", []byte("content"))
+
+	_, err := GetFileFromHeader(header)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "TPL-0002")
+}
+
+func TestGetFileFromHeader_EmptyFile(t *testing.T) {
+	t.Parallel()
+
+	header := createTestFileHeader(t, "template.tpl", []byte{})
+
+	_, err := GetFileFromHeader(header)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "TPL-0006")
+}
+
+func TestGetFileFromHeader_ValidFile(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("<html>{{name}}</html>")
+	header := createTestFileHeader(t, "template.tpl", content)
+
+	result, err := GetFileFromHeader(header)
+	require.NoError(t, err)
+	assert.Equal(t, string(content), result)
+}
+
+// ---------------------------------------------------------------------------
+// ReadMultipartFile tests
+// ---------------------------------------------------------------------------
+
+func TestReadMultipartFile_Success(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("file content for reading")
+	header := createTestFileHeader(t, "test.tpl", content)
+
+	result, err := ReadMultipartFile(header)
+	require.NoError(t, err)
+	assert.Equal(t, content, result)
+}
+
+func TestReadMultipartFile_EmptyFile(t *testing.T) {
+	t.Parallel()
+
+	header := createTestFileHeader(t, "empty.tpl", []byte{})
+
+	result, err := ReadMultipartFile(header)
+	require.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+// createTestFileHeader creates a multipart.FileHeader for testing purposes.
+func createTestFileHeader(t *testing.T, filename string, content []byte) *multipart.FileHeader {
+	t.Helper()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	part, err := writer.CreateFormFile("file", filename)
+	require.NoError(t, err)
+
+	_, err = part.Write(content)
+	require.NoError(t, err)
+
+	err = writer.Close()
+	require.NoError(t, err)
+
+	reader := multipart.NewReader(body, writer.Boundary())
+
+	form, err := reader.ReadForm(int64(body.Len()) + 1024)
+	require.NoError(t, err)
+
+	files := form.File["file"]
+	require.NotEmpty(t, files)
+
+	return files[0]
+}
+
+// ---------------------------------------------------------------------------
+// validatePagination edge case tests
+// ---------------------------------------------------------------------------
+
+func TestValidatePagination_InvalidCursorDecode(t *testing.T) {
+	t.Parallel()
+
+	// Non-base64 cursor string should fail decoding
+	err := validatePagination("not-valid-base64!@#$", "desc", 10)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "TPL-0019")
+}
+
+func TestValidatePagination_ValidBase64ButInvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	// Valid base64 but invalid JSON inside
+	invalidJSON := base64.StdEncoding.EncodeToString([]byte("not json"))
+	err := validatePagination(invalidJSON, "desc", 10)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "TPL-0019")
 }
 
 // TestValidateParameters_QueryParamParseErrors verifies that ValidateParameters

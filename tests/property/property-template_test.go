@@ -11,12 +11,14 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/LerianStudio/reporter/pkg/template_utils"
+	"github.com/LerianStudio/reporter/pkg/templateutils"
 )
 
 // Property 1: Template parsing deve ser determinístico
 // Mesma entrada sempre produz mesma saída
 func TestProperty_TemplateParsing_IsDeterministic(t *testing.T) {
+	t.Parallel()
+
 	property := func(templateContent string) bool {
 		// Skip empty or too large templates
 		if len(templateContent) == 0 || len(templateContent) > 10000 {
@@ -24,8 +26,8 @@ func TestProperty_TemplateParsing_IsDeterministic(t *testing.T) {
 		}
 
 		// Parse template twice
-		result1 := template_utils.MappedFieldsOfTemplate(templateContent)
-		result2 := template_utils.MappedFieldsOfTemplate(templateContent)
+		result1 := templateutils.MappedFieldsOfTemplate(templateContent)
+		result2 := templateutils.MappedFieldsOfTemplate(templateContent)
 
 		// Results should be identical (deterministic)
 		return compareMappedFields(result1, result2)
@@ -39,16 +41,18 @@ func TestProperty_TemplateParsing_IsDeterministic(t *testing.T) {
 // Property 2: Template parsing deve ser idempotente
 // Parse(Parse(x)) == Parse(x)
 func TestProperty_TemplateParsing_IsIdempotent(t *testing.T) {
+	t.Parallel()
+
 	property := func(templateContent string) bool {
 		if len(templateContent) == 0 || len(templateContent) > 10000 {
 			return true
 		}
 
 		// Parse once
-		result1 := template_utils.MappedFieldsOfTemplate(templateContent)
+		result1 := templateutils.MappedFieldsOfTemplate(templateContent)
 
 		// Parse again (should be same as result1, demonstrating idempotency)
-		result2 := template_utils.MappedFieldsOfTemplate(templateContent)
+		result2 := templateutils.MappedFieldsOfTemplate(templateContent)
 
 		return compareMappedFields(result1, result2)
 	}
@@ -60,12 +64,14 @@ func TestProperty_TemplateParsing_IsIdempotent(t *testing.T) {
 
 // Property 3: MappedFields nunca deve conter campos vazios
 func TestProperty_MappedFields_NoEmptyFields(t *testing.T) {
+	t.Parallel()
+
 	property := func(templateContent string) bool {
 		if len(templateContent) == 0 || len(templateContent) > 10000 {
 			return true
 		}
 
-		mappedFields := template_utils.MappedFieldsOfTemplate(templateContent)
+		mappedFields := templateutils.MappedFieldsOfTemplate(templateContent)
 
 		// Check that no database, table, or field is empty
 		for dbName, tables := range mappedFields {
@@ -96,6 +102,8 @@ func TestProperty_MappedFields_NoEmptyFields(t *testing.T) {
 
 // Property 4: Template com tags vazias não deve crashear
 func TestProperty_Template_EmptyTags_NoCrash(t *testing.T) {
+	t.Parallel()
+
 	property := func(content string) bool {
 		// This should never panic, regardless of input
 		defer func() {
@@ -104,7 +112,7 @@ func TestProperty_Template_EmptyTags_NoCrash(t *testing.T) {
 			}
 		}()
 
-		_ = template_utils.MappedFieldsOfTemplate(content)
+		_ = templateutils.MappedFieldsOfTemplate(content)
 		return true
 	}
 
@@ -115,6 +123,8 @@ func TestProperty_Template_EmptyTags_NoCrash(t *testing.T) {
 
 // Property 5: GetMimeType deve sempre retornar um mime type válido
 func TestProperty_GetMimeType_AlwaysValid(t *testing.T) {
+	t.Parallel()
+
 	validMimeTypes := map[string]bool{
 		"application/xml":          true,
 		"text/html":                true,
@@ -124,7 +134,7 @@ func TestProperty_GetMimeType_AlwaysValid(t *testing.T) {
 	}
 
 	property := func(format string) bool {
-		mimeType := template_utils.GetMimeType(format)
+		mimeType := templateutils.GetMimeType(format)
 		return validMimeTypes[mimeType]
 	}
 
@@ -135,12 +145,14 @@ func TestProperty_GetMimeType_AlwaysValid(t *testing.T) {
 
 // Property 6: CleanPath deve sempre retornar slice sem índices numéricos
 func TestProperty_CleanPath_NoNumericIndices(t *testing.T) {
+	t.Parallel()
+
 	property := func(path string) bool {
 		if len(path) == 0 {
 			return true
 		}
 
-		cleanedPath := template_utils.CleanPath(path)
+		cleanedPath := templateutils.CleanPath(path)
 
 		// Cleaned path should not contain numeric-only segments
 		for _, segment := range cleanedPath {
@@ -170,12 +182,14 @@ func TestProperty_CleanPath_NoNumericIndices(t *testing.T) {
 
 // Property 7: ValidateNoScriptTag deve rejeitar qualquer conteúdo com <script>
 func TestProperty_ValidateNoScriptTag_RejectsScript(t *testing.T) {
+	t.Parallel()
+
 	property := func(prefix, suffix string) bool {
 		// Build template with <script> tag
 		template := prefix + "<script>alert('xss')</script>" + suffix
 
 		// Should always return error for templates with <script>
-		err := template_utils.ValidateNoScriptTag(template)
+		err := templateutils.ValidateNoScriptTag(template)
 		return err != nil
 	}
 
@@ -186,6 +200,8 @@ func TestProperty_ValidateNoScriptTag_RejectsScript(t *testing.T) {
 
 // Property 8: ValidateNoScriptTag deve aceitar templates sem <script>
 func TestProperty_ValidateNoScriptTag_AcceptsNoScript(t *testing.T) {
+	t.Parallel()
+
 	property := func(content string) bool {
 		// Skip if content contains <script>
 		if containsScriptTag(content) {
@@ -193,7 +209,7 @@ func TestProperty_ValidateNoScriptTag_AcceptsNoScript(t *testing.T) {
 		}
 
 		// Should not return error for templates without <script>
-		err := template_utils.ValidateNoScriptTag(content)
+		err := templateutils.ValidateNoScriptTag(content)
 		return err == nil
 	}
 
@@ -266,12 +282,14 @@ func BenchmarkTemplateParsingPerformance(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = template_utils.MappedFieldsOfTemplate(template)
+		_ = templateutils.MappedFieldsOfTemplate(template)
 	}
 }
 
 // Context-aware property test: parsing is stateless and always returns a non-nil map.
 func TestProperty_TemplateParsingWithContext(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 
 	property := func(template string) bool {
@@ -283,7 +301,7 @@ func TestProperty_TemplateParsingWithContext(t *testing.T) {
 		}
 
 		// Should work without context dependency and always return a non-nil map
-		result := template_utils.MappedFieldsOfTemplate(template)
+		result := templateutils.MappedFieldsOfTemplate(template)
 		if result == nil {
 			return false
 		}

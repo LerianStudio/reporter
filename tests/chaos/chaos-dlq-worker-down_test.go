@@ -15,6 +15,7 @@ import (
 // This test requires docker-compose infrastructure where Worker runs as a container.
 // In testcontainers mode, Worker runs as a subprocess and cannot be stopped/started via Docker.
 func TestIntegration_Chaos_DLQ_WorkerDownThenRabbitMQCrash(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (stops/starts Worker and RabbitMQ containers).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

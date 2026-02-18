@@ -18,6 +18,7 @@ import (
 
 // TestIntegration_Reports_GetByID_ValidID tests GET /v1/reports/{id} with a valid report ID
 func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -115,6 +116,7 @@ func TestIntegration_Reports_GetByID_ValidID(t *testing.T) {
 
 // TestIntegration_Reports_GetByID_InvalidID tests GET /v1/reports/{id} with an invalid report ID
 func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -158,6 +160,7 @@ func TestIntegration_Reports_GetByID_InvalidID(t *testing.T) {
 
 // TestIntegration_Reports_GetByID_StatusFinished tests GET /v1/reports/{id} for a finished report
 func TestIntegration_Reports_GetByID_StatusFinished(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

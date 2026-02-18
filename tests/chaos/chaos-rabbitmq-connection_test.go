@@ -21,6 +21,7 @@ import (
 // TestIntegration_Chaos_RabbitMQ_ConnectionClosed tests the behavior when manager tries to send
 // a message to RabbitMQ but the connection is closed
 func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (stops/starts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -75,7 +76,7 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	t.Logf("Health probe during outage: code=%d, err=%v", code, err)
 
 	// Manager should still respond to non-queue requests (graceful degradation)
-	assert.NoError(t, err, "Manager should still accept HTTP connections during RabbitMQ outage")
+	require.NoError(t, err, "Manager should still accept HTTP connections during RabbitMQ outage")
 	assert.Equal(t, 200, code, "Manager should serve non-queue endpoints during RabbitMQ outage")
 
 	t.Log("Step 6: Restoring RabbitMQ connection...")
@@ -100,7 +101,7 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
 	// After recovery, report creation should succeed
-	assert.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
+	require.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
 	assert.True(t, code == 200 || code == 201,
 		"Expected success status after RabbitMQ recovery, got code=%d", code)
 
@@ -109,6 +110,7 @@ func TestIntegration_Chaos_RabbitMQ_ConnectionClosed(t *testing.T) {
 
 // TestIntegration_Chaos_RabbitMQ_ChannelClosed tests when RabbitMQ is running but the channel is closed
 func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -169,7 +171,7 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
 	// After recovery, report creation should succeed
-	assert.NoError(t, err, "Expected no HTTP error after channel recovery")
+	require.NoError(t, err, "Expected no HTTP error after channel recovery")
 	assert.True(t, code == 200 || code == 201,
 		"Expected success status after channel recovery, got code=%d", code)
 
@@ -178,6 +180,7 @@ func TestIntegration_Chaos_RabbitMQ_ChannelClosed(t *testing.T) {
 
 // TestIntegration_Chaos_RabbitMQ_QueueFull tests behavior when RabbitMQ queue is full or unavailable
 func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
@@ -261,7 +264,7 @@ func TestIntegration_Chaos_RabbitMQ_QueueFull(t *testing.T) {
 	t.Logf("Recovery probe: code=%d, err=%v", code, err)
 
 	// After recovery, report creation should succeed
-	assert.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
+	require.NoError(t, err, "Expected no HTTP error after RabbitMQ recovery")
 	assert.True(t, code == 200 || code == 201,
 		"Expected success status after RabbitMQ recovery, got code=%d", code)
 

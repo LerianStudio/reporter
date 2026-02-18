@@ -16,6 +16,7 @@ import (
 
 // TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap tests that sending
 func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -105,6 +106,7 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 // multiple requests with invalid datasource names don't accumulate invalid entries
 // in the ExternalDataSources map.
 func TestIntegration_DataSources_MultipleInvalidRequestsShouldNotAccumulate(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

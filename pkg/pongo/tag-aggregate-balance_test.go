@@ -123,7 +123,7 @@ func TestAggregateBalance_SyntaxError_MissingBy(t *testing.T) {
 	tplStr := `{% aggregate_balance data "balance" group_by "cosif_code" order_by "date" as results %}`
 
 	_, err := SafeFromString(tplStr)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'by' keyword")
 }
 
@@ -132,7 +132,7 @@ func TestAggregateBalance_SyntaxError_MissingGroupBy(t *testing.T) {
 	tplStr := `{% aggregate_balance data by "balance" "cosif_code" order_by "date" as results %}`
 
 	_, err := SafeFromString(tplStr)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'group_by' keyword")
 }
 
@@ -141,7 +141,7 @@ func TestAggregateBalance_SyntaxError_MissingOrderBy(t *testing.T) {
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" "date" as results %}`
 
 	_, err := SafeFromString(tplStr)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'order_by' keyword")
 }
 
@@ -150,7 +150,7 @@ func TestAggregateBalance_SyntaxError_MissingAs(t *testing.T) {
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" results %}`
 
 	_, err := SafeFromString(tplStr)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected 'as' keyword")
 }
 
@@ -159,7 +159,7 @@ func TestAggregateBalance_SyntaxError_MissingVarName(t *testing.T) {
 	tplStr := `{% aggregate_balance data by "balance" group_by "cosif_code" order_by "date" as %}`
 
 	_, err := SafeFromString(tplStr)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Expected variable name after 'as'")
 }
 
@@ -540,6 +540,6 @@ func TestAggregateBalance_InvalidCollectionType(t *testing.T) {
 	}
 
 	_, err = tpl.Execute(ctx)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "[]map[string]any")
 }

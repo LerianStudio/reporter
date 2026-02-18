@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPagination_SetItems(t *testing.T) {
@@ -117,11 +118,11 @@ func TestPagination_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(p)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, float64(1), result["page"])
 	assert.Equal(t, float64(10), result["limit"])
@@ -139,11 +140,11 @@ func TestPagination_JSONMarshal_OmitEmptyPage(t *testing.T) {
 	}
 
 	data, err := json.Marshal(p)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Page should be omitted when 0 due to omitempty tag
 	_, hasPage := result["page"]
@@ -156,7 +157,7 @@ func TestPagination_JSONUnmarshal(t *testing.T) {
 
 	var p Pagination
 	err := json.Unmarshal([]byte(jsonData), &p)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 2, p.Page)
 	assert.Equal(t, 20, p.Limit)

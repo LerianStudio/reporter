@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/pkg/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -78,7 +78,10 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 }
 
 func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
-	t.Parallel()
+	// NOTE: Cannot use t.Parallel() because it modifies global state (immutable registry)
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_onboarding"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -280,7 +283,7 @@ func TestNewDataSourceHandler_NilService(t *testing.T) {
 	handler, err := NewDataSourceHandler(nil)
 
 	assert.Nil(t, handler)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
@@ -292,5 +295,5 @@ func TestNewDataSourceHandler_ValidService(t *testing.T) {
 	handler, err := NewDataSourceHandler(svc)
 
 	assert.NotNil(t, handler)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

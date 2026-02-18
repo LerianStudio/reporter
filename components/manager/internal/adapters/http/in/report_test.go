@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -558,7 +558,7 @@ func TestNewReportHandler_NilService(t *testing.T) {
 	handler, err := NewReportHandler(nil)
 
 	assert.Nil(t, handler)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
@@ -570,5 +570,128 @@ func TestNewReportHandler_ValidService(t *testing.T) {
 	handler, err := NewReportHandler(svc)
 
 	assert.NotNil(t, handler)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+}
+
+func TestReportHandler_GetAllReports_InvalidQueryParams(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockReportRepo := report.NewMockRepository(ctrl)
+
+	svc := &services.UseCase{
+		ReportRepo: mockReportRepo,
+	}
+
+	handler := &ReportHandler{
+		service: svc,
+	}
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Get("/v1/reports", func(c *fiber.Ctx) error {
+		c.SetUserContext(context.Background())
+		return handler.GetAllReports(c)
+	})
+
+	// Send request with invalid query param that triggers validation error
+	req := httptest.NewRequest("GET", "/v1/reports?outputFormat=INVALID", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestReportHandler_GetReport_InternalError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	reportID := uuid.New()
+
+	mockReportRepo := report.NewMockRepository(ctrl)
+
+	mockReportRepo.EXPECT().
+		FindByID(gomock.Any(), reportID).
+		Return(nil, constant.ErrInternalServer)
+
+	svc := &services.UseCase{
+		ReportRepo: mockReportRepo,
+	}
+
+	handler := &ReportHandler{
+		service: svc,
+	}
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Get("/v1/reports/:id", func(c *fiber.Ctx) error {
+		c.Locals("id", reportID)
+		c.SetUserContext(context.Background())
+		return handler.GetReport(c)
+	})
+
+	req := httptest.NewRequest("GET", "/v1/reports/"+reportID.String(), nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestReportHandler_CreateReport_InvalidTemplateID(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockReportRepo := report.NewMockRepository(ctrl)
+	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
+
+	svc := &services.UseCase{
+		TemplateRepo: mockTempRepo,
+		ReportRepo:   mockReportRepo,
+		RabbitMQRepo: mockRabbitMQ,
+	}
+
+	handler := &ReportHandler{
+		service: svc,
+	}
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	payload := model.CreateReportInput{
+		TemplateID: "not-a-valid-uuid",
+		Filters:    nil,
+	}
+
+	app.Post("/v1/reports", func(c *fiber.Ctx) error {
+		c.SetUserContext(context.Background())
+		return handler.CreateReport(&payload, c)
+	})
+
+	payloadBytes, _ := json.Marshal(payload)
+	req := httptest.NewRequest("POST", "/v1/reports", bytes.NewReader(payloadBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 }

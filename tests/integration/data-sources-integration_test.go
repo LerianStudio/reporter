@@ -16,6 +16,7 @@ import (
 
 // GET /v1/data-sources — deve respeitar cache e retornar 200
 func TestIntegration_DataSources_CacheBehavior(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

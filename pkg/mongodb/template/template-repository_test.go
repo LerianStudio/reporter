@@ -1381,7 +1381,7 @@ func TestTemplateMongoDBModel_FromEntity_PreservesMongoOnlyFields(t *testing.T) 
 func TestRepository_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
-	t.Run("FindByID returns error on cancelled context", func(t *testing.T) {
+	t.Run("Error - FindByID returns error on cancelled context", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -1403,7 +1403,7 @@ func TestRepository_ContextCancellation(t *testing.T) {
 		assert.ErrorIs(t, err, context.Canceled)
 	})
 
-	t.Run("FindList returns error on cancelled context", func(t *testing.T) {
+	t.Run("Error - FindList returns error on cancelled context", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -1426,7 +1426,7 @@ func TestRepository_ContextCancellation(t *testing.T) {
 		assert.ErrorIs(t, err, context.Canceled)
 	})
 
-	t.Run("Create returns error on cancelled context", func(t *testing.T) {
+	t.Run("Error - Create returns error on cancelled context", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -1456,7 +1456,7 @@ func TestRepository_ContextCancellation(t *testing.T) {
 		assert.ErrorIs(t, err, context.Canceled)
 	})
 
-	t.Run("Update returns error on cancelled context", func(t *testing.T) {
+	t.Run("Error - Update returns error on cancelled context", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -1479,7 +1479,7 @@ func TestRepository_ContextCancellation(t *testing.T) {
 		assert.ErrorIs(t, err, context.Canceled)
 	})
 
-	t.Run("Delete returns error on cancelled context", func(t *testing.T) {
+	t.Run("Error - Delete returns error on cancelled context", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/pkg/redis"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
@@ -531,7 +531,8 @@ func hashTemplateIdempotencyInput(t *testing.T, templateFile, outFormat, descrip
 }
 
 func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
-	t.Parallel()
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting and
+	// RegisterDataSourceIDsForTesting mutate package-level global state.
 
 	// Register datasource IDs once at the top level before subtests start.
 	// Subtests only READ this global state, so they can safely run in parallel.
@@ -610,13 +611,7 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 		outFormat      string
 		description    string
 		idempotencyKey string
-		mockSetup      func(
-			mockRedisRepo *redis.MockRedisRepository,
-			mockTempRepo *template.MockRepository,
-			mockTemplateStorage *templateSeaweedFS.MockRepository,
-			mockDataSourceMongo *mongodb.MockRepository,
-			mockDataSourcePostgres *postgres.MockRepository,
-		)
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
 		errContains    string
 		expectedResult *template.Template
@@ -628,13 +623,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			outFormat:      outFormat,
 			description:    description,
 			idempotencyKey: "",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// Expect SetNX to be called with the hash-based key BEFORE template creation
 				mockRedisRepo.EXPECT().
 					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
@@ -665,6 +660,29 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 				mockRedisRepo.EXPECT().
 					Set(gomock.Any(), expectedIdempotencyKey, string(cachedResponseJSON), idempotencyTTL).
 					Return(nil)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      false,
 			expectedResult: templateEntity,
@@ -677,13 +695,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			outFormat:      outFormat,
 			description:    description,
 			idempotencyKey: "",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// SetNX returns false: key already exists (duplicate request)
 				mockRedisRepo.EXPECT().
 					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
@@ -696,6 +714,29 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 
 				// NO calls to TemplateRepo, storage, or datasource should happen
 				// (gomock will fail if unexpected calls are made)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      false,
 			expectedResult: templateEntity,
@@ -707,13 +748,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			templateFile: `<html>{{ midaz_organization.organization.legal_name }}</html>`,
 			outFormat:    "html",
 			description:  "Different Template",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// Different body produces a different hash, so SetNX succeeds (new key)
 				mockRedisRepo.EXPECT().
 					SetNX(gomock.Any(), gomock.Not(gomock.Eq(expectedIdempotencyKey)), gomock.Any(), idempotencyTTL).
@@ -737,6 +778,29 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 				mockRedisRepo.EXPECT().
 					Set(gomock.Any(), gomock.Not(gomock.Eq(expectedIdempotencyKey)), gomock.Any(), idempotencyTTL).
 					Return(nil)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      false,
 			expectedResult: templateEntity,
@@ -749,13 +813,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			outFormat:      outFormat,
 			description:    description,
 			idempotencyKey: "client-provided-unique-key-12345",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// When client provides an explicit key, it is used instead of hashing the body
 				clientIdempotencyKey := "idempotency:template:client-provided-unique-key-12345"
 
@@ -787,6 +851,29 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 				mockRedisRepo.EXPECT().
 					Set(gomock.Any(), clientIdempotencyKey, gomock.Any(), idempotencyTTL).
 					Return(nil)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      false,
 			expectedResult: templateEntity,
@@ -799,13 +886,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			outFormat:      outFormat,
 			description:    description,
 			idempotencyKey: "",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// SetNX returns false: key already exists
 				mockRedisRepo.EXPECT().
 					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
@@ -815,6 +902,29 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 				mockRedisRepo.EXPECT().
 					Get(gomock.Any(), expectedIdempotencyKey).
 					Return("processing", nil)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      true,
 			errContains:    "A duplicate request is currently being processed",
@@ -828,17 +938,40 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			outFormat:      outFormat,
 			description:    description,
 			idempotencyKey: "",
-			mockSetup: func(
-				mockRedisRepo *redis.MockRedisRepository,
-				mockTempRepo *template.MockRepository,
-				mockTemplateStorage *templateSeaweedFS.MockRepository,
-				mockDataSourceMongo *mongodb.MockRepository,
-				mockDataSourcePostgres *postgres.MockRepository,
-			) {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+				mockTempRepo := template.NewMockRepository(ctrl)
+				mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
+				mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+				mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
+
 				// Redis is unavailable
 				mockRedisRepo.EXPECT().
 					SetNX(gomock.Any(), expectedIdempotencyKey, gomock.Any(), idempotencyTTL).
 					Return(false, constant.ErrInternalServer)
+
+				return &UseCase{
+					TemplateRepo:      mockTempRepo,
+					TemplateSeaweedFS: mockTemplateStorage,
+					RedisRepo:         mockRedisRepo,
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						"midaz_organization": {
+							DatabaseType:       "mongodb",
+							MongoDBRepository:  mockDataSourceMongo,
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBName:        "organization",
+							Initialized:        true,
+						},
+						"midaz_onboarding": {
+							DatabaseType:       "postgresql",
+							PostgresRepository: mockDataSourcePostgres,
+							MongoDBRepository:  mockDataSourceMongo,
+							MongoDBName:        "ledger",
+							Initialized:        true,
+							DatabaseConfig:     &postgres.Connection{Connected: true},
+						},
+					}),
+				}
 			},
 			expectErr:      true,
 			errContains:    constant.ErrInternalServer.Error(),
@@ -849,44 +982,13 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Each subtest gets its own mock controller to avoid interference
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockTempRepo := template.NewMockRepository(ctrl)
-			mockTemplateStorage := templateSeaweedFS.NewMockRepository(ctrl)
-			mockRedisRepo := redis.NewMockRedisRepository(ctrl)
-			mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
-			mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
-
-			tt.mockSetup(mockRedisRepo, mockTempRepo, mockTemplateStorage, mockDataSourceMongo, mockDataSourcePostgres)
-
-			tempSvc := &UseCase{
-				TemplateRepo:      mockTempRepo,
-				TemplateSeaweedFS: mockTemplateStorage,
-				RedisRepo:         mockRedisRepo,
-				ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
-					"midaz_organization": {
-						DatabaseType:       "mongodb",
-						MongoDBRepository:  mockDataSourceMongo,
-						PostgresRepository: mockDataSourcePostgres,
-						MongoDBName:        "organization",
-						Initialized:        true,
-					},
-					"midaz_onboarding": {
-						DatabaseType:       "postgresql",
-						PostgresRepository: mockDataSourcePostgres,
-						MongoDBRepository:  mockDataSourceMongo,
-						MongoDBName:        "ledger",
-						Initialized:        true,
-						DatabaseConfig:     &postgres.Connection{Connected: true},
-					},
-				}),
-			}
+			tempSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 
@@ -910,4 +1012,209 @@ func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUseCase_HandleDuplicateTemplateRequest_RedisGetError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().
+		Get(gomock.Any(), "idempotency:template:test-key").
+		Return("", errors.New("redis connection refused"))
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := uc.handleDuplicateTemplateRequest(ctx, "idempotency:template:test-key")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "redis connection refused")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_HandleDuplicateTemplateRequest_InvalidCachedJSON(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().
+		Get(gomock.Any(), "idempotency:template:test-key").
+		Return("{invalid-json", nil)
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := uc.handleDuplicateTemplateRequest(ctx, "idempotency:template:test-key")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unmarshal cached template idempotency response")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_HandleDuplicateTemplateRequest_ReplayedSignal(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	templateID := uuid.New()
+	cachedTemplate := &template.Template{
+		ID:           templateID,
+		OutputFormat: "xml",
+		Description:  "Cached template",
+	}
+
+	cachedJSON, err := json.Marshal(cachedTemplate)
+	require.NoError(t, err)
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().
+		Get(gomock.Any(), "idempotency:template:test-key").
+		Return(string(cachedJSON), nil)
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	replayed := false
+	ctx := context.WithValue(context.Background(), constant.IdempotencyReplayedCtx, &replayed)
+
+	result, err := uc.handleDuplicateTemplateRequest(ctx, "idempotency:template:test-key")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, templateID, result.ID)
+	assert.True(t, replayed, "replayed flag should be set to true")
+}
+
+func TestUseCase_CacheTemplateIdempotencyResult_SetError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().
+		Set(gomock.Any(), "idempotency:template:test-key", gomock.Any(), constant.IdempotencyTTL).
+		Return(errors.New("redis write failure"))
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	templateResult := &template.Template{
+		ID:           uuid.New(),
+		OutputFormat: "xml",
+		Description:  "Test template",
+	}
+
+	ctx := context.Background()
+
+	// This method does not return an error, it only logs. We verify no panic occurs.
+	uc.cacheTemplateIdempotencyResult(ctx, "idempotency:template:test-key", templateResult)
+}
+
+func TestUseCase_BuildTemplateIdempotencyKey_ClientProvidedKey(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	ctx := context.WithValue(context.Background(), constant.IdempotencyKeyCtx, "my-client-key")
+
+	key, err := uc.buildTemplateIdempotencyKey(ctx, "file-content", "xml", "desc")
+
+	require.NoError(t, err)
+	assert.Equal(t, "idempotency:template:my-client-key", key)
+}
+
+func TestUseCase_BuildTemplateIdempotencyKey_HashBased(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	ctx := context.Background()
+
+	key, err := uc.buildTemplateIdempotencyKey(ctx, "file-content", "xml", "desc")
+
+	require.NoError(t, err)
+	assert.Contains(t, key, "idempotency:template:")
+	// Verify the key is deterministic
+	key2, err2 := uc.buildTemplateIdempotencyKey(ctx, "file-content", "xml", "desc")
+	require.NoError(t, err2)
+	assert.Equal(t, key, key2)
+}
+
+func TestUseCase_HandleDuplicateTemplateRequest_EmptyStringResponse(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	// Redis Get returns empty string "" — the first request is still in-flight
+	mockRedisRepo.EXPECT().
+		Get(gomock.Any(), "idempotency:template:test-key").
+		Return("", nil)
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := uc.handleDuplicateTemplateRequest(ctx, "idempotency:template:test-key")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "A duplicate request is currently being processed")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_HandleDuplicateTemplateRequest_WithoutReplayedPointerInContext(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	templateID := uuid.New()
+	cachedTemplate := &template.Template{
+		ID:           templateID,
+		OutputFormat: "xml",
+		Description:  "Cached template without replayed pointer",
+	}
+
+	cachedJSON, err := json.Marshal(cachedTemplate)
+	require.NoError(t, err)
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().
+		Get(gomock.Any(), "idempotency:template:test-key-no-replayed").
+		Return(string(cachedJSON), nil)
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	// Use plain context.Background() — no replayed pointer injected
+	ctx := context.Background()
+	result, err := uc.handleDuplicateTemplateRequest(ctx, "idempotency:template:test-key-no-replayed")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, templateID, result.ID)
+	assert.Equal(t, "xml", result.OutputFormat)
+	assert.Equal(t, "Cached template without replayed pointer", result.Description)
 }

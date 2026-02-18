@@ -5,10 +5,16 @@
 package pdf
 
 import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/lib-commons/v2/commons/zap"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Note: Tests that require Chrome are skipped in CI environments.
@@ -89,7 +95,6 @@ func TestWorkerPool_IsHealthy(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -169,7 +174,7 @@ func TestTask_ResultChannel(t *testing.T) {
 
 	// Receive the result
 	err := <-task.Result
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestTask_ResultChannelWithError(t *testing.T) {
@@ -207,7 +212,6 @@ func TestWorkerPool_Timeout_Values(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -235,7 +239,6 @@ func TestWorkerPool_Workers_Values(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -249,4 +252,283 @@ func TestWorkerPool_Workers_Values(t *testing.T) {
 			assert.True(t, wp.IsHealthy())
 		})
 	}
+}
+
+// --- processPDFResult tests ---
+
+func TestProcessPDFResult_Success(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	buf := make([]byte, 1001) // > PDFMinValidSizeBytes (1000)
+	for i := range buf {
+		buf[i] = 'A'
+	}
+
+	filename := filepath.Join(t.TempDir(), "test.pdf")
+
+	err := wp.processPDFResult(buf, filename, nil)
+	require.NoError(t, err)
+
+	// Verify file exists and content matches
+	content, readErr := os.ReadFile(filename)
+	require.NoError(t, readErr)
+	assert.Equal(t, buf, content)
+}
+
+func TestProcessPDFResult_PropagatesPreviousError(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	previousErr := errors.New("previous error")
+
+	err := wp.processPDFResult(nil, "irrelevant.pdf", previousErr)
+	assert.ErrorIs(t, err, previousErr)
+
+	// Verify no file was written
+	_, statErr := os.Stat("irrelevant.pdf")
+	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestProcessPDFResult_TooSmall(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	buf := make([]byte, 500) // < PDFMinValidSizeBytes (1000)
+	for i := range buf {
+		buf[i] = 'B'
+	}
+
+	filename := filepath.Join(t.TempDir(), "small.pdf")
+
+	err := wp.processPDFResult(buf, filename, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too small")
+
+	// Verify no file was written
+	_, statErr := os.Stat(filename)
+	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestProcessPDFResult_WriteError(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	buf := make([]byte, 1001) // > PDFMinValidSizeBytes
+	for i := range buf {
+		buf[i] = 'C'
+	}
+
+	// Use a path where the directory does not exist to trigger a write error
+	filename := "/nonexistent/dir/file.pdf"
+
+	err := wp.processPDFResult(buf, filename, nil)
+	require.Error(t, err)
+}
+
+// --- createTempHTMLFile tests ---
+
+func TestCreateTempHTMLFile_Success(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	html := "<html><body>Hello World</body></html>"
+
+	filename, err := wp.createTempHTMLFile(html)
+	require.NoError(t, err)
+
+	defer os.Remove(filename)
+
+	// Read back and verify content
+	content, readErr := os.ReadFile(filename)
+	require.NoError(t, readErr)
+	assert.Equal(t, html, string(content))
+}
+
+func TestCreateTempHTMLFile_WritesCorrectContent(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	html := `<!DOCTYPE html>
+<html lang="en">
+<head><title>Special &amp; Characters &lt;test&gt;</title></head>
+<body>
+	<p>Quotes: "double" and 'single'</p>
+	<p>Unicode: ñ, ü, é, 中文, 日本語</p>
+	<p>Symbols: © ® ™ € £ ¥</p>
+</body>
+</html>`
+
+	filename, err := wp.createTempHTMLFile(html)
+	require.NoError(t, err)
+
+	defer os.Remove(filename)
+
+	// Read back and verify exact content match
+	content, readErr := os.ReadFile(filename)
+	require.NoError(t, readErr)
+	assert.Equal(t, html, string(content))
+}
+
+// --- cleanupTempFile tests ---
+
+func TestCleanupTempFile_Success(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	// Create a real temp file
+	tmpFile, createErr := os.CreateTemp("", "cleanup-test-*.html")
+	require.NoError(t, createErr)
+
+	tmpFileName := tmpFile.Name()
+	tmpFile.Close()
+
+	err := wp.cleanupTempFile(tmpFileName, nil)
+	require.NoError(t, err)
+
+	// Verify file no longer exists
+	_, statErr := os.Stat(tmpFileName)
+	assert.True(t, os.IsNotExist(statErr))
+}
+
+func TestCleanupTempFile_FileNotExists_NoOriginalError(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	err := wp.cleanupTempFile("/nonexistent/path/cleanup-test.html", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "generated PDF successfully but failed to remove")
+}
+
+func TestCleanupTempFile_FileNotExists_WithOriginalError(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	originalErr := errors.New("pdf error")
+
+	err := wp.cleanupTempFile("/nonexistent/path/cleanup-test.html", originalErr)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "additionally failed")
+	assert.True(t, errors.Is(err, originalErr))
+}
+
+func TestCleanupTempFile_PreservesOriginalError(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	// Create a real temp file so removal succeeds
+	tmpFile, createErr := os.CreateTemp("", "cleanup-preserve-*.html")
+	require.NoError(t, createErr)
+
+	tmpFileName := tmpFile.Name()
+	tmpFile.Close()
+
+	originalErr := errors.New("original error")
+
+	err := wp.cleanupTempFile(tmpFileName, originalErr)
+	assert.ErrorIs(t, err, originalErr)
+}
+
+// --- logPDFGenerationError tests ---
+
+func TestLogPDFGenerationError_Timeout(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	// Create a context with a deadline already in the past
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	assert.NotPanics(t, func() {
+		wp.logPDFGenerationError(ctx, errors.New("timeout error"))
+	})
+}
+
+func TestLogPDFGenerationError_Canceled(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	assert.NotPanics(t, func() {
+		wp.logPDFGenerationError(ctx, errors.New("canceled error"))
+	})
+}
+
+func TestLogPDFGenerationError_Generic(t *testing.T) {
+	t.Parallel()
+
+	wp := &WorkerPool{
+		workers: 1,
+		timeout: time.Minute,
+		logger:  zap.InitializeLogger(),
+	}
+
+	// Background context: no deadline, not canceled
+	ctx := context.Background()
+
+	assert.NotPanics(t, func() {
+		wp.logPDFGenerationError(ctx, errors.New("generic error"))
+	})
 }

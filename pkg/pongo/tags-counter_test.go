@@ -202,3 +202,99 @@ func TestCounterTag_ConcurrentRendersSafe(t *testing.T) {
 		assert.Equal(t, "3", result, "concurrent render produced wrong result")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// getCounterStorage fallback path
+// ---------------------------------------------------------------------------
+
+// TestGetCounterStorage_FallbackWhenMissing verifies that getCounterStorage
+// creates a new map when CounterContextKey is NOT present in the pongo2 context.
+// This exercises the fallback branch (line 37 of tags-counter.go).
+func TestGetCounterStorage_FallbackWhenMissing(t *testing.T) {
+	t.Parallel()
+
+	// Execute a template with counter tags but WITHOUT pre-setting counter storage.
+	// The counter tag will call getCounterStorage which should create a fresh map.
+	tpl, err := SafeFromString(`{% counter "test" %}{% counter "test" %}{% counter_show "test" %}`)
+	require.NoError(t, err)
+
+	// Empty context: no CounterContextKey set
+	ctx := pongo2.Context{}
+	result, err := tpl.Execute(ctx)
+	require.NoError(t, err)
+
+	// Because getCounterStorage falls back to a NEW map each time it's called,
+	// the counter increments are lost between calls. The counter_show will see 0.
+	assert.Equal(t, "0", result)
+}
+
+// TestGetCounterStorage_FallbackWithWrongType verifies that getCounterStorage
+// creates a new map when CounterContextKey is present but holds a wrong type.
+func TestGetCounterStorage_FallbackWithWrongType(t *testing.T) {
+	t.Parallel()
+
+	tpl, err := SafeFromString(`{% counter "abc" %}{% counter_show "abc" %}`)
+	require.NoError(t, err)
+
+	// Set CounterContextKey to a wrong type (string instead of map[string]int)
+	ctx := pongo2.Context{
+		CounterContextKey: "not a map",
+	}
+	result, err := tpl.Execute(ctx)
+	require.NoError(t, err)
+
+	// Fallback creates new empty map each time, so counter_show sees 0
+	assert.Equal(t, "0", result)
+}
+
+// TestCounterShowTag_MultipleNamesWithFallback verifies counter_show with
+// multiple counter names where some counters have been incremented.
+func TestCounterShowTag_MultipleNamesWithFallback(t *testing.T) {
+	t.Parallel()
+
+	tpl, err := SafeFromString(`{% counter "a" %}{% counter "a" %}{% counter "b" %}{% counter_show "a" "b" "c" %}`)
+	require.NoError(t, err)
+
+	result, err := tpl.Execute(newTestContext())
+	require.NoError(t, err)
+
+	// a=2, b=1, c=0 (never incremented, so storage[c] = 0 which is Go zero value)
+	assert.Equal(t, "3", result)
+}
+
+// ---------------------------------------------------------------------------
+// counter/counter_show tag parser error paths
+// ---------------------------------------------------------------------------
+
+// TestCounterTag_NoArguments verifies the tag parser error when no argument is provided.
+func TestCounterTag_NoArguments(t *testing.T) {
+	t.Parallel()
+	_, err := SafeFromString(`{% counter %}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "counter tag requires a counter name")
+}
+
+// TestCounterTag_NonStringArgument verifies the tag parser error when a non-string
+// argument is provided (e.g. a variable name rather than a quoted string).
+func TestCounterTag_NonStringArgument(t *testing.T) {
+	t.Parallel()
+	_, err := SafeFromString(`{% counter myvar %}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "counter tag requires a string argument")
+}
+
+// TestCounterShowTag_NoArguments verifies the tag parser error when no argument is provided.
+func TestCounterShowTag_NoArguments(t *testing.T) {
+	t.Parallel()
+	_, err := SafeFromString(`{% counter_show %}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "counter_show tag requires at least one counter name")
+}
+
+// TestCounterShowTag_NonStringArgument verifies the parser error for non-string argument.
+func TestCounterShowTag_NonStringArgument(t *testing.T) {
+	t.Parallel()
+	_, err := SafeFromString(`{% counter_show myvar %}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "counter_show tag requires string arguments")
+}

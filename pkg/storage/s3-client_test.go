@@ -177,7 +177,7 @@ func TestS3Client_GeneratePresignedURL_Success(t *testing.T) {
 	url, err := client.GeneratePresignedURL(ctx, "test-key.txt", 1*time.Hour)
 
 	// Should succeed even without S3 connection (it just generates the URL locally)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, url)
 	assert.Contains(t, url, "test-key.txt")
 	assert.Contains(t, url, "test-bucket")
@@ -199,7 +199,7 @@ func TestS3Config_WithAllOptions(t *testing.T) {
 
 	client, err := NewS3Client(ctx, cfg)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, client)
 }
 
@@ -214,7 +214,7 @@ func TestS3Config_MinimalConfig(t *testing.T) {
 	client, err := NewS3Client(ctx, cfg)
 
 	// Should succeed with minimal config (will use default AWS config)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, client)
 }
 
@@ -231,7 +231,7 @@ func TestS3Client_UploadWithTTL_IgnoresTTL(t *testing.T) {
 
 	// Should fail with connection error, NOT with TTL error
 	// The TTL warning is logged but the function continues
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.NotEqual(t, ErrTTLNotSupported, err)
 	assert.NotEqual(t, ErrKeyRequired, err)
 	// Error should be about uploading/connection, not TTL
@@ -327,7 +327,7 @@ func TestS3Client_UploadWithTTL_PutObjectError(t *testing.T) {
 
 	key, err := client.UploadWithTTL(ctx, "test-key.txt", strings.NewReader("data"), "text/plain", "")
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, key)
 	assert.Contains(t, err.Error(), "uploading object")
 }
@@ -343,7 +343,7 @@ func TestS3Client_UploadWithTTL_ReadError(t *testing.T) {
 
 	key, err := client.UploadWithTTL(ctx, "test-key.txt", failReader, "text/plain", "")
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, key)
 	assert.Contains(t, err.Error(), "reading data")
 }
@@ -422,7 +422,7 @@ func TestS3Client_Download_GenericError(t *testing.T) {
 	body, err := client.Download(ctx, "some-key.txt")
 
 	assert.Nil(t, body)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "downloading object")
 }
 
@@ -442,7 +442,7 @@ func TestS3Client_Delete_Success(t *testing.T) {
 
 	err := client.Delete(ctx, "delete-key.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestS3Client_Delete_Error(t *testing.T) {
@@ -464,7 +464,7 @@ func TestS3Client_Delete_Error(t *testing.T) {
 
 	err := client.Delete(ctx, "protected-key.txt")
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "deleting object")
 }
 
@@ -503,7 +503,7 @@ func TestS3Client_Exists_NotFound(t *testing.T) {
 
 	exists, err := client.Exists(ctx, "missing-key.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, exists)
 }
 
@@ -527,7 +527,7 @@ func TestS3Client_Exists_GenericError(t *testing.T) {
 	exists, err := client.Exists(ctx, "forbidden-key.txt")
 
 	assert.False(t, exists)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "checking object existence")
 }
 
@@ -654,14 +654,14 @@ func TestNewS3Client_ConfigVariations(t *testing.T) {
 			client, err := NewS3Client(ctx, tt.cfg)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, client)
 
 				if tt.errIs != nil {
 					assert.ErrorIs(t, err, tt.errIs)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, client)
 			}
 		})
@@ -765,8 +765,8 @@ func TestS3Client_Delete_Idempotent(t *testing.T) {
 	err1 := client.Delete(ctx, "idempotent-key.txt")
 	err2 := client.Delete(ctx, "idempotent-key.txt")
 
-	assert.NoError(t, err1)
-	assert.NoError(t, err2)
+	require.NoError(t, err1)
+	require.NoError(t, err2)
 	assert.Equal(t, 2, callCount)
 }
 
@@ -791,7 +791,7 @@ func TestS3Client_Exists_NoSuchKey(t *testing.T) {
 
 	exists, err := client.Exists(ctx, "no-such.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, exists)
 }
 
@@ -806,22 +806,22 @@ func TestS3Client_SentinelErrors(t *testing.T) {
 		{
 			name:    "ErrBucketRequired",
 			err:     ErrBucketRequired,
-			wantMsg: "bucket name is required",
+			wantMsg: "TPL-0041",
 		},
 		{
 			name:    "ErrKeyRequired",
 			err:     ErrKeyRequired,
-			wantMsg: "object key is required",
+			wantMsg: "TPL-0042",
 		},
 		{
 			name:    "ErrObjectNotFound",
 			err:     ErrObjectNotFound,
-			wantMsg: "object not found",
+			wantMsg: "TPL-0043",
 		},
 		{
 			name:    "ErrTTLNotSupported",
 			err:     ErrTTLNotSupported,
-			wantMsg: "TTL parameter not supported in S3 mode",
+			wantMsg: "TPL-0044",
 		},
 	}
 
@@ -848,7 +848,7 @@ func TestMockObjectStorage_Upload(t *testing.T) {
 
 	key, err := mock.Upload(context.Background(), "key.txt", strings.NewReader("data"), "text/plain")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "key.txt", key)
 }
 
@@ -862,7 +862,7 @@ func TestMockObjectStorage_UploadWithTTL(t *testing.T) {
 
 	key, err := mock.UploadWithTTL(context.Background(), "key.txt", strings.NewReader("data"), "text/plain", "1h")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "key.txt", key)
 }
 
@@ -877,7 +877,7 @@ func TestMockObjectStorage_Download(t *testing.T) {
 
 	body, err := mock.Download(context.Background(), "key.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, body)
 
 	defer body.Close()
@@ -893,7 +893,7 @@ func TestMockObjectStorage_Delete(t *testing.T) {
 
 	err := mock.Delete(context.Background(), "key.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestMockObjectStorage_Exists(t *testing.T) {
@@ -906,7 +906,7 @@ func TestMockObjectStorage_Exists(t *testing.T) {
 
 	exists, err := mock.Exists(context.Background(), "key.txt")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -920,7 +920,7 @@ func TestMockObjectStorage_GeneratePresignedURL(t *testing.T) {
 
 	url, err := mock.GeneratePresignedURL(context.Background(), "key.txt", time.Hour)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "https://example.com/key.txt", url)
 }
 

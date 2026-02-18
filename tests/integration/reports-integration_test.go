@@ -16,6 +16,7 @@ import (
 
 // GET /v1/reports — filters (status, templateId, createdAt)
 func TestIntegration_Reports_ListWithFilters(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -34,6 +35,7 @@ func TestIntegration_Reports_ListWithFilters(t *testing.T) {
 
 // POST /v1/reports - create report
 func TestIntegration_Reports_Create_MinimalValidation(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

@@ -14,6 +14,7 @@ import (
 
 // Restarts MongoDB and Redis containers and validates recovery of the system
 func TestIntegration_Chaos_Datastores_RestartAndRecover(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts MongoDB and Valkey).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

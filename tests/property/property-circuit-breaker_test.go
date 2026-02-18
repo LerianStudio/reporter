@@ -19,6 +19,8 @@ import (
 
 // Property 1: Circuit Breaker deve abrir após threshold de falhas consecutivas
 func TestProperty_CircuitBreaker_OpensAfterThreshold(t *testing.T) {
+	t.Parallel()
+
 	property := func(failures uint8) bool {
 		// Limit to 30 to keep test fast and predictable
 		if failures > 30 {
@@ -80,6 +82,8 @@ func TestProperty_CircuitBreaker_OpensAfterThreshold(t *testing.T) {
 
 // Property 2: Circuit Breaker em estado OPEN deve rejeitar todas as requisições
 func TestProperty_CircuitBreaker_OpenRejectsAll(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 	datasourceName := "test-ds-open"
@@ -108,6 +112,8 @@ func TestProperty_CircuitBreaker_OpenRejectsAll(t *testing.T) {
 
 // Property 3: IsHealthy deve retornar false apenas quando circuit breaker está OPEN
 func TestProperty_CircuitBreaker_HealthyState(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 
@@ -144,6 +150,8 @@ func TestProperty_CircuitBreaker_HealthyState(t *testing.T) {
 
 // Property 4: Sucessos devem resetar contador de falhas consecutivas
 func TestProperty_CircuitBreaker_SuccessResetsConsecutiveFailures(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 
 	property := func(initialFailures, successes uint8) bool {
@@ -186,6 +194,8 @@ func TestProperty_CircuitBreaker_SuccessResetsConsecutiveFailures(t *testing.T) 
 
 // Property 5: GetState nunca deve retornar estado inválido
 func TestProperty_CircuitBreaker_ValidStates(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 
@@ -225,6 +235,8 @@ func TestProperty_CircuitBreaker_ValidStates(t *testing.T) {
 
 // Property 6: Reset deve sempre voltar circuit breaker para CLOSED
 func TestProperty_CircuitBreaker_ResetToClosed(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 
@@ -255,6 +267,8 @@ func TestProperty_CircuitBreaker_ResetToClosed(t *testing.T) {
 
 // Property 7: GetCounts deve retornar contadores consistentes
 func TestProperty_CircuitBreaker_ConsistentCounts(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 
@@ -303,6 +317,8 @@ func TestProperty_CircuitBreaker_ConsistentCounts(t *testing.T) {
 
 // Property 8: ShouldAllowRetry deve retornar false apenas quando OPEN
 func TestProperty_CircuitBreaker_ShouldAllowRetry(t *testing.T) {
+	t.Parallel()
+
 	logger := zap.InitializeLogger()
 	cbm := pkg.NewCircuitBreakerManager(logger)
 

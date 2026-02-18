@@ -19,6 +19,7 @@ import (
 
 // TestFuzzy_PredefinedInvalidTemplates tests pre-defined templates that should fail gracefully
 func TestFuzzy_PredefinedInvalidTemplates(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)

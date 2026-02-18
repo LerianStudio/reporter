@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/google/uuid"
@@ -90,6 +90,7 @@ func TestUseCase_SendReportQueueReports_UsesUseCaseFields(t *testing.T) {
 // are set, the function reads from UseCase fields (not environment).
 // This proves config centralization is complete.
 func TestUseCase_SendReportQueueReports_DoesNotUseOsGetenv(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because t.Setenv is incompatible with parallel execution.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

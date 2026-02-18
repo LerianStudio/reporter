@@ -10,10 +10,13 @@ import (
 	"time"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
+	mongoMock "github.com/LerianStudio/reporter/pkg/mongodb"
+	pgMock "github.com/LerianStudio/reporter/pkg/postgres"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestHealthChecker_New(t *testing.T) {
@@ -525,4 +528,639 @@ func TestHealthChecker_MultipleDataSources(t *testing.T) {
 
 	status := hc.GetHealthStatus()
 	assert.Len(t, status, 3)
+}
+
+// ---------------------------------------------------------------------------
+// pingDataSource tests with mock repositories
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PingDataSource_PostgreSQL_Success(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockPgRepo := pgMock.NewMockRepository(ctrl)
+	mockPgRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any(), []string{"public", "sales"}).
+		Return(nil, nil)
+
+	ds := &DataSource{
+		DatabaseType:       PostgreSQLType,
+		PostgresRepository: mockPgRepo,
+		Schemas:            []string{"public", "sales"},
+		Initialized:        true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "pg_test_db", ds)
+	assert.True(t, result)
+}
+
+func TestHealthChecker_PingDataSource_PostgreSQL_Error(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockPgRepo := pgMock.NewMockRepository(ctrl)
+	mockPgRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any(), []string{"public"}).
+		Return(nil, assert.AnError)
+
+	ds := &DataSource{
+		DatabaseType:       PostgreSQLType,
+		PostgresRepository: mockPgRepo,
+		Schemas:            nil, // empty schemas should default to ["public"]
+		Initialized:        true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "pg_err_db", ds)
+	assert.False(t, result)
+}
+
+func TestHealthChecker_PingDataSource_MongoDB_Success(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockMongoRepo := mongoMock.NewMockRepository(ctrl)
+	mockMongoRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any()).
+		Return(nil, nil)
+
+	ds := &DataSource{
+		DatabaseType:      MongoDBType,
+		MongoDBRepository: mockMongoRepo,
+		Initialized:       true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "mongo_test_db", ds)
+	assert.True(t, result)
+}
+
+func TestHealthChecker_PingDataSource_MongoDB_Error(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockMongoRepo := mongoMock.NewMockRepository(ctrl)
+	mockMongoRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any()).
+		Return(nil, assert.AnError)
+
+	ds := &DataSource{
+		DatabaseType:      MongoDBType,
+		MongoDBRepository: mockMongoRepo,
+		Initialized:       true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "mongo_err_db", ds)
+	assert.False(t, result)
+}
+
+// ---------------------------------------------------------------------------
+// GetHealthStatus with circuit breaker states
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_GetHealthStatus_WithCircuitBreakerStates(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["healthy_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+	dataSources["unhealthy_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: MongoDBType,
+		Initialized:  false,
+	}
+	dataSources["degraded_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusDegraded,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	cbManager.GetOrCreate("healthy_db")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	status := hc.GetHealthStatus()
+
+	assert.Len(t, status, 3)
+	assert.Contains(t, status["healthy_db"], libConstants.DataSourceStatusAvailable)
+	assert.Contains(t, status["healthy_db"], "CB:")
+	assert.Contains(t, status["unhealthy_db"], libConstants.DataSourceStatusUnavailable)
+	assert.Contains(t, status["degraded_db"], libConstants.DataSourceStatusDegraded)
+}
+
+// ---------------------------------------------------------------------------
+// needsHealing edge cases
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_NeedsHealing_CircuitBreakerHealthyButNotOpen(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Datasource is available, initialized, and CB is not open (half-open)
+	// In half-open state, IsHealthy returns true, so needsHealing returns false
+	ds := DataSource{
+		Status:      libConstants.DataSourceStatusAvailable,
+		Initialized: true,
+	}
+
+	// The circuit breaker is freshly created (closed state) and healthy
+	cbManager.GetOrCreate("halfopen_db")
+	result := hc.needsHealing("halfopen_db", ds)
+	assert.False(t, result, "healthy initialized datasource with closed CB should not need healing")
+}
+
+// ---------------------------------------------------------------------------
+// attemptReconnection – MongoDB type (ConnectToDataSource fails because the
+// datasource is not registered in the immutable registry)
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_AttemptReconnection_MongoDBType(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	ds := &DataSource{
+		DatabaseType: MongoDBType,
+		MongoURI:     "mongodb://localhost:27017/test",
+		MongoDBName:  "test",
+		Initialized:  false,
+		Status:       libConstants.DataSourceStatusUnavailable,
+	}
+
+	// attemptReconnection should return false because the datasource ID is
+	// not registered in the immutable registry – ConnectToDataSource rejects it.
+	result := hc.attemptReconnection("mongo_unreg_db", ds)
+	assert.False(t, result)
+	assert.Equal(t, libConstants.DataSourceStatusUnavailable, ds.Status)
+	assert.NotNil(t, ds.LastError)
+}
+
+// ---------------------------------------------------------------------------
+// performHealthChecks – mixed healthy and unhealthy datasources
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PerformHealthChecks_MixedHealthyAndUnhealthy(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["healthy_pg"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+	dataSources["unavailable_pg"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  false,
+	}
+	dataSources["healthy_mongo"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: MongoDBType,
+		Initialized:  true,
+	}
+	dataSources["degraded_pg"] = DataSource{
+		Status:       libConstants.DataSourceStatusDegraded,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	// Create circuit breakers for the healthy ones to keep them healthy
+	cbManager.GetOrCreate("healthy_pg")
+	cbManager.GetOrCreate("healthy_mongo")
+	cbManager.GetOrCreate("degraded_pg")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Should not panic; the snapshot-copy logic handles concurrent access correctly.
+	assert.NotPanics(t, func() {
+		hc.performHealthChecks()
+	})
+
+	// Verify healthy datasources are unchanged
+	assert.Equal(t, libConstants.DataSourceStatusAvailable, dataSources["healthy_pg"].Status)
+	assert.Equal(t, libConstants.DataSourceStatusAvailable, dataSources["healthy_mongo"].Status)
+}
+
+// ---------------------------------------------------------------------------
+// performHealthChecks – datasource that is not initialized triggers healing
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PerformHealthChecks_NotInitialized(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["uninit_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  false, // not initialized – needsHealing returns true
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	cbManager.GetOrCreate("uninit_db")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// performHealthChecks should attempt healing for the uninitialised datasource
+	// and NOT panic even though ConnectToDataSource will fail.
+	assert.NotPanics(t, func() {
+		hc.performHealthChecks()
+	})
+}
+
+// ---------------------------------------------------------------------------
+// performHealthChecks – circuit breaker open triggers healing path
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PerformHealthChecks_CircuitBreakerOpen(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["cb_open_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	cb := cbManager.GetOrCreate("cb_open_db")
+	// Trip the circuit breaker to open state
+	for i := 0; i < 20; i++ {
+		_, _ = cb.Execute(func() (any, error) {
+			return nil, assert.AnError
+		})
+	}
+	// Verify it is open
+	assert.Equal(t, constant.CircuitBreakerStateOpen, cbManager.GetState("cb_open_db"))
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// performHealthChecks should attempt healing for the CB-open datasource
+	// and NOT panic. The reconnection will fail, but the flow is exercised.
+	assert.NotPanics(t, func() {
+		hc.performHealthChecks()
+	})
+}
+
+// ---------------------------------------------------------------------------
+// GetHealthStatus – datasources with different circuit breaker states
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_GetHealthStatus_MultipleCircuitBreakerStates(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["closed_cb_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+	dataSources["open_cb_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  false,
+	}
+	dataSources["no_cb_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: MongoDBType,
+		Initialized:  true,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	// closed_cb_db has a closed circuit breaker
+	cbManager.GetOrCreate("closed_cb_db")
+
+	// open_cb_db has an open circuit breaker
+	cb := cbManager.GetOrCreate("open_cb_db")
+	for i := 0; i < 20; i++ {
+		_, _ = cb.Execute(func() (any, error) {
+			return nil, assert.AnError
+		})
+	}
+
+	// no_cb_db has no circuit breaker created (returns "not_initialized")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	status := hc.GetHealthStatus()
+
+	assert.Len(t, status, 3)
+
+	// Verify each entry contains both the datasource status AND the CB state
+	assert.Contains(t, status["closed_cb_db"], libConstants.DataSourceStatusAvailable)
+	assert.Contains(t, status["closed_cb_db"], "CB: "+constant.CircuitBreakerStateClosed)
+
+	assert.Contains(t, status["open_cb_db"], libConstants.DataSourceStatusUnavailable)
+	assert.Contains(t, status["open_cb_db"], "CB: "+constant.CircuitBreakerStateOpen)
+
+	assert.Contains(t, status["no_cb_db"], libConstants.DataSourceStatusAvailable)
+	assert.Contains(t, status["no_cb_db"], "CB: not_initialized")
+}
+
+// ---------------------------------------------------------------------------
+// needsHealing – degraded status with healthy circuit breaker does NOT need healing
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_NeedsHealing_DegradedStatusHealthyCB(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	cbManager.GetOrCreate("degraded_db")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Degraded, initialized, CB closed – none of the three conditions are met
+	ds := DataSource{
+		Status:      libConstants.DataSourceStatusDegraded,
+		Initialized: true,
+	}
+
+	result := hc.needsHealing("degraded_db", ds)
+	assert.False(t, result, "degraded but initialized datasource with closed CB should not need healing")
+}
+
+// ---------------------------------------------------------------------------
+// needsHealing – multiple conditions true simultaneously
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_NeedsHealing_MultipleConditionsTrue(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Datasource is unavailable AND not initialized – first condition triggers
+	ds := DataSource{
+		Status:      libConstants.DataSourceStatusUnavailable,
+		Initialized: false,
+	}
+
+	result := hc.needsHealing("multi_cond_db", ds)
+	assert.True(t, result, "unavailable and uninitialized datasource should need healing")
+}
+
+// ---------------------------------------------------------------------------
+// attemptReconnection – verifies RetryCount is reset and LastAttempt is updated
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_AttemptReconnection_ResetsRetryCountAndTimestamp(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	oldTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	ds := &DataSource{
+		DatabaseType: PostgreSQLType,
+		Initialized:  false,
+		Status:       libConstants.DataSourceStatusUnavailable,
+		RetryCount:   5,
+		LastAttempt:  oldTime,
+	}
+
+	before := time.Now()
+	_ = hc.attemptReconnection("retry_reset_db", ds)
+
+	// RetryCount should be reset to 0 (set at the start of attemptReconnection)
+	assert.Equal(t, 0, ds.RetryCount)
+
+	// LastAttempt should be updated to a recent time
+	assert.True(t, ds.LastAttempt.After(before) || ds.LastAttempt.Equal(before),
+		"LastAttempt should be updated to current time")
+}
+
+// ---------------------------------------------------------------------------
+// pingDataSource – PostgreSQL with mocked repo and custom schemas (success)
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PingDataSource_PostgreSQL_CustomSchemas_Success(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockPgRepo := pgMock.NewMockRepository(ctrl)
+	mockPgRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any(), []string{"inventory", "billing"}).
+		Return(nil, nil)
+
+	ds := &DataSource{
+		DatabaseType:       PostgreSQLType,
+		PostgresRepository: mockPgRepo,
+		Schemas:            []string{"inventory", "billing"},
+		Initialized:        true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "pg_custom_schemas", ds)
+	assert.True(t, result)
+}
+
+// ---------------------------------------------------------------------------
+// pingDataSource – MongoDB with mocked repo (error path)
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PingDataSource_MongoDB_ErrorFromRepo(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	cbManager := NewCircuitBreakerManager(logger)
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	mockMongoRepo := mongoMock.NewMockRepository(ctrl)
+	mockMongoRepo.EXPECT().
+		GetDatabaseSchema(gomock.Any()).
+		Return(nil, assert.AnError)
+
+	ds := &DataSource{
+		DatabaseType:      MongoDBType,
+		MongoDBRepository: mockMongoRepo,
+		Initialized:       true,
+	}
+
+	result := hc.pingDataSource(context.Background(), "mongo_err_repo", ds)
+	assert.False(t, result)
+}
+
+// ---------------------------------------------------------------------------
+// performHealthChecks – all datasources need healing (unavailable count path)
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PerformHealthChecks_AllNeedHealing(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["down_db1"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  false,
+	}
+	dataSources["down_db2"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: MongoDBType,
+		Initialized:  false,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Both datasources need healing; ConnectToDataSource will fail for both
+	// because the IDs are not registered. The unavailableCount > 0 logging
+	// branch is exercised.
+	assert.NotPanics(t, func() {
+		hc.performHealthChecks()
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Concurrent performHealthChecks – snapshot isolation
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_PerformHealthChecks_ConcurrentCalls(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["concurrent_db1"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+	dataSources["concurrent_db2"] = DataSource{
+		Status:       libConstants.DataSourceStatusUnavailable,
+		DatabaseType: MongoDBType,
+		Initialized:  false,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	cbManager.GetOrCreate("concurrent_db1")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	// Run multiple performHealthChecks concurrently to verify the
+	// snapshot-copy + mutex logic does not race.
+	done := make(chan bool, 5)
+
+	for i := 0; i < 5; i++ {
+		go func() {
+			hc.performHealthChecks()
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 5; i++ {
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			t.Fatal("Concurrent performHealthChecks timed out")
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetHealthStatus – single datasource with known CB state
+// ---------------------------------------------------------------------------
+
+func TestHealthChecker_GetHealthStatus_SingleDatasource(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+
+	dataSources := make(map[string]DataSource)
+	dataSources["solo_db"] = DataSource{
+		Status:       libConstants.DataSourceStatusAvailable,
+		DatabaseType: PostgreSQLType,
+		Initialized:  true,
+	}
+
+	cbManager := NewCircuitBreakerManager(logger)
+	cbManager.GetOrCreate("solo_db")
+
+	hc := NewHealthChecker(&dataSources, cbManager, logger)
+
+	status := hc.GetHealthStatus()
+
+	assert.Len(t, status, 1)
+	expected := libConstants.DataSourceStatusAvailable + " (CB: " + constant.CircuitBreakerStateClosed + ")"
+	assert.Equal(t, expected, status["solo_db"])
 }

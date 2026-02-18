@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
+	"github.com/LerianStudio/reporter/pkg/redis"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,6 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
-	_ "github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/postgres"
@@ -393,7 +392,13 @@ func TestUseCase_GetExpandedFieldsForPluginCRM(t *testing.T) {
 }
 
 func TestUseCase_GetDataSourceDetailsByID(t *testing.T) {
-	t.Parallel()
+	// NOTE: Cannot use t.Parallel() because it modifies global state (immutable registry)
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds", "pg_ds"})
+
+	t.Cleanup(func() {
+		pkg.ResetRegisteredDataSourceIDsForTesting()
+	})
 
 	mongoSchema := []mongodb.CollectionSchema{
 		{
@@ -655,4 +660,328 @@ func TestUseCase_GetDataSourceDetailsByID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUseCase_GetDataSourceDetailsByID_DefaultType(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"unknown_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":unknown_ds"
+
+	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"unknown_ds": {
+				DatabaseType: "unsupported_type",
+				Initialized:  true,
+			},
+		}),
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "unknown_ds")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), constant.ErrMissingDataSource.Error())
+	assert.Nil(t, result)
+}
+
+func TestUseCase_GetDataSourceDetailsByID_PostgresCloseError(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"pg_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+	mockPostgresRepo := postgres.NewMockRepository(ctrl)
+
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":pg_ds"
+
+	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+	mockPostgresRepo.EXPECT().GetDatabaseSchema(gomock.Any(), gomock.Any()).Return([]postgres.TableSchema{
+		{
+			SchemaName: "public",
+			TableName:  "users",
+			Columns: []postgres.ColumnInformation{
+				{Name: "id", DataType: "int"},
+			},
+		},
+	}, nil)
+	mockPostgresRepo.EXPECT().CloseConnection().Return(errors.New("close connection failed"))
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"pg_ds": {
+				DatabaseType:       pkg.PostgreSQLType,
+				PostgresRepository: mockPostgresRepo,
+				DatabaseConfig:     &postgres.Connection{Connected: true},
+				Initialized:        true,
+			},
+		}),
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "pg_ds")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "close connection failed")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_GetDataSourceDetailsByID_MongoCloseError(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+	mockMongoRepo := mongodb.NewMockRepository(ctrl)
+
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds"
+
+	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return([]mongodb.CollectionSchema{
+		{
+			CollectionName: "collection1",
+			Fields: []mongodb.FieldInformation{
+				{Name: "field1", DataType: "string"},
+			},
+		},
+	}, nil)
+	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(errors.New("mongo close failed"))
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"mongo_ds": {
+				DatabaseType:      pkg.MongoDBType,
+				MongoDBRepository: mockMongoRepo,
+				MongoDBName:       "mongo_db",
+				Initialized:       true,
+			},
+		}),
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "mongo_ds")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mongo close failed")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_GetDataSourceDetailsByID_CacheSetError(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+	mockMongoRepo := mongodb.NewMockRepository(ctrl)
+
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":mongo_ds"
+
+	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return([]mongodb.CollectionSchema{
+		{
+			CollectionName: "collection1",
+			Fields: []mongodb.FieldInformation{
+				{Name: "field1", DataType: "string"},
+			},
+		},
+	}, nil)
+	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
+	mockRedisRepo.EXPECT().Set(gomock.Any(), cacheKey, gomock.Any(), gomock.Any()).Return(errors.New("redis write error"))
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"mongo_ds": {
+				DatabaseType:      pkg.MongoDBType,
+				MongoDBRepository: mockMongoRepo,
+				MongoDBName:       "mongo_db",
+				Initialized:       true,
+			},
+		}),
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "mongo_ds")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "redis write error")
+	assert.Nil(t, result)
+}
+
+func TestUseCase_GetDataSourceDetailsByID_NilRedisRepo(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"mongo_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMongoRepo := mongodb.NewMockRepository(ctrl)
+
+	mockMongoRepo.EXPECT().GetDatabaseSchema(gomock.Any()).Return([]mongodb.CollectionSchema{
+		{
+			CollectionName: "collection1",
+			Fields: []mongodb.FieldInformation{
+				{Name: "field1", DataType: "string"},
+			},
+		},
+	}, nil)
+	mockMongoRepo.EXPECT().CloseConnection(gomock.Any()).Return(nil)
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"mongo_ds": {
+				DatabaseType:      pkg.MongoDBType,
+				MongoDBRepository: mockMongoRepo,
+				MongoDBName:       "mongo_db",
+				Initialized:       true,
+			},
+		}),
+		RedisRepo: nil,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "mongo_ds")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "mongo_ds", result.Id)
+}
+
+func TestUseCase_GetDisplayNameForCollection(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	tests := []struct {
+		name           string
+		collectionName string
+		dataSourceID   string
+		expected       string
+	}{
+		{
+			name:           "plugin_crm strips org suffix",
+			collectionName: "holders_org123",
+			dataSourceID:   "plugin_crm",
+			expected:       "holders",
+		},
+		{
+			name:           "non-plugin_crm returns full name",
+			collectionName: "holders_org123",
+			dataSourceID:   "midaz_organization",
+			expected:       "holders_org123",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.getDisplayNameForCollection(tt.collectionName, tt.dataSourceID)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestUseCase_GetFieldsForCollection_NonPluginCRM(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	collection := mongodb.CollectionSchema{
+		CollectionName: "users",
+		Fields: []mongodb.FieldInformation{
+			{Name: "id", DataType: "string"},
+			{Name: "name", DataType: "string"},
+			{Name: "email", DataType: "string"},
+		},
+	}
+
+	fields := uc.getFieldsForCollection(collection, "midaz_organization")
+
+	assert.Equal(t, []string{"id", "name", "email"}, fields)
+}
+
+func TestUseCase_GetDataSourceDetailsFromCache_UnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+
+	mockRedisRepo.EXPECT().Get(gomock.Any(), "test-key").Return("{invalid-json", nil)
+
+	uc := &UseCase{
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, ok := uc.getDataSourceDetailsFromCache(ctx, "test-key")
+
+	assert.False(t, ok)
+	assert.Nil(t, result)
+}
+
+func TestUseCase_SetDataSourceDetailsToCache_NilDetails(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{
+		RedisRepo: nil,
+	}
+
+	ctx := context.Background()
+	err := uc.setDataSourceDetailsToCache(ctx, "test-key", nil)
+
+	require.NoError(t, err)
+}
+
+func TestUseCase_GetDataSourceDetailsByID_UnregisteredDatasource(t *testing.T) {
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"registered_ds"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRedisRepo := redis.NewMockRedisRepository(ctrl)
+	cacheKey := constant.DataSourceDetailsKeyPrefix + ":unregistered_ds"
+	mockRedisRepo.EXPECT().Get(gomock.Any(), cacheKey).Return("", nil)
+
+	svc := &UseCase{
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+			"unregistered_ds": {
+				DatabaseType: pkg.MongoDBType,
+				MongoDBName:  "some_db",
+				Initialized:  true,
+			},
+		}),
+		RedisRepo: mockRedisRepo,
+	}
+
+	ctx := context.Background()
+	result, err := svc.GetDataSourceDetailsByID(ctx, "unregistered_ds")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), constant.ErrMissingDataSource.Error())
+	assert.Nil(t, result)
 }

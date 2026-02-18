@@ -18,6 +18,7 @@ import (
 
 // Restarts RabbitMQ container and validates recovery of the system
 func TestIntegration_Chaos_RabbitMQ_RestartAndRecover(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}

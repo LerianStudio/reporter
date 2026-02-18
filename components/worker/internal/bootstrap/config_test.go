@@ -31,7 +31,7 @@ func TestConfig_Validate_ValidConfig(t *testing.T) {
 
 	cfg := validWorkerConfig()
 	err := cfg.Validate()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestConfig_Validate_AllFieldsMissing(t *testing.T) {
@@ -245,7 +245,7 @@ func TestConfig_ValidateProductionConfig(t *testing.T) {
 					assert.Contains(t, err.Error(), expected)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -263,5 +263,5 @@ func TestConfig_Validate_OptionalFieldsCanBeEmpty(t *testing.T) {
 	cfg.RabbitMQHealthCheckURL = ""
 
 	err := cfg.Validate()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

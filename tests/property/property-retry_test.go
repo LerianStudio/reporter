@@ -14,6 +14,8 @@ import (
 
 // Property 1: Backoff exponencial deve crescer como 2^n
 func TestProperty_Retry_ExponentialBackoff(t *testing.T) {
+	t.Parallel()
+
 	property := func(retryCount uint8) bool {
 		if retryCount > 10 {
 			retryCount = retryCount % 10
@@ -49,6 +51,8 @@ func TestProperty_Retry_ExponentialBackoff(t *testing.T) {
 
 // Property 2: Retry count nunca deve ser negativo
 func TestProperty_Retry_CountNonNegative(t *testing.T) {
+	t.Parallel()
+
 	property := func(count int32) bool {
 		// Simulate getRetryCount behavior with various types
 		var retryCount int32
@@ -83,6 +87,8 @@ func TestProperty_Retry_CountNonNegative(t *testing.T) {
 
 // Property 3: Após 3 retries, contador deve ser >= 3
 func TestProperty_Retry_MaxRetries(t *testing.T) {
+	t.Parallel()
+
 	property := func(initialCount uint8) bool {
 		count := int32(initialCount % 10) // Keep it reasonable
 
@@ -102,6 +108,8 @@ func TestProperty_Retry_MaxRetries(t *testing.T) {
 
 // Property 4: Backoff deve sempre aumentar entre retries consecutivos
 func TestProperty_Retry_BackoffMonotonicallyIncreasing(t *testing.T) {
+	t.Parallel()
+
 	property := func(count1, count2 uint8) bool {
 		if count1 >= count2 || count1 > 10 || count2 > 10 {
 			return true
@@ -121,6 +129,8 @@ func TestProperty_Retry_BackoffMonotonicallyIncreasing(t *testing.T) {
 
 // Property 5: Retry count incremento deve ser sempre +1
 func TestProperty_Retry_IncrementByOne(t *testing.T) {
+	t.Parallel()
+
 	property := func(currentCount uint8) bool {
 		if currentCount > 100 {
 			currentCount = currentCount % 100
@@ -140,6 +150,8 @@ func TestProperty_Retry_IncrementByOne(t *testing.T) {
 
 // Property 6: Tempo total de retries deve ser soma dos backoffs
 func TestProperty_Retry_TotalTime(t *testing.T) {
+	t.Parallel()
+
 	property := func(maxRetries uint8) bool {
 		if maxRetries == 0 || maxRetries > 5 {
 			return true
@@ -168,6 +180,8 @@ func TestProperty_Retry_TotalTime(t *testing.T) {
 
 // Property 7: Retry após max attempts (3) deve retornar false
 func TestProperty_Retry_StopsAfterMax(t *testing.T) {
+	t.Parallel()
+
 	property := func(retryCount uint8) bool {
 		count := int32(retryCount % 20)
 
@@ -190,6 +204,8 @@ func TestProperty_Retry_StopsAfterMax(t *testing.T) {
 
 // Property 8: Backoff nunca deve overflow ou ser negativo
 func TestProperty_Retry_BackoffNoOverflow(t *testing.T) {
+	t.Parallel()
+
 	property := func(retryCount uint8) bool {
 		if retryCount > 30 {
 			retryCount = 30 // Cap to prevent actual overflow in test
@@ -209,6 +225,8 @@ func TestProperty_Retry_BackoffNoOverflow(t *testing.T) {
 
 // Property 9: Retry count de diferentes tipos devem normalizar para int32
 func TestProperty_Retry_TypeNormalization(t *testing.T) {
+	t.Parallel()
+
 	property := func(val int) bool {
 		if val < 0 {
 			val = -val
@@ -236,6 +254,8 @@ func TestProperty_Retry_TypeNormalization(t *testing.T) {
 
 // Property 10: Retry headers devem preservar informação entre tentativas
 func TestProperty_Retry_HeaderPreservation(t *testing.T) {
+	t.Parallel()
+
 	property := func(reason string, count uint8) bool {
 		if count > 10 {
 			count = count % 10

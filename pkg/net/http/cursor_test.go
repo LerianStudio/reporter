@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeCursor_Success(t *testing.T) {
@@ -66,12 +67,12 @@ func TestDecodeCursor_Success(t *testing.T) {
 
 			// Encode cursor to base64
 			jsonData, err := json.Marshal(tt.cursor)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			encodedCursor := base64.StdEncoding.EncodeToString(jsonData)
 
 			// Decode cursor
 			result, err := DecodeCursor(encodedCursor)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedID, result.ID)
 			assert.Equal(t, tt.expectedPoints, result.PointsNext)
 		})
@@ -101,7 +102,7 @@ func TestDecodeCursor_InvalidBase64(t *testing.T) {
 			t.Parallel()
 
 			_, err := DecodeCursor(tt.cursor)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	}
 }
@@ -134,7 +135,7 @@ func TestDecodeCursor_InvalidJSON(t *testing.T) {
 
 			encoded := base64.StdEncoding.EncodeToString([]byte(tt.data))
 			_, err := DecodeCursor(encoded)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	}
 }
@@ -143,7 +144,7 @@ func TestDecodeCursor_EmptyString(t *testing.T) {
 	t.Parallel()
 
 	_, err := DecodeCursor("")
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestCursor_Struct(t *testing.T) {
@@ -167,11 +168,11 @@ func TestCursor_JSONTags(t *testing.T) {
 	}
 
 	data, err := json.Marshal(cursor)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Check JSON field names
 	assert.Contains(t, result, "id")

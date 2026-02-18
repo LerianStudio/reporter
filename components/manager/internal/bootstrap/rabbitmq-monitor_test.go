@@ -149,8 +149,9 @@ func TestConnectionMonitorIntervalConstant(t *testing.T) {
 
 // TestRabbitMQMonitor_Lifecycle groups all tests that modify the package-level
 // tickerFactory variable to prevent data races. Subtests run sequentially.
+// NOTE: Cannot use t.Parallel() because subtests modify the package-level tickerFactory variable.
 func TestRabbitMQMonitor_Lifecycle(t *testing.T) {
-	t.Run("StartAndStop", func(t *testing.T) {
+	t.Run("Success - StartAndStop", func(t *testing.T) {
 		logger := zap.InitializeLogger()
 
 		conn := &libRabbitmq.RabbitMQConnection{
@@ -189,7 +190,7 @@ func TestRabbitMQMonitor_Lifecycle(t *testing.T) {
 		}
 	})
 
-	t.Run("TickTriggersCheck", func(t *testing.T) {
+	t.Run("Success - TickTriggersCheck", func(t *testing.T) {
 		logger := zap.InitializeLogger()
 
 		conn := &libRabbitmq.RabbitMQConnection{
@@ -230,7 +231,7 @@ func TestRabbitMQMonitor_Lifecycle(t *testing.T) {
 		}
 	})
 
-	t.Run("StopBeforeTick", func(t *testing.T) {
+	t.Run("Success - StopBeforeTick", func(t *testing.T) {
 		logger := zap.InitializeLogger()
 
 		conn := &libRabbitmq.RabbitMQConnection{
@@ -265,7 +266,7 @@ func TestRabbitMQMonitor_Lifecycle(t *testing.T) {
 		}
 	})
 
-	t.Run("StopIsIdempotentWithDone", func(t *testing.T) {
+	t.Run("Success - StopIsIdempotentWithDone", func(t *testing.T) {
 		logger := zap.InitializeLogger()
 
 		conn := &libRabbitmq.RabbitMQConnection{

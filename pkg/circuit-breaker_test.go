@@ -8,10 +8,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/reporter/pkg/constant"
+	"github.com/sony/gobreaker"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCircuitBreakerManager_New(t *testing.T) {
@@ -105,11 +108,11 @@ func TestCircuitBreakerManager_Execute(t *testing.T) {
 			result, err := cbm.Execute("test_db", tt.fn)
 
 			if tt.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, result)
 				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedResult, result)
 			}
 		})
@@ -353,7 +356,7 @@ func TestCircuitBreakerManager_Execute_OpenState(t *testing.T) {
 	})
 
 	assert.Nil(t, result)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "currently unavailable")
 	assert.Contains(t, err.Error(), "circuit breaker open")
 }
@@ -419,7 +422,7 @@ func TestCircuitBreakerManager_Reset_AfterOpen(t *testing.T) {
 		return "recovered", nil
 	})
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "recovered", result)
 }
 
@@ -443,7 +446,7 @@ func TestCircuitBreakerManager_Execute_TooManyRequests(t *testing.T) {
 	_, err := cbm.Execute("toomany_db", func() (any, error) {
 		return nil, nil
 	})
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "currently unavailable")
 }
 
@@ -465,7 +468,7 @@ func TestCircuitBreakerManager_Reset_PreservesOtherBreakers(t *testing.T) {
 	result, err := cbm.Execute("db_b", func() (any, error) {
 		return "ok", nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ok", result)
 
 	// Reset only db_a
@@ -496,7 +499,7 @@ func TestCircuitBreakerManager_Reset_MultipleResets(t *testing.T) {
 		result, err := cbm.Execute("multi_reset_db", func() (any, error) {
 			return "attempt", nil
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "attempt", result)
 	}
 }
@@ -588,4 +591,334 @@ func TestCircuitBreakerManager_GetOrCreate_Idempotent(t *testing.T) {
 	// Should return the same instance
 	assert.Equal(t, breaker1, breaker2)
 	assert.Equal(t, 1, len(cbm.breakers))
+}
+
+func TestCircuitBreakerManager_Execute_SuccessAfterFailures(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Execute a few failures (not enough to trip the breaker)
+	for i := 0; i < 3; i++ {
+		_, _ = cbm.Execute("recover_db", func() (any, error) {
+			return nil, errors.New("transient error")
+		})
+	}
+
+	// Then a success should still work
+	result, err := cbm.Execute("recover_db", func() (any, error) {
+		return "recovered", nil
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "recovered", result)
+
+	// Verify counts
+	counts := cbm.GetCounts("recover_db")
+	assert.Equal(t, uint32(3), counts.TotalFailures)
+	assert.Equal(t, uint32(1), counts.TotalSuccesses)
+}
+
+func TestCircuitBreakerManager_Execute_PassesThroughFunctionError(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	expectedErr := errors.New("business logic error")
+
+	result, err := cbm.Execute("passthrough_db", func() (any, error) {
+		return nil, expectedErr
+	})
+
+	assert.Nil(t, result)
+	require.Error(t, err)
+	// The error from the function should be passed through directly
+	// (not wrapped, since it's not a circuit breaker error)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestCircuitBreakerManager_GetState_AfterResetIsClosedAgain(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Trip circuit breaker
+	tripCircuitBreaker(cbm, "state_reset_db")
+	assert.Equal(t, constant.CircuitBreakerStateOpen, cbm.GetState("state_reset_db"))
+
+	// Reset
+	cbm.Reset("state_reset_db")
+	assert.Equal(t, constant.CircuitBreakerStateClosed, cbm.GetState("state_reset_db"))
+
+	// Should be healthy after reset
+	assert.True(t, cbm.IsHealthy("state_reset_db"))
+	assert.True(t, cbm.ShouldAllowRetry("state_reset_db"))
+}
+
+func TestCircuitBreakerManager_Execute_NilResult(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// A function returning nil result and nil error should work
+	result, err := cbm.Execute("nil_db", func() (any, error) {
+		return nil, nil
+	})
+
+	require.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+func TestCircuitBreakerManager_HalfOpenState(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Create a custom breaker with very short timeout (50ms) to test half-open state
+	shortSettings := gobreaker.Settings{
+		Name:        "datasource-halfopen_test_db",
+		MaxRequests: constant.CircuitBreakerMaxRequests,
+		Interval:    constant.CircuitBreakerInterval,
+		Timeout:     50 * time.Millisecond, // Very short timeout for testing
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= 3
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
+
+			switch to {
+			case gobreaker.StateOpen:
+				cbm.logger.Errorf("Circuit Breaker [%s] OPENED - datasource is unhealthy, requests will fast-fail", name)
+			case gobreaker.StateHalfOpen:
+				cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
+			case gobreaker.StateClosed:
+				cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
+			}
+		},
+	}
+
+	breaker := gobreaker.NewCircuitBreaker(shortSettings)
+
+	// Inject the custom breaker into the manager
+	cbm.mu.Lock()
+	cbm.breakers["halfopen_test_db"] = breaker
+	cbm.mu.Unlock()
+
+	// Trip the circuit breaker by sending consecutive failures
+	for i := 0; i < 5; i++ {
+		_, _ = breaker.Execute(func() (any, error) {
+			return nil, errors.New("deliberate failure")
+		})
+	}
+
+	// Verify it's open
+	assert.Equal(t, constant.CircuitBreakerStateOpen, cbm.GetState("halfopen_test_db"))
+
+	// Wait for the short timeout to expire so breaker transitions to half-open
+	time.Sleep(100 * time.Millisecond)
+
+	// Now GetState should return half-open (covers lines 143-144)
+	state := cbm.GetState("halfopen_test_db")
+	assert.Equal(t, constant.CircuitBreakerStateHalfOpen, state)
+
+	// IsHealthy in half-open should return true (not open)
+	assert.True(t, cbm.IsHealthy("halfopen_test_db"))
+
+	// ShouldAllowRetry in half-open with no requests should allow
+	assert.True(t, cbm.ShouldAllowRetry("halfopen_test_db"))
+}
+
+func TestCircuitBreakerManager_Execute_ErrTooManyRequests(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Create a custom breaker with very short timeout and MaxRequests=1
+	shortSettings := gobreaker.Settings{
+		Name:        "datasource-toomany_test_db",
+		MaxRequests: 1, // Only allow 1 request in half-open
+		Interval:    constant.CircuitBreakerInterval,
+		Timeout:     50 * time.Millisecond,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= 3
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
+			switch to {
+			case gobreaker.StateOpen:
+				cbm.logger.Errorf("Circuit Breaker [%s] OPENED", name)
+			case gobreaker.StateHalfOpen:
+				cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN", name)
+			case gobreaker.StateClosed:
+				cbm.logger.Infof("Circuit Breaker [%s] CLOSED", name)
+			}
+		},
+	}
+
+	breaker := gobreaker.NewCircuitBreaker(shortSettings)
+
+	cbm.mu.Lock()
+	cbm.breakers["toomany_test_db"] = breaker
+	cbm.mu.Unlock()
+
+	// Trip the breaker
+	for i := 0; i < 5; i++ {
+		_, _ = breaker.Execute(func() (any, error) {
+			return nil, errors.New("deliberate failure")
+		})
+	}
+
+	// Wait for half-open
+	time.Sleep(100 * time.Millisecond)
+
+	// First request in half-open should go through (MaxRequests=1)
+	// Use a blocking channel to keep the first request "in flight"
+	started := make(chan struct{})
+	proceed := make(chan struct{})
+	errCh := make(chan error, 1)
+
+	go func() {
+		_, err := cbm.Execute("toomany_test_db", func() (any, error) {
+			close(started)   // signal that we're inside the function
+			<-proceed        // wait for signal to complete
+			return "ok", nil
+		})
+		errCh <- err
+	}()
+
+	// Wait for the first request to start executing
+	<-started
+
+	// Second request should get ErrTooManyRequests (covers lines 118-121)
+	result, err := cbm.Execute("toomany_test_db", func() (any, error) {
+		return "should not run", nil
+	})
+
+	assert.Nil(t, result)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "recovering")
+	assert.Contains(t, err.Error(), "too many requests")
+
+	// Let the first request complete
+	close(proceed)
+	<-errCh
+}
+
+func TestCircuitBreakerManager_HalfOpenRecovery(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Create a custom breaker with very short timeout
+	shortSettings := gobreaker.Settings{
+		Name:        "datasource-recovery_test_db",
+		MaxRequests: 1,
+		Interval:    constant.CircuitBreakerInterval,
+		Timeout:     50 * time.Millisecond,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= 3
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			cbm.logger.Warnf("Circuit Breaker [%s] state changed: %s -> %s", name, from.String(), to.String())
+			switch to {
+			case gobreaker.StateOpen:
+				cbm.logger.Errorf("Circuit Breaker [%s] OPENED", name)
+			case gobreaker.StateHalfOpen:
+				cbm.logger.Infof("Circuit Breaker [%s] HALF-OPEN - testing datasource recovery", name)
+			case gobreaker.StateClosed:
+				cbm.logger.Infof("Circuit Breaker [%s] CLOSED - datasource is healthy", name)
+			}
+		},
+	}
+
+	breaker := gobreaker.NewCircuitBreaker(shortSettings)
+
+	cbm.mu.Lock()
+	cbm.breakers["recovery_test_db"] = breaker
+	cbm.mu.Unlock()
+
+	// Trip the breaker
+	for i := 0; i < 5; i++ {
+		_, _ = breaker.Execute(func() (any, error) {
+			return nil, errors.New("deliberate failure")
+		})
+	}
+
+	assert.Equal(t, constant.CircuitBreakerStateOpen, cbm.GetState("recovery_test_db"))
+
+	// Wait for half-open
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, constant.CircuitBreakerStateHalfOpen, cbm.GetState("recovery_test_db"))
+
+	// Execute a successful request to trigger recovery (half-open -> closed)
+	// This covers the OnStateChange StateHalfOpen and StateClosed callbacks
+	result, err := cbm.Execute("recovery_test_db", func() (any, error) {
+		return "recovered", nil
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "recovered", result)
+
+	// After successful request in half-open, should transition to closed
+	assert.Equal(t, constant.CircuitBreakerStateClosed, cbm.GetState("recovery_test_db"))
+	assert.True(t, cbm.IsHealthy("recovery_test_db"))
+}
+
+func TestCircuitBreakerManager_ShouldAllowRetry_HalfOpenAtMaxCapacity(t *testing.T) {
+	t.Parallel()
+
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	cbm := NewCircuitBreakerManager(logger)
+
+	// Create a custom breaker with MaxRequests higher than CircuitBreakerMaxRequests (3)
+	// so we can complete 3 successful requests without closing the breaker,
+	// which makes counts.Requests >= constant.CircuitBreakerMaxRequests while still half-open.
+	shortSettings := gobreaker.Settings{
+		Name:        "datasource-retry_halfopen_db",
+		MaxRequests: constant.CircuitBreakerMaxRequests + 2, // Higher than the constant so breaker stays half-open
+		Interval:    constant.CircuitBreakerInterval,
+		Timeout:     50 * time.Millisecond,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= 3
+		},
+	}
+
+	breaker := gobreaker.NewCircuitBreaker(shortSettings)
+
+	cbm.mu.Lock()
+	cbm.breakers["retry_halfopen_db"] = breaker
+	cbm.mu.Unlock()
+
+	// Trip the breaker
+	for i := 0; i < 5; i++ {
+		_, _ = breaker.Execute(func() (any, error) {
+			return nil, errors.New("deliberate failure")
+		})
+	}
+
+	// Wait for half-open
+	time.Sleep(100 * time.Millisecond)
+
+	// Send exactly CircuitBreakerMaxRequests (3) successful requests in half-open.
+	// Since MaxRequests=5, the breaker stays in half-open state after 3 successes.
+	for i := uint32(0); i < constant.CircuitBreakerMaxRequests; i++ {
+		_, _ = breaker.Execute(func() (any, error) {
+			return "ok", nil
+		})
+	}
+
+	// Verify breaker is still half-open
+	assert.Equal(t, constant.CircuitBreakerStateHalfOpen, cbm.GetState("retry_halfopen_db"))
+
+	// Now ShouldAllowRetry should return false (half-open + counts.Requests >= CircuitBreakerMaxRequests)
+	// covers lines 201-203
+	result := cbm.ShouldAllowRetry("retry_halfopen_db")
+	assert.False(t, result, "ShouldAllowRetry should be false when half-open at max capacity")
 }

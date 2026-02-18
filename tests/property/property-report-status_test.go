@@ -21,6 +21,7 @@ import (
 // Property 1: Report status deve sempre progredir de Processing → Finished ou Error
 // Nunca deve regredir ou ter estados inválidos
 func TestProperty_ReportStatus_ValidProgression(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -113,6 +114,7 @@ func TestProperty_ReportStatus_ValidProgression(t *testing.T) {
 
 // Property 2: Report IDs devem ser únicos (UUID v7)
 func TestProperty_ReportID_Uniqueness(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
 	cli := h.NewHTTPClient(env.ManagerURL, env.HTTPTimeout)
@@ -180,6 +182,7 @@ func TestProperty_ReportID_Uniqueness(t *testing.T) {
 
 // Property 3: Status final deve ser sempre Finished ou Error (nunca Processing indefinidamente)
 func TestProperty_ReportStatus_EventuallyTerminates(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
 	if testing.Short() {
 		t.Skip("Skipping property test in short mode")
 	}

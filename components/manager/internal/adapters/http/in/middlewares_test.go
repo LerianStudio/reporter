@@ -386,3 +386,181 @@ func TestParseStringPathParam_MaxLength(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
+
+// ---------------------------------------------------------------------------
+// SecurityHeaders tests
+// ---------------------------------------------------------------------------
+
+func TestSecurityHeaders_Middleware(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Use(SecurityHeaders())
+	app.Get("/test", func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"))
+	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"))
+	assert.Equal(t, "0", resp.Header.Get("X-XSS-Protection"))
+	assert.Equal(t, "max-age=31536000; includeSubDomains", resp.Header.Get("Strict-Transport-Security"))
+}
+
+// ---------------------------------------------------------------------------
+// RecoverMiddleware tests
+// ---------------------------------------------------------------------------
+
+func TestRecoverMiddleware(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Use(RecoverMiddleware())
+	app.Get("/panic", func(_ *fiber.Ctx) error {
+		panic("test panic")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// The recover middleware should catch the panic and return 500
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+// ---------------------------------------------------------------------------
+// ParseUUIDPathParam with custom param name tests
+// ---------------------------------------------------------------------------
+
+func TestParseUUIDPathParam_CustomParamName(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "reportId"
+	validUUID := uuid.New()
+	var capturedID uuid.UUID
+
+	app.Get("/reports/:reportId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
+		capturedID = c.Locals(paramName).(uuid.UUID)
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/reports/"+validUUID.String(), nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, validUUID, capturedID)
+}
+
+// ---------------------------------------------------------------------------
+// Edge-case tests for additional coverage
+// ---------------------------------------------------------------------------
+
+func TestParseUUIDPathParam_InvalidUUID_DifferentParamName(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "templateId"
+
+	app.Get("/templates/:templateId", ParseUUIDPathParam(paramName), func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/templates/not-a-uuid", nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var errorResponse map[string]interface{}
+	err = json.Unmarshal(body, &errorResponse)
+	require.NoError(t, err)
+
+	assert.Contains(t, errorResponse, "code")
+}
+
+func TestParseStringPathParam_UnicodeCharacters(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "dataSourceId"
+
+	app.Get("/data-sources/:dataSourceId", ParseStringPathParam(paramName), func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	// Unicode characters should fail the allowlist regex
+	req := httptest.NewRequest(http.MethodGet, "/data-sources/caf\u00e9", nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var errorResponse map[string]interface{}
+	err = json.Unmarshal(body, &errorResponse)
+	require.NoError(t, err)
+
+	assert.Contains(t, errorResponse, "code")
+}
+
+func TestParseStringPathParam_SlashCharacter(t *testing.T) {
+	t.Parallel()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	const paramName = "dataSourceId"
+
+	app.Get("/data-sources/:dataSourceId", ParseStringPathParam(paramName), func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	// Path traversal attempt should fail the regex
+	req := httptest.NewRequest(http.MethodGet, "/data-sources/a%2Fb", nil)
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Fiber may interpret %2F as a path separator and return 404, or it may
+	// pass "a/b" to the handler and our regex rejects it with 400.
+	// Either way, it should NOT be 200 OK.
+	assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+}

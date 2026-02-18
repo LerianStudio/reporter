@@ -17,6 +17,8 @@ import (
 
 // Property 1: UUIDs v7 devem ser monotonicamente crescentes (ordenados por tempo)
 func TestProperty_UUID_MonotonicallyIncreasing(t *testing.T) {
+	t.Parallel()
+
 	property := func(iterations uint8) bool {
 		if iterations == 0 || iterations > 50 {
 			return true
@@ -59,6 +61,8 @@ func TestProperty_UUID_MonotonicallyIncreasing(t *testing.T) {
 
 // Property 2: UUIDs devem ser únicos
 func TestProperty_UUID_Uniqueness(t *testing.T) {
+	t.Parallel()
+
 	property := func(count uint8) bool {
 		if count == 0 || count > 100 {
 			return true
@@ -88,6 +92,8 @@ func TestProperty_UUID_Uniqueness(t *testing.T) {
 
 // Property 3: UUIDs devem ser parseáveis
 func TestProperty_UUID_Parseable(t *testing.T) {
+	t.Parallel()
+
 	property := func(seed uint32) bool {
 		generatedUUID := commons.GenerateUUIDv7()
 		uuidStr := generatedUUID.String()
@@ -110,6 +116,8 @@ func TestProperty_UUID_Parseable(t *testing.T) {
 
 // Property 4: UUID v7 deve ter version bits corretos
 func TestProperty_UUID_VersionBits(t *testing.T) {
+	t.Parallel()
+
 	property := func(seed uint32) bool {
 		generatedUUID := commons.GenerateUUIDv7()
 
@@ -125,6 +133,8 @@ func TestProperty_UUID_VersionBits(t *testing.T) {
 
 // Property 5: UUIDs gerados em sequência devem ter timestamps crescentes
 func TestProperty_UUID_TimestampIncreasing(t *testing.T) {
+	t.Parallel()
+
 	property := func(count uint8) bool {
 		if count == 0 || count > 20 {
 			return true
@@ -162,6 +172,8 @@ func TestProperty_UUID_TimestampIncreasing(t *testing.T) {
 
 // Property 6: UUID string format deve seguir padrão 8-4-4-4-12
 func TestProperty_UUID_StringFormat(t *testing.T) {
+	t.Parallel()
+
 	property := func(seed uint32) bool {
 		id := commons.GenerateUUIDv7()
 		str := id.String()
@@ -187,6 +199,8 @@ func TestProperty_UUID_StringFormat(t *testing.T) {
 
 // Property 7: NIL UUID deve ser diferente de qualquer UUID gerado
 func TestProperty_UUID_NeverNil(t *testing.T) {
+	t.Parallel()
+
 	property := func(seed uint32) bool {
 		id := commons.GenerateUUIDv7()
 		nilUUID := uuid.Nil
@@ -201,6 +215,8 @@ func TestProperty_UUID_NeverNil(t *testing.T) {
 
 // Property 8: Conversão UUID → String → UUID deve ser lossless
 func TestProperty_UUID_StringRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	property := func(seed uint32) bool {
 		original := commons.GenerateUUIDv7()
 		str := original.String()

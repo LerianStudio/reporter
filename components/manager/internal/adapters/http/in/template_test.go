@@ -61,20 +61,20 @@ func createMultipartForm(t *testing.T, filename, content, outputFormat, descript
 
 	// Add template file
 	part, err := writer.CreateFormFile("template", filename)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = part.Write([]byte(content))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Add outputFormat field
 	err = writer.WriteField("outputFormat", outputFormat)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Add description field
 	err = writer.WriteField("description", description)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = writer.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return body, writer.FormDataContentType()
 }
@@ -374,7 +374,7 @@ func TestTemplateHandler_GetAllTemplates_EmptyResult(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/templates", nil)
 	resp, err := app.Test(req)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	body, _ := io.ReadAll(resp.Body)
@@ -482,23 +482,23 @@ func TestTemplateHandler_CreateTemplate_EmptyFile(t *testing.T) {
 	writer := multipart.NewWriter(body)
 
 	part, err := writer.CreateFormFile("template", "template.tpl")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = part.Write([]byte(""))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = writer.WriteField("outputFormat", "html")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = writer.WriteField("description", "Test description")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = writer.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/templates", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := app.Test(req)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -525,18 +525,18 @@ func TestTemplateHandler_CreateTemplate_NoFile(t *testing.T) {
 	writer := multipart.NewWriter(body)
 
 	err := writer.WriteField("outputFormat", "html")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = writer.WriteField("description", "Test description")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = writer.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/templates", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := app.Test(req)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -613,7 +613,7 @@ func TestNewTemplateHandler_NilService(t *testing.T) {
 	handler, err := NewTemplateHandler(nil)
 
 	assert.Nil(t, handler)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "service must not be nil")
 }
 
@@ -625,5 +625,211 @@ func TestNewTemplateHandler_ValidService(t *testing.T) {
 	handler, err := NewTemplateHandler(svc)
 
 	assert.NotNil(t, handler)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+}
+
+func TestTemplateHandler_CreateTemplate_Success(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	templateID := uuid.New()
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	mockTemplateRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(&template.Template{
+			ID:           templateID,
+			OutputFormat: "html",
+			Description:  "Test template",
+			FileName:     templateID.String() + ".tpl",
+			CreatedAt:    time.Now(),
+		}, nil)
+
+	mockSeaweedFS.EXPECT().
+		Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	useCase := &services.UseCase{
+		TemplateRepo:      mockTemplateRepo,
+		TemplateSeaweedFS: mockSeaweedFS,
+	}
+	handler := &TemplateHandler{service: useCase}
+
+	app := setupTemplateTestApp(handler)
+	app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
+
+	body, contentType := createMultipartForm(t, "template.tpl", "<html>{{ content }}</html>", "html", "Test template")
+
+	req := httptest.NewRequest(http.MethodPost, "/templates", body)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+func TestTemplateHandler_CreateTemplate_ServiceError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	mockTemplateRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("database error"))
+
+	useCase := &services.UseCase{
+		TemplateRepo:      mockTemplateRepo,
+		TemplateSeaweedFS: mockSeaweedFS,
+	}
+	handler := &TemplateHandler{service: useCase}
+
+	app := setupTemplateTestApp(handler)
+	app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
+
+	body, contentType := createMultipartForm(t, "template.tpl", "<html>{{ content }}</html>", "html", "Test template")
+
+	req := httptest.NewRequest(http.MethodPost, "/templates", body)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestTemplateHandler_CreateTemplate_FileContentMismatch(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	useCase := &services.UseCase{
+		TemplateRepo:      mockTemplateRepo,
+		TemplateSeaweedFS: mockSeaweedFS,
+	}
+	handler := &TemplateHandler{service: useCase}
+
+	app := setupTemplateTestApp(handler)
+	app.Post("/templates", setupTemplateContextMiddleware(), handler.CreateTemplate)
+
+	// XML content with html output format -- format mismatch
+	body, contentType := createMultipartForm(t, "template.tpl", "<?xml version=\"1.0\"?><root></root>", "html", "Test template")
+
+	req := httptest.NewRequest(http.MethodPost, "/templates", body)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestTemplateHandler_UpdateTemplateByID_ServiceError(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	templateID := uuid.New()
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	// UpdateTemplateByID calls validateOutputFormatAndFile first, then service layer
+	// With outputFormat="xml" and file, it will attempt file validation
+	mockTemplateRepo.EXPECT().
+		FindByID(gomock.Any(), gomock.Any()).
+		Return(&template.Template{
+			FileName:     "test.tpl",
+			OutputFormat: "xml",
+		}, nil)
+
+	mockSeaweedFS.EXPECT().
+		Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	mockTemplateRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(errors.New("database update failed"))
+
+	useCase := &services.UseCase{
+		TemplateRepo:        mockTemplateRepo,
+		TemplateSeaweedFS:   mockSeaweedFS,
+		ExternalDataSources: nil,
+	}
+	handler := &TemplateHandler{service: useCase}
+
+	app := setupTemplateTestApp(handler)
+	app.Patch("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.UpdateTemplateByID)
+
+	body, contentType := createMultipartForm(t, "template.tpl", "<?xml version=\"1.0\"?><root></root>", "xml", "Updated description")
+
+	req := httptest.NewRequest(http.MethodPatch, "/templates/"+templateID.String(), body)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestTemplateHandler_UpdateTemplateByID_NoFile(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	templateID := uuid.New()
+	mockTemplateRepo := template.NewMockRepository(ctrl)
+	mockSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	// Update without file, only description
+	mockTemplateRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	mockTemplateRepo.EXPECT().
+		FindByID(gomock.Any(), gomock.Any()).
+		Return(&template.Template{
+			ID:           templateID,
+			FileName:     "test.tpl",
+			OutputFormat: "xml",
+			Description:  "Updated description only",
+		}, nil)
+
+	useCase := &services.UseCase{
+		TemplateRepo:        mockTemplateRepo,
+		TemplateSeaweedFS:   mockSeaweedFS,
+		ExternalDataSources: nil,
+	}
+	handler := &TemplateHandler{service: useCase}
+
+	app := setupTemplateTestApp(handler)
+	app.Patch("/templates/:id", setupTemplateContextMiddleware(), ParsePathParametersUUID, handler.UpdateTemplateByID)
+
+	// Send form without template file field
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	err := writer.WriteField("description", "Updated description only")
+	require.NoError(t, err)
+	err = writer.Close()
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPatch, "/templates/"+templateID.String(), body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }

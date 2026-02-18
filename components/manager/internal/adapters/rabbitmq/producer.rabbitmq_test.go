@@ -40,8 +40,9 @@ func newTestProducer() *ProducerRabbitMQRepository {
 
 // TestProducerDefault_RetryBehavior groups all tests that modify the package-level
 // sleepFunc variable to prevent data races. These subtests run sequentially.
+// NOTE: Cannot use t.Parallel() because subtests modify the package-level sleepFunc variable.
 func TestProducerDefault_RetryBehavior(t *testing.T) {
-	t.Run("EnsureChannelRetryExhaustion", func(t *testing.T) {
+	t.Run("Error - EnsureChannelRetryExhaustion", func(t *testing.T) {
 		// Override sleepFunc to be a no-op for fast tests
 		originalSleep := sleepFunc
 		sleepFunc = func(_ time.Duration) {}
@@ -62,7 +63,7 @@ func TestProducerDefault_RetryBehavior(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("SleepIsCalledOnRetry", func(t *testing.T) {
+	t.Run("Success - SleepIsCalledOnRetry", func(t *testing.T) {
 		var sleepCallCount atomic.Int32
 
 		originalSleep := sleepFunc
@@ -88,7 +89,7 @@ func TestProducerDefault_RetryBehavior(t *testing.T) {
 			"sleep should be called exactly %d times (once per retry before the final failure)", constant.ProducerMaxRetries)
 	})
 
-	t.Run("SleepReceivesPositiveDuration", func(t *testing.T) {
+	t.Run("Success - SleepReceivesPositiveDuration", func(t *testing.T) {
 		var sleepDurations []time.Duration
 
 		originalSleep := sleepFunc
@@ -115,7 +116,7 @@ func TestProducerDefault_RetryBehavior(t *testing.T) {
 		}
 	})
 
-	t.Run("SleepFuncDefaultIsTimeSleep", func(t *testing.T) {
+	t.Run("Success - SleepFuncDefaultIsTimeSleep", func(t *testing.T) {
 		// Restore to original default
 		sleepFunc = time.Sleep
 		assert.NotNil(t, sleepFunc, "sleepFunc should default to time.Sleep")
