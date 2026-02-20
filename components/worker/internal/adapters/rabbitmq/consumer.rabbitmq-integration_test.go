@@ -61,13 +61,7 @@ func TestMain(m *testing.M) {
 
 	fmt.Fprintf(os.Stderr, "RabbitMQ started at %s\n", rabbitContainer.AmqpURL)
 
-	// Override sleepFunc to no-op for fast tests (eliminates real backoff delays)
-	originalSleep := sleepFunc
-	sleepFunc = func(d time.Duration) {}
-
 	code := m.Run()
-
-	sleepFunc = originalSleep
 
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cleanupCancel()
@@ -113,6 +107,9 @@ func setupConsumer(t *testing.T, handler pkgRabbitmq.QueueHandlerFunc) {
 
 	cr, err := NewConsumerRoutes(conn, 1, logger, telemetry)
 	require.NoError(t, err, "NewConsumerRoutes should connect successfully")
+
+	// Override sleepFunc to no-op for fast tests (eliminates real backoff delays)
+	cr.sleepFunc = func(_ time.Duration) {}
 
 	cr.Register(containers.QueueGenerateReport, handler)
 
@@ -295,7 +292,7 @@ func assertNoDLQMessage(t *testing.T, requestID string, pollDuration time.Durati
 // cycle: handler is invoked exactly MaxMessageRetries+1 times, custom headers survive
 // all retries, retry headers are set correctly, and the body is preserved.
 func TestIntegration_HandleFailedMessage_RetryExhaustion(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container and modifies package-level sleepFunc.
+	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container.
 	purgeTestQueues(t)
 
 	requestID := uuid.New().String()
@@ -348,7 +345,7 @@ func TestIntegration_HandleFailedMessage_RetryExhaustion(t *testing.T) {
 // TestIntegration_HandleFailedMessage_NonRetryableError verifies that a non-retryable
 // error (ValidationError) causes immediate Nack to DLQ without any republishing.
 func TestIntegration_HandleFailedMessage_NonRetryableError(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container and modifies package-level sleepFunc.
+	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container.
 	purgeTestQueues(t)
 
 	requestID := uuid.New().String()
@@ -378,7 +375,7 @@ func TestIntegration_HandleFailedMessage_NonRetryableError(t *testing.T) {
 // TestIntegration_HandleFailedMessage_PreExhaustedRetries verifies that a message
 // arriving with x-retry-count already at MaxMessageRetries is immediately Nack'd to DLQ.
 func TestIntegration_HandleFailedMessage_PreExhaustedRetries(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container and modifies package-level sleepFunc.
+	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container.
 	purgeTestQueues(t)
 
 	requestID := uuid.New().String()
@@ -416,7 +413,7 @@ func TestIntegration_HandleFailedMessage_PreExhaustedRetries(t *testing.T) {
 // TestIntegration_HandleFailedMessage_RetryThenSucceed verifies that when a handler
 // succeeds on a retry attempt, the message is Ack'd and does NOT reach the DLQ.
 func TestIntegration_HandleFailedMessage_RetryThenSucceed(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container and modifies package-level sleepFunc.
+	// NOTE: Cannot use t.Parallel() because this test shares a RabbitMQ container.
 	purgeTestQueues(t)
 
 	requestID := uuid.New().String()

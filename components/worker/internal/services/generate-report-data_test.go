@@ -1919,7 +1919,7 @@ func TestUseCase_QueryMongoCollectionWithFilters_ErrorPaths(t *testing.T) {
 		}
 
 		useCase := &UseCase{
-			CircuitBreakerManager:       mockCB,
+			CircuitBreakerManager:        mockCB,
 			CryptoHashSecretKeyPluginCRM: "", // Empty key triggers transform error
 		}
 

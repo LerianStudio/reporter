@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg"
+
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
 )
@@ -29,12 +31,16 @@ const (
 	healthServerShutdownTimeout = 5 * time.Second
 )
 
+// goNamedFunc is the function signature for launching a named goroutine with panic recovery.
+type goNamedFunc func(logger log.Logger, name string, fn func())
+
 // HealthServer provides HTTP liveness and readiness endpoints for the worker.
 // It runs as a lightweight goroutine alongside the RabbitMQ consumer.
 type HealthServer struct {
 	server             *http.Server
 	rabbitMQConnection *libRabbitMQ.RabbitMQConnection
 	logger             log.Logger
+	goNamedFn          goNamedFunc
 }
 
 // NewHealthServer creates a new HealthServer bound to the given port.
@@ -43,6 +49,7 @@ func NewHealthServer(port string, rabbitMQConnection *libRabbitMQ.RabbitMQConnec
 	hs := &HealthServer{
 		rabbitMQConnection: rabbitMQConnection,
 		logger:             logger,
+		goNamedFn:          pkg.GoNamed,
 	}
 
 	mux := http.NewServeMux()
@@ -61,14 +68,15 @@ func NewHealthServer(port string, rabbitMQConnection *libRabbitMQ.RabbitMQConnec
 }
 
 // Start begins listening for health check requests in a background goroutine.
+// Uses pkg.GoNamed for panic recovery to prevent unrecovered panics from crashing the process.
 func (hs *HealthServer) Start() {
-	go func() {
+	hs.goNamedFn(hs.logger, "health-server", func() {
 		hs.logger.Infof("Health server listening on %s", hs.server.Addr)
 
 		if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			hs.logger.Errorf("Health server error: %v", err)
 		}
-	}()
+	})
 }
 
 // Shutdown gracefully stops the health server.

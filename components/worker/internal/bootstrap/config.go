@@ -120,7 +120,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-
 // validateProductionConfig enforces stricter rules when EnvName is "production".
 // Telemetry and real credentials are required in production.
 func (c *Config) validateProductionConfig(errs []string) []string {

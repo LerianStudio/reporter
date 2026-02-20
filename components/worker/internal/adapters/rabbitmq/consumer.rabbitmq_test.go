@@ -7,6 +7,7 @@ package rabbitmq
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetRetryCount(t *testing.T) {
+func TestConsumerRoutes_GetRetryCount(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -98,7 +99,7 @@ func TestGetRetryCount(t *testing.T) {
 	}
 }
 
-func TestCalculateBackoff(t *testing.T) {
+func TestConsumerRoutes_CalculateBackoff(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -165,7 +166,7 @@ func TestCalculateBackoff_Distribution(t *testing.T) {
 		"expected non-deterministic jitter values over %d iterations", iterations)
 }
 
-func TestIsRetryable(t *testing.T) {
+func TestConsumerRoutes_IsRetryable(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -263,7 +264,7 @@ func (w wrappedError) Unwrap() error {
 	return w.inner
 }
 
-func TestConsumerRetryConstants(t *testing.T) {
+func TestConsumerRoutes_RetryConstants(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, 5, pkgConstant.MaxMessageRetries,
@@ -280,7 +281,7 @@ func TestConsumerRetryConstants(t *testing.T) {
 		"RetryFailureReasonHeader should be 'x-failure-reason'")
 }
 
-func TestRetryBoundaryAndHeaderConsistency(t *testing.T) {
+func TestConsumerRoutes_RetryBoundaryAndHeaderConsistency(t *testing.T) {
 	t.Parallel()
 
 	// We cannot easily test republishWithIncrementedRetry in isolation without
@@ -305,7 +306,7 @@ func TestRetryBoundaryAndHeaderConsistency(t *testing.T) {
 		"after retry count 4, next retry should be 5 (which equals MaxMessageRetries)")
 }
 
-func TestBuildRetryHeaders(t *testing.T) {
+func TestConsumerRoutes_BuildRetryHeaders(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -346,6 +347,14 @@ func TestBuildRetryHeaders(t *testing.T) {
 			wantRetryCount: 2,
 			wantReason:     "temporary failure",
 		},
+		{
+			name:            "truncates long failure reason to RetryFailureReasonMaxLen",
+			existingHeaders: nil,
+			retryCount:      0,
+			lastErr:         errors.New(strings.Repeat("x", pkgConstant.RetryFailureReasonMaxLen+100)),
+			wantRetryCount:  1,
+			wantReason:      strings.Repeat("x", pkgConstant.RetryFailureReasonMaxLen),
+		},
 	}
 
 	for _, tt := range tests {
@@ -361,7 +370,7 @@ func TestBuildRetryHeaders(t *testing.T) {
 	}
 }
 
-func TestBuildRetryHeaders_PreservesExistingHeaders(t *testing.T) {
+func TestConsumerRoutes_BuildRetryHeaders_PreservesExistingHeaders(t *testing.T) {
 	t.Parallel()
 
 	existingHeaders := amqp091.Table{
@@ -382,4 +391,45 @@ func TestBuildRetryHeaders_PreservesExistingHeaders(t *testing.T) {
 	assert.Equal(t, "custom-value", headers["x-custom-header"])
 	assert.Equal(t, "trace-abc-123", headers["x-trace-id"])
 	assert.Equal(t, "org-456", headers["x-org-id"])
+}
+
+func TestConsumerRoutes_SanitizeFailureReason(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		reason string
+		want   string
+	}{
+		{
+			name:   "short reason is unchanged",
+			reason: "connection timeout",
+			want:   "connection timeout",
+		},
+		{
+			name:   "empty reason is unchanged",
+			reason: "",
+			want:   "",
+		},
+		{
+			name:   "exact limit is unchanged",
+			reason: strings.Repeat("a", pkgConstant.RetryFailureReasonMaxLen),
+			want:   strings.Repeat("a", pkgConstant.RetryFailureReasonMaxLen),
+		},
+		{
+			name:   "over limit is truncated",
+			reason: strings.Repeat("b", pkgConstant.RetryFailureReasonMaxLen+50),
+			want:   strings.Repeat("b", pkgConstant.RetryFailureReasonMaxLen),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := sanitizeFailureReason(tt.reason)
+			assert.Equal(t, tt.want, got)
+			assert.LessOrEqual(t, len(got), pkgConstant.RetryFailureReasonMaxLen)
+		})
+	}
 }

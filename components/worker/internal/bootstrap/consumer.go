@@ -14,6 +14,7 @@ import (
 	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -85,7 +86,11 @@ func (mq *MultiQueueConsumer) handlerGenerateReport(ctx context.Context, body []
 
 	err := mq.UseCase.GenerateReport(ctx, body)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Error generating report.", err)
+		if pkgHTTP.IsBusinessError(err) {
+			opentelemetry.HandleSpanBusinessErrorEvent(&span, "Error generating report.", err)
+		} else {
+			opentelemetry.HandleSpanError(&span, "Error generating report.", err)
+		}
 
 		logger.Errorf("Error generating report: %v", err)
 

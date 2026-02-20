@@ -25,6 +25,10 @@ const (
 
 	// RetryFailureReasonHeader is the RabbitMQ message header key for tracking the last failure reason.
 	RetryFailureReasonHeader = "x-failure-reason"
+
+	// RetryFailureReasonMaxLen is the maximum length for the failure reason stored in message headers.
+	// Truncation prevents leaking internal infrastructure details (e.g., connection strings from DB driver errors).
+	RetryFailureReasonMaxLen = 256
 )
 
 // RabbitMQ Producer Retry Configuration (midaz-style reconnection)

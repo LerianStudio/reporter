@@ -33,16 +33,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// sleepFunc is the function used for sleeping during retry backoff.
-// Overridable in tests for deterministic behavior.
-// TODO(review): migrate to a ConsumerRoutes field for test isolation; safe currently as no test overrides it.
-var sleepFunc = time.Sleep
-
 // ConsumerRoutes struct
 type ConsumerRoutes struct {
 	conn       *rabbitmq.RabbitMQConnection
 	routes     map[string]pkgRabbitmq.QueueHandlerFunc
 	numWorkers int
+	sleepFunc  func(time.Duration)
 	log.Logger
 	opentelemetry.Telemetry
 }
@@ -64,6 +60,7 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		conn:       conn,
 		routes:     make(map[string]pkgRabbitmq.QueueHandlerFunc),
 		numWorkers: numWorkers,
+		sleepFunc:  time.Sleep,
 		Logger:     logger,
 		Telemetry:  *telemetry,
 	}
@@ -250,7 +247,7 @@ func (cr *ConsumerRoutes) handleFailedMessage(workerID int, queue string, messag
 	cr.Infof("Worker %d: Retryable error for queue %s (attempt %d/%d), backoff %v before republish: %v",
 		workerID, queue, retryCount+1, pkgConstant.MaxMessageRetries, backoff, err)
 
-	sleepFunc(backoff)
+	cr.sleepFunc(backoff)
 
 	// Build new headers with incremented retry count
 	retryHeaders := buildRetryHeaders(message.Headers, retryCount, err)
@@ -428,18 +425,27 @@ func getRetryCount(msg amqp091.Delivery) int {
 
 // buildRetryHeaders creates a new header table for a retry republish.
 // It copies all original headers, then overwrites the retry count (incremented)
-// and failure reason. This ensures tracing headers (e.g., traceparent) and
-// request IDs survive across retries.
-// TODO(review): consider sanitizing/truncating lastErr.Error() before storing in x-failure-reason
-// to avoid leaking internal infrastructure details (e.g., connection strings from DB driver errors).
+// and failure reason (truncated to RetryFailureReasonMaxLen). This ensures
+// tracing headers (e.g., traceparent) and request IDs survive across retries.
 func buildRetryHeaders(original amqp091.Table, currentRetryCount int, lastErr error) amqp091.Table {
 	headers := make(amqp091.Table, len(original)+2)
 	maps.Copy(headers, original) // safe with nil source (no-op)
 
 	headers[pkgConstant.RetryCountHeader] = currentRetryCount + 1
-	headers[pkgConstant.RetryFailureReasonHeader] = lastErr.Error()
+	headers[pkgConstant.RetryFailureReasonHeader] = sanitizeFailureReason(lastErr.Error())
 
 	return headers
+}
+
+// sanitizeFailureReason truncates the error message to RetryFailureReasonMaxLen characters
+// to prevent leaking internal infrastructure details (e.g., connection strings from DB driver errors)
+// into message headers.
+func sanitizeFailureReason(reason string) string {
+	if len(reason) <= pkgConstant.RetryFailureReasonMaxLen {
+		return reason
+	}
+
+	return reason[:pkgConstant.RetryFailureReasonMaxLen]
 }
 
 // calculateBackoff computes the delay before the next retry attempt using exponential backoff with jitter.

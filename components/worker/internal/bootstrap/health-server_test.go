@@ -234,3 +234,40 @@ func TestHealthServer_StartAndShutdown(t *testing.T) {
 	// Shutdown should not panic even if Start was not called
 	hs.Shutdown()
 }
+
+func TestHealthServer_Start_UsesPanicRecovery(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		expectedName string
+	}{
+		{
+			name:         "Success - Start uses GoNamed with health-server label",
+			expectedName: "health-server",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var capturedName string
+
+			hs := NewHealthServer("0", nil, &log.NoneLogger{})
+
+			// Override the goroutine launcher to capture the name argument
+			hs.goNamedFn = func(_ log.Logger, name string, fn func()) {
+				capturedName = name
+				// Execute fn in the current goroutine to avoid port binding in tests
+				go fn()
+			}
+
+			hs.Start()
+			hs.Shutdown()
+
+			assert.Equal(t, tt.expectedName, capturedName,
+				"Start() must use goNamedFn with the name %q for panic recovery", tt.expectedName)
+		})
+	}
+}
