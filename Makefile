@@ -7,6 +7,9 @@ SERVICE_NAME := reporter
 BIN_DIR := ./.bin
 ARTIFACTS_DIR := ./artifacts
 
+# Determine version: use git describe if available, else git short SHA
+VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo "dev")
+
 # Docker command detection (supports both docker compose and docker-compose)
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}' 2>/dev/null || echo "0")
 DOCKER_MIN_VERSION := 20.10.13
@@ -345,10 +348,10 @@ sec-trivy:
 	$(call print_title,"Running Trivy container vulnerability scan")
 	$(call check_command,trivy,"Install Trivy from https://aquasecurity.github.io/trivy/latest/getting-started/installation/")
 	@$(MAKE) build-docker
-	@echo "Scanning manager image..."
-	@trivy image reporter-manager:latest --severity HIGH,CRITICAL --exit-code 1 || true
-	@echo "Scanning worker image..."
-	@trivy image reporter-worker:latest --severity HIGH,CRITICAL --exit-code 1 || true
+	@echo "Scanning manager image ($(VERSION))..."
+	@trivy image reporter-manager:$(VERSION) --severity HIGH,CRITICAL --exit-code 1
+	@echo "Scanning worker image ($(VERSION))..."
+	@trivy image reporter-worker:$(VERSION) --severity HIGH,CRITICAL --exit-code 1
 	@echo "[ok] Trivy container scan completed ✔️"
 
 .PHONY: sec
@@ -398,8 +401,8 @@ build-docker:
 	$(call print_title,"Building Docker images")
 	@for dir in $(BACKEND_COMPONENTS); do \
 		component_name=$$(basename $$dir); \
-		echo "Building Docker image for $$component_name..."; \
-		(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml build $(c)) || exit 1; \
+		echo "Building Docker image for $$component_name (version: $(VERSION))..."; \
+		(cd $$dir && IMAGE_TAG=$(VERSION) $(DOCKER_CMD) -f docker-compose.yml build $(c)) || exit 1; \
 	done
 	@echo "[ok] Docker images built successfully ✔️"
 

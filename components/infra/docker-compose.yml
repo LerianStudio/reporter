@@ -186,5 +186,3 @@ networks:
   reporter-infra-network:
     name: reporter-infra-network
     driver: bridge
-  infra-network:
-    external: true
