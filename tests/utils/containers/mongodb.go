@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 )
@@ -48,11 +46,6 @@ func StartMongoDB(ctx context.Context, networkName, image string) (*MongoDBConta
 				NetworkAliases: map[string][]string{
 					networkName: {"mongodb", "reporter-mongodb"},
 				},
-				HostConfigModifier: func(hc *container.HostConfig) {
-					hc.PortBindings = FixedPortBindings(map[nat.Port]string{
-						"27017/tcp": HostPortMongo,
-					})
-				},
 			},
 		}),
 	)
@@ -60,26 +53,33 @@ func StartMongoDB(ctx context.Context, networkName, image string) (*MongoDBConta
 		return nil, fmt.Errorf("start mongodb container: %w", err)
 	}
 
-	// Get host (port is fixed, no need for MappedPort)
+	// Get host and dynamically mapped port
 	host, err := container.Host(ctx)
 	if err != nil {
 		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get mongodb host: %w", err)
 	}
 
+	mappedPort, err := container.MappedPort(ctx, "27017/tcp")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		return nil, fmt.Errorf("get mongodb mapped port: %w", err)
+	}
+
+	port := mappedPort.Port()
+
 	connStr := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
-		MongoUser, MongoPassword, host, HostPortMongo, MongoDatabase)
+		MongoUser, MongoPassword, host, port, MongoDatabase)
 
 	return &MongoDBContainer{
 		MongoDBContainer: container,
 		ConnectionString: connStr,
 		Host:             host,
-		Port:             HostPortMongo,
+		Port:             port,
 	}, nil
 }
 
-// Restart stops and starts the MongoDB container.
-// Port mappings are fixed so they remain stable across restarts.
+// Restart stops and starts the MongoDB container, refreshing connection info.
 func (m *MongoDBContainer) Restart(ctx context.Context, delay time.Duration) error {
 	if err := m.Stop(ctx, nil); err != nil {
 		return fmt.Errorf("stop mongodb: %w", err)
@@ -92,6 +92,22 @@ func (m *MongoDBContainer) Restart(ctx context.Context, delay time.Duration) err
 	if err := m.Start(ctx); err != nil {
 		return fmt.Errorf("start mongodb: %w", err)
 	}
+
+	// Host and mapped port may change after restart
+	host, err := m.MongoDBContainer.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh mongodb host: %w", err)
+	}
+
+	mappedPort, err := m.MongoDBContainer.MappedPort(ctx, "27017/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh mongodb mapped port: %w", err)
+	}
+
+	m.Host = host
+	m.Port = mappedPort.Port()
+	m.ConnectionString = fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
+		MongoUser, MongoPassword, m.Host, m.Port, MongoDatabase)
 
 	return nil
 }

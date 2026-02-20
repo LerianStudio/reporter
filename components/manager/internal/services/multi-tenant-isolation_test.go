@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/net/http"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

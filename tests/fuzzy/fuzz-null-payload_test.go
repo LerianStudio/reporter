@@ -13,8 +13,10 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestFuzzy_NullPayloadValidation tests that null payloads are properly rejected with 400
-func TestFuzzy_NullPayloadValidation(t *testing.T) {
+// TestPredefined_NullPayloadValidation tests that null payloads are properly rejected with 400.
+// NOTE: This is a deterministic robustness test with predefined inputs, not a native Go fuzz test.
+// Native fuzz tests use *testing.F with f.Add() seed corpus and f.Fuzz() for random input generation.
+func TestPredefined_NullPayloadValidation(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()
@@ -89,8 +91,9 @@ func TestFuzzy_NullPayloadValidation(t *testing.T) {
 	}
 }
 
-// TestFuzzy_ValidPayloadsStillWork ensures our validation doesn't break valid requests
-func TestFuzzy_ValidPayloadsStillWork(t *testing.T) {
+// TestPredefined_ValidPayloadsStillWork ensures our validation doesn't break valid requests.
+// NOTE: This is a deterministic robustness test with predefined inputs, not a native Go fuzz test.
+func TestPredefined_ValidPayloadsStillWork(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()

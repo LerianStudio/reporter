@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
@@ -58,12 +56,6 @@ func StartRabbitMQ(ctx context.Context, networkName, image string) (*RabbitMQCon
 				NetworkAliases: map[string][]string{
 					networkName: {"rabbitmq", "reporter-rabbitmq"},
 				},
-				HostConfigModifier: func(hc *container.HostConfig) {
-					hc.PortBindings = FixedPortBindings(map[nat.Port]string{
-						"5672/tcp":  HostPortRabbitAMQP,
-						"15672/tcp": HostPortRabbitMgmt,
-					})
-				},
 			},
 		}),
 	)
@@ -71,21 +63,36 @@ func StartRabbitMQ(ctx context.Context, networkName, image string) (*RabbitMQCon
 		return nil, fmt.Errorf("start rabbitmq container: %w", err)
 	}
 
-	// Get host (ports are fixed, no need for MappedPort)
+	// Get host and dynamically mapped ports
 	host, err := container.Host(ctx)
 	if err != nil {
 		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get rabbitmq host: %w", err)
 	}
 
-	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", RabbitUser, RabbitPassword, host, HostPortRabbitAMQP)
+	amqpMapped, err := container.MappedPort(ctx, "5672/tcp")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		return nil, fmt.Errorf("get rabbitmq amqp mapped port: %w", err)
+	}
+
+	mgmtMapped, err := container.MappedPort(ctx, "15672/tcp")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		return nil, fmt.Errorf("get rabbitmq mgmt mapped port: %w", err)
+	}
+
+	amqpPort := amqpMapped.Port()
+	mgmtPort := mgmtMapped.Port()
+
+	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", RabbitUser, RabbitPassword, host, amqpPort)
 
 	rc := &RabbitMQContainer{
 		RabbitMQContainer: container,
 		AmqpURL:           amqpURL,
 		Host:              host,
-		AmqpPort:          HostPortRabbitAMQP,
-		MgmtPort:          HostPortRabbitMgmt,
+		AmqpPort:          amqpPort,
+		MgmtPort:          mgmtPort,
 	}
 
 	// Setup topology (exchanges, queues, bindings)
@@ -186,7 +193,6 @@ func (r *RabbitMQContainer) setupTopology(amqpURL string) error {
 }
 
 // Restart stops and starts the RabbitMQ container, refreshing connection info.
-// Port mappings are fixed so they remain stable across restarts.
 func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) error {
 	if err := r.Stop(ctx, nil); err != nil {
 		return fmt.Errorf("stop rabbitmq: %w", err)
@@ -200,15 +206,26 @@ func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) er
 		return fmt.Errorf("start rabbitmq: %w", err)
 	}
 
-	// Host may change after restart (e.g. Docker Desktop vs native)
+	// Host and mapped ports may change after restart
 	host, err := r.RabbitMQContainer.Host(ctx)
 	if err != nil {
 		return fmt.Errorf("refresh rabbitmq host: %w", err)
 	}
 
+	amqpMapped, err := r.RabbitMQContainer.MappedPort(ctx, "5672/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq amqp mapped port: %w", err)
+	}
+
+	mgmtMapped, err := r.RabbitMQContainer.MappedPort(ctx, "15672/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh rabbitmq mgmt mapped port: %w", err)
+	}
+
 	r.Host = host
-	r.AmqpURL = fmt.Sprintf("amqp://%s:%s@%s:%s/", RabbitUser, RabbitPassword, host, HostPortRabbitAMQP)
-	// Ports are fixed - no need to re-read mapped ports
+	r.AmqpPort = amqpMapped.Port()
+	r.MgmtPort = mgmtMapped.Port()
+	r.AmqpURL = fmt.Sprintf("amqp://%s:%s@%s:%s/", RabbitUser, RabbitPassword, host, r.AmqpPort)
 
 	// Re-setup topology after restart.
 	// RabbitMQ may need a few seconds to accept AMQP connections after container start.

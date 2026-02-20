@@ -16,6 +16,7 @@ import (
 	"time"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
+	chaosutil "github.com/LerianStudio/reporter/tests/utils/chaos"
 	"github.com/LerianStudio/reporter/tests/utils/containers"
 	"github.com/LerianStudio/reporter/tests/utils/services"
 )
@@ -31,6 +32,10 @@ var (
 	RabbitContainer  *containers.RabbitMQContainer
 	SeaweedContainer *containers.SeaweedFSContainer
 	ValkeyContainer  *containers.ValkeyContainer
+
+	// Toxiproxy infrastructure for fault injection without container restart.
+	// Initialized in TestMain after all infrastructure containers are running.
+	toxiInfra *chaosutil.ToxiproxyInfrastructure
 )
 
 func TestMain(m *testing.M) {
@@ -61,6 +66,15 @@ func TestMain(m *testing.M) {
 	ValkeyContainer = testInfra.Valkey
 
 	fmt.Fprintf(os.Stderr, "Infrastructure started successfully\n")
+
+	// Start Toxiproxy for fault injection (non-fatal: chaos tests can fall back to container restart)
+	fmt.Fprintf(os.Stderr, "Starting Toxiproxy for fault injection...\n")
+	if err := testInfra.StartToxiproxy(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to start Toxiproxy: %v (falling back to container restart)\n", err)
+	} else {
+		toxiInfra = testInfra.Toxiproxy
+		fmt.Fprintf(os.Stderr, "Toxiproxy started with %d proxies\n", len(toxiInfra.Proxies))
+	}
 
 	// Create service configuration from containers
 	cfg := services.NewConfigFromInfrastructure(testInfra)
@@ -101,7 +115,10 @@ func TestMain(m *testing.M) {
 	fmt.Fprintf(os.Stderr, "Running chaos tests...\n")
 	code := m.Run()
 
-	// Cleanup
+	// NOTE: Cleanup is performed in TestMain (not t.Cleanup()) because all tests
+	// in this package share a single infrastructure instance. Per-test cleanup
+	// would terminate containers prematurely. This is the correct pattern for
+	// shared testcontainer infrastructure.
 	fmt.Fprintf(os.Stderr, "Cleaning up...\n")
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cleanupCancel()

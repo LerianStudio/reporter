@@ -168,6 +168,13 @@ func buildManagerEnv(cfg *ServiceConfig) []string {
 	// Auth (disabled for tests)
 	env = append(env, "PLUGIN_AUTH_ENABLED=false")
 
+	// Rate limiting (defaults for tests)
+	env = append(env, "RATE_LIMIT_ENABLED=true")
+	env = append(env, "RATE_LIMIT_GLOBAL=100")
+	env = append(env, "RATE_LIMIT_EXPORT=10")
+	env = append(env, "RATE_LIMIT_DISPATCH=50")
+	env = append(env, "RATE_LIMIT_WINDOW_SECONDS=60")
+
 	// Telemetry (disabled for tests)
 	env = append(env, "ENABLE_TELEMETRY=false")
 

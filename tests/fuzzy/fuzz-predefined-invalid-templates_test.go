@@ -17,8 +17,10 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
-// TestFuzzy_PredefinedInvalidTemplates tests pre-defined templates that should fail gracefully
-func TestFuzzy_PredefinedInvalidTemplates(t *testing.T) {
+// TestPredefined_InvalidTemplates tests pre-defined templates that should fail gracefully.
+// NOTE: This is a deterministic robustness test with predefined template files, not a native Go fuzz test.
+// Native fuzz tests use *testing.F with f.Add() seed corpus and f.Fuzz() for random input generation.
+func TestPredefined_InvalidTemplates(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (HTTP API).
 	env := h.LoadEnvironment()
 	ctx := context.Background()

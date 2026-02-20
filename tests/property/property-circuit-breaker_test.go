@@ -105,7 +105,7 @@ func TestProperty_CircuitBreaker_OpenRejectsAll(t *testing.T) {
 		return err == gobreaker.ErrOpenState || err != nil
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 10}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: open circuit breaker not rejecting: %v", err)
 	}
 }

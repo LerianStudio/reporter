@@ -77,7 +77,7 @@ func TestProperty_Report_ExistsAfterCreation(t *testing.T) {
 		return getResp.ID == createResp.ID
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 5}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: report doesn't exist after creation: %v", err)
 	}
 }
@@ -133,7 +133,7 @@ func TestProperty_Report_RequiredMetadata(t *testing.T) {
 			resp.TemplateID == templateID
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 5}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: missing required metadata: %v", err)
 	}
 }
@@ -213,7 +213,7 @@ func TestProperty_Report_AppearsInList(t *testing.T) {
 		return false
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 3}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: report not in list: %v", err)
 	}
 }
@@ -273,7 +273,7 @@ func TestProperty_Report_OutputFormatMatches(t *testing.T) {
 		return templateResp.OutputFormat == expectedFormat
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 10}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: output format mismatch: %v", err)
 	}
 }
@@ -339,7 +339,7 @@ func TestProperty_Report_TimestampOrdering(t *testing.T) {
 		return !updatedAt.Before(createdAt)
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 5}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: timestamp ordering: %v", err)
 	}
 }

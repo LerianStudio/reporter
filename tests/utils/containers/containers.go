@@ -10,34 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LerianStudio/reporter/tests/utils/chaos"
+
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 )
-
-// Fixed host ports matching production (components/infra/.env.example).
-// Using fixed ports ensures containers survive restart without changing
-// the address the Manager process connects to.
-const (
-	HostPortRabbitAMQP = "3005"
-	HostPortRabbitMgmt = "3006"
-	HostPortMongo      = "5708"
-	HostPortValkey     = "5705"
-	HostPortSeaweedS3  = "8333"
-	HostPortSeaweedAdm = "9333"
-)
-
-// FixedPortBindings creates a nat.PortMap from container-port -> host-port pairs.
-func FixedPortBindings(mappings map[nat.Port]string) nat.PortMap {
-	pm := nat.PortMap{}
-	for containerPort, hostPort := range mappings {
-		pm[containerPort] = []nat.PortBinding{
-			{HostIP: "0.0.0.0", HostPort: hostPort},
-		}
-	}
-
-	return pm
-}
 
 // TestInfrastructure holds all test containers and provides connection information.
 type TestInfrastructure struct {
@@ -45,9 +23,11 @@ type TestInfrastructure struct {
 	RabbitMQ  *RabbitMQContainer
 	SeaweedFS *SeaweedFSContainer
 	Valkey    *ValkeyContainer
+	Toxiproxy *chaos.ToxiproxyInfrastructure
 
-	network *testcontainers.DockerNetwork
-	mu      sync.Mutex
+	network     *testcontainers.DockerNetwork
+	networkName string
+	mu          sync.Mutex
 }
 
 // InfrastructureConfig holds configuration for container startup.
@@ -91,7 +71,8 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 	networkName := net.Name
 
 	infra := &TestInfrastructure{
-		network: net,
+		network:     net,
+		networkName: networkName,
 	}
 
 	// Start containers in parallel
@@ -190,6 +171,13 @@ func StartInfrastructureWithConfig(ctx context.Context, cfg *InfrastructureConfi
 func (i *TestInfrastructure) Stop(ctx context.Context) error {
 	var errs []error
 
+	// Terminate Toxiproxy first (it depends on other containers)
+	if i.Toxiproxy != nil {
+		if err := i.Toxiproxy.Terminate(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("toxiproxy terminate: %w", err))
+		}
+	}
+
 	if i.MongoDB != nil {
 		if err := i.MongoDB.Terminate(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("mongodb terminate: %w", err))
@@ -225,6 +213,105 @@ func (i *TestInfrastructure) Stop(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// StartToxiproxy starts a Toxiproxy container on the test network and creates
+// proxies for all running external dependencies. Services should connect through
+// the proxy endpoints instead of directly to containers when chaos testing.
+func (i *TestInfrastructure) StartToxiproxy(ctx context.Context) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	toxi, err := chaos.StartToxiproxy(ctx, i.networkName)
+	if err != nil {
+		return fmt.Errorf("start toxiproxy: %w", err)
+	}
+
+	i.Toxiproxy = toxi
+
+	// Create proxy for RabbitMQ AMQP
+	if i.RabbitMQ != nil {
+		_, err := toxi.CreateProxy(chaos.ProxyConfig{
+			Name:     chaos.ProxyNameRabbitMQ,
+			Listen:   "0.0.0.0:25672",
+			Upstream: "rabbitmq:5672",
+		})
+		if err != nil {
+			return fmt.Errorf("create rabbitmq proxy: %w", err)
+		}
+	}
+
+	// Create proxy for MongoDB
+	if i.MongoDB != nil {
+		_, err := toxi.CreateProxy(chaos.ProxyConfig{
+			Name:     chaos.ProxyNameMongoDB,
+			Listen:   "0.0.0.0:37017",
+			Upstream: "mongodb:27017",
+		})
+		if err != nil {
+			return fmt.Errorf("create mongodb proxy: %w", err)
+		}
+	}
+
+	// Create proxy for Valkey/Redis
+	if i.Valkey != nil {
+		_, err := toxi.CreateProxy(chaos.ProxyConfig{
+			Name:     chaos.ProxyNameValkey,
+			Listen:   "0.0.0.0:26379",
+			Upstream: "valkey:6379",
+		})
+		if err != nil {
+			return fmt.Errorf("create valkey proxy: %w", err)
+		}
+	}
+
+	// Create proxy for SeaweedFS S3
+	if i.SeaweedFS != nil {
+		_, err := toxi.CreateProxy(chaos.ProxyConfig{
+			Name:     chaos.ProxyNameSeaweedFS,
+			Listen:   "0.0.0.0:28333",
+			Upstream: "seaweedfs:8333",
+		})
+		if err != nil {
+			return fmt.Errorf("create seaweedfs proxy: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// GetToxiproxyEndpoints returns host-accessible endpoints that route through Toxiproxy
+// for each dependency. Use these endpoints instead of the direct container endpoints
+// when you want Toxiproxy to control the traffic.
+func (i *TestInfrastructure) GetToxiproxyEndpoints(ctx context.Context) (map[string]string, error) {
+	if i.Toxiproxy == nil {
+		return nil, fmt.Errorf("toxiproxy not started")
+	}
+
+	endpoints := make(map[string]string)
+
+	// For each proxy, get the mapped port from the Toxiproxy container
+	portMappings := map[string]string{
+		chaos.ProxyNameRabbitMQ:  "25672",
+		chaos.ProxyNameMongoDB:   "37017",
+		chaos.ProxyNameValkey:    "26379",
+		chaos.ProxyNameSeaweedFS: "28333",
+	}
+
+	for name, containerPort := range portMappings {
+		if _, ok := i.Toxiproxy.Proxies[name]; !ok {
+			continue
+		}
+
+		mapped, err := i.Toxiproxy.Container.MappedPort(ctx, nat.Port(containerPort+"/tcp"))
+		if err != nil {
+			return nil, fmt.Errorf("get mapped port for %s: %w", name, err)
+		}
+
+		endpoints[name] = fmt.Sprintf("%s:%s", i.Toxiproxy.Host, mapped.Port())
+	}
+
+	return endpoints, nil
 }
 
 // ConnectionConfig returns all connection strings for services.

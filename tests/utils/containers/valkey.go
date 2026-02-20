@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/redis"
 )
@@ -43,11 +41,6 @@ func StartValkey(ctx context.Context, networkName, image string) (*ValkeyContain
 					networkName: {"valkey", "redis", "reporter-valkey"},
 				},
 				Cmd: []string{"redis-server", "--requirepass", ValkeyPassword},
-				HostConfigModifier: func(hc *container.HostConfig) {
-					hc.PortBindings = FixedPortBindings(map[nat.Port]string{
-						"6379/tcp": HostPortValkey,
-					})
-				},
 			},
 		}),
 	)
@@ -55,26 +48,32 @@ func StartValkey(ctx context.Context, networkName, image string) (*ValkeyContain
 		return nil, fmt.Errorf("start valkey container: %w", err)
 	}
 
-	// Get host (port is fixed, no need for MappedPort)
+	// Get host and dynamically mapped port
 	host, err := container.Host(ctx)
 	if err != nil {
 		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("get valkey host: %w", err)
 	}
 
-	address := fmt.Sprintf("redis://%s:%s", host, HostPortValkey)
+	mappedPort, err := container.MappedPort(ctx, "6379/tcp")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		return nil, fmt.Errorf("get valkey mapped port: %w", err)
+	}
+
+	port := mappedPort.Port()
+	address := fmt.Sprintf("redis://%s:%s", host, port)
 
 	return &ValkeyContainer{
 		RedisContainer: container,
 		Address:        address,
 		Host:           host,
-		Port:           HostPortValkey,
+		Port:           port,
 		Password:       ValkeyPassword,
 	}, nil
 }
 
 // Restart stops and starts the Valkey container, refreshing connection info.
-// Port mappings are fixed so they remain stable across restarts.
 func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) error {
 	if err := v.Stop(ctx, nil); err != nil {
 		return fmt.Errorf("stop valkey: %w", err)
@@ -88,15 +87,20 @@ func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) erro
 		return fmt.Errorf("start valkey: %w", err)
 	}
 
-	// Host may change after restart
+	// Host and mapped port may change after restart
 	host, err := v.RedisContainer.Host(ctx)
 	if err != nil {
 		return fmt.Errorf("refresh valkey host: %w", err)
 	}
 
+	mappedPort, err := v.RedisContainer.MappedPort(ctx, "6379/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh valkey mapped port: %w", err)
+	}
+
 	v.Host = host
-	v.Address = fmt.Sprintf("redis://%s:%s", host, HostPortValkey)
-	// Ports are fixed - no need to re-read mapped ports
+	v.Port = mappedPort.Port()
+	v.Address = fmt.Sprintf("redis://%s:%s", host, v.Port)
 
 	return nil
 }

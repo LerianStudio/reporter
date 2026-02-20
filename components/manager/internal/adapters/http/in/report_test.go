@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	reportSeaweed "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"

@@ -12,11 +12,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/reporter/pkg/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/redis"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"

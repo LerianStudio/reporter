@@ -134,6 +134,13 @@ func (c *ServiceConfig) ApplyManagerEnv() {
 	os.Setenv("PLUGIN_AUTH_ENABLED", "false")
 	os.Setenv("PLUGIN_AUTH_ADDRESS", "")
 
+	// Rate limiting (use defaults for tests)
+	os.Setenv("RATE_LIMIT_ENABLED", "true")
+	os.Setenv("RATE_LIMIT_GLOBAL", "100")
+	os.Setenv("RATE_LIMIT_EXPORT", "10")
+	os.Setenv("RATE_LIMIT_DISPATCH", "50")
+	os.Setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+
 	// Telemetry (disabled for tests)
 	os.Setenv("ENABLE_TELEMETRY", "false")
 }
@@ -196,6 +203,8 @@ func ClearEnv() {
 		"OBJECT_STORAGE_DISABLE_SSL",
 		"REDIS_HOST", "REDIS_PASSWORD", "REDIS_DB",
 		"PLUGIN_AUTH_ENABLED", "PLUGIN_AUTH_ADDRESS",
+		"RATE_LIMIT_ENABLED", "RATE_LIMIT_GLOBAL", "RATE_LIMIT_EXPORT",
+		"RATE_LIMIT_DISPATCH", "RATE_LIMIT_WINDOW_SECONDS",
 		"PDF_POOL_WORKERS", "PDF_TIMEOUT_SECONDS",
 		"ENABLE_TELEMETRY",
 	}

@@ -361,7 +361,7 @@ func TestProperty_Filter_EmptyProducesEmptyJSON(t *testing.T) {
 		return reflect.DeepEqual(empty, decoded)
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 10}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: empty filter did not produce empty JSON: %v", err)
 	}
 }

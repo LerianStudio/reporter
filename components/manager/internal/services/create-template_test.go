@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/pkg/redis"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/postgres"
+	"github.com/LerianStudio/reporter/pkg/redis"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
@@ -29,13 +29,12 @@ import (
 )
 
 func TestUseCase_CreateTemplate(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting
-	// mutates global state (registered datasource IDs). Running this test in parallel
-	// with other tests that call Reset/Register would cause data races on the shared map.
-	//
-	// Register datasource IDs once at the top level before subtests start.
-	// Subtests only READ this global state, so they can safely run in parallel.
-	pkg.ResetRegisteredDataSourceIDsForTesting()
+	t.Parallel()
+
+	// Register datasource IDs additively (no Reset) AFTER t.Parallel(). This ensures
+	// registration occurs after all non-parallel tests (which may call Reset) have
+	// completed, preventing races. RegisterDataSourceIDsForTesting is lock-protected
+	// and additive; subtests only READ the global state via IsValidDataSourceID.
 	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization", "midaz_onboarding"})
 
 	mongoSchemas := []mongodb.CollectionSchema{
@@ -419,15 +418,16 @@ func TestUseCase_CreateTemplate(t *testing.T) {
 }
 
 func TestUseCase_CreateTemplateWithPluginCRM(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting
-	// mutates global state (registered datasource IDs). Running this test in parallel
-	// with other tests that call Reset/Register would cause data races on the shared map.
+	t.Parallel()
+
+	// Register datasource IDs additively (no Reset) AFTER t.Parallel(). This ensures
+	// registration occurs after all non-parallel tests (which may call Reset) have
+	// completed, preventing races. RegisterDataSourceIDsForTesting is lock-protected
+	// and additive; subtests only READ the global state via IsValidDataSourceID.
+	pkg.RegisterDataSourceIDsForTesting([]string{"plugin_crm"})
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	// Register datasource IDs including plugin_crm
-	pkg.ResetRegisteredDataSourceIDsForTesting()
-	pkg.RegisterDataSourceIDsForTesting([]string{"plugin_crm"})
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
@@ -531,12 +531,12 @@ func hashTemplateIdempotencyInput(t *testing.T, templateFile, outFormat, descrip
 }
 
 func TestUseCase_CreateTemplate_Idempotency(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting and
-	// RegisterDataSourceIDsForTesting mutate package-level global state.
+	t.Parallel()
 
-	// Register datasource IDs once at the top level before subtests start.
-	// Subtests only READ this global state, so they can safely run in parallel.
-	pkg.ResetRegisteredDataSourceIDsForTesting()
+	// Register datasource IDs additively (no Reset) AFTER t.Parallel(). This ensures
+	// registration occurs after all non-parallel tests (which may call Reset) have
+	// completed, preventing races. RegisterDataSourceIDsForTesting is lock-protected
+	// and additive; subtests only READ the global state via IsValidDataSourceID.
 	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization", "midaz_onboarding"})
 
 	mongoSchemas := []mongodb.CollectionSchema{

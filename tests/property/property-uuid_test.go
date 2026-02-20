@@ -54,7 +54,7 @@ func TestProperty_UUID_MonotonicallyIncreasing(t *testing.T) {
 		return true
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 10}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: UUIDs not monotonically increasing: %v", err)
 	}
 }
@@ -165,7 +165,7 @@ func TestProperty_UUID_TimestampIncreasing(t *testing.T) {
 		return true
 	}
 
-	if err := quick.Check(property, &quick.Config{MaxCount: 5}); err != nil {
+	if err := quick.Check(property, &quick.Config{MaxCount: 20}); err != nil {
 		t.Errorf("Property violated: timestamps not increasing: %v", err)
 	}
 }

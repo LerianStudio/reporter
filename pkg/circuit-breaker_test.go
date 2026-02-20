@@ -785,8 +785,8 @@ func TestCircuitBreakerManager_Execute_ErrTooManyRequests(t *testing.T) {
 
 	go func() {
 		_, err := cbm.Execute("toomany_test_db", func() (any, error) {
-			close(started)   // signal that we're inside the function
-			<-proceed        // wait for signal to complete
+			close(started) // signal that we're inside the function
+			<-proceed      // wait for signal to complete
 			return "ok", nil
 		})
 		errCh <- err

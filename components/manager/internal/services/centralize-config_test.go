@@ -8,8 +8,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

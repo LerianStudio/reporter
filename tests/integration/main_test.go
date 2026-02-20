@@ -80,7 +80,10 @@ func TestMain(m *testing.M) {
 	fmt.Fprintf(os.Stderr, "Running integration tests...\n")
 	code := m.Run()
 
-	// Cleanup
+	// NOTE: Cleanup is performed in TestMain (not t.Cleanup()) because all tests
+	// in this package share a single infrastructure instance. Per-test cleanup
+	// would terminate containers prematurely. This is the correct pattern for
+	// shared testcontainer infrastructure.
 	fmt.Fprintf(os.Stderr, "Cleaning up...\n")
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cleanupCancel()

@@ -13,8 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -49,12 +47,6 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 		NetworkAliases: map[string][]string{
 			networkName: {"seaweedfs", "reporter-seaweedfs"},
 		},
-		HostConfigModifier: func(hc *container.HostConfig) {
-			hc.PortBindings = FixedPortBindings(map[nat.Port]string{
-				"8333/tcp": HostPortSeaweedS3,
-				"9333/tcp": HostPortSeaweedAdm,
-			})
-		},
 		WaitingFor: wait.ForAll(
 			wait.ForHTTP("/cluster/status").WithPort("9333/tcp"),
 			wait.ForListeningPort("8333/tcp"),
@@ -69,21 +61,36 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 		return nil, fmt.Errorf("start seaweedfs container: %w", err)
 	}
 
-	// Get host (ports are fixed, no need for MappedPort)
+	// Get host and dynamically mapped ports
 	host, err := ctr.Host(ctx)
 	if err != nil {
 		_ = ctr.Terminate(ctx)
 		return nil, fmt.Errorf("get seaweedfs host: %w", err)
 	}
 
-	s3Endpoint := fmt.Sprintf("http://%s:%s", host, HostPortSeaweedS3)
+	s3Mapped, err := ctr.MappedPort(ctx, "8333/tcp")
+	if err != nil {
+		_ = ctr.Terminate(ctx)
+		return nil, fmt.Errorf("get seaweedfs s3 mapped port: %w", err)
+	}
+
+	admMapped, err := ctr.MappedPort(ctx, "9333/tcp")
+	if err != nil {
+		_ = ctr.Terminate(ctx)
+		return nil, fmt.Errorf("get seaweedfs admin mapped port: %w", err)
+	}
+
+	s3Port := s3Mapped.Port()
+	admPort := admMapped.Port()
+
+	s3Endpoint := fmt.Sprintf("http://%s:%s", host, s3Port)
 
 	sc := &SeaweedFSContainer{
 		Container:  ctr,
 		S3Endpoint: s3Endpoint,
 		Host:       host,
-		S3Port:     HostPortSeaweedS3,
-		AdminPort:  HostPortSeaweedAdm,
+		S3Port:     s3Port,
+		AdminPort:  admPort,
 	}
 
 	// Create bucket
@@ -143,8 +150,7 @@ func (s *SeaweedFSContainer) getS3Client(ctx context.Context) (*s3.Client, error
 	return client, nil
 }
 
-// Restart stops and starts the SeaweedFS container.
-// Port mappings are fixed so they remain stable across restarts.
+// Restart stops and starts the SeaweedFS container, refreshing connection info.
 func (s *SeaweedFSContainer) Restart(ctx context.Context, delay time.Duration) error {
 	timeout := 10 * time.Second
 	if err := s.Stop(ctx, &timeout); err != nil {
@@ -158,6 +164,27 @@ func (s *SeaweedFSContainer) Restart(ctx context.Context, delay time.Duration) e
 	if err := s.Start(ctx); err != nil {
 		return fmt.Errorf("start seaweedfs: %w", err)
 	}
+
+	// Host and mapped ports may change after restart
+	host, err := s.Container.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("refresh seaweedfs host: %w", err)
+	}
+
+	s3Mapped, err := s.Container.MappedPort(ctx, "8333/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh seaweedfs s3 mapped port: %w", err)
+	}
+
+	admMapped, err := s.Container.MappedPort(ctx, "9333/tcp")
+	if err != nil {
+		return fmt.Errorf("refresh seaweedfs admin mapped port: %w", err)
+	}
+
+	s.Host = host
+	s.S3Port = s3Mapped.Port()
+	s.AdminPort = admMapped.Port()
+	s.S3Endpoint = fmt.Sprintf("http://%s:%s", host, s.S3Port)
 
 	// Re-create bucket after restart
 	if err := s.createBucket(ctx); err != nil {
