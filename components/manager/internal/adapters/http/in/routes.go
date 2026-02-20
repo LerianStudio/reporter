@@ -21,7 +21,6 @@ import (
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
 	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
@@ -42,13 +41,21 @@ type ReadinessDeps struct {
 }
 
 // NewRoutes creates a new fiber router with the specified handlers and middleware.
-func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, deps *ReadinessDeps) *fiber.App {
-	f := fiber.New(fiber.Config{
+func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, deps *ReadinessDeps, corsConfig CORSConfig, rateLimitConfig RateLimitConfig, trustedProxies []string) *fiber.App {
+	fiberCfg := fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			return commonsHttp.HandleFiberError(ctx, err)
 		},
-	})
+	}
+
+	if len(trustedProxies) > 0 {
+		fiberCfg.EnableTrustedProxyCheck = true
+		fiberCfg.TrustedProxies = trustedProxies
+		fiberCfg.ProxyHeader = fiber.HeaderXForwardedFor
+	}
+
+	f := fiber.New(fiberCfg)
 	tlMid := commonsHttp.NewTelemetryMiddleware(tl)
 
 	f.Use(tlMid.WithTelemetry(tl))
@@ -61,7 +68,8 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 		}),
 	))
 	f.Use(SecurityHeaders())
-	f.Use(cors.New())
+	f.Use(CORSMiddleware(corsConfig))
+	f.Use(RateLimiterMiddleware(rateLimitConfig))
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
 
 	// Plugin templates routes

@@ -30,6 +30,10 @@ func validManagerConfig() *Config {
 		RabbitMQGenerateReportKey:   "reporter.generate-report.key",
 		RedisHost:                   "localhost:6379",
 		ObjectStorageEndpoint:       "http://localhost:8333",
+		RateLimitEnabled:            true,
+		RateLimitGlobal:             100,
+		RateLimitExport:             10,
+		RateLimitDispatch:           50,
 	}
 }
 

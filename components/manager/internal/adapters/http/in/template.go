@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-
 // TemplateHandler handles HTTP requests for template operations.
 type TemplateHandler struct {
 	service *services.UseCase

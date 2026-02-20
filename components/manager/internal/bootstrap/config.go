@@ -92,6 +92,18 @@ type Config struct {
 	// Auth envs
 	AuthAddress string `env:"PLUGIN_AUTH_ADDRESS"`
 	AuthEnabled bool   `env:"PLUGIN_AUTH_ENABLED"`
+	// CORS configuration envs
+	CORSAllowedOrigins string `env:"CORS_ALLOWED_ORIGINS"`
+	CORSAllowedMethods string `env:"CORS_ALLOWED_METHODS"`
+	CORSAllowedHeaders string `env:"CORS_ALLOWED_HEADERS"`
+	// Rate limiting configuration envs
+	RateLimitEnabled  bool `env:"RATE_LIMIT_ENABLED" default:"true"`
+	RateLimitGlobal   int  `env:"RATE_LIMIT_GLOBAL" default:"100"`
+	RateLimitExport   int  `env:"RATE_LIMIT_EXPORT" default:"10"`
+	RateLimitDispatch int  `env:"RATE_LIMIT_DISPATCH" default:"50"`
+	RateLimitWindow   int  `env:"RATE_LIMIT_WINDOW_SECONDS" default:"60"`
+	// Trusted proxies configuration
+	TrustedProxies string `env:"TRUSTED_PROXIES"`
 }
 
 // Validate checks that all required configuration fields are present
@@ -102,6 +114,7 @@ func (c *Config) Validate() error {
 
 	errs = c.validateRequiredFields(errs)
 	errs = c.validateMongoPoolBounds(errs)
+	errs = c.validateRateLimitBounds(errs)
 	errs = c.validateProductionConfig(errs)
 
 	if len(errs) > 0 {
@@ -167,6 +180,28 @@ func (c *Config) validateMongoPoolBounds(errs []string) []string {
 	return errs
 }
 
+// validateRateLimitBounds checks that rate limit values are within allowed ranges.
+// Zero or negative values would disable rate limiting, and excessively large values
+// indicate misconfiguration. Both conditions are rejected.
+func (c *Config) validateRateLimitBounds(errs []string) []string {
+	limits := []struct {
+		value int
+		name  string
+		max   int
+	}{
+		{c.RateLimitGlobal, "RATE_LIMIT_GLOBAL", constant.RateLimitMaxGlobal},
+		{c.RateLimitExport, "RATE_LIMIT_EXPORT", constant.RateLimitMaxExport},
+		{c.RateLimitDispatch, "RATE_LIMIT_DISPATCH", constant.RateLimitMaxDispatch},
+	}
+
+	for _, l := range limits {
+		if l.value <= 0 || l.value > l.max {
+			errs = append(errs, fmt.Sprintf("%s must be between 1 and %d", l.name, l.max))
+		}
+	}
+
+	return errs
+}
 
 // validateProductionConfig enforces stricter rules when EnvName is "production".
 // Telemetry, authentication, and real credentials are required in production.
@@ -183,6 +218,10 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 		errs = append(errs, "PLUGIN_AUTH_ENABLED must be true in production")
 	}
 
+	if !c.RateLimitEnabled {
+		errs = append(errs, "RATE_LIMIT_ENABLED must be true in production")
+	}
+
 	secrets := []struct {
 		value string
 		name  string
@@ -196,6 +235,35 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 	for _, s := range secrets {
 		if s.value == constant.DefaultPasswordPlaceholder {
 			errs = append(errs, s.name+" must not use the default placeholder in production")
+		}
+	}
+
+	errs = c.validateProductionCORS(errs)
+
+	return errs
+}
+
+// validateProductionCORS enforces that CORS origins are explicitly configured
+// in production. Wildcard (*) origins and empty origins are forbidden.
+func (c *Config) validateProductionCORS(errs []string) []string {
+	if c.CORSAllowedOrigins == "" {
+		errs = append(errs, "CORS_ALLOWED_ORIGINS must not be empty in production")
+		return errs
+	}
+
+	if strings.Contains(c.CORSAllowedOrigins, "*") {
+		errs = append(errs, "CORS_ALLOWED_ORIGINS must not contain wildcard (*) in production")
+	}
+
+	origins := strings.Split(c.CORSAllowedOrigins, ",")
+	for _, origin := range origins {
+		origin = strings.TrimSpace(origin)
+		if origin == "" || origin == "*" {
+			continue
+		}
+
+		if strings.HasPrefix(origin, "http://") {
+			errs = append(errs, "CORS_ALLOWED_ORIGINS must use HTTPS in production (found: "+origin+")")
 		}
 	}
 
@@ -457,7 +525,42 @@ func InitServers() (_ *Service, err error) {
 		StorageClient:      storageClient,
 	}
 
-	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps)
+	corsConfig := httpIn.CORSConfig{
+		AllowedOrigins: cfg.CORSAllowedOrigins,
+		AllowedMethods: cfg.CORSAllowedMethods,
+		AllowedHeaders: cfg.CORSAllowedHeaders,
+	}
+
+	window := constant.RateLimitDefaultWindow
+	if cfg.RateLimitWindow > 0 {
+		window = time.Duration(cfg.RateLimitWindow) * time.Second
+	}
+
+	var rateLimitStorage httpIn.RateLimitStorage
+	if cfg.RateLimitEnabled {
+		rateLimitStorage = httpIn.NewRedisStorage(redisConnection, logger)
+	}
+
+	rateLimitConfig := httpIn.RateLimitConfig{
+		Enabled:     cfg.RateLimitEnabled,
+		GlobalMax:   cfg.RateLimitGlobal,
+		ExportMax:   cfg.RateLimitExport,
+		DispatchMax: cfg.RateLimitDispatch,
+		Window:      window,
+		Storage:     rateLimitStorage,
+	}
+
+	var trustedProxies []string
+	if cfg.TrustedProxies != "" {
+		for _, p := range strings.Split(cfg.TrustedProxies, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				trustedProxies = append(trustedProxies, p)
+			}
+		}
+	}
+
+	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps, corsConfig, rateLimitConfig, trustedProxies)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	// Build consolidated shutdown cleanup from the same cleanup stack used for
