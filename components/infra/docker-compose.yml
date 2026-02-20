@@ -8,7 +8,7 @@ services:
       - .env
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet" ]
+      test: [ "CMD-SHELL", "mongosh --port ${MONGO_PORT} --eval 'db.adminCommand({ping:1})' --quiet" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,9 +71,9 @@ services:
           cpus: '0.25'
 
   reporter-seaweedfs:
-    image: chrislusf/seaweedfs:3.97
+    image: chrislusf/seaweedfs:4.05
     container_name: reporter-seaweedfs
-    command: server -s3 -dir=/data
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
     env_file:
       - .env
     ports:
@@ -81,6 +81,7 @@ services:
       - "9333:9333" # Admin/Master API (optional)
     volumes:
       - reporter-seaweedfs-data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status" ]
       interval: 10s
@@ -142,7 +143,7 @@ services:
     image: valkey/valkey:8.0-alpine
     restart: always
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "redis-cli -p ${REDIS_PORT} -a ${REDIS_PASSWORD} ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -105,7 +105,6 @@ func (wp *WorkerPool) getChromeOptions() []chromedp.ExecAllocatorOption {
 		chromedp.Flag("max-old-space-size", cn.PDFChromeMaxOldSpaceSize),
 		chromedp.Flag("js-flags", "--max-old-space-size="+cn.PDFChromeMaxOldSpaceSize),
 		chromedp.Flag("disable-software-rasterizer", true),
-		chromedp.Flag("single-process", true),
 		chromedp.Flag("disable-namespace-sandbox", true),
 
 		chromedp.Flag("force-fieldtrials", "OmniboxBundledExperimentV1/Disabled"),
