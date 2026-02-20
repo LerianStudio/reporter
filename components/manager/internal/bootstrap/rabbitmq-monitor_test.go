@@ -141,7 +141,7 @@ func TestRabbitMQMonitor_CheckAndReconnect_NilAMQPConnection(t *testing.T) {
 	monitor.checkAndReconnect()
 }
 
-func TestConnectionMonitorIntervalConstant(t *testing.T) {
+func TestRabbitMQMonitor_ConnectionMonitorIntervalConstant(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, 10*time.Second, constant.ConnectionMonitorInterval)
@@ -264,6 +264,40 @@ func TestRabbitMQMonitor_Lifecycle(t *testing.T) {
 		case <-time.After(2 * time.Second):
 			t.Fatal("monitor.Stop() timed out when stopped before any ticks")
 		}
+	})
+
+	t.Run("Success - StartUsesPanicRecovery", func(t *testing.T) {
+		logger := zap.InitializeLogger()
+
+		conn := &libRabbitmq.RabbitMQConnection{
+			Connected: false,
+			Logger:    logger,
+		}
+
+		// Install a tickerFactory that panics, simulating an unexpected failure
+		// inside monitorLoop. With pkg.GoNamed(), the panic is recovered and the
+		// process survives. With a bare "go" statement, this would crash the
+		// test process.
+		originalFactory := tickerFactory
+		tickerFactory = func() (<-chan time.Time, func()) {
+			panic("simulated panic inside monitor goroutine")
+		}
+
+		defer func() { tickerFactory = originalFactory }()
+
+		monitor := NewRabbitMQMonitor(conn, logger)
+		monitor.Start()
+
+		// Wait for the goroutine to execute and (hopefully) recover the panic.
+		// The done channel will be closed by monitorLoop's defer even on panic.
+		select {
+		case <-monitor.done:
+			// Goroutine finished -- panic was recovered by pkg.GoNamed wrapper
+		case <-time.After(2 * time.Second):
+			t.Fatal("monitor goroutine did not finish -- panic recovery may be missing")
+		}
+
+		// If we reach here the test process survived, proving panic recovery works.
 	})
 
 	t.Run("Success - StopIsIdempotentWithDone", func(t *testing.T) {

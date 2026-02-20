@@ -7,6 +7,7 @@ package bootstrap
 import (
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
@@ -49,7 +50,7 @@ func NewRabbitMQMonitor(conn *libRabbitmq.RabbitMQConnection, logger log.Logger)
 // If the connection is dead, it calls EnsureChannel to trigger reconnection,
 // which updates conn.Connected and makes /ready recover.
 func (m *RabbitMQMonitor) Start() {
-	go m.monitorLoop()
+	pkg.GoNamed(m.logger, "rabbitmq-monitor", func() { m.monitorLoop() })
 }
 
 // Stop signals the monitor to shut down and waits for it to finish.
