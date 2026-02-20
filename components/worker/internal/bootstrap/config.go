@@ -107,10 +107,6 @@ func (c *Config) Validate() error {
 		errs = append(errs, "MONGO_NAME is required")
 	}
 
-	if c.ObjectStorageEndpoint == "" {
-		errs = append(errs, "OBJECT_STORAGE_ENDPOINT is required")
-	}
-
 	errs = c.validateProductionConfig(errs)
 
 	if len(errs) > 0 {

@@ -142,7 +142,6 @@ func (c *Config) validateRequiredFields(errs []string) []string {
 		{c.RabbitMQExchange, "RABBITMQ_EXCHANGE"},
 		{c.RabbitMQGenerateReportKey, "RABBITMQ_GENERATE_REPORT_KEY"},
 		{c.RedisHost, "REDIS_HOST"},
-		{c.ObjectStorageEndpoint, "OBJECT_STORAGE_ENDPOINT"},
 	}
 
 	for _, r := range required {
