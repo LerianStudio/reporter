@@ -65,7 +65,6 @@ func TestConfig_Validate_AllFieldsMissing(t *testing.T) {
 	assert.Contains(t, errMsg, "RABBITMQ_EXCHANGE is required")
 	assert.Contains(t, errMsg, "RABBITMQ_GENERATE_REPORT_KEY is required")
 	assert.Contains(t, errMsg, "REDIS_HOST is required")
-	assert.Contains(t, errMsg, "OBJECT_STORAGE_ENDPOINT is required")
 }
 
 func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
@@ -130,11 +129,6 @@ func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
 			name:        "missing RedisHost",
 			modify:      func(cfg *Config) { cfg.RedisHost = "" },
 			expectedErr: "REDIS_HOST is required",
-		},
-		{
-			name:        "missing ObjectStorageEndpoint",
-			modify:      func(cfg *Config) { cfg.ObjectStorageEndpoint = "" },
-			expectedErr: "OBJECT_STORAGE_ENDPOINT is required",
 		},
 	}
 

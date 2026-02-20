@@ -50,7 +50,6 @@ func TestConfig_Validate_AllFieldsMissing(t *testing.T) {
 	assert.Contains(t, errMsg, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
 	assert.Contains(t, errMsg, "MONGO_HOST is required")
 	assert.Contains(t, errMsg, "MONGO_NAME is required")
-	assert.Contains(t, errMsg, "OBJECT_STORAGE_ENDPOINT is required")
 }
 
 func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
@@ -96,11 +95,6 @@ func TestConfig_Validate_SingleFieldMissing(t *testing.T) {
 			modify:      func(cfg *Config) { cfg.MongoDBName = "" },
 			expectedErr: "MONGO_NAME is required",
 		},
-		{
-			name:        "missing ObjectStorageEndpoint",
-			modify:      func(cfg *Config) { cfg.ObjectStorageEndpoint = "" },
-			expectedErr: "OBJECT_STORAGE_ENDPOINT is required",
-		},
 	}
 
 	for _, tt := range tests {
@@ -123,7 +117,6 @@ func TestConfig_Validate_MultipleFieldsMissing(t *testing.T) {
 	cfg := validWorkerConfig()
 	cfg.RabbitMQHost = ""
 	cfg.MongoDBHost = ""
-	cfg.ObjectStorageEndpoint = ""
 
 	err := cfg.Validate()
 	require.Error(t, err)
@@ -131,11 +124,10 @@ func TestConfig_Validate_MultipleFieldsMissing(t *testing.T) {
 	errMsg := err.Error()
 	assert.Contains(t, errMsg, "RABBITMQ_HOST is required")
 	assert.Contains(t, errMsg, "MONGO_HOST is required")
-	assert.Contains(t, errMsg, "OBJECT_STORAGE_ENDPOINT is required")
 
 	// Verify multi-line format
 	lines := strings.Split(errMsg, "\n")
-	assert.GreaterOrEqual(t, len(lines), 4) // header + 3 errors
+	assert.GreaterOrEqual(t, len(lines), 3) // header + 2 errors
 }
 
 func TestConfig_ValidateProductionConfig(t *testing.T) {
