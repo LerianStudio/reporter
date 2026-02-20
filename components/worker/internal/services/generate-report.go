@@ -70,7 +70,7 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return nil
 	}
 
-	templateBytes, err := uc.loadTemplate(ctx, tracer, message, &span, logger)
+	templateBytes, err := uc.loadTemplate(ctx, message, &span)
 	if err != nil {
 		return err
 	}
@@ -81,17 +81,17 @@ func (uc *UseCase) GenerateReport(ctx context.Context, body []byte) error {
 		return uc.handleErrorWithUpdate(ctx, message.ReportID, &span, "Error querying external data", err, logger)
 	}
 
-	renderedOutput, err := uc.renderTemplate(ctx, tracer, templateBytes, result, message, &span, logger)
+	renderedOutput, err := uc.renderTemplate(ctx, templateBytes, result, message, &span)
 	if err != nil {
 		return err
 	}
 
-	finalOutput, err := uc.convertToPDFIfNeeded(ctx, tracer, message, renderedOutput, &span, logger)
+	finalOutput, err := uc.convertToPDFIfNeeded(ctx, message, renderedOutput, &span)
 	if err != nil {
 		return err
 	}
 
-	if err := uc.saveReport(ctx, tracer, message, finalOutput, logger); err != nil {
+	if err := uc.saveReport(ctx, message, finalOutput); err != nil {
 		return uc.handleErrorWithUpdate(ctx, message.ReportID, &span, "Error saving report", err, logger)
 	}
 
@@ -167,6 +167,7 @@ func (uc *UseCase) handleErrorWithUpdate(ctx context.Context, reportID uuid.UUID
 // updateReportWithErrors updates the status of a report to "Error" with metadata containing the provided error message.
 func (uc *UseCase) updateReportWithErrors(ctx context.Context, reportId uuid.UUID, errorMessage string) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.update_report_with_errors")
 	defer span.End()
 

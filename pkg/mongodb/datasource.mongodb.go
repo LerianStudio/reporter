@@ -55,6 +55,8 @@ type ExternalDataSource struct {
 	Database   string
 }
 
+const unknownDataType = "unknown"
+
 // Compile-time interface satisfaction check.
 var _ Repository = (*ExternalDataSource)(nil)
 
@@ -327,7 +329,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		for fieldName := range allFields {
 			dataType := fieldTypes[fieldName]
 			if dataType == "" {
-				dataType = "unknown"
+				dataType = unknownDataType
 			}
 
 			collSchema.Fields = append(collSchema.Fields, FieldInformation{
@@ -420,7 +422,7 @@ func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Conte
 		for fieldName := range allFields {
 			dataType := fieldTypes[fieldName]
 			if dataType == "" {
-				dataType = "unknown"
+				dataType = unknownDataType
 			}
 
 			collSchema.Fields = append(collSchema.Fields, FieldInformation{
@@ -648,7 +650,7 @@ func (ds *ExternalDataSource) inferDataType(value any) string {
 	case primitive.MinKey, primitive.MaxKey:
 		return "minKey/maxKey"
 	default:
-		return "unknown"
+		return unknownDataType
 	}
 }
 

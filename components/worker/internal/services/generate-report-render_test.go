@@ -51,7 +51,7 @@ func TestUseCase_LoadTemplate(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockTemplateRepo := template.NewMockRepository(ctrl)
-			logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+			_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 			_, span := tracer.Start(context.Background(), "test")
 
 			templateID := uuid.New()
@@ -78,7 +78,7 @@ func TestUseCase_LoadTemplate(t *testing.T) {
 				ReportID:   reportID,
 			}
 
-			result, err := useCase.loadTemplate(context.Background(), tracer, message, &span, logger)
+			result, err := useCase.loadTemplate(context.Background(), message, &span)
 			if tt.expectError {
 				require.Error(t, err)
 			} else {
@@ -98,7 +98,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 		_, span := tracer.Start(context.Background(), "test")
 
 		useCase := &UseCase{}
@@ -117,7 +117,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 			ReportID:   uuid.New(),
 		}
 
-		result, err := useCase.renderTemplate(context.Background(), tracer, templateBytes, data, message, &span, logger)
+		result, err := useCase.renderTemplate(context.Background(), templateBytes, data, message, &span)
 		require.NoError(t, err)
 		assert.Equal(t, "Hello World", result)
 	})
@@ -129,7 +129,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockReportDataRepo := reportData.NewMockRepository(ctrl)
-		logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 		_, span := tracer.Start(context.Background(), "test")
 
 		reportID := uuid.New()
@@ -152,7 +152,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 			ReportID:   reportID,
 		}
 
-		_, err := useCase.renderTemplate(context.Background(), tracer, templateBytes, data, message, &span, logger)
+		_, err := useCase.renderTemplate(context.Background(), templateBytes, data, message, &span)
 		require.Error(t, err)
 	})
 
@@ -163,7 +163,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockReportDataRepo := reportData.NewMockRepository(ctrl)
-		logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+		_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 		_, span := tracer.Start(context.Background(), "test")
 
 		reportID := uuid.New()
@@ -186,7 +186,7 @@ func TestUseCase_RenderTemplate(t *testing.T) {
 			ReportID:   reportID,
 		}
 
-		_, err := useCase.renderTemplate(context.Background(), tracer, templateBytes, data, message, &span, logger)
+		_, err := useCase.renderTemplate(context.Background(), templateBytes, data, message, &span)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database unavailable")
 	})
@@ -200,7 +200,7 @@ func TestUseCase_LoadTemplate_UpdateReportAlsoFails(t *testing.T) {
 
 	mockTemplateRepo := template.NewMockRepository(ctrl)
 	mockReportDataRepo := reportData.NewMockRepository(ctrl)
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 	_, span := tracer.Start(context.Background(), "test")
 
 	templateID := uuid.New()
@@ -225,7 +225,7 @@ func TestUseCase_LoadTemplate_UpdateReportAlsoFails(t *testing.T) {
 		ReportID:   reportID,
 	}
 
-	_, err := useCase.loadTemplate(context.Background(), tracer, message, &span, logger)
+	_, err := useCase.loadTemplate(context.Background(), message, &span)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "db connection lost")
 }
@@ -236,7 +236,7 @@ func TestUseCase_LoadTemplate_UpdateReportAlsoFails(t *testing.T) {
 func TestUseCase_ConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 	t.Parallel()
 
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	_, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background()) //nolint:dogsled // only tracer needed
 	_, span := tracer.Start(context.Background(), "test")
 
 	useCase := &UseCase{}
@@ -248,7 +248,7 @@ func TestUseCase_ConvertToPDFIfNeeded_NonPDFFormat(t *testing.T) {
 
 	htmlContent := "<html><body>Test</body></html>"
 
-	result, err := useCase.convertToPDFIfNeeded(context.Background(), tracer, message, htmlContent, &span, logger)
+	result, err := useCase.convertToPDFIfNeeded(context.Background(), message, htmlContent, &span)
 	require.NoError(t, err)
 	assert.Equal(t, htmlContent, result, "expected unchanged content for non-PDF format")
 }

@@ -83,7 +83,8 @@ help:
 	@echo ""
 	@echo ""
 	@echo "Code Quality Commands:"
-	@echo "  make lint                        - Run linting (includes format and imports)"
+	@echo "  make lint                        - Run golangci-lint"
+	@echo "  make lint-fix                    - Run golangci-lint with auto-fix"
 	@echo "  make format                      - Format code with gofumpt"
 	@echo "  make imports                     - Organize imports with goimports"
 	@echo "  make tidy                        - Clean dependencies in root directory"
@@ -271,16 +272,14 @@ check-tests:
 .PHONY: lint
 lint: format imports
 	$(call print_title,"Running linters")
-	@if find . -name "*.go" -type f | grep -q .; then \
-		if ! command -v golangci-lint >/dev/null 2>&1; then \
-			echo "Installing golangci-lint..."; \
-			go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-		fi; \
-		golangci-lint run --fix ./... --verbose; \
-		echo "[ok] Linting completed successfully ✔️"; \
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found, installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
 	else \
-		echo "No Go files found, skipping linting"; \
+		echo "golangci-lint already installed ✔️"; \
 	fi
+	@golangci-lint run --fix ./... --verbose
+	@echo "[ok] Linting completed successfully"
 
 .PHONY: format
 format:
@@ -315,51 +314,42 @@ tidy:
 
 .PHONY: sec-gosec
 sec-gosec:
-	$(call print_title,"Running gosec security scanner")
 	@if ! command -v gosec >/dev/null 2>&1; then \
 		echo "Installing gosec..."; \
 		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
 	fi
 	@if find ./components ./pkg -name "*.go" -type f | grep -q .; then \
 		echo "Running gosec on components/ and pkg/ folders..."; \
-		gosec -quiet ./components/... ./pkg/...; \
-		echo "[ok] gosec completed ✔️"; \
+		if [ "$(SARIF)" = "1" ]; then \
+			echo "Generating SARIF output: gosec-report.sarif"; \
+			gosec -fmt sarif -out gosec-report.sarif ./components/... ./pkg/...; \
+			echo "[ok] SARIF report generated: gosec-report.sarif"; \
+		else \
+			gosec ./components/... ./pkg/...; \
+		fi; \
 	else \
 		echo "No Go files found, skipping gosec"; \
 	fi
 
 .PHONY: sec-govulncheck
 sec-govulncheck:
-	$(call print_title,"Running govulncheck vulnerability scanner")
 	@if ! command -v govulncheck >/dev/null 2>&1; then \
 		echo "Installing govulncheck..."; \
 		go install golang.org/x/vuln/cmd/govulncheck@latest; \
 	fi
-	@if find . -name "*.go" -type f | grep -q .; then \
-		echo "Running govulncheck..."; \
-		govulncheck ./...; \
-		echo "[ok] govulncheck completed ✔️"; \
+	@if find ./components ./pkg -name "*.go" -type f | grep -q .; then \
+		echo "Running govulncheck on components/ and pkg/ folders..."; \
+		govulncheck ./components/... ./pkg/...; \
 	else \
 		echo "No Go files found, skipping govulncheck"; \
 	fi
 
-.PHONY: sec-trivy
-sec-trivy:
-	$(call print_title,"Running Trivy container vulnerability scan")
-	$(call check_command,trivy,"Install Trivy from https://aquasecurity.github.io/trivy/latest/getting-started/installation/")
-	@$(MAKE) build-docker
-	@echo "Scanning manager image ($(VERSION))..."
-	@trivy image reporter-manager:$(VERSION) --severity HIGH,CRITICAL --exit-code 1
-	@echo "Scanning worker image ($(VERSION))..."
-	@trivy image reporter-worker:$(VERSION) --severity HIGH,CRITICAL --exit-code 1
-	@echo "[ok] Trivy container scan completed ✔️"
-
 .PHONY: sec
 sec:
-	$(call print_title,"Running security checks")
-	@$(MAKE) sec-gosec
+	$(call print_title,Running security checks)
+	@$(MAKE) sec-gosec SARIF=$(SARIF)
 	@$(MAKE) sec-govulncheck
-	@echo "[ok] All security checks completed ✔️"
+	@echo "[ok] Security checks completed"
 
 #-------------------------------------------------------
 # Clean Commands
@@ -618,7 +608,7 @@ dev-setup:
 	@echo "Installing development tools..."
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
 	fi
 	@if ! command -v swag >/dev/null 2>&1; then \
 		echo "Installing swag..."; \

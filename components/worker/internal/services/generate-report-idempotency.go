@@ -19,6 +19,7 @@ import (
 // shouldSkipProcessing checks if report should be skipped due to idempotency.
 func (uc *UseCase) shouldSkipProcessing(ctx context.Context, reportID uuid.UUID, logger log.Logger) bool {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.should_skip_processing")
 	defer span.End()
 
@@ -46,6 +47,7 @@ func (uc *UseCase) shouldSkipProcessing(ctx context.Context, reportID uuid.UUID,
 // checkReportStatus checks the current status of a report to implement idempotency.
 func (uc *UseCase) checkReportStatus(ctx context.Context, reportID uuid.UUID, logger log.Logger) (string, error) {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.check_report_status")
 	defer span.End()
 

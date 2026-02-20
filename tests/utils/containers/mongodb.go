@@ -99,7 +99,7 @@ func (m *MongoDBContainer) Restart(ctx context.Context, delay time.Duration) err
 		return fmt.Errorf("refresh mongodb host: %w", err)
 	}
 
-	mappedPort, err := m.MongoDBContainer.MappedPort(ctx, "27017/tcp")
+	mappedPort, err := m.MappedPort(ctx, "27017/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh mongodb mapped port: %w", err)
 	}

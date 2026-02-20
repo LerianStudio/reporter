@@ -20,6 +20,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // CreateTemplate creates a new template with specified parameters, stores it in the repository,
@@ -41,26 +42,13 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 
 	// Idempotency check: acquire lock via Redis SetNX before proceeding
 	if uc.RedisRepo != nil {
-		idempotencyKey, keyErr := uc.buildTemplateIdempotencyKey(ctx, templateFile, outFormat, description)
-		if keyErr != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to compute template idempotency key", keyErr)
-
-			return nil, keyErr
+		cachedResult, err := uc.checkTemplateIdempotency(ctx, templateFile, outFormat, description, &span)
+		if err != nil {
+			return nil, err
 		}
 
-		span.SetAttributes(attribute.String("app.idempotency.key", idempotencyKey))
-
-		logger.Infof("Checking idempotency for key: %s", idempotencyKey)
-
-		acquired, setNXErr := uc.RedisRepo.SetNX(ctx, idempotencyKey, "processing", constant.IdempotencyTTL)
-		if setNXErr != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to acquire template idempotency lock", setNXErr)
-
-			return nil, setNXErr
-		}
-
-		if !acquired {
-			return uc.handleDuplicateTemplateRequest(ctx, idempotencyKey)
+		if cachedResult != nil {
+			return cachedResult, nil
 		}
 	}
 
@@ -92,8 +80,8 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	// Get MidazOrganizationID from plugin_crm datasource if template uses it
 	var midazOrgID string
 
-	if _, hasPluginCRM := mappedFields["plugin_crm"]; hasPluginCRM {
-		if ds, exists := uc.ExternalDataSources.Get("plugin_crm"); exists {
+	if _, hasPluginCRM := mappedFields[pluginCRMDataSourceID]; hasPluginCRM {
+		if ds, exists := uc.ExternalDataSources.Get(pluginCRMDataSourceID); exists {
 			midazOrgID = ds.MidazOrganizationID
 		}
 	}
@@ -160,6 +148,36 @@ func (uc *UseCase) CreateTemplate(ctx context.Context, templateFile, outFormat, 
 	}
 
 	return resultTemplateModel, nil
+}
+
+// checkTemplateIdempotency acquires an idempotency lock via Redis SetNX.
+// Returns a cached template if this is a duplicate request, or nil to proceed with creation.
+func (uc *UseCase) checkTemplateIdempotency(ctx context.Context, templateFile, outFormat, description string, span *trace.Span) (*template.Template, error) {
+	logger, _, _, _ := commons.NewTrackingFromContext(ctx) //nolint:dogsled // only logger needed from tracking context
+
+	idempotencyKey, keyErr := uc.buildTemplateIdempotencyKey(ctx, templateFile, outFormat, description)
+	if keyErr != nil {
+		libOpentelemetry.HandleSpanError(span, "Failed to compute template idempotency key", keyErr)
+
+		return nil, keyErr
+	}
+
+	(*span).SetAttributes(attribute.String("app.idempotency.key", idempotencyKey))
+
+	logger.Infof("Checking idempotency for key: %s", idempotencyKey)
+
+	acquired, setNXErr := uc.RedisRepo.SetNX(ctx, idempotencyKey, "processing", constant.IdempotencyTTL)
+	if setNXErr != nil {
+		libOpentelemetry.HandleSpanError(span, "Failed to acquire template idempotency lock", setNXErr)
+
+		return nil, setNXErr
+	}
+
+	if !acquired {
+		return uc.handleDuplicateTemplateRequest(ctx, idempotencyKey)
+	}
+
+	return nil, nil
 }
 
 // templateIdempotencyInput is the internal struct used to compute idempotency hashes

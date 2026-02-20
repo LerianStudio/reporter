@@ -24,6 +24,7 @@ import (
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // UpdateTemplateByID updates an existing template, optionally uploading a new file to storage,
@@ -80,42 +81,8 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 
 	// If a new file was provided, upload it to object storage FIRST (before DB update)
 	if fileHeader != nil {
-		// Fetch the current template BEFORE updating to get the FileName for storage upload
-		currentTemplate, err := uc.TemplateRepo.FindByID(ctx, id)
-		if err != nil {
-			if pkgHTTP.IsBusinessError(err) {
-				libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve current template", err)
-			} else {
-				libOpentelemetry.HandleSpanError(&span, "Failed to retrieve current template", err)
-			}
-
-			logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
-
+		if err := uc.uploadTemplateFileToStorage(ctx, id, outputFormat, fileHeader, &span); err != nil {
 			return nil, err
-		}
-
-		fileBytes, errRead := pkgHTTP.ReadMultipartFile(fileHeader)
-		if errRead != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", errRead)
-
-			logger.Errorf("Error to get file content: %v", errRead)
-
-			return nil, errRead
-		}
-
-		// Determine the contentType for storage: use the new outputFormat if provided, otherwise use existing
-		storageContentType := outputFormat
-		if commons.IsNilOrEmpty(&storageContentType) {
-			storageContentType = currentTemplate.OutputFormat
-		}
-
-		errPutStorage := uc.TemplateSeaweedFS.Put(ctx, currentTemplate.FileName, storageContentType, fileBytes)
-		if errPutStorage != nil {
-			libOpentelemetry.HandleSpanError(&span, "Error putting template file on storage", errPutStorage)
-
-			logger.Errorf("Error putting template file on storage: %s", errPutStorage.Error())
-
-			return nil, errPutStorage
 		}
 	}
 
@@ -155,11 +122,57 @@ func (uc *UseCase) UpdateTemplateByID(ctx context.Context, outputFormat, descrip
 	return templateUpdated, nil
 }
 
+// uploadTemplateFileToStorage fetches the current template, reads the file bytes, and uploads
+// the new file content to object storage.
+func (uc *UseCase) uploadTemplateFileToStorage(ctx context.Context, id uuid.UUID, outputFormat string, fileHeader *multipart.FileHeader, span *trace.Span) error {
+	logger, _, _, _ := commons.NewTrackingFromContext(ctx) //nolint:dogsled // only logger needed from tracking context
+
+	// Fetch the current template BEFORE updating to get the FileName for storage upload
+	currentTemplate, err := uc.TemplateRepo.FindByID(ctx, id)
+	if err != nil {
+		if pkgHTTP.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(span, "Failed to retrieve current template", err)
+		} else {
+			libOpentelemetry.HandleSpanError(span, "Failed to retrieve current template", err)
+		}
+
+		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
+
+		return err
+	}
+
+	fileBytes, errRead := pkgHTTP.ReadMultipartFile(fileHeader)
+	if errRead != nil {
+		libOpentelemetry.HandleSpanError(span, "Failed to read multipart file", errRead)
+
+		logger.Errorf("Error to get file content: %v", errRead)
+
+		return errRead
+	}
+
+	// Determine the contentType for storage: use the new outputFormat if provided, otherwise use existing
+	storageContentType := outputFormat
+	if commons.IsNilOrEmpty(&storageContentType) {
+		storageContentType = currentTemplate.OutputFormat
+	}
+
+	errPutStorage := uc.TemplateSeaweedFS.Put(ctx, currentTemplate.FileName, storageContentType, fileBytes)
+	if errPutStorage != nil {
+		libOpentelemetry.HandleSpanError(span, "Error putting template file on storage", errPutStorage)
+
+		logger.Errorf("Error putting template file on storage: %s", errPutStorage.Error())
+
+		return errPutStorage
+	}
+
+	return nil
+}
+
 // processTemplateFile handles file extraction, script tag validation, and mapped fields extraction.
 func (uc *UseCase) processTemplateFile(ctx context.Context, fileHeader *multipart.FileHeader) (string, map[string]map[string][]string, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.template.process_template_file")
+	_, span := tracer.Start(ctx, "service.template.process_template_file")
 	defer span.End()
 
 	span.SetAttributes(

@@ -11,7 +11,6 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,9 +122,7 @@ func TestUseCase_SaveReport(t *testing.T) {
 				Return(tt.putErr)
 
 			ctx := context.Background()
-			logger, tracer, _, _ := libCommons.NewTrackingFromContext(ctx)
-
-			err := useCase.saveReport(ctx, tracer, message, tt.renderedOutput, logger)
+			err := useCase.saveReport(ctx, message, tt.renderedOutput)
 			if tt.expectError {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)

@@ -25,6 +25,9 @@ const (
 	ProxyNameRabbitMQ  = "rabbitmq"
 	ProxyNameValkey    = "valkey"
 	ProxyNameSeaweedFS = "seaweedfs"
+
+	// percentageDivisor converts an integer percentage (0-100) to a float fraction (0.0-1.0).
+	percentageDivisor = 100.0
 )
 
 // ProxyConfig defines the upstream target for a Toxiproxy proxy.
@@ -150,7 +153,7 @@ func InjectPacketLoss(proxy *toxiproxy.Proxy, percentLoss int) error {
 		return fmt.Errorf("percentLoss must be between 0 and 100, got %d", percentLoss)
 	}
 
-	_, err := proxy.AddToxic("timeout_downstream", "timeout", "downstream", float32(percentLoss)/100.0, toxiproxy.Attributes{
+	_, err := proxy.AddToxic("timeout_downstream", "timeout", "downstream", float32(percentLoss)/percentageDivisor, toxiproxy.Attributes{
 		"timeout": 1,
 	})
 	if err != nil {

@@ -98,7 +98,7 @@ func TestUseCase_QueryDatabase(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+			logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 			cbManager := pkg.NewCircuitBreakerManager(logger)
 
 			if tt.tripBreaker {
@@ -121,8 +121,6 @@ func TestUseCase_QueryDatabase(t *testing.T) {
 				map[string][]string{"table": {"field"}},
 				nil,
 				result,
-				logger,
-				tracer,
 			)
 
 			if tt.expectError {
@@ -2041,7 +2039,7 @@ func TestUseCase_QueryMongoCollectionWithFilters_ErrorPaths(t *testing.T) {
 func TestUseCase_QueryDatabase_DataSourceUnavailable(t *testing.T) {
 	t.Parallel()
 
-	logger, tracer, _, _ := libCommons.NewTrackingFromContext(context.Background())
+	logger, _, _, _ := libCommons.NewTrackingFromContext(context.Background())
 	cbManager := pkg.NewCircuitBreakerManager(logger)
 
 	useCase := &UseCase{
@@ -2063,8 +2061,6 @@ func TestUseCase_QueryDatabase_DataSourceUnavailable(t *testing.T) {
 		map[string][]string{"table": {"field"}},
 		nil,
 		result,
-		logger,
-		tracer,
 	)
 	require.Error(t, err)
 }

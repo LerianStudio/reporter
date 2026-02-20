@@ -38,6 +38,8 @@ type calcTagNode struct {
 	expression string
 }
 
+const aggregateOpCount = "count"
+
 // makeAggregateTag returns a pongo2.TagParser for creating custom aggregate template tags based on the specified operation.
 func makeAggregateTag(op string) pongo2.TagParser {
 	return func(doc *pongo2.Parser, start *pongo2.Token, args *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
@@ -48,7 +50,7 @@ func makeAggregateTag(op string) pongo2.TagParser {
 
 		var fieldExpr pongo2.IEvaluator
 
-		if op != "count" { // "count"` operation doesn't need a specific field to operate on (simply counts the number of elements)
+		if op != aggregateOpCount { // "count" operation doesn't need a specific field to operate on (simply counts the number of elements)
 			if t := args.Match(pongo2.TokenIdentifier, "by"); t == nil {
 				return nil, args.Error("Expected 'by' keyword", nil)
 			}
@@ -181,7 +183,7 @@ func newAggregator(op string) *aggregator {
 
 // processItem processes a single item for aggregation
 func (a *aggregator) processItem(ctx *pongo2.ExecutionContext, item map[string]any, node *aggregateTagNode) *pongo2.Error {
-	if a.op == "count" {
+	if a.op == aggregateOpCount {
 		a.count++
 		return nil
 	}
@@ -222,7 +224,7 @@ func (a *aggregator) accumulate(vDec decimal.Decimal) *pongo2.Error {
 // result returns the final aggregation result
 func (a *aggregator) result() string {
 	switch a.op {
-	case "count":
+	case aggregateOpCount:
 		return fmt.Sprintf("%d", a.count)
 	case "sum":
 		return a.total.String()

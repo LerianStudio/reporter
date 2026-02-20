@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const workerShutdownTimeout = 10 * time.Second
+
 // WorkerService wraps a Worker subprocess for testing.
 type WorkerService struct {
 	cmd     *exec.Cmd
@@ -90,7 +92,7 @@ func (w *WorkerService) Stop(ctx context.Context) error {
 	select {
 	case <-done:
 		return nil
-	case <-time.After(10 * time.Second):
+	case <-time.After(workerShutdownTimeout):
 		_ = w.cmd.Process.Kill()
 		return fmt.Errorf("timeout waiting for worker shutdown, killed")
 	case <-ctx.Done():

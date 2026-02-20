@@ -20,7 +20,7 @@ import (
 func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSourceInformation {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.data_source.get_information")
+	_, span := tracer.Start(ctx, "service.data_source.get_information")
 	defer span.End()
 
 	span.SetAttributes(
@@ -63,7 +63,7 @@ func (uc *UseCase) GetDataSourceInformation(ctx context.Context) []*model.DataSo
 
 		if dataSourceInformation != nil && strings.TrimSpace(dataSourceInformation.Id) != "" {
 			// Add note for plugin_crm about field filtering
-			if key == "plugin_crm" {
+			if key == pluginCRMDataSourceID {
 				logger.Infof("Note: plugin_crm data source filters out encrypted fields and only shows non-encrypted fields and search fields for security")
 			}
 

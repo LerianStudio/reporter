@@ -29,6 +29,10 @@ const (
 	// Routing keys
 	RoutingKeyGenerateReport = "reporter.generate-report.key"
 	RoutingKeyDLQ            = "reporter.dlq.key"
+
+	// DLQ configuration
+	dlqMessageTTLMs = 604800000 // 7 days in milliseconds
+	dlqMaxLength    = 10000
 )
 
 // RabbitMQContainer wraps a RabbitMQ testcontainer with connection info.
@@ -161,8 +165,8 @@ func (r *RabbitMQContainer) setupTopology(amqpURL string) error {
 		QueueDLQ,
 		true, false, false, false,
 		amqp.Table{
-			"x-message-ttl": int64(604800000), // 7 days in ms
-			"x-max-length":  int64(10000),
+			"x-message-ttl": int64(dlqMessageTTLMs),
+			"x-max-length":  int64(dlqMaxLength),
 		},
 	)
 	if err != nil {
@@ -212,12 +216,12 @@ func (r *RabbitMQContainer) Restart(ctx context.Context, delay time.Duration) er
 		return fmt.Errorf("refresh rabbitmq host: %w", err)
 	}
 
-	amqpMapped, err := r.RabbitMQContainer.MappedPort(ctx, "5672/tcp")
+	amqpMapped, err := r.MappedPort(ctx, "5672/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh rabbitmq amqp mapped port: %w", err)
 	}
 
-	mgmtMapped, err := r.RabbitMQContainer.MappedPort(ctx, "15672/tcp")
+	mgmtMapped, err := r.MappedPort(ctx, "15672/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh rabbitmq mgmt mapped port: %w", err)
 	}

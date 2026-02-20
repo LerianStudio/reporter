@@ -22,13 +22,11 @@ import (
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
-	// otel/trace is used for trace.Tracer parameter type in queryDatabase
-	"go.opentelemetry.io/otel/trace"
 )
 
 // queryExternalData retrieves data from external data sources specified in the message and populates the result map.
 func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReportMessage, result map[string]map[string][]map[string]any) error {
-	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, span := tracer.Start(ctx, "service.report.query_external_data")
 	defer span.End()
@@ -36,7 +34,7 @@ func (uc *UseCase) queryExternalData(ctx context.Context, message GenerateReport
 	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	for databaseName, tables := range message.DataQueries {
-		if err := uc.queryDatabase(ctx, databaseName, tables, message.Filters, result, logger, tracer); err != nil {
+		if err := uc.queryDatabase(ctx, databaseName, tables, message.Filters, result); err != nil {
 			return err
 		}
 	}
@@ -51,10 +49,8 @@ func (uc *UseCase) queryDatabase(
 	tables map[string][]string,
 	allFilters map[string]map[string]map[string]model.FilterCondition,
 	result map[string]map[string][]map[string]any,
-	logger log.Logger,
-	tracer trace.Tracer,
 ) error {
-	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, dbSpan := tracer.Start(ctx, "service.report.query_database")
 	defer dbSpan.End()
@@ -128,6 +124,7 @@ func (uc *UseCase) queryPostgresDatabase(
 	logger log.Logger,
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.query_postgres_database")
 	defer span.End()
 
@@ -327,6 +324,7 @@ func (uc *UseCase) processPluginCRMCollection(
 	logger log.Logger,
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.process_plugin_crm_collection")
 	defer span.End()
 
@@ -375,6 +373,7 @@ func (uc *UseCase) processRegularMongoCollection(
 	logger log.Logger,
 ) error {
 	_, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.report.process_regular_mongo_collection")
 	defer span.End()
 

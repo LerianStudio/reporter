@@ -15,6 +15,11 @@ import (
 	"time"
 )
 
+const (
+	healthCheckTickerInterval = 2 * time.Second
+	defaultBaseBackoff        = 200 * time.Millisecond
+)
+
 type HTTPClient struct {
 	base   string
 	client *http.Client
@@ -115,7 +120,7 @@ func (c *HTTPClient) RequestFullWithRetry(ctx context.Context, method, path stri
 	}
 
 	if baseBackoff <= 0 {
-		baseBackoff = 200 * time.Millisecond
+		baseBackoff = defaultBaseBackoff
 	}
 
 	var (
@@ -152,7 +157,7 @@ func (c *HTTPClient) GetReportStatus(ctx context.Context, reportID string, heade
 		return nil, fmt.Errorf("failed to get report: %w", err)
 	}
 
-	if code != 200 {
+	if code != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d: %s", code, string(body))
 	}
 
@@ -204,7 +209,7 @@ func (c *HTTPClient) ListReports(ctx context.Context, headers map[string]string,
 		return nil, fmt.Errorf("failed to list reports: %w", err)
 	}
 
-	if code != 200 {
+	if code != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d: %s", code, string(body))
 	}
 
@@ -290,7 +295,7 @@ func (c *HTTPClient) UploadMultipartForm(ctx context.Context, method, path strin
 func WaitForSystemHealth(ctx context.Context, cli *HTTPClient, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(healthCheckTickerInterval)
 	defer ticker.Stop()
 
 	for {
@@ -304,13 +309,13 @@ func WaitForSystemHealth(ctx context.Context, cli *HTTPClient, timeout time.Dura
 
 			// Try to check health endpoint
 			code, _, err := cli.Request(ctx, "GET", "/health", nil, nil)
-			if err == nil && code == 200 {
+			if err == nil && code == http.StatusOK {
 				return nil
 			}
 
 			// Also try a simple API call to verify system is responsive
 			code, _, err = cli.Request(ctx, "GET", "/v1/templates?limit=1", nil, nil)
-			if err == nil && (code == 200 || code == 401) { // 401 is OK, means auth is working
+			if err == nil && (code == http.StatusOK || code == http.StatusUnauthorized) { // 401 is OK, means auth is working
 				return nil
 			}
 		}

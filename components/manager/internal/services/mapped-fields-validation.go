@@ -16,8 +16,10 @@ import (
 	"github.com/LerianStudio/reporter/pkg/postgres"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ValidateIfFieldsExistOnTables Validate all fields mapped from a template file if exist on table schema
@@ -34,24 +36,8 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 	allDataSources := uc.ExternalDataSources.GetAll()
 
 	for databaseName := range mappedFields {
-		if !pkg.IsValidDataSourceID(databaseName) {
-			logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
-
-			errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
-
-			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Unknown data source not in immutable registry", errMissing)
-
-			return errMissing
-		}
-
-		if _, exists := allDataSources[databaseName]; !exists {
-			logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
-
-			errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
-
-			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Data source not in runtime map", errMissing)
-
-			return errMissing
+		if err := uc.validateDataSourceExists(databaseName, allDataSources, &span, logger); err != nil {
+			return err
 		}
 	}
 
@@ -60,55 +46,7 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 	for databaseName := range mappedFields {
 		dataSource := allDataSources[databaseName]
 
-		switch dataSource.DatabaseType {
-		case pkg.PostgreSQLType:
-			if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
-				if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
-					libOpentelemetry.HandleSpanError(&span, "Failed to initialize PostgreSQL connection", err)
-					logger.Errorf("Error initializing database connection, Err: %s", err)
-
-					return err
-				}
-			}
-
-			errValidate := validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
-			if errValidate != nil {
-				if pkgHTTP.IsBusinessError(errValidate) {
-					libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate schemas of postgres", errValidate)
-				} else {
-					libOpentelemetry.HandleSpanError(&span, "Failed to validate schemas of postgres", errValidate)
-				}
-
-				logger.Errorf("Error to validate schemas of postgres: %s", errValidate.Error())
-
-				return errValidate
-			}
-		case pkg.MongoDBType:
-			if !dataSource.Initialized {
-				if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
-					libOpentelemetry.HandleSpanError(&span, "Failed to initialize MongoDB connection", err)
-					logger.Errorf("Error initializing database connection, Err: %s", err)
-
-					return err
-				}
-			}
-
-			errValidate := validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate)
-			if errValidate != nil {
-				if pkgHTTP.IsBusinessError(errValidate) {
-					libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate collections of mongo", errValidate)
-				} else {
-					libOpentelemetry.HandleSpanError(&span, "Failed to validate collections of mongo", errValidate)
-				}
-
-				logger.Errorf("Error to validate collections of mongo: %s", errValidate.Error())
-
-				return errValidate
-			}
-		default:
-			err := fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
-			libOpentelemetry.HandleSpanError(&span, "Unsupported database type", err)
-
+		if err := uc.connectAndValidateDataSource(ctx, databaseName, dataSource, mappedFieldsToValidate, &span, logger); err != nil {
 			return err
 		}
 	}
@@ -116,9 +54,93 @@ func (uc *UseCase) ValidateIfFieldsExistOnTables(ctx context.Context, mappedFiel
 	return nil
 }
 
+// validateDataSourceExists checks that a database name is valid and present in the runtime data source map.
+func (uc *UseCase) validateDataSourceExists(databaseName string, allDataSources map[string]pkg.DataSource, span *trace.Span, logger log.Logger) error {
+	if !pkg.IsValidDataSourceID(databaseName) {
+		logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", databaseName)
+
+		errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+		libOpentelemetry.HandleSpanBusinessErrorEvent(span, "Unknown data source not in immutable registry", errMissing)
+
+		return errMissing
+	}
+
+	if _, exists := allDataSources[databaseName]; !exists {
+		logger.Errorf("Datasource %s is registered but not in runtime map - possible corruption", databaseName)
+
+		errMissing := pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", databaseName)
+
+		libOpentelemetry.HandleSpanBusinessErrorEvent(span, "Data source not in runtime map", errMissing)
+
+		return errMissing
+	}
+
+	return nil
+}
+
+// connectAndValidateDataSource ensures a data source connection is initialized and validates
+// the mapped fields schema for the given database type (PostgreSQL or MongoDB).
+func (uc *UseCase) connectAndValidateDataSource(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFieldsToValidate map[string]map[string][]string, span *trace.Span, logger log.Logger) error {
+	switch dataSource.DatabaseType {
+	case pkg.PostgreSQLType:
+		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
+			if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
+				libOpentelemetry.HandleSpanError(span, "Failed to initialize PostgreSQL connection", err)
+				logger.Errorf("Error initializing database connection, Err: %s", err)
+
+				return err
+			}
+		}
+
+		return uc.classifyValidationError(
+			validateSchemasPostgresOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate),
+			"Failed to validate schemas of postgres", span, logger,
+		)
+	case pkg.MongoDBType:
+		if !dataSource.Initialized {
+			if err := uc.ExternalDataSources.ConnectDataSource(databaseName, &dataSource, logger); err != nil {
+				libOpentelemetry.HandleSpanError(span, "Failed to initialize MongoDB connection", err)
+				logger.Errorf("Error initializing database connection, Err: %s", err)
+
+				return err
+			}
+		}
+
+		return uc.classifyValidationError(
+			validateSchemasMongoOfMappedFields(ctx, databaseName, dataSource, mappedFieldsToValidate),
+			"Failed to validate collections of mongo", span, logger,
+		)
+	default:
+		err := fmt.Errorf("unsupported database type: %s for database: %s", dataSource.DatabaseType, databaseName)
+		libOpentelemetry.HandleSpanError(span, "Unsupported database type", err)
+
+		return err
+	}
+}
+
+// classifyValidationError classifies a validation error as business or technical
+// and records it on the span accordingly. Returns nil if err is nil.
+func (uc *UseCase) classifyValidationError(err error, message string, span *trace.Span, logger log.Logger) error {
+	if err == nil {
+		return nil
+	}
+
+	if pkgHTTP.IsBusinessError(err) {
+		libOpentelemetry.HandleSpanBusinessErrorEvent(span, message, err)
+	} else {
+		libOpentelemetry.HandleSpanError(span, message, err)
+	}
+
+	logger.Errorf("%s: %s", message, err.Error())
+
+	return err
+}
+
 // validateSchemasPostgresOfMappedFields validate if mapped fields exist on schemas tables columns
 func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.template.validate_schemas_postgres")
 	defer span.End()
 
@@ -209,6 +231,7 @@ func validateSchemasPostgresOfMappedFields(ctx context.Context, databaseName str
 // validateSchemasMongoOfMappedFields validate if mapped fields exist on schemas tables fields of MongoDB
 func validateSchemasMongoOfMappedFields(ctx context.Context, databaseName string, dataSource pkg.DataSource, mappedFields map[string]map[string][]string) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.template.validate_schemas_mongo")
 	defer span.End()
 
@@ -279,7 +302,7 @@ func generateCopyOfMappedFields(orig map[string]map[string][]string, dataSources
 			copy(newSlice, subV)
 
 			// For plugin_crm database, append MidazOrganizationID to table names
-			if k == "plugin_crm" {
+			if k == pluginCRMDataSourceID {
 				if ds, exists := dataSources[k]; exists && ds.MidazOrganizationID != "" {
 					newTableName := subK + "_" + ds.MidazOrganizationID
 					sub[newTableName] = newSlice
@@ -307,7 +330,7 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 
 		for tableName, fields := range tables {
 			// For plugin_crm database, append organizationID to table names
-			if databaseName == "plugin_crm" {
+			if databaseName == pluginCRMDataSourceID {
 				newTableName := tableName
 				transformedTables[newTableName] = fields
 			} else {
@@ -316,7 +339,7 @@ func TransformMappedFieldsForStorage(mappedFields map[string]map[string][]string
 		}
 
 		// For plugin_crm database, add organization mapping only if organizationID is provided
-		if databaseName == "plugin_crm" && organizationID != "" {
+		if databaseName == pluginCRMDataSourceID && organizationID != "" {
 			transformedTables["organization"] = []string{organizationID}
 		}
 

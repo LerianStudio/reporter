@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+const pluginCRMDataSourceID = "plugin_crm"
+
 var (
 	// Define encrypted fields that should be excluded
 	encryptedFields = map[string]bool{
@@ -139,6 +141,7 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 // getDataSourceDetailsFromCache tries to get and unmarshal DataSourceDetails from Redis
 func (uc *UseCase) getDataSourceDetailsFromCache(ctx context.Context, cacheKey string) (*model.DataSourceDetails, bool) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.data_source.get_cache")
 	defer span.End()
 
@@ -167,6 +170,7 @@ func (uc *UseCase) getDataSourceDetailsFromCache(ctx context.Context, cacheKey s
 // setDataSourceDetailsToCache marshals and sets DataSourceDetails in Redis
 func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey string, details *model.DataSourceDetails) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.data_source.set_cache")
 	defer span.End()
 
@@ -216,6 +220,7 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 // getDataSourceDetailsOfMongoDBDatabase retrieves the data source information of a MongoDB database
 func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.data_source.get_details_mongodb")
 	defer span.End()
 
@@ -278,7 +283,7 @@ func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSc
 
 // getFieldsForCollection determines which fields to include for a collection
 func (uc *UseCase) getFieldsForCollection(collection mongodb.CollectionSchema, dataSourceID string) []string {
-	if dataSourceID == "plugin_crm" {
+	if dataSourceID == pluginCRMDataSourceID {
 		return uc.getFieldsForPluginCRM(collection)
 	}
 
@@ -328,7 +333,7 @@ func (uc *UseCase) getBaseCollectionName(collectionName string) string {
 
 // getDisplayNameForCollection gets the display name for a collection
 func (uc *UseCase) getDisplayNameForCollection(collectionName, dataSourceID string) string {
-	if dataSourceID == "plugin_crm" {
+	if dataSourceID == pluginCRMDataSourceID {
 		return uc.getBaseCollectionName(collectionName)
 	}
 
@@ -434,6 +439,7 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database
 func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
 	ctx, span := tracer.Start(ctx, "service.data_source.get_details_postgres")
 	defer span.End()
 

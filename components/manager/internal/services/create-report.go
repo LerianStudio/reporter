@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // CreateReport create a new report
@@ -45,26 +46,13 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 
 	// Idempotency check: acquire lock via Redis SetNX before proceeding
 	if uc.RedisRepo != nil {
-		idempotencyKey, keyErr := uc.buildIdempotencyKey(ctx, reportInput)
-		if keyErr != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to compute idempotency key", keyErr)
-
-			return nil, keyErr
+		cachedResult, err := uc.checkReportIdempotency(ctx, reportInput, &span)
+		if err != nil {
+			return nil, err
 		}
 
-		span.SetAttributes(attribute.String("app.idempotency.key", idempotencyKey))
-
-		logger.Infof("Checking idempotency for key: %s", idempotencyKey)
-
-		acquired, setNXErr := uc.RedisRepo.SetNX(ctx, idempotencyKey, "processing", constant.IdempotencyTTL)
-		if setNXErr != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to acquire idempotency lock", setNXErr)
-
-			return nil, setNXErr
-		}
-
-		if !acquired {
-			return uc.handleDuplicateRequest(ctx, idempotencyKey)
+		if cachedResult != nil {
+			return cachedResult, nil
 		}
 	}
 
@@ -97,15 +85,8 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	}
 
 	if reportInput.Filters != nil {
-		filtersMapped := uc.convertFiltersToMappedFieldsType(reportInput.Filters)
-		if errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, filtersMapped); errValidateFields != nil {
-			if pkgHTTP.IsBusinessError(errValidateFields) {
-				libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate filter fields existence on tables", errValidateFields)
-			} else {
-				libOpentelemetry.HandleSpanError(&span, "Failed to validate filter fields existence on tables", errValidateFields)
-			}
-
-			return nil, errValidateFields
+		if err := uc.validateReportFilters(ctx, reportInput.Filters, &span); err != nil {
+			return nil, err
 		}
 	}
 
@@ -172,6 +153,54 @@ func (uc *UseCase) CreateReport(ctx context.Context, reportInput *model.CreateRe
 	}
 
 	return result, nil
+}
+
+// checkReportIdempotency acquires an idempotency lock via Redis SetNX.
+// Returns a cached report if this is a duplicate request, or nil to proceed with creation.
+func (uc *UseCase) checkReportIdempotency(ctx context.Context, reportInput *model.CreateReportInput, span *trace.Span) (*report.Report, error) {
+	logger, _, _, _ := commons.NewTrackingFromContext(ctx) //nolint:dogsled // only logger needed from tracking context
+
+	idempotencyKey, keyErr := uc.buildIdempotencyKey(ctx, reportInput)
+	if keyErr != nil {
+		libOpentelemetry.HandleSpanError(span, "Failed to compute idempotency key", keyErr)
+
+		return nil, keyErr
+	}
+
+	(*span).SetAttributes(attribute.String("app.idempotency.key", idempotencyKey))
+
+	logger.Infof("Checking idempotency for key: %s", idempotencyKey)
+
+	acquired, setNXErr := uc.RedisRepo.SetNX(ctx, idempotencyKey, "processing", constant.IdempotencyTTL)
+	if setNXErr != nil {
+		libOpentelemetry.HandleSpanError(span, "Failed to acquire idempotency lock", setNXErr)
+
+		return nil, setNXErr
+	}
+
+	if !acquired {
+		return uc.handleDuplicateRequest(ctx, idempotencyKey)
+	}
+
+	return nil, nil
+}
+
+// validateReportFilters validates that all filter fields exist on their respective tables.
+func (uc *UseCase) validateReportFilters(ctx context.Context, filters map[string]map[string]map[string]model.FilterCondition, span *trace.Span) error {
+	filtersMapped := uc.convertFiltersToMappedFieldsType(filters)
+
+	errValidateFields := uc.ValidateIfFieldsExistOnTables(ctx, filtersMapped)
+	if errValidateFields != nil {
+		if pkgHTTP.IsBusinessError(errValidateFields) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(span, "Failed to validate filter fields existence on tables", errValidateFields)
+		} else {
+			libOpentelemetry.HandleSpanError(span, "Failed to validate filter fields existence on tables", errValidateFields)
+		}
+
+		return errValidateFields
+	}
+
+	return nil
 }
 
 // buildIdempotencyKey resolves the idempotency key for the request.

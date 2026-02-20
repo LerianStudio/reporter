@@ -13,6 +13,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+const redisOperationTimeout = 2 * time.Second
+
 // RateLimitStorage is an alias for fiber.Storage, used to declare the
 // dependency explicitly in RateLimitConfig without coupling callers to
 // the fiber package.
@@ -47,20 +49,20 @@ func (s *RedisStorage) Get(key string) ([]byte, error) {
 		return nil, nil //nolint:nilnil // graceful degradation: no Redis connection
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), redisOperationTimeout)
 	defer cancel()
 
 	client, err := s.conn.GetClient(ctx)
 	if err != nil {
 		s.logger.Errorf("rate-limit redis storage: failed to get client: %v", err)
-		return nil, nil //nolint:nilerr // graceful degradation
+		return nil, nil
 	}
 
 	val, err := client.Get(ctx, key).Bytes()
 	if err != nil {
 		// redis.Nil means key doesn't exist -- not an error, return nil
 		// Any other error is also treated as nil for graceful degradation
-		return nil, nil //nolint:nilerr // graceful degradation
+		return nil, nil
 	}
 
 	return val, nil
@@ -73,18 +75,18 @@ func (s *RedisStorage) Set(key string, val []byte, exp time.Duration) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), redisOperationTimeout)
 	defer cancel()
 
 	client, err := s.conn.GetClient(ctx)
 	if err != nil {
 		s.logger.Errorf("rate-limit redis storage: failed to get client: %v", err)
-		return nil //nolint:nilerr // graceful degradation
+		return nil
 	}
 
 	if err := client.Set(ctx, key, val, exp).Err(); err != nil {
 		s.logger.Errorf("rate-limit redis storage: failed to set key %s: %v", key, err)
-		return nil //nolint:nilerr // graceful degradation
+		return nil
 	}
 
 	return nil
@@ -97,18 +99,18 @@ func (s *RedisStorage) Delete(key string) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), redisOperationTimeout)
 	defer cancel()
 
 	client, err := s.conn.GetClient(ctx)
 	if err != nil {
 		s.logger.Errorf("rate-limit redis storage: failed to get client: %v", err)
-		return nil //nolint:nilerr // graceful degradation
+		return nil
 	}
 
 	if err := client.Del(ctx, key).Err(); err != nil {
 		s.logger.Errorf("rate-limit redis storage: failed to delete key %s: %v", key, err)
-		return nil //nolint:nilerr // graceful degradation
+		return nil
 	}
 
 	return nil

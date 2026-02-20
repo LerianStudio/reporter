@@ -23,6 +23,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/storage"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	clog "github.com/LerianStudio/lib-commons/v2/commons/log"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
@@ -139,9 +140,10 @@ func (c *Config) validateProductionConfig(errs []string) []string {
 	}
 
 	for _, s := range secrets {
-		if s.value == "" {
+		switch s.value {
+		case "":
 			errs = append(errs, s.name+" must not be empty in production")
-		} else if s.value == pkgConstant.DefaultPasswordPlaceholder {
+		case pkgConstant.DefaultPasswordPlaceholder:
 			errs = append(errs, s.name+" must not use the default placeholder in production")
 		}
 	}
@@ -167,7 +169,10 @@ func InitWorker() (_ *Service, err error) {
 		return nil, fmt.Errorf("failed to register pongo2 filters and tags: %w", err)
 	}
 
-	logger := libZap.InitializeLogger()
+	logger, err := libZap.InitializeLoggerWithError()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
 
 	// Cleanup stack: on failure, close resources in reverse order
 	var cleanups []func()
@@ -182,7 +187,7 @@ func InitWorker() (_ *Service, err error) {
 		}
 	}()
 
-	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
+	telemetry, err := libOtel.InitializeTelemetryWithError(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
@@ -191,6 +196,9 @@ func InitWorker() (_ *Service, err error) {
 		EnableTelemetry:           cfg.EnableTelemetry,
 		Logger:                    logger,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize telemetry: %w", err)
+	}
 
 	cleanups = append(cleanups, func() {
 		logger.Info("Cleanup: shutting down telemetry")
@@ -218,21 +226,7 @@ func InitWorker() (_ *Service, err error) {
 		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
 	}
 
-	cleanups = append(cleanups, func() {
-		logger.Info("Cleanup: closing RabbitMQ connection")
-
-		if rabbitMQConnection.Channel != nil {
-			if closeErr := rabbitMQConnection.Channel.Close(); closeErr != nil {
-				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
-			}
-		}
-
-		if rabbitMQConnection.Connection != nil && !rabbitMQConnection.Connection.IsClosed() {
-			if closeErr := rabbitMQConnection.Connection.Close(); closeErr != nil {
-				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
-			}
-		}
-	})
+	cleanups = append(cleanups, closeRabbitMQ(rabbitMQConnection, logger))
 
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
@@ -259,26 +253,7 @@ func InitWorker() (_ *Service, err error) {
 	reportStorageClient := storageClient
 
 	// Init mongo DB connection
-	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
-	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
-
-	if cfg.MongoDBParameters != "" {
-		mongoSource += "/?" + cfg.MongoDBParameters
-	}
-
-	if cfg.MaxPoolSize <= 0 {
-		cfg.MaxPoolSize = int(pkgConstant.MongoDBMaxPoolSize)
-	}
-
-	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
-
-	mongoConnection := &mongoDB.MongoConnection{
-		ConnectionStringSource: mongoSource,
-		Database:               cfg.MongoDBName,
-		Logger:                 logger,
-		MaxPoolSize:            uint64(cfg.MaxPoolSize),
-	}
+	mongoConnection := buildMongoConnection(cfg, logger)
 
 	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
 	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
@@ -362,4 +337,49 @@ func InitWorker() (_ *Service, err error) {
 		pdfPool:            pdfPool,
 		telemetry:          telemetry,
 	}, nil
+}
+
+// buildMongoConnection creates a MongoConnection with the connection string
+// built from configuration, applying default pool size if needed.
+func buildMongoConnection(cfg *Config, logger clog.Logger) *mongoDB.MongoConnection {
+	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
+	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
+
+	if cfg.MongoDBParameters != "" {
+		mongoSource += "/?" + cfg.MongoDBParameters
+	}
+
+	if cfg.MaxPoolSize <= 0 {
+		cfg.MaxPoolSize = int(pkgConstant.MongoDBMaxPoolSize)
+	}
+
+	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
+
+	return &mongoDB.MongoConnection{
+		ConnectionStringSource: mongoSource,
+		Database:               cfg.MongoDBName,
+		Logger:                 logger,
+		MaxPoolSize:            uint64(cfg.MaxPoolSize),
+	}
+}
+
+// closeRabbitMQ returns a cleanup function that safely closes
+// the RabbitMQ channel and connection.
+func closeRabbitMQ(conn *libRabbitMQ.RabbitMQConnection, logger clog.Logger) func() {
+	return func() {
+		logger.Info("Cleanup: closing RabbitMQ connection")
+
+		if conn.Channel != nil {
+			if closeErr := conn.Channel.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
+			}
+		}
+
+		if conn.Connection != nil && !conn.Connection.IsClosed() {
+			if closeErr := conn.Connection.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
+			}
+		}
+	}
 }

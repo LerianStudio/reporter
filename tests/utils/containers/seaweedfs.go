@@ -22,6 +22,9 @@ const (
 	SeaweedAccessKey = "any"
 	SeaweedSecretKey = "any"
 	SeaweedRegion    = "us-east-1"
+
+	seaweedStartDeadlineSeconds = 60
+	seaweedStopTimeoutSeconds   = 10
 )
 
 // SeaweedFSContainer wraps a SeaweedFS testcontainer with S3 endpoint info.
@@ -50,7 +53,7 @@ func StartSeaweedFS(ctx context.Context, networkName, image string) (*SeaweedFSC
 		WaitingFor: wait.ForAll(
 			wait.ForHTTP("/cluster/status").WithPort("9333/tcp"),
 			wait.ForListeningPort("8333/tcp"),
-		).WithDeadline(60 * time.Second),
+		).WithDeadline(seaweedStartDeadlineSeconds * time.Second),
 	}
 
 	ctr, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -152,7 +155,7 @@ func (s *SeaweedFSContainer) getS3Client(ctx context.Context) (*s3.Client, error
 
 // Restart stops and starts the SeaweedFS container, refreshing connection info.
 func (s *SeaweedFSContainer) Restart(ctx context.Context, delay time.Duration) error {
-	timeout := 10 * time.Second
+	timeout := seaweedStopTimeoutSeconds * time.Second
 	if err := s.Stop(ctx, &timeout); err != nil {
 		return fmt.Errorf("stop seaweedfs: %w", err)
 	}
@@ -171,12 +174,12 @@ func (s *SeaweedFSContainer) Restart(ctx context.Context, delay time.Duration) e
 		return fmt.Errorf("refresh seaweedfs host: %w", err)
 	}
 
-	s3Mapped, err := s.Container.MappedPort(ctx, "8333/tcp")
+	s3Mapped, err := s.MappedPort(ctx, "8333/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh seaweedfs s3 mapped port: %w", err)
 	}
 
-	admMapped, err := s.Container.MappedPort(ctx, "9333/tcp")
+	admMapped, err := s.MappedPort(ctx, "9333/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh seaweedfs admin mapped port: %w", err)
 	}

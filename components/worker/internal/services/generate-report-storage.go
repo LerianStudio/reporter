@@ -9,13 +9,10 @@ import (
 	"strings"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"
-	// otel/trace is used for trace.Tracer parameter type in saveReport
-	"go.opentelemetry.io/otel/trace"
 )
 
 // mimeTypes maps file extensions to their corresponding MIME content types
@@ -30,8 +27,8 @@ var mimeTypes = map[string]string{
 // It determines the object name, content type, and stores the file using the ReportSeaweedFS interface.
 // If ReportTTL is configured, the file will be saved with TTL (Time To Live).
 // Returns an error if the file storage operation fails.
-func (uc *UseCase) saveReport(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, out string, logger log.Logger) error {
-	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+func (uc *UseCase) saveReport(ctx context.Context, message GenerateReportMessage, out string) error {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, spanSaveReport := tracer.Start(ctx, "service.report.save_report")
 	defer spanSaveReport.End()

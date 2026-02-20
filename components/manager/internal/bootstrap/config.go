@@ -5,32 +5,21 @@
 package bootstrap
 
 import (
-	"context"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	httpIn "github.com/LerianStudio/reporter/components/manager/internal/adapters/http/in"
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
-	"github.com/LerianStudio/reporter/pkg/mongodb/report"
-	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
-	"github.com/LerianStudio/reporter/pkg/storage"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -273,16 +262,10 @@ func (c *Config) validateProductionCORS(errs []string) []string {
 // Uses a cleanup stack pattern: if any initialization step fails, all previously
 // opened connections are closed in reverse order to prevent resource leaks.
 func InitServers() (_ *Service, err error) {
-	cfg := &Config{}
-	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
-		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
-	}
-
-	if err := cfg.Validate(); err != nil {
+	cfg, logger, err := initConfigAndLogger()
+	if err != nil {
 		return nil, err
 	}
-
-	logger := zap.InitializeLogger()
 
 	// Cleanup stack: on failure, close resources in reverse order
 	var cleanups []func()
@@ -297,229 +280,87 @@ func InitServers() (_ *Service, err error) {
 		}
 	}()
 
-	// Init Open telemetry to control logs and flows
-	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
-		LibraryName:               cfg.OtelLibraryName,
-		ServiceName:               cfg.OtelServiceName,
-		ServiceVersion:            cfg.OtelServiceVersion,
-		DeploymentEnv:             cfg.OtelDeploymentEnv,
-		CollectorExporterEndpoint: cfg.OtelColExporterEndpoint,
-		EnableTelemetry:           cfg.EnableTelemetry,
-		Logger:                    logger,
-	})
+	// Init OpenTelemetry to control logs and flows
+	telemetry, telemetryCleanup, err := initTelemetry(cfg, logger)
+	if err != nil {
+		return nil, err
+	}
 
-	cleanups = append(cleanups, func() {
-		logger.Info("Cleanup: shutting down telemetry")
-		telemetry.ShutdownTelemetry()
-	})
+	cleanups = append(cleanups, telemetryCleanup)
 
 	// Create single storage client for both templates and reports (using prefixes)
-	storageConfig := storage.Config{
-		Bucket:            cfg.ObjectStorageBucket,
-		S3Endpoint:        cfg.ObjectStorageEndpoint,
-		S3Region:          cfg.ObjectStorageRegion,
-		S3AccessKeyID:     cfg.ObjectStorageAccessKeyID,
-		S3SecretAccessKey: cfg.ObjectStorageSecretKey,
-		S3UsePathStyle:    cfg.ObjectStorageUsePathStyle,
-		S3DisableSSL:      cfg.ObjectStorageDisableSSL,
-	}
-
-	ctx := pkg.ContextWithLogger(context.Background(), logger)
-
-	storageClient, err := storage.NewStorageClient(ctx, storageConfig)
+	storageClient, err := initStorage(cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create storage client: %w", err)
+		return nil, err
 	}
 
-	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.ObjectStorageBucket)
-
-	// Use same storage client for both templates and reports (repositories handle prefixes)
-	templateStorageClient := storageClient
-	reportStorageClient := storageClient
-
-	// Init mongo DB connection
-	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
-	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
-
-	if cfg.MongoDBParameters != "" {
-		mongoSource += "/?" + cfg.MongoDBParameters
-	}
-
-	mongoMaxPoolSize, _ := strconv.ParseUint(cfg.MongoMaxPoolSize, 10, 64)
-	if mongoMaxPoolSize == 0 {
-		mongoMaxPoolSize = constant.MongoDefaultMaxPoolSize
-	}
-
-	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
-
-	mongoConnection := &mongoDB.MongoConnection{
-		ConnectionStringSource: mongoSource,
-		Database:               cfg.MongoDBName,
-		Logger:                 logger,
-		MaxPoolSize:            mongoMaxPoolSize,
-	}
-
-	// Init rabbit MQ for producer
-	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
-
-	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
-
-	rabbitMQConnection := &libRabbitmq.RabbitMQConnection{
-		ConnectionStringSource: rabbitSource,
-		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
-		Host:                   cfg.RabbitMQHost,
-		Port:                   cfg.RabbitMQPortHost,
-		User:                   cfg.RabbitMQUser,
-		Pass:                   cfg.RabbitMQPass,
-		Queue:                  cfg.RabbitMQGenerateReportQueue,
-		Logger:                 logger,
-	}
-
-	templateMongoDBRepository, err := template.NewTemplateMongoDBRepository(mongoConnection)
+	// Init MongoDB connection and repositories
+	mongo, mongoCleanup, err := initMongoDB(cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize template mongodb repository: %w", err)
+		return nil, err
 	}
 
-	cleanups = append(cleanups, func() {
-		if mongoConnection.DB != nil {
-			logger.Info("Cleanup: disconnecting MongoDB")
+	cleanups = append(cleanups, mongoCleanup)
 
-			if disconnectErr := mongoConnection.DB.Disconnect(context.Background()); disconnectErr != nil {
-				logger.Errorf("Cleanup: failed to disconnect MongoDB: %v", disconnectErr)
-			}
-		}
-	})
-
-	reportMongoDBRepository, err := report.NewReportMongoDBRepository(mongoConnection)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
-	}
-
-	// Create MongoDB indexes
-	logger.Info("Ensuring MongoDB indexes exist for templates and reports...")
-
-	if err = templateMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure template indexes: %w", err)
-	}
-
-	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
-	}
-
-	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
-	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
+	// Init RabbitMQ producer and connection monitor
+	rabbit, rabbitCleanups := initRabbitMQ(cfg, logger)
+	cleanups = append(cleanups, rabbitCleanups...)
 
 	// Init Redis/Valkey connection
-	redisConnection := &libRedis.RedisConnection{
-		Address:                      strings.Split(cfg.RedisHost, ","),
-		Password:                     cfg.RedisPassword,
-		DB:                           cfg.RedisDB,
-		Protocol:                     cfg.RedisProtocol,
-		MasterName:                   cfg.RedisMasterName,
-		UseTLS:                       cfg.RedisTLS,
-		CACert:                       cfg.RedisCACert,
-		UseGCPIAMAuth:                cfg.RedisUseGCPIAM,
-		ServiceAccount:               cfg.RedisServiceAccount,
-		GoogleApplicationCredentials: cfg.GoogleApplicationCredentials,
-		TokenLifeTime:                time.Duration(cfg.RedisTokenLifeTime) * time.Minute,
-		RefreshDuration:              time.Duration(cfg.RedisTokenRefreshDuration) * time.Minute,
-		Logger:                       logger,
-	}
-
-	redisConsumerRepository, err := redis.NewConsumerRedis(redisConnection)
+	redisConsumerRepository, redisConnection, redisCleanup, err := initRedis(cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize redis connection: %w", err)
+		return nil, err
 	}
 
-	cleanups = append(cleanups, func() {
-		logger.Info("Cleanup: closing Redis connection")
-
-		if closeErr := redisConnection.Close(); closeErr != nil {
-			logger.Errorf("Cleanup: failed to close Redis connection: %v", closeErr)
-		}
-	})
+	cleanups = append(cleanups, redisCleanup)
 
 	// Initialize datasources in lazy mode (connect on-demand for faster startup).
 	// A single instance is shared across all services that need external data sources.
 	externalDataSources := pkg.NewSafeDataSources(pkg.ExternalDatasourceConnectionsLazy(logger))
 
-	templateService := &services.UseCase{
-		TemplateRepo:        templateMongoDBRepository,
-		TemplateSeaweedFS:   templateSeaweedFSRepository,
+	// Use same storage client for both templates and reports (repositories handle prefixes)
+	templateStorageRepo := templateSeaweedFS.NewStorageRepository(storageClient)
+	reportStorageRepo := reportSeaweedFS.NewStorageRepository(storageClient)
+
+	// Build service and handler instances
+	templateHandler, err := httpIn.NewTemplateHandler(&services.UseCase{
+		TemplateRepo:        mongo.templateRepo,
+		TemplateSeaweedFS:   templateStorageRepo,
 		ExternalDataSources: externalDataSources,
 		RedisRepo:           redisConsumerRepository,
-	}
-
-	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
-
-	templateHandler, err := httpIn.NewTemplateHandler(templateService)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize template handler: %w", err)
 	}
 
-	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
-
-	// Start background RabbitMQ connection monitor.
-	// This goroutine periodically checks if the connection is alive and
-	// calls EnsureChannel() to reconnect when needed, breaking the deadlock
-	// where /ready returns 503 but nothing triggers reconnection.
-	rabbitMQMonitor := NewRabbitMQMonitor(rabbitMQConnection, logger)
-	rabbitMQMonitor.Start()
-
-	logger.Info("RabbitMQ background connection monitor started")
-
-	cleanups = append(cleanups, func() {
-		logger.Info("Cleanup: stopping RabbitMQ connection monitor")
-		rabbitMQMonitor.Stop()
-	})
-
-	cleanups = append(cleanups, func() {
-		logger.Info("Cleanup: closing RabbitMQ connection")
-
-		if rabbitMQConnection.Channel != nil {
-			if closeErr := rabbitMQConnection.Channel.Close(); closeErr != nil {
-				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
-			}
-		}
-
-		if rabbitMQConnection.Connection != nil && !rabbitMQConnection.Connection.IsClosed() {
-			if closeErr := rabbitMQConnection.Connection.Close(); closeErr != nil {
-				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
-			}
-		}
-	})
-
-	reportService := &services.UseCase{
-		ReportRepo:                reportMongoDBRepository,
-		RabbitMQRepo:              producerRabbitMQRepository,
-		TemplateRepo:              templateMongoDBRepository,
-		ReportSeaweedFS:           reportSeaweedFSRepository,
+	reportHandler, err := httpIn.NewReportHandler(&services.UseCase{
+		ReportRepo:                mongo.reportRepo,
+		RabbitMQRepo:              rabbit.producer,
+		TemplateRepo:              mongo.templateRepo,
+		ReportSeaweedFS:           reportStorageRepo,
 		ExternalDataSources:       externalDataSources,
 		RedisRepo:                 redisConsumerRepository,
 		RabbitMQExchange:          cfg.RabbitMQExchange,
 		RabbitMQGenerateReportKey: cfg.RabbitMQGenerateReportKey,
-	}
-
-	reportHandler, err := httpIn.NewReportHandler(reportService)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize report handler: %w", err)
 	}
 
-	dataSourceService := &services.UseCase{
+	dataSourceHandler, err := httpIn.NewDataSourceHandler(&services.UseCase{
 		ExternalDataSources: externalDataSources,
 		RedisRepo:           redisConsumerRepository,
-	}
-
-	dataSourceHandler, err := httpIn.NewDataSourceHandler(dataSourceService)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize data source handler: %w", err)
 	}
 
+	// Build HTTP server with routes, middleware, and readiness probes
+	authClient := middleware.NewAuthClient(cfg.AuthAddress, cfg.AuthEnabled, &logger)
+
 	readinessDeps := &httpIn.ReadinessDeps{
-		MongoConnection:    mongoConnection,
-		RabbitMQConnection: rabbitMQConnection,
+		MongoConnection:    mongo.connection,
+		RabbitMQConnection: rabbit.connection,
 		RedisConnection:    redisConnection,
 		StorageClient:      storageClient,
 	}
@@ -530,34 +371,8 @@ func InitServers() (_ *Service, err error) {
 		AllowedHeaders: cfg.CORSAllowedHeaders,
 	}
 
-	window := constant.RateLimitDefaultWindow
-	if cfg.RateLimitWindow > 0 {
-		window = time.Duration(cfg.RateLimitWindow) * time.Second
-	}
-
-	var rateLimitStorage httpIn.RateLimitStorage
-	if cfg.RateLimitEnabled {
-		rateLimitStorage = httpIn.NewRedisStorage(redisConnection, logger)
-	}
-
-	rateLimitConfig := httpIn.RateLimitConfig{
-		Enabled:     cfg.RateLimitEnabled,
-		GlobalMax:   cfg.RateLimitGlobal,
-		ExportMax:   cfg.RateLimitExport,
-		DispatchMax: cfg.RateLimitDispatch,
-		Window:      window,
-		Storage:     rateLimitStorage,
-	}
-
-	var trustedProxies []string
-	if cfg.TrustedProxies != "" {
-		for _, p := range strings.Split(cfg.TrustedProxies, ",") {
-			p = strings.TrimSpace(p)
-			if p != "" {
-				trustedProxies = append(trustedProxies, p)
-			}
-		}
-	}
+	rateLimitConfig := buildRateLimitConfig(cfg, redisConnection, logger)
+	trustedProxies := parseTrustedProxies(cfg.TrustedProxies)
 
 	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps, corsConfig, rateLimitConfig, trustedProxies)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
@@ -574,6 +389,7 @@ func InitServers() (_ *Service, err error) {
 						logger.Errorf("Cleanup panic at index %d: %v", idx, r)
 					}
 				}()
+
 				cleanups[idx]()
 			}(i)
 		}
@@ -584,4 +400,46 @@ func InitServers() (_ *Service, err error) {
 		Logger:  logger,
 		cleanup: shutdown,
 	}, nil
+}
+
+// buildRateLimitConfig assembles the rate limit configuration from environment
+// settings, using Redis-backed storage when rate limiting is enabled.
+func buildRateLimitConfig(cfg *Config, redisConnection *libRedis.RedisConnection, logger log.Logger) httpIn.RateLimitConfig {
+	window := constant.RateLimitDefaultWindow
+	if cfg.RateLimitWindow > 0 {
+		window = time.Duration(cfg.RateLimitWindow) * time.Second
+	}
+
+	var rateLimitStorage httpIn.RateLimitStorage
+	if cfg.RateLimitEnabled {
+		rateLimitStorage = httpIn.NewRedisStorage(redisConnection, logger)
+	}
+
+	return httpIn.RateLimitConfig{
+		Enabled:     cfg.RateLimitEnabled,
+		GlobalMax:   cfg.RateLimitGlobal,
+		ExportMax:   cfg.RateLimitExport,
+		DispatchMax: cfg.RateLimitDispatch,
+		Window:      window,
+		Storage:     rateLimitStorage,
+	}
+}
+
+// parseTrustedProxies splits the comma-separated trusted proxies string into
+// a cleaned slice, omitting empty entries.
+func parseTrustedProxies(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+
+	var proxies []string
+
+	for _, p := range strings.Split(raw, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			proxies = append(proxies, p)
+		}
+	}
+
+	return proxies
 }

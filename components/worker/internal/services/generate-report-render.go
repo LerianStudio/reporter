@@ -23,8 +23,8 @@ import (
 )
 
 // loadTemplate loads template file from SeaweedFS.
-func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, span *trace.Span, logger log.Logger) ([]byte, error) {
-	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+func (uc *UseCase) loadTemplate(ctx context.Context, message GenerateReportMessage, span *trace.Span) ([]byte, error) {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, spanTemplate := tracer.Start(ctx, "service.report.get_template")
 	defer spanTemplate.End()
@@ -52,8 +52,8 @@ func (uc *UseCase) loadTemplate(ctx context.Context, tracer trace.Tracer, messag
 }
 
 // renderTemplate renders the template with data from external sources.
-func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span, logger log.Logger) (string, error) {
-	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+func (uc *UseCase) renderTemplate(ctx context.Context, templateBytes []byte, result map[string]map[string][]map[string]any, message GenerateReportMessage, span *trace.Span) (string, error) {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, spanRender := tracer.Start(ctx, "service.report.render_template")
 	defer spanRender.End()
@@ -81,12 +81,12 @@ func (uc *UseCase) renderTemplate(ctx context.Context, tracer trace.Tracer, temp
 }
 
 // convertToPDFIfNeeded converts HTML to PDF if output format is PDF.
-func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, tracer trace.Tracer, message GenerateReportMessage, htmlOutput string, span *trace.Span, logger log.Logger) (string, error) {
+func (uc *UseCase) convertToPDFIfNeeded(ctx context.Context, message GenerateReportMessage, htmlOutput string, span *trace.Span) (string, error) {
 	if strings.ToLower(message.OutputFormat) != "pdf" {
 		return htmlOutput, nil
 	}
 
-	_, _, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
 	ctx, spanPDF := tracer.Start(ctx, "service.report.convert_to_pdf")
 	defer spanPDF.End()

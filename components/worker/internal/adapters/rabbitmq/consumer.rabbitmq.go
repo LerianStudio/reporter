@@ -278,7 +278,6 @@ func (cr *ConsumerRoutes) handleFailedMessage(workerID int, queue string, messag
 			Body:         message.Body,
 		},
 	)
-
 	if publishErr != nil {
 		cr.Errorf("Worker %d: Failed to republish message for retry on queue %s: %v. Sending to DLQ.",
 			workerID, queue, publishErr)

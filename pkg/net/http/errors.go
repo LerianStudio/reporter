@@ -52,11 +52,8 @@ func IsBusinessError(err error) bool {
 	}
 
 	var forbiddenErr pkg.ForbiddenError
-	if errors.As(err, &forbiddenErr) {
-		return true
-	}
 
-	return false
+	return errors.As(err, &forbiddenErr)
 }
 
 // WithError returns an error with the given status code and message.

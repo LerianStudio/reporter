@@ -30,6 +30,8 @@ type TestInfrastructure struct {
 	mu          sync.Mutex
 }
 
+const defaultStartTimeoutSeconds = 120
+
 // InfrastructureConfig holds configuration for container startup.
 type InfrastructureConfig struct {
 	MongoImage   string
@@ -48,7 +50,7 @@ func DefaultConfig() *InfrastructureConfig {
 		SeaweedImage: "chrislusf/seaweedfs:3.97",
 		ValkeyImage:  "valkey/valkey:latest",
 		NetworkName:  "reporter-test-network",
-		StartTimeout: 120 * time.Second,
+		StartTimeout: defaultStartTimeoutSeconds * time.Second,
 	}
 }
 

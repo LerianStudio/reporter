@@ -16,6 +16,12 @@ import (
 	"time"
 )
 
+const (
+	managerHealthTimeout      = 60 * time.Second
+	managerShutdownTimeout    = 10 * time.Second
+	managerHealthCheckTimeout = 2 * time.Second
+)
+
 // ManagerService wraps a Manager subprocess for testing.
 type ManagerService struct {
 	cmd     *exec.Cmd
@@ -69,7 +75,7 @@ func StartManager(ctx context.Context, cfg *ServiceConfig) (*ManagerService, err
 	ms.mu.Unlock()
 
 	// Wait for server to be ready
-	if err := waitForHealth(ctx, ms.addr, 60*time.Second); err != nil {
+	if err := waitForHealth(ctx, ms.addr, managerHealthTimeout); err != nil {
 		_ = ms.Stop(ctx)
 		return nil, fmt.Errorf("wait for manager health: %w", err)
 	}
@@ -113,7 +119,7 @@ func (m *ManagerService) Stop(ctx context.Context) error {
 	select {
 	case <-done:
 		return nil
-	case <-time.After(10 * time.Second):
+	case <-time.After(managerShutdownTimeout):
 		_ = m.cmd.Process.Kill()
 		return fmt.Errorf("timeout waiting for manager shutdown, killed")
 	case <-ctx.Done():
@@ -199,7 +205,7 @@ func waitForHealth(ctx context.Context, baseURL string, timeout time.Duration) e
 	healthURL := baseURL + "/health"
 	deadline := time.Now().Add(timeout)
 
-	client := &http.Client{Timeout: 2 * time.Second}
+	client := &http.Client{Timeout: managerHealthCheckTimeout}
 
 	for time.Now().Before(deadline) {
 		select {

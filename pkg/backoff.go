@@ -12,6 +12,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 )
 
+const backoffDivisor = 2
+
 // FullJitter returns a random duration in [0, baseDelay], capped at ProducerMaxBackoff.
 // Full jitter prevents thundering herd when multiple producers reconnect simultaneously
 // after a RabbitMQ restart. Uses crypto/rand for unbiased distribution.
@@ -20,15 +22,15 @@ func FullJitter(baseDelay time.Duration) time.Duration {
 		return 0
 	}
 
-	cap := baseDelay
-	if cap > constant.ProducerMaxBackoff {
-		cap = constant.ProducerMaxBackoff
+	delayCap := baseDelay
+	if delayCap > constant.ProducerMaxBackoff {
+		delayCap = constant.ProducerMaxBackoff
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(cap)))
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(delayCap)))
 	if err != nil {
 		// Fallback to half the base delay if crypto/rand fails (extremely unlikely).
-		return cap / 2
+		return delayCap / backoffDivisor
 	}
 
 	return time.Duration(n.Int64())

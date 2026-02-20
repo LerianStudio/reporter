@@ -54,22 +54,6 @@ func (qh *QueryHeader) ToOffsetPagination() Pagination {
 	}
 }
 
-// queryParam retrieves a query parameter value from the params map, checking
-// the snake_case key first (new standard) and falling back to the camelCase key
-// (backwards compatibility). Returns the value and true if found, or empty string
-// and false if neither key exists.
-func queryParam(params map[string]string, snakeCase, camelCase string) (string, bool) {
-	if v, ok := params[snakeCase]; ok {
-		return v, true
-	}
-
-	if v, ok := params[camelCase]; ok {
-		return v, true
-	}
-
-	return "", false
-}
-
 // normalizeParams rewrites legacy camelCase query parameter keys to their
 // snake_case equivalents so the parsing loop only needs to match one format.
 // When both formats are present for the same parameter, snake_case takes precedence.
@@ -101,6 +85,21 @@ func normalizeParams(params map[string]string) map[string]string {
 	}
 
 	return normalized
+}
+
+// parsePositiveInt parses a string as an integer and validates that the result
+// is at least 1. It returns a validation error referencing paramName on failure.
+func parsePositiveInt(value, paramName string) (int, error) {
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", paramName)
+	}
+
+	if parsed < 1 {
+		return 0, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", paramName)
+	}
+
+	return parsed, nil
 }
 
 // ValidateParameters validate and return struct of default parameters.
@@ -142,24 +141,16 @@ func ValidateParameters(params map[string]string) (*QueryHeader, error) {
 				templateID = parsedID
 			}
 		case key == "limit":
-			parsed, err := strconv.Atoi(value)
+			parsed, err := parsePositiveInt(value, "limit")
 			if err != nil {
-				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "limit")
-			}
-
-			if parsed < 1 {
-				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "limit")
+				return nil, err
 			}
 
 			limit = parsed
 		case key == "page":
-			parsed, err := strconv.Atoi(value)
+			parsed, err := parsePositiveInt(value, "page")
 			if err != nil {
-				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "page")
-			}
-
-			if parsed < 1 {
-				return nil, pkg.ValidateBusinessError(constant.ErrInvalidQueryParameter, "", "page")
+				return nil, err
 			}
 
 			page = parsed

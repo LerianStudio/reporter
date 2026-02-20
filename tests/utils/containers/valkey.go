@@ -93,7 +93,7 @@ func (v *ValkeyContainer) Restart(ctx context.Context, delay time.Duration) erro
 		return fmt.Errorf("refresh valkey host: %w", err)
 	}
 
-	mappedPort, err := v.RedisContainer.MappedPort(ctx, "6379/tcp")
+	mappedPort, err := v.MappedPort(ctx, "6379/tcp")
 	if err != nil {
 		return fmt.Errorf("refresh valkey mapped port: %w", err)
 	}
