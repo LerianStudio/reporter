@@ -2220,3 +2220,92 @@ func TestExtractFieldsFromExpressionOfAggregation(t *testing.T) {
 		})
 	}
 }
+
+func TestMappedFieldsOfTemplate_LastItemByGroup_Basic(t *testing.T) {
+	t.Parallel()
+
+	template := `{% last_item_by_group midaz_transaction.operation group_by "account_id" order_by "created_at" as listaOperations %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	// Should extract midaz_transaction.operation with fields account_id and created_at
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	fields := result["midaz_transaction"]["operation"]
+	assert.Contains(t, fields, "account_id")
+	assert.Contains(t, fields, "created_at")
+}
+
+func TestMappedFieldsOfTemplate_LastItemByGroup_WithFilter(t *testing.T) {
+	t.Parallel()
+
+	template := `{% last_item_by_group midaz_transaction.operation group_by "account_id" order_by "created_at" if route as listaOperations %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	fields := result["midaz_transaction"]["operation"]
+	assert.Contains(t, fields, "account_id")
+	assert.Contains(t, fields, "created_at")
+	assert.Contains(t, fields, "route")
+}
+
+func TestMappedFieldsOfTemplate_LastItemByGroup_WithSumBy(t *testing.T) {
+	t.Parallel()
+
+	template := `{% last_item_by_group midaz_transaction.operation group_by "account_id" order_by "created_at" if route as listaOperations %}
+{%- for oproute in midaz_transaction.operation_route %}
+{%- if oproute.code %}
+    <registro>
+      <conta>{{ oproute.code }}</conta>
+      <saldoDia>{% sum_by listaOperations by "available_balance_after" if oproute.id == route %}</saldoDia>
+    </registro>
+{%- endif %}
+{%- endfor %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	// Should extract midaz_transaction.operation with its fields
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	operationFields := result["midaz_transaction"]["operation"]
+	assert.Contains(t, operationFields, "account_id")
+	assert.Contains(t, operationFields, "created_at")
+	assert.Contains(t, operationFields, "route")
+	assert.Contains(t, operationFields, "available_balance_after")
+
+	// Should also extract midaz_transaction.operation_route with its fields
+	require.Contains(t, result["midaz_transaction"], "operation_route")
+	routeFields := result["midaz_transaction"]["operation_route"]
+	assert.Contains(t, routeFields, "code")
+	assert.Contains(t, routeFields, "id")
+}
+
+func TestMappedFieldsOfTemplate_LastItemByGroup_WithComplexFilter(t *testing.T) {
+	t.Parallel()
+
+	template := `{% last_item_by_group midaz_transaction.operation group_by "account_id" order_by "created_at" if status == "COMPLETED" as listaOperations %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	fields := result["midaz_transaction"]["operation"]
+	assert.Contains(t, fields, "account_id")
+	assert.Contains(t, fields, "created_at")
+}
+
+func TestMappedFieldsOfTemplate_LastItemByGroup_ExplicitSchema(t *testing.T) {
+	t.Parallel()
+
+	template := `{% last_item_by_group midaz_transaction:transaction.operation group_by "account_id" order_by "created_at" as listaOps %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "transaction__operation")
+	fields := result["midaz_transaction"]["transaction__operation"]
+	assert.Contains(t, fields, "account_id")
+	assert.Contains(t, fields, "created_at")
+}

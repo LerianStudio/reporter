@@ -78,6 +78,7 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 
 	regexBlockIfOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockSetOnPlaceholder(templateFile, resultRegex, variableMap)
+	regexBlockLastItemByGroupOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockAggregationBlocksOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockCalcOnPlaceholder(templateFile, resultRegex, variableMap)
 	regexBlockDIMPFiltersOnPlaceholder(templateFile, resultRegex, variableMap)
@@ -135,8 +136,89 @@ func regexBlockSetOnPlaceholder(templateFile string, resultRegex map[string]any,
 	}
 }
 
-// regexBlockIfOnPlaceholder parses a template file to process "if" blocks and updates a nested map with extracted field mappings.
-// It identifies fields used in conditional statements, cleans their paths, and inserts them into the resultRegex map structure.
+// regexBlockLastItemByGroupOnPlaceholder parses a template file to process "last_item_by_group" blocks.
+// It extracts the collection path, group_by field, order_by field, optional if-condition fields,
+// and registers the "as" variable in variableMap so subsequent tags can reference the result.
+func regexBlockLastItemByGroupOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
+	tagRegex := regexp.MustCompile(`{%-?\s*last_item_by_group\s+(.*?)\s*-?%}`)
+
+	tagMatches := tagRegex.FindAllStringSubmatch(templateFile, -1)
+	for _, match := range tagMatches {
+		expr := match[1]
+
+		// Parse: <collection> group_by "<field>" order_by "<field>" [if <condition>] as <var>
+		partsRegex := regexp.MustCompile(`^(\S+)\s+group_by\s+"([^"]+)"\s+order_by\s+"([^"]+)"(?:\s+if\s+(.+?))?\s+as\s+(\w+)$`)
+		parts := partsRegex.FindStringSubmatch(strings.TrimSpace(expr))
+
+		if len(parts) == 0 {
+			continue
+		}
+
+		collectionPath := parts[1] // e.g., "midaz_transaction.operation"
+		groupByField := parts[2]   // e.g., "account_id"
+		orderByField := parts[3]   // e.g., "created_at"
+		ifCondition := parts[4]    // e.g., "route" or "type == \"CREDIT\"" (may be empty)
+		asVarName := parts[5]      // e.g., "listaOperations"
+
+		// Clean the collection path
+		mainPath := CleanPath(collectionPath)
+		if len(mainPath) < constant.MinPathParts {
+			continue
+		}
+
+		// Register the "as" variable in variableMap pointing to the collection path
+		variableMap[asVarName] = mainPath[:constant.MinPathParts]
+
+		// Insert the group_by field(s) - supports comma-separated composite keys
+		for _, gf := range strings.Split(groupByField, ",") {
+			insertField(resultRegex, mainPath[:constant.MinPathParts], strings.TrimSpace(gf))
+		}
+
+		// Insert the order_by field
+		insertField(resultRegex, mainPath[:constant.MinPathParts], orderByField)
+
+		// Process if-condition fields (if present)
+		if ifCondition != "" {
+			insertConditionFields(ifCondition, resultRegex, mainPath[:constant.MinPathParts], variableMap)
+		}
+	}
+}
+
+// insertConditionFields extracts field references from an if-condition expression
+// and inserts them into the result regex map.
+func insertConditionFields(ifCondition string, resultRegex map[string]any, basePath []string, variableMap map[string][]string) {
+	conditionFields := extractIfFromExpression(ifCondition)
+	if len(conditionFields) > 0 {
+		for _, fieldExpr := range conditionFields {
+			condParts := CleanPath(fieldExpr)
+			if len(condParts) < constant.MinPathParts {
+				insertField(resultRegex, basePath, fieldExpr)
+			} else if loopPath, ok := variableMap[condParts[0]]; ok {
+				insertField(resultRegex, loopPath, condParts[1])
+			} else {
+				insertField(resultRegex, condParts[:len(condParts)-1], condParts[len(condParts)-1])
+			}
+		}
+
+		return
+	}
+
+	// extractIfFromExpression only returns dotted paths (a.b).
+	// For simple field names (e.g., "route"), extract identifiers directly.
+	simpleFieldRegex := regexp.MustCompile(`\b([a-zA-Z_]\w*)\b`)
+
+	simpleMatches := simpleFieldRegex.FindAllString(ifCondition, -1)
+	for _, field := range simpleMatches {
+		if isConditionKeyword(field) {
+			continue
+		}
+
+		insertField(resultRegex, basePath, field)
+	}
+}
+
+// regexBlockAggregationBlocksOnPlaceholder parses a template file to process aggregation blocks
+// (count_by, sum_by, avg_by, min_by, max_by) and updates a nested map with extracted field mappings.
 func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex map[string]any, variableMap map[string][]string) {
 	aggrRegexes := []*regexp.Regexp{
 		regexp.MustCompile(`{%-?\s*count_by\s+(.*?)\s*-?%}`),
@@ -159,9 +241,17 @@ func regexBlockAggregationBlocksOnPlaceholder(templateFile string, resultRegex m
 			continue
 		}
 
-		mainPath := CleanPath(strings.TrimSpace(args[0]))
+		rawMain := strings.TrimSpace(args[0])
+		mainPath := CleanPath(rawMain)
+
+		// If the collection reference is a single identifier, resolve it from variableMap
+		// (e.g., "listaOperations" registered by last_item_by_group)
 		if len(mainPath) < constant.MinPathParts {
-			continue
+			if resolved, ok := variableMap[rawMain]; ok && len(resolved) >= constant.MinPathParts {
+				mainPath = resolved
+			} else {
+				continue
+			}
 		}
 
 		variableMap[mainPath[1]] = mainPath
@@ -951,6 +1041,17 @@ func cleanPathLegacy(path string) []string {
 	}
 
 	return clean
+}
+
+// isConditionKeyword returns true if the given string is a comparison operator or keyword
+// that should not be treated as a field name when extracting fields from if-conditions.
+func isConditionKeyword(s string) bool {
+	switch s {
+	case "and", "or", "not", "true", "false", "nil", "is", "in", "eq", "ne", "lt", "gt", "le", "ge":
+		return true
+	default:
+		return false
+	}
 }
 
 // isQuotedString checks if a string is a quoted literal (starts and ends with quotes)

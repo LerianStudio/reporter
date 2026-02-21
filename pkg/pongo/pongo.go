@@ -85,8 +85,8 @@ func doRegisterAll() error {
 		return fmt.Errorf("failed to register calc tag: %w", err)
 	}
 
-	if err := pongo2.RegisterTag("aggregate_balance", makeAggregateBalanceTag()); err != nil {
-		return fmt.Errorf("failed to register aggregate_balance tag: %w", err)
+	if err := pongo2.RegisterTag("last_item_by_group", makeLastItemByGroupTag()); err != nil {
+		return fmt.Errorf("failed to register last_item_by_group tag: %w", err)
 	}
 
 	// Register counter tags for counting blocks during rendering

@@ -15,6 +15,6 @@ const DefaultPasswordPlaceholder = "CHANGE_ME"
 // RedactPlaceholder is the replacement value for masked credentials in connection strings.
 const RedactPlaceholder = "REDACTED"
 
-// MaxAggregateBalanceCollectionSize is the maximum number of items allowed in a collection
-// to prevent resource exhaustion attacks in the aggregate_balance tag.
-const MaxAggregateBalanceCollectionSize = 100000
+// MaxTagCollectionSize is the maximum number of items allowed in a collection
+// to prevent resource exhaustion attacks in template tags.
+const MaxTagCollectionSize = 100000
