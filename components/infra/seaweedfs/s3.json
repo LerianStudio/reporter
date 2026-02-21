@@ -15,7 +15,7 @@
       "credentials": [
         {
           "accessKey": "any",
-          "secretKey": "CHANGE_ME"
+          "secretKey": "any"
         }
       ],
       "actions": [
