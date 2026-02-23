@@ -37,6 +37,11 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 	resultRegex := regexBlockWithOnPlaceholder(variableMap, templateFile)
 	regexBlockForWithFilterOnPlaceholder(resultRegex, variableMap, templateFile)
 
+	// Re-resolve nested variables after with/filter blocks registered their variables.
+	// For loops parsed first may reference with-variables that didn't exist yet
+	// (e.g., "for operation in operations" where "operations" comes from a with block).
+	resolveNestedVariables(variableMap)
+
 	// Regex for fields {{ ... }}
 	fieldRegex := regexp.MustCompile(`{{\s*(.*?)\s*}}`)
 
@@ -57,6 +62,14 @@ func MappedFieldsOfTemplate(templateFile string) map[string]map[string][]string 
 				// This is just datasource.collection, skip it - DIMP function will handle
 				continue
 			}
+		}
+
+		// For expressions with arithmetic operators (e.g., "6 + plugin_crm.holders|length"),
+		// use regex-based extraction that correctly isolates dotted field paths
+		// instead of the pipe-splitting logic that misinterprets "6 + plugin_crm.holders" as a path.
+		if containsArithmeticOperator(expr) {
+			registerArithmeticFieldPaths(expr, resultRegex, variableMap)
+			continue
 		}
 
 		fieldPaths := extractFieldsFromExpression(expr)
@@ -1041,6 +1054,45 @@ func cleanPathLegacy(path string) []string {
 	}
 
 	return clean
+}
+
+// registerArithmeticFieldPaths extracts dotted field paths from arithmetic expressions
+// (e.g., "6 + plugin_crm.holders|length") and ensures the referenced collections exist
+// in the result map. For 2-part paths (datasource.collection), it only ensures the
+// map structure exists without overwriting existing field lists.
+func registerArithmeticFieldPaths(expr string, resultRegex map[string]any, variableMap map[string][]string) {
+	fieldPaths := extractIfFromExpression(expr)
+
+	for _, fieldExpr := range fieldPaths {
+		parts := CleanPath(fieldExpr)
+		if len(parts) < constant.MinPathParts {
+			continue
+		}
+
+		if loopPath, ok := variableMap[parts[0]]; ok {
+			if len(parts) > constant.MinPathParts {
+				fullPath := append([]string{}, loopPath...)
+				insertField(resultRegex, fullPath, parts[1])
+			} else {
+				// Collection reference (e.g., |length) - just ensure structure exists
+				ensureMapStructure(resultRegex, loopPath)
+			}
+		} else if len(parts) > constant.MinPathParts {
+			// Has specific field (datasource.collection.field)
+			insertField(resultRegex, parts[:len(parts)-1], parts[len(parts)-1])
+		} else {
+			// Only datasource.collection (used with |length) - ensure structure exists
+			ensureMapStructure(resultRegex, parts)
+		}
+	}
+}
+
+// containsArithmeticOperator checks if an expression contains arithmetic operators
+// surrounded by spaces (e.g., "6 + plugin_crm.holders|length").
+var arithmeticOperatorRegex = regexp.MustCompile(`\s[+\-*/]\s`)
+
+func containsArithmeticOperator(expr string) bool {
+	return arithmeticOperatorRegex.MatchString(expr)
 }
 
 // isConditionKeyword returns true if the given string is a comparison operator or keyword

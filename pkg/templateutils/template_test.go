@@ -2309,3 +2309,61 @@ func TestMappedFieldsOfTemplate_LastItemByGroup_ExplicitSchema(t *testing.T) {
 	assert.Contains(t, fields, "account_id")
 	assert.Contains(t, fields, "created_at")
 }
+
+func TestMappedFieldsOfTemplate_WithFilterAndNestedFor(t *testing.T) {
+	t.Parallel()
+
+	// Reproduces the pattern: with operations = filter(...) + for operation in operations
+	// The "operations" variable is defined by "with" and iterated by "for".
+	// Without re-resolving nested variables, "operations" would appear as a phantom data source.
+	template := `{%- for holder in plugin_crm.holders %}
+{%- for alias in plugin_crm.aliases %}
+{%- if alias.holder_id == holder.id %}
+{%- with operations = filter(midaz_transaction.operation, "account_id", alias.account_id) %}
+{% sum_by operations by 'amount.value' %}
+{%- for operation in operations %}
+{{ operation.transaction_id }}
+{%- endfor %}
+{%- endwith %}
+{%- endif %}
+{%- endfor %}
+{%- endfor %}`
+
+	result := MappedFieldsOfTemplate(template)
+
+	// "operations" must NOT appear as a data source - it's a local variable
+	assert.NotContains(t, result, "operations", "local 'with' variable should not be a data source")
+
+	// Fields should be correctly mapped to midaz_transaction.operation
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	fields := result["midaz_transaction"]["operation"]
+	assert.Contains(t, fields, "account_id")
+	assert.Contains(t, fields, "transaction_id")
+}
+
+func TestMappedFieldsOfTemplate_ArithmeticWithLength(t *testing.T) {
+	t.Parallel()
+
+	// Realistic template: collections are used in for loops AND in an arithmetic |length expression.
+	// The arithmetic expression must NOT create phantom data sources or overwrite existing field mappings.
+	template := `{%- for holder in plugin_crm.holders %}{{ holder.name }}{%- endfor %}
+{%- for alias in plugin_crm.aliases %}{{ alias.account_id }}{%- endfor %}
+{%- for op in midaz_transaction.operation %}{{ op.amount }}{%- endfor %}
+|9999|{{ 6 + plugin_crm.holders|length + plugin_crm.aliases|length + midaz_transaction.operation|length }}|`
+
+	result := MappedFieldsOfTemplate(template)
+
+	// "6 + plugin_crm" must NOT appear as a data source
+	assert.NotContains(t, result, "6 + plugin_crm", "arithmetic operand should not be a data source")
+
+	// Correct data sources and fields should be preserved from the for loops
+	require.Contains(t, result, "plugin_crm")
+	require.Contains(t, result["plugin_crm"], "holders")
+	assert.Contains(t, result["plugin_crm"]["holders"], "name")
+	require.Contains(t, result["plugin_crm"], "aliases")
+	assert.Contains(t, result["plugin_crm"]["aliases"], "account_id")
+	require.Contains(t, result, "midaz_transaction")
+	require.Contains(t, result["midaz_transaction"], "operation")
+	assert.Contains(t, result["midaz_transaction"]["operation"], "amount")
+}
