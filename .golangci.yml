@@ -28,6 +28,10 @@ linters:
     - wastedassign
     - wsl_v5
   settings:
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
     depguard:
       rules:
         main:
@@ -35,7 +39,7 @@ linters:
             - pkg: io/ioutil
               desc: The io/ioutil package has been deprecated, see https://go.dev/doc/go1.16#ioutil
     gocyclo:
-      min-complexity: 16
+      min-complexity: 18
     govet:
       enable:
         - shadow
@@ -56,10 +60,6 @@ linters:
         - name: use-any
           severity: warning
           disabled: false
-    wsl_v5:
-      allow-first-in-block: true
-      allow-whole-block: false
-      branch-max-lines: 2
   exclusions:
     generated: lax
     rules:

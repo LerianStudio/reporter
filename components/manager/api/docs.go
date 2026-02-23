@@ -18,6 +18,11 @@ const docTemplate = `{
     "paths": {
         "/v1/data-sources": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves all data sources connected on plugin with all information from the database",
                 "produces": [
                     "application/json"
@@ -26,14 +31,6 @@ const docTemplate = `{
                     "Data source"
                 ],
                 "summary": "Get all data sources connected on reporter",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -42,6 +39,18 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/DataSourceInformation"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
                     "500": {
@@ -55,6 +64,11 @@ const docTemplate = `{
         },
         "/v1/data-sources/{dataSourceId}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a data sources information with data source id passed",
                 "produces": [
                     "application/json"
@@ -64,12 +78,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get a data sources information",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Data source ID",
@@ -91,6 +99,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -108,6 +128,11 @@ const docTemplate = `{
         },
         "/v1/reports": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "List all the reports",
                 "produces": [
                     "application/json"
@@ -117,12 +142,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get all reports",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Report status (processing, finished, error)",
@@ -193,6 +212,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -202,6 +233,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a Report of existent template with the input payload",
                 "consumes": [
                     "application/json"
@@ -216,8 +252,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
+                        "description": "Client-provided idempotency key to prevent duplicate report creation",
+                        "name": "X-Idempotency",
                         "in": "header"
                     },
                     {
@@ -243,6 +279,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -260,6 +308,11 @@ const docTemplate = `{
         },
         "/v1/reports/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get information of a Report passing the ID",
                 "consumes": [
                     "application/json"
@@ -272,12 +325,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get a Report",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Report ID",
@@ -299,6 +346,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -316,6 +375,11 @@ const docTemplate = `{
         },
         "/v1/reports/{id}/download": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Make a download of a Report passing the ID",
                 "consumes": [
                     "application/json"
@@ -328,12 +392,6 @@ const docTemplate = `{
                 ],
                 "summary": "Download a Report",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Report ID",
@@ -355,6 +413,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -372,6 +442,11 @@ const docTemplate = `{
         },
         "/v1/templates": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "List all the templates",
                 "produces": [
                     "application/json"
@@ -381,12 +456,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get all templates",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "XML, HTML, TXT and CSV",
@@ -451,6 +520,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -460,6 +541,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a Template for reports with the input payload",
                 "consumes": [
                     "multipart/form-data"
@@ -474,8 +560,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
+                        "description": "Client-provided idempotency key to prevent duplicate template creation",
+                        "name": "X-Idempotency",
                         "in": "header"
                     },
                     {
@@ -513,6 +599,24 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -524,6 +628,11 @@ const docTemplate = `{
         },
         "/v1/templates/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a template by id",
                 "produces": [
                     "application/json"
@@ -533,12 +642,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get template",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -560,6 +663,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -575,6 +690,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "SoftDelete a Template with the input ID. Returns 204 with no content on success.",
                 "produces": [
                     "application/json"
@@ -584,12 +704,6 @@ const docTemplate = `{
                 ],
                 "summary": "SoftDelete a Template by ID",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "string",
                         "description": "Template ID",
@@ -604,6 +718,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
@@ -623,6 +749,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update a template with the input payload",
                 "consumes": [
                     "multipart/form-data"
@@ -635,12 +766,6 @@ const docTemplate = `{
                 ],
                 "summary": "Update a template",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "The authorization token in the 'Bearer\taccess_token' format. Only required when auth plugin is enabled.",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
                     {
                         "type": "file",
                         "description": "Template file (.tpl)",
@@ -679,6 +804,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/pkg.HTTPError"
                         }
@@ -926,6 +1063,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "The authorization token in the 'Bearer access_token' format. Only required when auth plugin is enabled.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

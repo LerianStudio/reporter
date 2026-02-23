@@ -14,11 +14,15 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/storage"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Repository provides an interface for storage operations
 //
-//go:generate mockgen --destination=template.mock.go --package=template . Repository
+//go:generate mockgen --destination=template.mock.go --package=template --copyright_file=../../../COPYRIGHT . Repository
 type Repository interface {
 	Get(ctx context.Context, objectName string) ([]byte, error)
 	Put(ctx context.Context, objectName string, contentType string, data []byte) error
@@ -28,6 +32,9 @@ type Repository interface {
 type StorageRepository struct {
 	storage storage.ObjectStorage
 }
+
+// Compile-time interface satisfaction check.
+var _ Repository = (*StorageRepository)(nil)
 
 // NewStorageRepository creates a new instance of StorageRepository with the given storage client.
 func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepository {
@@ -39,18 +46,31 @@ func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepositor
 // Get the content of a .tpl file from the storage.
 // objectName can be passed with or without .tpl extension - it will be normalized.
 func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.template_storage.get")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
+
 	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
 	objectName = strings.TrimSuffix(objectName, ".tpl")
 	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
+	logger.Infof("Getting template from storage: %s", key)
+
 	reader, err := repo.storage.Download(ctx, key)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to download template from storage", err)
+
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 	defer reader.Close()
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to read template data", err)
+
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
@@ -60,15 +80,24 @@ func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]by
 // Put uploads data to the storage with the given object name and content type.
 // objectName can be passed with or without .tpl extension - it will be normalized.
 func (repo *StorageRepository) Put(ctx context.Context, objectName string, contentType string, data []byte) error {
-	logger := pkg.NewLoggerFromContext(ctx)
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.template_storage.put")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
 	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
 	objectName = strings.TrimSuffix(objectName, ".tpl")
 	key := fmt.Sprintf("templates/%s.tpl", objectName)
 
+	logger.Infof("Putting template to storage: %s", key)
+
 	_, err := repo.storage.Upload(ctx, key, bytes.NewReader(data), contentType)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to upload template to storage", err)
 		logger.Errorf("Error communicating with storage: %v", err)
+
 		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 

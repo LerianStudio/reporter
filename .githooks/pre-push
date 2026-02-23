@@ -3,7 +3,23 @@
 source "$PWD"/pkg/shell/colors.sh
 source "$PWD"/pkg/shell/ascii.sh
 
+# Block force-push to protected branches and enforce branch naming
+protected_branches="main develop release-candidate"
+
 while read local_ref local_sha remote_ref remote_sha; do
+    # Detect force-push: remote_sha is not ancestor of local_sha (and neither is zero)
+    if [[ "$remote_sha" != "0000000000000000000000000000000000000000" ]] && [[ "$local_sha" != "0000000000000000000000000000000000000000" ]]; then
+        remote_branch=$(echo "$remote_ref" | sed 's|^refs/heads/||')
+        for protected in $protected_branches; do
+            if [[ "$remote_branch" == "$protected" ]]; then
+                if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+                    echo "${bold}Force-push to protected branch '$protected' is blocked."
+                    exit 1
+                fi
+            fi
+        done
+    fi
+
     if [[ "$local_ref" =~ ^refs/heads/ ]]; then
         branch_name=$(echo "$local_ref" | sed 's|^refs/heads/||')
 

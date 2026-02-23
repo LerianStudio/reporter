@@ -6,38 +6,29 @@ package services
 
 import (
 	"context"
-	"os"
 	"testing"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/pkg/model"
+	"github.com/LerianStudio/reporter/pkg/rabbitmq"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func TestSendReportQueueReports(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
+func TestUseCase_SendReportQueueReports(t *testing.T) {
+	t.Parallel()
 
 	reportID := uuid.New()
 	templateID := uuid.New()
 
-	// Set environment variables for the test
-	os.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	os.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
-	defer func() {
-		os.Unsetenv("RABBITMQ_EXCHANGE")
-		os.Unsetenv("RABBITMQ_GENERATE_REPORT_KEY")
-	}()
-
 	tests := []struct {
 		name          string
 		reportMessage model.ReportMessage
-		mockSetup     func()
+		mockSetup     func(ctrl *gomock.Controller) *UseCase
+		expectErr     bool
+		errContains   string
 	}{
 		{
 			name: "Success - Send report to queue",
@@ -52,10 +43,16 @@ func TestSendReportQueueReports(t *testing.T) {
 				},
 				Filters: nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 		{
@@ -79,10 +76,16 @@ func TestSendReportQueueReports(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 		{
@@ -94,59 +97,69 @@ func TestSendReportQueueReports(t *testing.T) {
 				MappedFields: map[string]map[string][]string{},
 				Filters:      nil,
 			},
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 				mockRabbitMQ.EXPECT().
 					ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 					Return(nil, nil)
+				return &UseCase{
+					RabbitMQRepo:              mockRabbitMQ,
+					RabbitMQExchange:          "test-exchange",
+					RabbitMQGenerateReportKey: "test-key",
+				}
 			},
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
 
-			svc := &UseCase{
-				RabbitMQRepo: mockRabbitMQ,
-			}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			svc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 
-			// This function doesn't return anything, so we just verify it doesn't panic
-			// and the mock expectations are met
-			assert.NotPanics(t, func() {
-				svc.SendReportQueueReports(ctx, tt.reportMessage)
-			})
+			err := svc.SendReportQueueReports(ctx, tt.reportMessage)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
 
-func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
+func TestUseCase_SendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
+	t.Parallel()
 
 	reportID := uuid.New()
 	templateID := uuid.New()
 
-	os.Setenv("RABBITMQ_EXCHANGE", "test-exchange")
-	os.Setenv("RABBITMQ_GENERATE_REPORT_KEY", "test-key")
-	defer func() {
-		os.Unsetenv("RABBITMQ_EXCHANGE")
-		os.Unsetenv("RABBITMQ_GENERATE_REPORT_KEY")
-	}()
-
 	outputFormats := []string{"pdf", "xml", "html", "txt", "csv"}
 
 	for _, format := range outputFormats {
-		t.Run("OutputFormat_"+format, func(t *testing.T) {
+		format := format
+		t.Run("Success - OutputFormat "+format, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 			mockRabbitMQ.EXPECT().
 				ProducerDefault(gomock.Any(), "test-exchange", "test-key", gomock.Any()).
 				Return(nil, nil)
 
 			svc := &UseCase{
-				RabbitMQRepo: mockRabbitMQ,
+				RabbitMQRepo:              mockRabbitMQ,
+				RabbitMQExchange:          "test-exchange",
+				RabbitMQGenerateReportKey: "test-key",
 			}
 
 			reportMessage := model.ReportMessage{
@@ -161,9 +174,9 @@ func TestSendReportQueueReports_WithDifferentOutputFormats(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			assert.NotPanics(t, func() {
-				svc.SendReportQueueReports(ctx, reportMessage)
-			})
+
+			err := svc.SendReportQueueReports(ctx, reportMessage)
+			require.NoError(t, err)
 		})
 	}
 }

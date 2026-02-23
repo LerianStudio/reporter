@@ -14,14 +14,9 @@ DOCKER_CMD := $(shell \
 # Display available commands
 .PHONY: help
 help:
-	@echo "                                                                                                                                       "
-	@echo "                                                                                                                                       "
-	@echo "To run a specific command inside the audit container using make, you can execute:                                                     "
-	@echo "                                                                                                                                       "
-	@echo "make audit COMMAND=\"any\"                                                                                                            "
-	@echo "                                                                                                                                       "
-	@echo "This command will run the specified command inside the audit container. Replace \"any\" with the desired command you want to execute. "
-	@echo "                                                                                                                         "
+	@echo ""
+	@echo "Reporter Infra - Available Commands"
+	@echo ""
 	@echo "## Docker commands:"
 	@echo "                                                                                                                         "
 	@echo "  COMMAND=\"build\"                                Builds all Docker images defined in docker-compose.yml."
@@ -32,7 +27,7 @@ help:
 	@echo "  COMMAND=\"destroy\"                              Stops and removes containers, networks, and volumes (including named volumes) defined in docker-compose.yml."
 	@echo "  COMMAND=\"restart\"                              Stops and removes containers, networks, and volumes, then starts all services in detached mode."
 	@echo "  COMMAND=\"logs\"                                 Shows the last 100 lines of logs and follows live log output for services defined in docker-compose.yml."
-	@echo "  COMMAND=\"logs-api\"                             Shows the last 100 lines of logs and follows live log output for the audit service defined in docker-compose.yml."
+	@echo "  COMMAND=\"logs-api\"                             Shows the last 100 lines of logs and follows live log output for the reporter service defined in docker-compose.yml."
 	@echo "  COMMAND=\"ps\"                                   Lists the status of containers defined in docker-compose.yml."
 	@echo "                                                                                                                         "
 	@echo "## App commands:"
@@ -75,6 +70,10 @@ ps:
 
 .PHONY: set-env
 set-env:
-	@echo "Setting up environment files..."
-	cp -r ./.env.example ./.env
-	@echo "Environment files created successfully"
+	@if [ -f ./.env ]; then \
+		echo ".env already exists, skipping (use 'cp .env.example .env' to overwrite manually)"; \
+	else \
+		echo "Setting up environment files..."; \
+		cp -r ./.env.example ./.env; \
+		echo "Environment files created successfully"; \
+	fi

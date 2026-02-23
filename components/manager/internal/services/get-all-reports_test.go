@@ -15,22 +15,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getAllReports(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestUseCase_GetAllReports(t *testing.T) {
+	t.Parallel()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
 	templateId := uuid.New()
 	reportId1 := uuid.New()
 	reportId2 := uuid.New()
 	timeNow := time.Now()
-
-	reportSvc := &UseCase{
-		ReportRepo: mockReportRepo,
-	}
 
 	filters := http.QueryHeader{
 		Limit:  10,
@@ -64,18 +59,21 @@ func Test_getAllReports(t *testing.T) {
 	tests := []struct {
 		name           string
 		filters        http.QueryHeader
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
+		expectedErr    error
 		expectedResult []*report.Report
 		expectedCount  int
 	}{
 		{
 			name:    "Success - Get all reports",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(mockReports, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false,
 			expectedResult: mockReports,
@@ -84,11 +82,13 @@ func Test_getAllReports(t *testing.T) {
 		{
 			name:    "Success - Get all reports with status filter",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				filteredReports := []*report.Report{mockReports[0]} // Only finished reports
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(filteredReports, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false,
 			expectedResult: []*report.Report{mockReports[0]},
@@ -97,42 +97,68 @@ func Test_getAllReports(t *testing.T) {
 		{
 			name:    "Error - Failed to retrieve reports",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrInternalServer,
 			expectedResult: nil,
 			expectedCount:  0,
 		},
 		{
 			name:    "Success - Empty result set",
 			filters: filters,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindList(gomock.Any(), gomock.Any()).
 					Return([]*report.Report{}, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      false, // Empty result set is valid, returns empty slice
+			expectedResult: []*report.Report{},
+			expectedCount:  0,
+		},
+		{
+			name:    "Success - Nil result set returns empty slice",
+			filters: filters,
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
+				mockReportRepo.EXPECT().
+					FindList(gomock.Any(), gomock.Any()).
+					Return(nil, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
+			},
+			expectErr:      false,
 			expectedResult: []*report.Report{},
 			expectedCount:  0,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			reportSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := reportSvc.GetAllReports(ctx, tt.filters)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 				assert.Len(t, result, tt.expectedCount)
 				if tt.expectedCount > 0 {
 					assert.Equal(t, tt.expectedResult[0].ID, result[0].ID)

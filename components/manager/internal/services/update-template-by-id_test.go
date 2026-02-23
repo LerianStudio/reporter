@@ -19,9 +19,11 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/postgres"
+	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -60,7 +62,8 @@ func createFileHeaderFromString(content, filename string) (*multipart.FileHeader
 	return files[0], nil
 }
 
-func Test_updateTemplateById(t *testing.T) {
+func TestUseCase_UpdateTemplateByID(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -69,6 +72,7 @@ func Test_updateTemplateById(t *testing.T) {
 	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization", "midaz_onboarding"})
 
 	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
 	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
 	mockDataSourcePostgres := postgres.NewMockRepository(ctrl)
 	htmlType := "html"
@@ -113,8 +117,8 @@ func Test_updateTemplateById(t *testing.T) {
 		},
 	}
 
-	externalDataSources := map[string]pkg.DataSource{}
-	externalDataSources["midaz_organization"] = pkg.DataSource{
+	externalDataSourcesMap := map[string]pkg.DataSource{}
+	externalDataSourcesMap["midaz_organization"] = pkg.DataSource{
 		DatabaseType:       "mongodb",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -125,7 +129,7 @@ func Test_updateTemplateById(t *testing.T) {
 		Initialized:        true,
 	}
 
-	externalDataSources["midaz_onboarding"] = pkg.DataSource{
+	externalDataSourcesMap["midaz_onboarding"] = pkg.DataSource{
 		DatabaseType:       "postgresql",
 		PostgresRepository: mockDataSourcePostgres,
 		MongoDBRepository:  mockDataSourceMongo,
@@ -146,7 +150,8 @@ func Test_updateTemplateById(t *testing.T) {
 
 	tempSvc := &UseCase{
 		TemplateRepo:        mockTempRepo,
-		ExternalDataSources: externalDataSources,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
 	}
 
 	templateTest := `
@@ -177,6 +182,7 @@ func Test_updateTemplateById(t *testing.T) {
 		tempId       uuid.UUID
 		mockSetup    func()
 		expectErr    bool
+		errContains  string
 	}{
 		{
 			name:         "Success - Update outputFormat template",
@@ -201,9 +207,29 @@ func Test_updateTemplateById(t *testing.T) {
 					CloseConnection().
 					Return(nil)
 
+				// First FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
 				mockTempRepo.EXPECT().
 					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+
+				// Second FindByID to get updated template (after update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
 			},
 			expectErr: false,
 		},
@@ -212,6 +238,7 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInternalServer.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -240,6 +267,7 @@ func Test_updateTemplateById(t *testing.T) {
 			templateFile: templateTestXMLFileHeader,
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrFileContentInvalid.Error(),
 			mockSetup: func() {
 				htmlTypeP := &htmlType
 				mockDataSourceMongo.EXPECT().
@@ -270,6 +298,7 @@ func Test_updateTemplateById(t *testing.T) {
 			outFormat:    "json",
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInvalidOutputFormat.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -295,6 +324,7 @@ func Test_updateTemplateById(t *testing.T) {
 			outFormat:    "html",
 			description:  "Template Financeiro",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrFileContentInvalid.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -320,6 +350,7 @@ func Test_updateTemplateById(t *testing.T) {
 			outFormat:    "xml",
 			description:  "Template Atualizado",
 			tempId:       uuid.New(),
+			errContains:  constant.ErrInternalServer.Error(),
 			mockSetup: func() {
 				mockDataSourceMongo.EXPECT().
 					GetDatabaseSchema(gomock.Any()).
@@ -335,6 +366,18 @@ func Test_updateTemplateById(t *testing.T) {
 
 				mockDataSourcePostgres.EXPECT().
 					CloseConnection().
+					Return(nil)
+
+				// FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				mockTempRepo.EXPECT().
@@ -354,6 +397,154 @@ func Test_updateTemplateById(t *testing.T) {
 			tempId:      uuid.New(),
 			mockSetup:   func() {},
 			expectErr:   true,
+			errContains: constant.ErrScriptTagDetected.Error(),
+		},
+		{
+			name:         "Error - GetTemplateByID after update fails",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			errContains:  "template not found after update",
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// First FindByID to get current template (before update)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				// Second FindByID (after update) fails
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("template not found after update"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Error - ReadMultipartFile fails",
+			templateFile: &multipart.FileHeader{Filename: "broken.tpl", Size: 1},
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			mockSetup:    func() {},
+			expectErr:    true,
+			errContains:  "open",
+		},
+		{
+			name:         "Error - Storage Put fails",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			errContains:  "storage unavailable",
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// FindByID to get current template (before storage upload)
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+					}, nil)
+
+				mockTempSeaweedFS.EXPECT().
+					Put(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(errors.New("storage unavailable"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Error - FindByID fails before update",
+			templateFile: templateTestXMLFileHeader,
+			outFormat:    "xml",
+			description:  "Template Atualizado",
+			tempId:       uuid.New(),
+			errContains:  "template not found",
+			mockSetup: func() {
+				mockDataSourceMongo.EXPECT().
+					GetDatabaseSchema(gomock.Any()).
+					Return(mongoSchemas, nil)
+
+				mockDataSourceMongo.EXPECT().
+					CloseConnection(gomock.Any()).
+					Return(nil)
+
+				mockDataSourcePostgres.EXPECT().
+					GetDatabaseSchema(gomock.Any(), gomock.Any()).
+					Return(postgresSchemas, nil)
+
+				mockDataSourcePostgres.EXPECT().
+					CloseConnection().
+					Return(nil)
+
+				// FindByID fails before update
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("template not found"))
+			},
+			expectErr: true,
+		},
+		{
+			name:         "Success - Description only update (no file)",
+			templateFile: nil,
+			description:  "Updated Description Only",
+			tempId:       uuid.New(),
+			mockSetup: func() {
+				// No FindByID before update when no file is provided
+				mockTempRepo.EXPECT().
+					Update(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				mockTempRepo.EXPECT().
+					FindByID(gomock.Any(), gomock.Any()).
+					Return(&template.Template{
+						FileName:     "test-template.tpl",
+						OutputFormat: "xml",
+						Description:  "Updated Description Only",
+					}, nil)
+			},
+			expectErr: false,
 		},
 	}
 
@@ -362,12 +553,143 @@ func Test_updateTemplateById(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
+			_, err := tempSvc.UpdateTemplateByID(ctx, tt.outFormat, tt.description, tt.tempId, tt.templateFile)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestUseCase_UpdateTemplateByID_OutputFormatWithoutFile(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{})
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
+		ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
+	}
+
+	// Attempt to update outputFormat without providing a file
+	ctx := context.Background()
+	_, err := tempSvc.UpdateTemplateByID(ctx, "xml", "Updated Desc", uuid.New(), nil)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), constant.ErrOutputFormatWithoutTemplateFile.Error())
+}
+
+func TestUseCase_UpdateTemplateByID_NilOutputFormatFromDB(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_organization"})
+
+	mockTempRepo := template.NewMockRepository(ctrl)
+	mockTempSeaweedFS := templateSeaweedFS.NewMockRepository(ctrl)
+	mockDataSourceMongo := mongodb.NewMockRepository(ctrl)
+
+	mongoSchemas := []mongodb.CollectionSchema{
+		{
+			CollectionName: "organization",
+			Fields: []mongodb.FieldInformation{
+				{Name: "legal_document", DataType: "string"},
+			},
+		},
+	}
+
+	externalDataSourcesMap := map[string]pkg.DataSource{
+		"midaz_organization": {
+			DatabaseType:      "mongodb",
+			MongoDBRepository: mockDataSourceMongo,
+			MongoDBName:       "organization",
+			Initialized:       true,
+		},
+	}
+
+	tempSvc := &UseCase{
+		TemplateRepo:        mockTempRepo,
+		TemplateSeaweedFS:   mockTempSeaweedFS,
+		ExternalDataSources: pkg.NewSafeDataSources(externalDataSourcesMap),
+	}
+
+	templateContent := `{% for org in midaz_organization.organization %}<Doc>{{ org.legal_document }}</Doc>{% endfor %}`
+	fileHeader, errFh := createFileHeaderFromString(templateContent, "test_template.tpl")
+	require.NoError(t, errFh)
+
+	mockDataSourceMongo.EXPECT().
+		GetDatabaseSchema(gomock.Any()).
+		Return(mongoSchemas, nil)
+	mockDataSourceMongo.EXPECT().
+		CloseConnection(gomock.Any()).
+		Return(nil)
+
+	// FindOutputFormatByID returns nil output format
+	mockTempRepo.EXPECT().
+		FindOutputFormatByID(gomock.Any(), gomock.Any()).
+		Return(nil, nil)
+
+	ctx := context.Background()
+	_, err := tempSvc.UpdateTemplateByID(ctx, "", "Updated Desc", uuid.New(), fileHeader)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "output format not found for template")
+}
+
+func TestUseCase_BuildSetFields(t *testing.T) {
+	t.Parallel()
+
+	uc := &UseCase{}
+
+	tests := []struct {
+		name         string
+		description  string
+		outputFormat string
+		mappedFields map[string]map[string][]string
+		expectKeys   []string
+	}{
+		{
+			name:         "All fields provided",
+			description:  "Updated description",
+			outputFormat: "xml",
+			mappedFields: map[string]map[string][]string{"ds": {"table": {"col"}}},
+			expectKeys:   []string{"description", "output_format", "mapped_fields", "updated_at"},
+		},
+		{
+			name:         "Only description",
+			description:  "New desc",
+			outputFormat: "",
+			mappedFields: nil,
+			expectKeys:   []string{"description", "updated_at"},
+		},
+		{
+			name:         "No optional fields",
+			description:  "",
+			outputFormat: "",
+			mappedFields: nil,
+			expectKeys:   []string{"updated_at"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := uc.buildSetFields(tt.description, tt.outputFormat, tt.mappedFields)
+
+			for _, key := range tt.expectKeys {
+				assert.Contains(t, result, key)
 			}
 		})
 	}

@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
+
+	"github.com/LerianStudio/reporter/pkg/constant"
 )
 
 // SeaweedFSClient provides direct HTTP access to SeaweedFS
@@ -24,7 +25,7 @@ func NewSeaweedFSClient(baseURL string) *SeaweedFSClient {
 	return &SeaweedFSClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: constant.SeaweedFSHTTPTimeout,
 		},
 	}
 }

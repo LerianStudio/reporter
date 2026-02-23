@@ -1,3 +1,5 @@
+//go:build integration
+
 // Copyright (c) 2026 Lerian Studio. All rights reserved.
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
@@ -6,13 +8,13 @@ package integration
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/reporter/tests/helpers/containers"
-	"github.com/LerianStudio/reporter/tests/helpers/services"
+	"github.com/LerianStudio/reporter/tests/utils/containers"
+	"github.com/LerianStudio/reporter/tests/utils/services"
 )
 
 var (
@@ -26,56 +28,63 @@ func TestMain(m *testing.M) {
 	// Check if we should use testcontainers or existing infrastructure
 	if os.Getenv("USE_EXISTING_INFRA") == "true" {
 		// Use existing infrastructure (docker-compose)
-		log.Println("Using existing infrastructure from docker-compose")
+		fmt.Fprintf(os.Stderr, "Using existing infrastructure from docker-compose\n")
 		os.Exit(m.Run())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	log.Println("Starting test infrastructure with testcontainers...")
+	fmt.Fprintf(os.Stderr, "Starting test infrastructure with testcontainers...\n")
 
 	// Start infrastructure containers
 	var err error
 	testInfra, err = containers.StartInfrastructure(ctx)
 	if err != nil {
-		log.Fatalf("Failed to start infrastructure: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start infrastructure: %v\n", err)
+		os.Exit(1)
 	}
 
-	log.Println("Infrastructure started successfully")
+	fmt.Fprintf(os.Stderr, "Infrastructure started successfully\n")
 
 	// Create service configuration from containers
 	cfg := services.NewConfigFromInfrastructure(testInfra)
 
 	// Start Manager service
-	log.Println("Starting Manager service...")
+	fmt.Fprintf(os.Stderr, "Starting Manager service...\n")
 	managerSvc, err = services.StartManager(ctx, cfg)
 	if err != nil {
 		testInfra.Stop(ctx)
-		log.Fatalf("Failed to start manager: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start manager: %v\n", err)
+		os.Exit(1)
 	}
 	managerAddr = managerSvc.Address()
-	log.Printf("Manager started at %s", managerAddr)
+	fmt.Fprintf(os.Stderr, "Manager started at %s\n", managerAddr)
 
 	// Set environment variable for test helpers
 	os.Setenv("MANAGER_URL", managerAddr)
+	defer os.Unsetenv("MANAGER_URL")
 
 	// Start Worker service
-	log.Println("Starting Worker service...")
+	fmt.Fprintf(os.Stderr, "Starting Worker service...\n")
 	workerSvc, err = services.StartWorker(ctx, cfg)
 	if err != nil {
 		managerSvc.Stop(ctx)
 		testInfra.Stop(ctx)
-		log.Fatalf("Failed to start worker: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to start worker: %v\n", err)
+		os.Exit(1)
 	}
-	log.Println("Worker started successfully")
+	fmt.Fprintf(os.Stderr, "Worker started successfully\n")
 
 	// Run tests
-	log.Println("Running integration tests...")
+	fmt.Fprintf(os.Stderr, "Running integration tests...\n")
 	code := m.Run()
 
-	// Cleanup
-	log.Println("Cleaning up...")
+	// NOTE: Cleanup is performed in TestMain (not t.Cleanup()) because all tests
+	// in this package share a single infrastructure instance. Per-test cleanup
+	// would terminate containers prematurely. This is the correct pattern for
+	// shared testcontainer infrastructure.
+	fmt.Fprintf(os.Stderr, "Cleaning up...\n")
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cleanupCancel()
 
@@ -89,7 +98,7 @@ func TestMain(m *testing.M) {
 		testInfra.Stop(cleanupCtx)
 	}
 
-	log.Println("Cleanup complete")
+	fmt.Fprintf(os.Stderr, "Cleanup complete\n")
 	os.Exit(code)
 }
 

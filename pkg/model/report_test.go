@@ -10,9 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilterCondition_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filter   FilterCondition
@@ -69,15 +71,18 @@ func TestFilterCondition_JSONMarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			data, err := json.Marshal(tt.filter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.JSONEq(t, tt.expected, string(data))
 		})
 	}
 }
 
 func TestFilterCondition_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		json     string
@@ -116,16 +121,19 @@ func TestFilterCondition_JSONUnmarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var result FilterCondition
 			err := json.Unmarshal([]byte(tt.json), &result)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestCreateReportInput_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	input := CreateReportInput{
 		TemplateID: "00000000-0000-0000-0000-000000000001",
 		Filters: map[string]map[string]map[string]FilterCondition{
@@ -140,17 +148,18 @@ func TestCreateReportInput_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", result["templateId"])
 	assert.NotNil(t, result["filters"])
 }
 
 func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	jsonData := `{
 		"templateId": "00000000-0000-0000-0000-000000000001",
 		"filters": {
@@ -164,7 +173,7 @@ func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
 
 	var input CreateReportInput
 	err := json.Unmarshal([]byte(jsonData), &input)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", input.TemplateID)
 	assert.NotNil(t, input.Filters)
@@ -174,6 +183,7 @@ func TestCreateReportInput_JSONUnmarshal(t *testing.T) {
 }
 
 func TestReportMessage_JSONMarshal(t *testing.T) {
+	t.Parallel()
 	templateID := uuid.New()
 	reportID := uuid.New()
 
@@ -198,11 +208,11 @@ func TestReportMessage_JSONMarshal(t *testing.T) {
 	}
 
 	data, err := json.Marshal(msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, templateID.String(), result["templateId"])
 	assert.Equal(t, reportID.String(), result["reportId"])
@@ -210,6 +220,7 @@ func TestReportMessage_JSONMarshal(t *testing.T) {
 }
 
 func TestReportMessage_JSONUnmarshal(t *testing.T) {
+	t.Parallel()
 	templateID := uuid.New()
 	reportID := uuid.New()
 
@@ -233,7 +244,7 @@ func TestReportMessage_JSONUnmarshal(t *testing.T) {
 
 	var msg ReportMessage
 	err := json.Unmarshal([]byte(jsonData), &msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, templateID, msg.TemplateID)
 	assert.Equal(t, reportID, msg.ReportID)
@@ -243,6 +254,7 @@ func TestReportMessage_JSONUnmarshal(t *testing.T) {
 }
 
 func TestFilterCondition_AllOperators(t *testing.T) {
+	t.Parallel()
 	filter := FilterCondition{
 		Equals:         []any{"value1"},
 		GreaterThan:    []any{10},
@@ -255,11 +267,11 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 	}
 
 	data, err := json.Marshal(filter)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result FilterCondition
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.NotNil(t, result.Equals)
 	assert.NotNil(t, result.GreaterThan)
@@ -272,6 +284,7 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 }
 
 func TestReportMessage_EmptyFilters(t *testing.T) {
+	t.Parallel()
 	msg := ReportMessage{
 		TemplateID:   uuid.New(),
 		ReportID:     uuid.New(),
@@ -281,12 +294,213 @@ func TestReportMessage_EmptyFilters(t *testing.T) {
 	}
 
 	data, err := json.Marshal(msg)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result ReportMessage
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Nil(t, result.Filters)
 	assert.Nil(t, result.MappedFields)
+}
+
+func TestNewCreateReportInput(t *testing.T) {
+	t.Parallel()
+
+	validUUID := "00000000-0000-0000-0000-000000000001"
+	validFilters := map[string]map[string]map[string]FilterCondition{
+		"database": {
+			"table": {
+				"status": {Equals: []any{"active"}},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		templateID  string
+		filters     map[string]map[string]map[string]FilterCondition
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:       "valid input with filters",
+			templateID: validUUID,
+			filters:    validFilters,
+			wantErr:    false,
+		},
+		{
+			name:       "valid input with nil filters",
+			templateID: validUUID,
+			filters:    nil,
+			wantErr:    false,
+		},
+		{
+			name:       "valid input with empty filters",
+			templateID: validUUID,
+			filters:    map[string]map[string]map[string]FilterCondition{},
+			wantErr:    false,
+		},
+		{
+			name:        "empty templateID",
+			templateID:  "",
+			filters:     validFilters,
+			wantErr:     true,
+			errContains: "templateID must not be empty",
+		},
+		{
+			name:        "invalid UUID format - plain string",
+			templateID:  "not-a-uuid",
+			filters:     validFilters,
+			wantErr:     true,
+			errContains: "templateID must be a valid UUID",
+		},
+		{
+			name:        "invalid UUID format - too short",
+			templateID:  "12345",
+			filters:     validFilters,
+			wantErr:     true,
+			errContains: "templateID must be a valid UUID",
+		},
+		{
+			name:        "invalid UUID format - wrong separators",
+			templateID:  "00000000_0000_0000_0000_000000000001",
+			filters:     validFilters,
+			wantErr:     true,
+			errContains: "templateID must be a valid UUID",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := NewCreateReportInput(tt.templateID, tt.filters)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tt.templateID, result.TemplateID)
+				assert.Equal(t, tt.filters, result.Filters)
+			}
+		})
+	}
+}
+
+func TestNewReportMessage(t *testing.T) {
+	t.Parallel()
+
+	validTemplateID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	validReportID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	validOutputFormat := "pdf"
+	validMappedFields := map[string]map[string][]string{
+		"database": {
+			"table": {"id", "name", "status"},
+		},
+	}
+	validFilters := map[string]map[string]map[string]FilterCondition{
+		"database": {
+			"table": {
+				"status": {Equals: []any{"active"}},
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		templateID   uuid.UUID
+		reportID     uuid.UUID
+		outputFormat string
+		mappedFields map[string]map[string][]string
+		filters      map[string]map[string]map[string]FilterCondition
+		wantErr      bool
+		errContains  string
+	}{
+		{
+			name:         "valid input with all fields",
+			templateID:   validTemplateID,
+			reportID:     validReportID,
+			outputFormat: validOutputFormat,
+			mappedFields: validMappedFields,
+			filters:      validFilters,
+			wantErr:      false,
+		},
+		{
+			name:         "valid input with nil mappedFields and filters",
+			templateID:   validTemplateID,
+			reportID:     validReportID,
+			outputFormat: "html",
+			mappedFields: nil,
+			filters:      nil,
+			wantErr:      false,
+		},
+		{
+			name:         "nil templateID",
+			templateID:   uuid.Nil,
+			reportID:     validReportID,
+			outputFormat: validOutputFormat,
+			mappedFields: validMappedFields,
+			filters:      validFilters,
+			wantErr:      true,
+			errContains:  "templateID must not be nil",
+		},
+		{
+			name:         "nil reportID",
+			templateID:   validTemplateID,
+			reportID:     uuid.Nil,
+			outputFormat: validOutputFormat,
+			mappedFields: validMappedFields,
+			filters:      validFilters,
+			wantErr:      true,
+			errContains:  "reportID must not be nil",
+		},
+		{
+			name:         "empty outputFormat",
+			templateID:   validTemplateID,
+			reportID:     validReportID,
+			outputFormat: "",
+			mappedFields: validMappedFields,
+			filters:      validFilters,
+			wantErr:      true,
+			errContains:  "outputFormat must not be empty",
+		},
+		{
+			name:         "both templateID and reportID nil",
+			templateID:   uuid.Nil,
+			reportID:     uuid.Nil,
+			outputFormat: validOutputFormat,
+			mappedFields: nil,
+			filters:      nil,
+			wantErr:      true,
+			errContains:  "templateID must not be nil",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := NewReportMessage(tt.templateID, tt.reportID, tt.outputFormat, tt.mappedFields, tt.filters)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.Equal(t, tt.templateID, result.TemplateID)
+				assert.Equal(t, tt.reportID, result.ReportID)
+				assert.Equal(t, tt.outputFormat, result.OutputFormat)
+				assert.Equal(t, tt.mappedFields, result.MappedFields)
+				assert.Equal(t, tt.filters, result.Filters)
+			}
+		})
+	}
 }

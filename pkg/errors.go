@@ -49,8 +49,8 @@ func (e EntityNotFoundError) Unwrap() error {
 type ValidationError struct {
 	EntityType string `json:"entityType,omitempty"`
 	Title      string `json:"title,omitempty"`
-	Message    string `json:"code,omitempty"`
-	Code       string `json:"message,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       string `json:"code,omitempty"`
 	Err        error  `json:"err,omitempty"`
 }
 
@@ -497,6 +497,42 @@ func ValidateBusinessError(err error, entityType string, args ...any) error {
 			Code:       constant.ErrDatabaseNotRegistered.Error(),
 			Title:      "Database Not Registered",
 			Message:    fmt.Sprintf("The database '%v' is not registered. Please verify the datasource configuration.", args...),
+		},
+		constant.ErrDuplicateRequestInFlight: EntityConflictError{
+			EntityType: entityType,
+			Code:       constant.ErrDuplicateRequestInFlight.Error(),
+			Title:      "Duplicate Request In Flight",
+			Message:    "A duplicate request is currently being processed. Please wait and try again.",
+		},
+		constant.ErrIdempotencyConflict: EntityConflictError{
+			EntityType: entityType,
+			Code:       constant.ErrIdempotencyConflict.Error(),
+			Title:      "Idempotency Conflict",
+			Message:    "A request with this idempotency key has already been processed.",
+		},
+		constant.ErrBucketRequired: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrBucketRequired.Error(),
+			Title:      "Bucket Required",
+			Message:    "The storage bucket name is required. Please check the storage configuration.",
+		},
+		constant.ErrObjectKeyRequired: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrObjectKeyRequired.Error(),
+			Title:      "Object Key Required",
+			Message:    "The object key is required for the storage operation.",
+		},
+		constant.ErrObjectNotFound: EntityNotFoundError{
+			EntityType: entityType,
+			Code:       constant.ErrObjectNotFound.Error(),
+			Title:      "Object Not Found",
+			Message:    "The requested object was not found in storage.",
+		},
+		constant.ErrTTLNotSupported: ValidationError{
+			EntityType: entityType,
+			Code:       constant.ErrTTLNotSupported.Error(),
+			Title:      "TTL Not Supported",
+			Message:    "TTL parameter is not supported in S3 mode. Use bucket lifecycle policies instead.",
 		},
 	}
 

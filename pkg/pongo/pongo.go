@@ -6,38 +6,53 @@ package pongo
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/flosch/pongo2/v6"
 )
 
-// init initializes custom filters and tags for the Pongo2 template engine. It registers filters and aggregation tags.
-func init() {
+var registerOnce sync.Once
+
+// RegisterAll registers all custom filters and tags for the Pongo2 template engine.
+// It is safe to call multiple times; registration happens only once.
+func RegisterAll() error {
+	var registerErr error
+
+	registerOnce.Do(func() {
+		registerErr = doRegisterAll()
+	})
+
+	return registerErr
+}
+
+// doRegisterAll performs the actual registration of custom filters and tags.
+func doRegisterAll() error {
 	if err := pongo2.RegisterFilter("percent_of", percentOfFilter); err != nil {
-		panic("Failed to register percent_of filter: " + err.Error())
+		return fmt.Errorf("failed to register percent_of filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("slice_str", sliceFilter); err != nil {
-		panic("Failed to register slice filter: " + err.Error())
+		return fmt.Errorf("failed to register slice_str filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("strip_zeros", stripZerosFilter); err != nil {
-		panic("Failed to register strip_zeros filter: " + err.Error())
+		return fmt.Errorf("failed to register strip_zeros filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("replace", replaceFilter); err != nil {
-		panic("Failed to register replace filter: " + err.Error())
+		return fmt.Errorf("failed to register replace filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("where", whereFilter); err != nil {
-		panic("Failed to register where filter: " + err.Error())
+		return fmt.Errorf("failed to register where filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("sum", sumFilter); err != nil {
-		panic("Failed to register sum filter: " + err.Error())
+		return fmt.Errorf("failed to register sum filter: %w", err)
 	}
 
 	if err := pongo2.RegisterFilter("count", countFilter); err != nil {
-		panic("Failed to register count filter: " + err.Error())
+		return fmt.Errorf("failed to register count filter: %w", err)
 	}
 
 	tags := []struct {
@@ -62,24 +77,35 @@ func init() {
 		}
 
 		if err != nil {
-			panic(fmt.Sprintf("Failed to register tag '%s': %s", tag.name, err.Error()))
+			return fmt.Errorf("failed to register tag '%s': %w", tag.name, err)
 		}
 	}
 
 	if err := pongo2.RegisterTag("calc", makeCalcTag); err != nil {
-		panic("Failed to register calc tag: " + err.Error())
+		return fmt.Errorf("failed to register calc tag: %w", err)
 	}
 
-	if err := pongo2.RegisterTag("aggregate_balance", makeAggregateBalanceTag()); err != nil {
-		panic("Failed to register aggregate_balance tag: " + err.Error())
+	if err := pongo2.RegisterTag("last_item_by_group", makeLastItemByGroupTag()); err != nil {
+		return fmt.Errorf("failed to register last_item_by_group tag: %w", err)
 	}
 
 	// Register counter tags for counting blocks during rendering
 	if err := pongo2.RegisterTag("counter", makeCounterTag()); err != nil {
-		panic("Failed to register counter tag: " + err.Error())
+		return fmt.Errorf("failed to register counter tag: %w", err)
 	}
 
 	if err := pongo2.RegisterTag("counter_show", makeCounterShowTag()); err != nil {
-		panic("Failed to register counter_show tag: " + err.Error())
+		return fmt.Errorf("failed to register counter_show tag: %w", err)
 	}
+
+	return nil
+}
+
+// SafeFromString parses a template string using a fresh pongo2.TemplateSet,
+// avoiding a data race on the global DefaultSet's unsynchronized
+// firstTemplateCreated field.  Filters and tags are registered globally in
+// pongo2 so they are available on every TemplateSet.
+func SafeFromString(tpl string) (*pongo2.Template, error) {
+	ts := pongo2.NewSet("safe", pongo2.DefaultLoader)
+	return ts.FromString(tpl)
 }

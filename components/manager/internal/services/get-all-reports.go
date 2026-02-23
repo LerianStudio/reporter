@@ -19,7 +19,7 @@ import (
 func (uc *UseCase) GetAllReports(ctx context.Context, filters http.QueryHeader) ([]*report.Report, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_all_reports")
+	ctx, span := tracer.Start(ctx, "service.report.get_all")
 	defer span.End()
 
 	span.SetAttributes(

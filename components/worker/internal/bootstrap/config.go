@@ -8,18 +8,22 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/LerianStudio/reporter/components/worker/internal/adapters/rabbitmq"
 	"github.com/LerianStudio/reporter/components/worker/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
+	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/pdf"
+	"github.com/LerianStudio/reporter/pkg/pongo"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	clog "github.com/LerianStudio/lib-commons/v2/commons/log"
 	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
 	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
@@ -30,6 +34,7 @@ import (
 type Config struct {
 	EnvName                     string `env:"ENV_NAME"`
 	LogLevel                    string `env:"LOG_LEVEL"`
+	HealthPort                  string `env:"HEALTH_PORT" default:"4006"`
 	RabbitURI                   string `env:"RABBITMQ_URI"`
 	RabbitMQHost                string `env:"RABBITMQ_HOST"`
 	RabbitMQPortHost            string `env:"RABBITMQ_PORT_HOST"`
@@ -62,21 +67,127 @@ type Config struct {
 	MongoDBPort       string `env:"MONGO_PORT"`
 	MongoDBParameters string `env:"MONGO_PARAMETERS"`
 	MaxPoolSize       int    `env:"MONGO_MAX_POOL_SIZE"`
+	// Crypto configuration envs (for plugin_crm decryption)
+	CryptoHashSecretKeyPluginCRM    string `env:"CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM"`
+	CryptoEncryptSecretKeyPluginCRM string `env:"CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM"`
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
 }
 
-// InitWorker initializes and configures the application's dependencies and returns the Service instance.
-func InitWorker() *Service {
-	cfg := &Config{}
-	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
-		panic(err)
+// Validate checks that all required configuration fields are present.
+// Returns a descriptive multi-error message listing all missing fields.
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.RabbitMQHost == "" {
+		errs = append(errs, "RABBITMQ_HOST is required")
 	}
 
-	logger := libZap.InitializeLogger()
+	if c.RabbitMQPortAMQP == "" {
+		errs = append(errs, "RABBITMQ_PORT_AMQP is required")
+	}
 
-	telemetry := libOtel.InitializeTelemetry(&libOtel.TelemetryConfig{
+	if c.RabbitMQUser == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_USER is required")
+	}
+
+	if c.RabbitMQPass == "" {
+		errs = append(errs, "RABBITMQ_DEFAULT_PASS is required")
+	}
+
+	if c.RabbitMQGenerateReportQueue == "" {
+		errs = append(errs, "RABBITMQ_GENERATE_REPORT_QUEUE is required")
+	}
+
+	if c.MongoDBHost == "" {
+		errs = append(errs, "MONGO_HOST is required")
+	}
+
+	if c.MongoDBName == "" {
+		errs = append(errs, "MONGO_NAME is required")
+	}
+
+	errs = c.validateProductionConfig(errs)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("config validation failed:\n- %s", strings.Join(errs, "\n- "))
+	}
+
+	return nil
+}
+
+// validateProductionConfig enforces stricter rules when EnvName is "production".
+// Telemetry and real credentials are required in production.
+func (c *Config) validateProductionConfig(errs []string) []string {
+	if c.EnvName != "production" {
+		return errs
+	}
+
+	if !c.EnableTelemetry {
+		errs = append(errs, "ENABLE_TELEMETRY must be true in production")
+	}
+
+	secrets := []struct {
+		value string
+		name  string
+	}{
+		{c.MongoDBPassword, "MONGO_PASSWORD"},
+		{c.RabbitMQPass, "RABBITMQ_DEFAULT_PASS"},
+		{c.ObjectStorageSecretKey, "OBJECT_STORAGE_SECRET_KEY"},
+		{c.CryptoHashSecretKeyPluginCRM, "CRYPTO_HASH_SECRET_KEY_PLUGIN_CRM"},
+		{c.CryptoEncryptSecretKeyPluginCRM, "CRYPTO_ENCRYPT_SECRET_KEY_PLUGIN_CRM"},
+	}
+
+	for _, s := range secrets {
+		switch s.value {
+		case "":
+			errs = append(errs, s.name+" must not be empty in production")
+		case pkgConstant.DefaultPasswordPlaceholder:
+			errs = append(errs, s.name+" must not use the default placeholder in production")
+		}
+	}
+
+	return errs
+}
+
+// InitWorker initializes and configures the application's dependencies and returns the Service instance.
+// Uses a cleanup stack pattern: if any initialization step fails, all previously
+// opened connections are closed in reverse order to prevent resource leaks.
+func InitWorker() (_ *Service, err error) {
+	cfg := &Config{}
+	if err := libCommons.SetConfigFromEnvVars(cfg); err != nil {
+		return nil, fmt.Errorf("failed to load config from env vars: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Register pongo2 custom filters and tags before any template processing
+	if err := pongo.RegisterAll(); err != nil {
+		return nil, fmt.Errorf("failed to register pongo2 filters and tags: %w", err)
+	}
+
+	logger, err := libZap.InitializeLoggerWithError()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	// Cleanup stack: on failure, close resources in reverse order
+	var cleanups []func()
+
+	defer func() {
+		if err != nil {
+			logger.Infof("Initialization failed, cleaning up %d resources...", len(cleanups))
+
+			for i := len(cleanups) - 1; i >= 0; i-- {
+				cleanups[i]()
+			}
+		}
+	}()
+
+	telemetry, err := libOtel.InitializeTelemetryWithError(&libOtel.TelemetryConfig{
 		LibraryName:               cfg.OtelLibraryName,
 		ServiceName:               cfg.OtelServiceName,
 		ServiceVersion:            cfg.OtelServiceVersion,
@@ -85,11 +196,19 @@ func InitWorker() *Service {
 		EnableTelemetry:           cfg.EnableTelemetry,
 		Logger:                    logger,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize telemetry: %w", err)
+	}
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: shutting down telemetry")
+		telemetry.ShutdownTelemetry()
+	})
 
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
-	logger.Infof(rabbitSource)
+	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
 
 	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
 		ConnectionStringSource: rabbitSource,
@@ -102,7 +221,12 @@ func InitWorker() *Service {
 		Logger:                 logger,
 	}
 
-	routes := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
+	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
+	}
+
+	cleanups = append(cleanups, closeRabbitMQ(rabbitMQConnection, logger))
 
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
@@ -119,7 +243,7 @@ func InitWorker() *Service {
 
 	storageClient, err := storage.NewStorageClient(ctx, storageConfig)
 	if err != nil {
-		logger.Fatalf("Failed to create storage client: %v", err)
+		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
 
 	logger.Infof("Storage initialized with bucket: %s (templates/ and reports/ prefixes)", cfg.ObjectStorageBucket)
@@ -129,6 +253,95 @@ func InitWorker() *Service {
 	reportStorageClient := storageClient
 
 	// Init mongo DB connection
+	mongoConnection := buildMongoConnection(cfg, logger)
+
+	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
+	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
+
+	// Initialize MongoDB repositories
+	reportMongoDBRepository, err := reportData.NewReportMongoDBRepository(mongoConnection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize report mongodb repository: %w", err)
+	}
+
+	cleanups = append(cleanups, func() {
+		if mongoConnection.DB != nil {
+			logger.Info("Cleanup: disconnecting MongoDB")
+
+			if disconnectErr := mongoConnection.DB.Disconnect(context.Background()); disconnectErr != nil {
+				logger.Errorf("Cleanup: failed to disconnect MongoDB: %v", disconnectErr)
+			}
+		}
+	})
+
+	// Create MongoDB indexes for optimal performance
+	// Indexes are created automatically on startup to ensure they exist
+	// This is idempotent and safe to run multiple times
+	// Index failure is treated as fatal to match the manager component behavior
+	logger.Info("Ensuring MongoDB indexes exist for reports...")
+
+	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
+	}
+
+	// Initialize circuit breaker manager for datasource resilience
+	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
+	externalDataSourcesMap := pkg.ExternalDatasourceConnections(logger)
+	externalDataSources := pkg.NewSafeDataSources(externalDataSourcesMap)
+	healthChecker := pkg.NewHealthChecker(&externalDataSourcesMap, circuitBreakerManager, logger)
+
+	// Initialize PDF Pool for PDF generation
+	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
+	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: closing PDF worker pool")
+		pdfPool.Close()
+	})
+
+	service := &services.UseCase{
+		TemplateSeaweedFS:               templateSeaweedFSRepository,
+		ReportSeaweedFS:                 reportSeaweedFSRepository,
+		ExternalDataSources:             externalDataSources,
+		ReportDataRepo:                  reportMongoDBRepository,
+		CircuitBreakerManager:           circuitBreakerManager,
+		HealthChecker:                   healthChecker,
+		ReportTTL:                       "", // TTL not supported in S3 mode - use bucket lifecycle policies
+		PdfPool:                         pdfPool,
+		CryptoHashSecretKeyPluginCRM:    cfg.CryptoHashSecretKeyPluginCRM,
+		CryptoEncryptSecretKeyPluginCRM: cfg.CryptoEncryptSecretKeyPluginCRM,
+	}
+
+	logger.Infof("Reports will be stored permanently (no TTL - use S3 bucket lifecycle policies for expiration)")
+
+	// Start health checker in background
+	healthChecker.Start()
+
+	cleanups = append(cleanups, func() {
+		logger.Info("Cleanup: stopping health checker")
+		healthChecker.Stop()
+	})
+
+	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue, logger)
+
+	healthServer := NewHealthServer(cfg.HealthPort, rabbitMQConnection, logger)
+	logger.Infof("Health server configured on port %s (/health, /ready)", cfg.HealthPort)
+
+	return &Service{
+		MultiQueueConsumer: multiQueueConsumer,
+		Logger:             logger,
+		healthChecker:      healthChecker,
+		healthServer:       healthServer,
+		mongoConnection:    mongoConnection,
+		rabbitMQConnection: rabbitMQConnection,
+		pdfPool:            pdfPool,
+		telemetry:          telemetry,
+	}, nil
+}
+
+// buildMongoConnection creates a MongoConnection with the connection string
+// built from configuration, applying default pool size if needed.
+func buildMongoConnection(cfg *Config, logger clog.Logger) *mongoDB.MongoConnection {
 	escapedPass := url.QueryEscape(cfg.MongoDBPassword)
 	mongoSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.MongoURI, cfg.MongoDBUser, escapedPass, cfg.MongoDBHost, cfg.MongoDBPort)
@@ -138,61 +351,35 @@ func InitWorker() *Service {
 	}
 
 	if cfg.MaxPoolSize <= 0 {
-		cfg.MaxPoolSize = 100
+		cfg.MaxPoolSize = int(pkgConstant.MongoDBMaxPoolSize)
 	}
 
-	mongoConnection := &mongoDB.MongoConnection{
+	logger.Infof("MongoDB connecting to %s", pkg.RedactConnectionString(mongoSource))
+
+	return &mongoDB.MongoConnection{
 		ConnectionStringSource: mongoSource,
 		Database:               cfg.MongoDBName,
 		Logger:                 logger,
 		MaxPoolSize:            uint64(cfg.MaxPoolSize),
 	}
+}
 
-	templateSeaweedFSRepository := templateSeaweedFS.NewStorageRepository(templateStorageClient)
-	reportSeaweedFSRepository := reportSeaweedFS.NewStorageRepository(reportStorageClient)
+// closeRabbitMQ returns a cleanup function that safely closes
+// the RabbitMQ channel and connection.
+func closeRabbitMQ(conn *libRabbitMQ.RabbitMQConnection, logger clog.Logger) func() {
+	return func() {
+		logger.Info("Cleanup: closing RabbitMQ connection")
 
-	// Initialize MongoDB repositories
-	reportMongoDBRepository := reportData.NewReportMongoDBRepository(mongoConnection)
+		if conn.Channel != nil {
+			if closeErr := conn.Channel.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ channel: %v", closeErr)
+			}
+		}
 
-	// Create MongoDB indexes for optimal performance
-	// Indexes are created automatically on startup to ensure they exist
-	// This is idempotent and safe to run multiple times
-	logger.Info("Ensuring MongoDB indexes exist for reports...")
-
-	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		logger.Warnf("Failed to ensure report indexes (non-fatal): %v", err)
-	}
-
-	// Initialize circuit breaker manager for datasource resilience
-	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)
-	externalDataSources := pkg.ExternalDatasourceConnections(logger)
-	healthChecker := pkg.NewHealthChecker(&externalDataSources, circuitBreakerManager, logger)
-
-	// Initialize PDF Pool for PDF generation
-	pdfPool := pdf.NewWorkerPool(cfg.PdfPoolWorkers, time.Duration(cfg.PdfPoolTimeoutSeconds)*time.Second, logger)
-	logger.Infof("PDF Pool initialized with %d workers and %d seconds timeout", cfg.PdfPoolWorkers, cfg.PdfPoolTimeoutSeconds)
-
-	service := &services.UseCase{
-		TemplateSeaweedFS:     templateSeaweedFSRepository,
-		ReportSeaweedFS:       reportSeaweedFSRepository,
-		ExternalDataSources:   externalDataSources,
-		ReportDataRepo:        reportMongoDBRepository,
-		CircuitBreakerManager: circuitBreakerManager,
-		HealthChecker:         healthChecker,
-		ReportTTL:             "", // TTL not supported in S3 mode - use bucket lifecycle policies
-		PdfPool:               pdfPool,
-	}
-
-	logger.Infof("Reports will be stored permanently (no TTL - use S3 bucket lifecycle policies for expiration)")
-
-	// Start health checker in background
-	healthChecker.Start()
-
-	multiQueueConsumer := NewMultiQueueConsumer(routes, service)
-
-	return &Service{
-		MultiQueueConsumer: multiQueueConsumer,
-		Logger:             logger,
-		healthChecker:      healthChecker,
+		if conn.Connection != nil && !conn.Connection.IsClosed() {
+			if closeErr := conn.Connection.Close(); closeErr != nil {
+				logger.Errorf("Cleanup: failed to close RabbitMQ connection: %v", closeErr)
+			}
+		}
 	}
 }

@@ -6,46 +6,44 @@ package redis
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
+
+	pkgRedis "github.com/LerianStudio/reporter/pkg/redis"
 
 	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	goRedis "github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"
 )
-
-// RedisRepository provides an interface for redis.
-// It defines methods for setting, getting, deleting keys, and incrementing values.
-//
-//go:generate mockgen --destination=consumer.redis.mock.go --package=redis . RedisRepository
-type RedisRepository interface {
-	Set(ctx context.Context, key, value string, ttl time.Duration) error
-	Get(ctx context.Context, key string) (string, error)
-	Del(ctx context.Context, key string) error
-}
 
 // RedisConsumerRepository is a Redis implementation of the Redis consumer.
 type RedisConsumerRepository struct {
 	conn *libRedis.RedisConnection
 }
 
+// Compile-time interface satisfaction check.
+var _ pkgRedis.RedisRepository = (*RedisConsumerRepository)(nil)
+
 // NewConsumerRedis returns a new instance of RedisRepository using the given Redis connection.
-func NewConsumerRedis(rc *libRedis.RedisConnection) *RedisConsumerRepository {
+func NewConsumerRedis(rc *libRedis.RedisConnection) (*RedisConsumerRepository, error) {
 	r := &RedisConsumerRepository{
 		conn: rc,
 	}
 	if _, err := r.conn.GetClient(context.Background()); err != nil {
-		panic("Failed to connect on redis")
+		return nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}
 
-	return r
+	return r, nil
 }
 
 // Set sets a key in the redis
 func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.set")
+	ctx, span := tracer.Start(ctx, "repository.redis.set")
 	defer span.End()
 
 	span.SetAttributes(
@@ -74,11 +72,49 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 	return nil
 }
 
+// SetNX sets a key in redis only if it does not already exist (atomic compare-and-set).
+// Returns true if the key was set (first request), false if it already existed (duplicate).
+func (rc *RedisConsumerRepository) SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.redis.set_nx")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.key", key),
+		attribute.String("app.request.value", value),
+		attribute.String("app.request.ttl", ttl.String()),
+	)
+
+	rds, err := rc.conn.GetClient(ctx)
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to get redis client", err)
+
+		return false, err
+	}
+
+	logger.Infof("SetNX key: %s, ttl: %v", key, ttl)
+
+	result, err := rds.SetNX(ctx, key, value, ttl).Result()
+	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to set_nx on redis", err)
+
+		return false, err
+	}
+
+	span.SetAttributes(
+		attribute.Bool("app.response.was_set", result),
+	)
+
+	return result, nil
+}
+
 // Get recovers a key from the redis
 func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.get")
+	ctx, span := tracer.Start(ctx, "repository.redis.get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -95,10 +131,18 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 
 	val, err := rds.Get(ctx, key).Result()
 	if err != nil {
+		if errors.Is(err, goRedis.Nil) {
+			span.SetAttributes(attribute.Bool("app.cache.hit", false))
+
+			return "", err
+		}
+
 		libOpentelemetry.HandleSpanError(&span, "Failed to get on redis", err)
 
 		return "", err
 	}
+
+	span.SetAttributes(attribute.Bool("app.cache.hit", true))
 
 	span.SetAttributes(
 		attribute.String("app.response.value", val),
@@ -113,7 +157,7 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 func (rc *RedisConsumerRepository) Del(ctx context.Context, key string) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "redis.del")
+	ctx, span := tracer.Start(ctx, "repository.redis.del")
 	defer span.End()
 
 	span.SetAttributes(

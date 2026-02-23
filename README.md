@@ -1,6 +1,15 @@
-# Reporter
+![banner](image/README/reporter_banner.png)
 
+<div align="center">
+
+[![Latest Release](https://img.shields.io/github/v/release/LerianStudio/reporter?include_prereleases)](https://github.com/LerianStudio/reporter/releases)
 [![License](https://img.shields.io/badge/license-Elastic%20License%202.0-4c1.svg)](LICENSE)
+[![Go Report](https://goreportcard.com/badge/github.com/lerianstudio/reporter)](https://goreportcard.com/report/github.com/lerianstudio/reporter)
+[![Discord](https://img.shields.io/badge/Discord-Lerian%20Studio-%237289da.svg?logo=discord)](https://discord.gg/DnhqKwkGv3)
+
+</div>
+
+# Lerian Reporter
 
 A service for managing and generating customizable reports using templates. Reporter connects directly to your databases (PostgreSQL and MongoDB) and renders reports in multiple formats (HTML, PDF, CSV, XML, TXT).
 
@@ -466,7 +475,6 @@ Project maintainers may remove, edit, or reject contributions that do not align 
 
 ## Community & Support
 
-- Join our [Discord community](https://discord.gg/DnhqKwkGv3) for discussions, support, and updates.
 - If you want to raise anything to the attention of the community, open a Discussion in our [GitHub](https://github.com/LerianStudio/midaz/v3/discussions).
 - Follow us on [Twitter](https://twitter.com/LerianStudio), [Instagram](https://www.instagram.com/lerian.studio/) and [Linkedin](https://www.linkedin.com/company/lerianstudio/) for the latest news and announcements.
 

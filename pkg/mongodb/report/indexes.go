@@ -7,7 +7,6 @@ package report
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
@@ -23,7 +22,7 @@ import (
 func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.ensure_report_indexes")
+	ctx, span := tracer.Start(ctx, "repository.report.ensure_indexes")
 	defer span.End()
 
 	span.SetAttributes(
@@ -104,7 +103,7 @@ func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, constant.MongoIndexCreateTimeout)
 	defer cancel()
 
 	logger.Infof("Attempting to create %d indexes for %s collection (removed SetBackground - deprecated since MongoDB 4.2)", len(indexes), constant.MongoCollectionReport)
@@ -134,7 +133,7 @@ func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 func (rm *ReportMongoDBRepository) DropIndexes(ctx context.Context) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.drop_report_indexes")
+	ctx, span := tracer.Start(ctx, "repository.report.drop_indexes")
 	defer span.End()
 
 	span.SetAttributes(
@@ -152,7 +151,7 @@ func (rm *ReportMongoDBRepository) DropIndexes(ctx context.Context) error {
 
 	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, constant.MongoIndexDropTimeout)
 	defer cancel()
 
 	if _, err := coll.Indexes().DropAll(ctx); err != nil {

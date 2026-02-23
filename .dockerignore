@@ -1,0 +1,15 @@
+.git
+.github
+docs/
+tests/
+reports/
+artifacts/
+*.md
+.env*
+.idea
+.vscode
+.DS_Store
+coverage.*
+.golangci.yml
+scripts/
+mk/

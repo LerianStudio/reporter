@@ -15,21 +15,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getTemplateById(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestUseCase_GetTemplateByID(t *testing.T) {
+	t.Parallel()
 
-	mockTempRepo := template.NewMockRepository(ctrl)
 	tempId := uuid.New()
-
-	tempSvc := &UseCase{
-		TemplateRepo: mockTempRepo,
-	}
-
 	timestamp := time.Now().Unix()
 	templateEntity := &template.Template{
 		ID:           tempId,
@@ -42,17 +36,20 @@ func Test_getTemplateById(t *testing.T) {
 	tests := []struct {
 		name           string
 		tempId         uuid.UUID
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
+		errContains    string
 		expectedResult *template.Template
 	}{
 		{
 			name:   "Success - Get a template by id",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(templateEntity, nil)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr: false,
 			expectedResult: &template.Template{
@@ -66,40 +63,53 @@ func Test_getTemplateById(t *testing.T) {
 		{
 			name:   "Error - Get a template by id",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
 			name:   "Error - Get a template by id not found",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
+			errContains:    "No template entity was found",
 			expectedResult: nil,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tempSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := tempSvc.GetTemplateByID(ctx, tt.tempId)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 			}
 		})
 	}

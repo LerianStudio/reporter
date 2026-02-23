@@ -75,13 +75,13 @@ func InitLocalEnvConfig() *LocalEnvConfig {
 	if envName == "local" {
 		localEnvConfigOnce.Do(func() {
 			if err := godotenv.Load(); err != nil {
-				fmt.Println("Skipping \u001B[31m.env\u001B[0m file, using env", envName)
+				_, _ = os.Stderr.WriteString("Skipping .env file, using env " + envName + "\n")
 
 				localEnvConfig = &LocalEnvConfig{
 					Initialized: false,
 				}
 			} else {
-				fmt.Println("Env vars loaded from .env file on process", os.Getpid())
+				_, _ = os.Stderr.WriteString("Env vars loaded from .env file on process " + strconv.Itoa(os.Getpid()) + "\n")
 
 				localEnvConfig = &LocalEnvConfig{
 					Initialized: true,
@@ -129,10 +129,10 @@ func SetConfigFromEnvVars(s any) error {
 }
 
 // EnsureConfigFromEnvVars ensures that an interface will be settled using SetConfigFromEnvVars anyway.
-func EnsureConfigFromEnvVars(s any) any {
+func EnsureConfigFromEnvVars(s any) (any, error) {
 	if err := SetConfigFromEnvVars(s); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to set config from env vars: %w", err)
 	}
 
-	return s
+	return s, nil
 }

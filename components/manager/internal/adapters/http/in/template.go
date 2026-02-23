@@ -5,6 +5,9 @@
 package in
 
 import (
+	"context"
+	"errors"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
@@ -13,6 +16,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
@@ -20,10 +24,19 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-const errorFileAccepted = "there is no uploaded file associated with the given key"
-
+// TemplateHandler handles HTTP requests for template operations.
 type TemplateHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewTemplateHandler creates a new TemplateHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewTemplateHandler(service *services.UseCase) (*TemplateHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for TemplateHandler")
+	}
+
+	return &TemplateHandler{service: service}, nil
 }
 
 // CreateTemplate is a method that creates a template.
@@ -33,20 +46,32 @@ type TemplateHandler struct {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			templateFile	formData	file	true	"Template file (.tpl)"
-//	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
-//	@Param			description		formData	string	true	"Description of the template"
-//	@Success		201				{object}	template.Template
-//	@Failure		400				{object}	pkg.HTTPError
-//	@Failure		500				{object}	pkg.HTTPError
+//	@Security		BearerAuth
+//	@Param			X-Idempotency		header		string	false	"Client-provided idempotency key to prevent duplicate template creation"
+//	@Param			templateFile		formData	file	true	"Template file (.tpl)"
+//	@Param			outputFormat		formData	string	true	"Output format (e.g., pdf, html)"
+//	@Param			description			formData	string	true	"Description of the template"
+//	@Success		201					{object}	template.Template
+//	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		401					{object}	pkg.HTTPError
+//	@Failure		403					{object}	pkg.HTTPError
+//	@Failure		409					{object}	pkg.HTTPError
+//	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/templates [post]
 func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.create_template")
+	ctx, span := tracer.Start(ctx, "handler.template.create")
 	defer span.End()
+
+	// Extract X-Idempotency header and inject into context for the service layer
+	if idempotencyKey := c.Get(libConstants.IdempotencyKey); idempotencyKey != "" {
+		ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, idempotencyKey)
+	}
+
+	replayed := false
+	ctx = context.WithValue(ctx, constant.IdempotencyReplayedCtx, &replayed)
 
 	c.SetUserContext(ctx)
 
@@ -63,7 +88,7 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("template")
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get template file from form", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
@@ -75,14 +100,14 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	templateFile, errFile := http.GetFileFromHeader(fileHeader)
 	if errFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get file from header", errFile)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get file from header", errFile)
 
 		return http.WithError(c, errFile)
 	}
 
 	// Validate if form fields data is valid
 	if errValidate := pkg.ValidateFormDataFields(&outputFormat, &description); errValidate != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate form data fields", errValidate)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate form data fields", errValidate)
 
 		logger.Errorf("Error to validate form data fields, Error: %v", errValidate)
 
@@ -91,47 +116,31 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 
 	// Validate if the file content matches the outputFormat
 	if errValidateFile := pkg.ValidateFileFormat(outputFormat, templateFile); errValidateFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate file format", errValidateFile)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate file format", errValidateFile)
 
 		logger.Errorf("Error to validate file format, Error: %v", errValidateFile)
 
 		return http.WithError(c, errValidateFile)
 	}
 
-	templateOut, err := th.Service.CreateTemplate(ctx, templateFile, outputFormat, description)
+	templateOut, err := th.service.CreateTemplate(ctx, templateFile, outputFormat, description, fileHeader)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
-
-		return http.WithError(c, err)
-	}
-
-	// Get a file in bytes
-	fileBytes, err := http.ReadMultipartFile(fileHeader)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
-
-		logger.Errorf("Error to get the file content: %v", err)
-
-		return http.WithError(c, err)
-	}
-
-	errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateOut.FileName, outputFormat, fileBytes)
-	if errPutSeaweedFS != nil {
-		libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
-
-		// Compensating transaction: Attempt to roll back the database change to prevent an orphaned record.
-		if errDelete := th.Service.DeleteTemplateByID(ctx, templateOut.ID, true); errDelete != nil {
-			logger.Errorf("Failed to roll back template creation for ID %s after SeaweedFS failure. Error: %s", templateOut.ID.String(), errDelete.Error())
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create template", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create template", err)
 		}
 
-		logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
-
-		return http.WithError(c, errPutSeaweedFS)
+		return http.WithError(c, err)
 	}
 
-	logger.Infof("Successfully created create template %v", templateOut)
+	logger.Infof("Successfully created template %v", templateOut)
 
-	return http.Created(c, templateOut)
+	if replayed {
+		c.Set(libConstants.IdempotencyReplayed, "true")
+	}
+
+	return commonsHttp.Created(c, templateOut)
 }
 
 // UpdateTemplateByID is a method that updates a Template by a given id.
@@ -141,13 +150,15 @@ func (th *TemplateHandler) CreateTemplate(c *fiber.Ctx) error {
 //	@Tags			Templates
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			templateFile	formData	file	true	"Template file (.tpl)"
 //	@Param			outputFormat	formData	string	true	"Output format (e.g., pdf, html)"
 //	@Param			description		formData	string	true	"Description of the template"
 //	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [patch]
@@ -156,7 +167,7 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.update_template")
+	ctx, span := tracer.Start(ctx, "handler.template.update")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -173,8 +184,8 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 	)
 
 	fileHeader, err := c.FormFile("template")
-	if err != nil && err.Error() != errorFileAccepted {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get template file from form", err)
+	if err != nil && err.Error() != constant.ErrFileAccepted {
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to get template file from form", err)
 
 		return http.WithError(c, pkg.ValidateBusinessError(constant.ErrInvalidFileUploaded, "", err))
 	}
@@ -184,42 +195,17 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set span attributes from struct", err)
 	}
 
-	if errUpdate := th.Service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader); errUpdate != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
+	templateUpdated, errUpdate := th.service.UpdateTemplateByID(ctx, outputFormat, description, id, fileHeader)
+	if errUpdate != nil {
+		if http.IsBusinessError(errUpdate) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to update template", errUpdate)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to update template", errUpdate)
+		}
 
 		logger.Errorf("Failed to update Template with ID: %s, Error: %s", id, errUpdate.Error())
 
 		return http.WithError(c, errUpdate)
-	}
-
-	templateUpdated, err := th.Service.GetTemplateByID(ctx, id)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
-
-		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
-
-		return http.WithError(c, err)
-	}
-
-	if fileHeader != nil {
-		// Get a file in bytes
-		fileBytes, err := http.ReadMultipartFile(fileHeader)
-		if err != nil {
-			libOpentelemetry.HandleSpanError(&span, "Failed to read multipart file", err)
-
-			logger.Errorf("Error to get file content: %v", err)
-
-			return http.WithError(c, err)
-		}
-
-		errPutSeaweedFS := th.Service.TemplateSeaweedFS.Put(ctx, templateUpdated.FileName, outputFormat, fileBytes)
-		if errPutSeaweedFS != nil {
-			libOpentelemetry.HandleSpanError(&span, "Error putting template file on SeaweedFS.", errPutSeaweedFS)
-
-			logger.Errorf("Error putting template file on SeaweedFS: %s", errPutSeaweedFS.Error())
-
-			return http.WithError(c, errPutSeaweedFS)
-		}
 	}
 
 	logger.Infof("Successfully updated Template with ID: %s", id)
@@ -233,10 +219,12 @@ func (th *TemplateHandler) UpdateTemplateByID(c *fiber.Ctx) error {
 //	@Description	Get a template by id
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path		string	true	"Template ID"
 //	@Success		200				{object}	template.Template
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //
@@ -246,7 +234,7 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_template")
+	ctx, span := tracer.Start(ctx, "handler.template.get")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -257,9 +245,13 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	templateModel, err := th.Service.GetTemplateByID(ctx, id)
+	templateModel, err := th.service.GetTemplateByID(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve template on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
 
@@ -277,13 +269,15 @@ func (th *TemplateHandler) GetTemplateByID(c *fiber.Ctx) error {
 //	@Description	List all the templates
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
-//	@Param			outputFormat	query		string	false	"XML, HTML, TXT and CSV"
+//	@Security		BearerAuth
+//	@Param			output_format	query		string	false	"Output format filter: XML, HTML, TXT, CSV (also accepts outputFormat)"
 //	@Param			description		query		string	false	"Description of template"
 //	@Param			limit			query		int		false	"Limit"	default(10)
 //	@Param			page			query		int		false	"Page"	default(1)
 //	@Success		200				{object}	model.Pagination{items=[]template.Template,page=int,limit=int,total=int}
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates [get]
 func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
@@ -291,12 +285,12 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_all_template")
+	ctx, span := tracer.Start(ctx, "handler.template.get_all")
 	defer span.End()
 
 	headerParams, err := http.ValidateParameters(c.Queries())
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate query parameters", err)
 
 		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
 
@@ -319,9 +313,13 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	templates, err := th.Service.GetAllTemplates(ctx, *headerParams)
+	templates, err := th.service.GetAllTemplates(ctx, *headerParams)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve all Templates on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Templates on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve all Templates, Error: %s", err.Error())
 
@@ -342,10 +340,12 @@ func (th *TemplateHandler) GetAllTemplates(c *fiber.Ctx) error {
 //	@Description	SoftDelete a Template with the input ID. Returns 204 with no content on success.
 //	@Tags			Templates
 //	@Produce		json
-//	@Param			Authorization	header	string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path	string	true	"Template ID"
 //	@Success		204				"No content"
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/templates/{id} [delete]
@@ -354,7 +354,7 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.delete_template_by_id")
+	ctx, span := tracer.Start(ctx, "handler.template.delete")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -365,8 +365,12 @@ func (th *TemplateHandler) DeleteTemplateByID(c *fiber.Ctx) error {
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	if err := th.Service.DeleteTemplateByID(ctx, id, false); err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
+	if err := th.service.DeleteTemplateByID(ctx, id, false); err != nil {
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to remove template on database", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to remove template on database", err)
+		}
 
 		logger.Errorf("Failed to remove Template with ID: %s, Error: %s", id.String(), err.Error())
 

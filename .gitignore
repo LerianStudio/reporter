@@ -8,6 +8,8 @@
 *.out
 *.so
 *.test
+coverage.html
+coverage.out
 
 # ----------------------------------------
 # Go: Workspace and Modules
@@ -29,6 +31,7 @@ components/manager/.env.local
 components/worker/.env
 components/worker/.env.local
 components/infra/.env
+components/infra/.env.local
 
 scripts/node_modules
 
@@ -40,8 +43,11 @@ scripts/node_modules
 .vscode
 .windsurf
 .claude
+.docs
+docs
 
 # ----------------------------------------
 # Reports packages
 # ----------------------------------------
 ./reports
+reports/

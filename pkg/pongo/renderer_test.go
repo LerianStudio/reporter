@@ -11,9 +11,11 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons/zap"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRenderFromBytes_Success(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte("Hello, {{ person._.0.name }}!")
@@ -27,11 +29,12 @@ func TestRenderFromBytes_Success(t *testing.T) {
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "Hello, World!", out)
 }
 
 func TestRenderFromBytes_SyntaxError(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte("Hello, {{ name !")
@@ -44,11 +47,12 @@ func TestRenderFromBytes_SyntaxError(t *testing.T) {
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, out)
 }
 
 func TestRender_ArithmeticExpression(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Initial Balance: {{ midaz_transaction.balance.0.initial_balance }}
@@ -64,13 +68,14 @@ Calculation: {% calc (100 + 200) * 1.2 %}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Initial Balance: 100")
 	assert.Contains(t, out, "Final Balance: 200")
 	assert.Contains(t, out, "Calculation: 360")
 }
 
 func TestRender_ArithmeticExpressionWithVariables(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Initial Balance: {{ midaz_transaction.balance.0.initial_balance }}
@@ -86,13 +91,14 @@ Calculation: {% calc (midaz_transaction.balance.0.initial_balance + midaz_transa
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Initial Balance: 100")
 	assert.Contains(t, out, "Final Balance: 200")
 	assert.Contains(t, out, "Calculation: 360")
 }
 
 func TestRender_CalcTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% calc midaz_transaction.balance.0.initial_balance + midaz_transaction.balance.0.final_balance %}`)
@@ -106,11 +112,12 @@ func TestRender_CalcTag(t *testing.T) {
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "300")
 }
 
 func TestRender_CalcTagWithEmptyValue(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -129,7 +136,7 @@ Sum: {% calc balance.available + 1.2 %}
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Alias: Account1")
 	assert.Contains(t, out, "Balance: ")
 	assert.Contains(t, out, "Sum: 1.2")
@@ -139,6 +146,7 @@ Sum: {% calc balance.available + 1.2 %}
 }
 
 func TestRender_CalcTagComplexExpression(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -158,7 +166,7 @@ Sum Complex: {% calc (balance.available + 1.2) * balance.on_hold - balance.avail
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Alias: Account1")
 	assert.Contains(t, out, "Balance: 0")
 	assert.Contains(t, out, "Sum: 1.2")
@@ -170,6 +178,7 @@ Sum Complex: {% calc (balance.available + 1.2) * balance.on_hold - balance.avail
 }
 
 func TestRender_CalcTagPowerOperation(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -192,7 +201,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Alias: Account1")
 	assert.Contains(t, out, "Balance: 3")
 	assert.Contains(t, out, "Power: 9")
@@ -206,6 +215,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 }
 
 func TestRender_CalcTagIndexAccess(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`{% for balance in midaz_transaction.balance %}
@@ -228,7 +238,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Alias: Account1")
 	assert.Contains(t, out, "Alias: Account2")
 	assert.Contains(t, out, "Alias: Account3")
@@ -236,6 +246,7 @@ Sum: {% calc (midaz_transaction.balance.3.available + 1.2) ** 2 %}`)
 }
 
 func TestRender_CalcTagScientificNotation(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 	tpl := []byte(`Power Small: {% calc 0.1 ** 3 %}
@@ -251,13 +262,14 @@ Power Fractional: {% calc 2.5 ** 0.5 %}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Power Small: 0.001")
 	assert.Contains(t, out, "Power Large: 1000000")
 	assert.Contains(t, out, "Power Fractional: 1.5811388301")
 }
 
 func TestPreprocessSchemaReferences(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -297,6 +309,7 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := preprocessSchemaReferences(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -304,6 +317,7 @@ func TestPreprocessSchemaReferences(t *testing.T) {
 }
 
 func TestRender_ExplicitSchemaFormat(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -323,12 +337,13 @@ ID: {{ order.id }}, Amount: {{ order.amount }}
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "ID: TX001, Amount: 100.5")
 	assert.Contains(t, out, "ID: TX002, Amount: 200")
 }
 
 func TestRender_ExplicitSchemaDirectAccess(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -346,12 +361,13 @@ First Amount: {{ external_db:sales.orders.0.amount }}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "First Order ID: TX001")
 	assert.Contains(t, out, "First Amount: 100.5")
 }
 
 func TestRender_ExplicitSchemaIfTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -366,11 +382,12 @@ func TestRender_ExplicitSchemaIfTag(t *testing.T) {
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Has orders")
 }
 
 func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -386,11 +403,12 @@ func TestRender_ExplicitSchemaCalcTag(t *testing.T) {
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Total: 300.5")
 }
 
 func TestRender_MixedLegacyAndSchemaFormats(t *testing.T) {
+	t.Parallel()
 	r := NewTemplateRenderer()
 	logger := zap.InitializeLogger()
 
@@ -411,7 +429,194 @@ Schema: {{ external_db:sales.orders.0.id }}`)
 	}
 
 	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Legacy: ACCT001")
 	assert.Contains(t, out, "Schema: TX001")
+}
+
+func TestRenderFromBytes_FilterFunction_MatchingItems(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% for item in filter(db._, "status", "active") %}{{ item.name }},{% endfor %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "Alice", "status": "active"},
+				{"name": "Bob", "status": "inactive"},
+				{"name": "Charlie", "status": "active"},
+				{"name": "Diana", "status": "pending"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.NoError(t, err)
+	assert.Contains(t, out, "Alice")
+	assert.Contains(t, out, "Charlie")
+	assert.NotContains(t, out, "Bob")
+	assert.NotContains(t, out, "Diana")
+}
+
+func TestRenderFromBytes_FilterFunction_NoMatches(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% for item in filter(db._, "status", "deleted") %}{{ item.name }},{% endfor %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "Alice", "status": "active"},
+				{"name": "Bob", "status": "inactive"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.NoError(t, err)
+	assert.Empty(t, strings.TrimSpace(out))
+}
+
+func TestRenderFromBytes_FilterFunction_InvalidType(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% for item in filter(db._.0.name, "x", "y") %}{{ item }}{% endfor %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "hello"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.NoError(t, err)
+	assert.Empty(t, strings.TrimSpace(out))
+}
+
+func TestRenderFromBytes_ContainsFunction(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% if contains(db._.0.name, "john") %}YES{% else %}NO{% endif %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "Johnny"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.NoError(t, err)
+	assert.Contains(t, out, "YES")
+}
+
+func TestRenderFromBytes_ContainsFunction_NoMatch(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% if contains(db._.0.name, "john") %}YES{% else %}NO{% endif %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "Alice"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.NoError(t, err)
+	assert.Contains(t, out, "NO")
+}
+
+func TestRenderFromBytes_ExecutionError(t *testing.T) {
+	t.Parallel()
+	r := NewTemplateRenderer()
+	logger := zap.InitializeLogger()
+
+	tpl := []byte(`{% include "nonexistent_file.html" %}`)
+
+	data := map[string]map[string][]map[string]any{
+		"db": {
+			"_": {
+				{"name": "test"},
+			},
+		},
+	}
+
+	out, err := r.RenderFromBytes(context.Background(), tpl, data, logger)
+	require.Error(t, err)
+	assert.Empty(t, out)
+}
+
+func TestCleanNumericOutput_WithXMLDeclaration(t *testing.T) {
+	t.Parallel()
+
+	input := `<?xml version="1.0" encoding="UTF-8"?><data>100.50</data>`
+	result := cleanNumericOutput(input)
+	assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?><data>100.5</data>`, result)
+}
+
+func TestCleanNumericOutput_MultipleXMLDeclarations(t *testing.T) {
+	t.Parallel()
+
+	input := `<?xml version="1.0" encoding="UTF-8"?><root>50.100</root><?xml version="1.1" encoding="UTF-8"?><other>200.300</other>`
+	result := cleanNumericOutput(input)
+	assert.Contains(t, result, `<?xml version="1.0" encoding="UTF-8"?>`)
+	assert.Contains(t, result, `<?xml version="1.1" encoding="UTF-8"?>`)
+	assert.Contains(t, result, "50.1")
+	assert.Contains(t, result, "200.3")
+	assert.NotContains(t, result, "50.100")
+	assert.NotContains(t, result, "200.300")
+}
+
+func TestCleanNumericString_DecimalParseFallback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "invalid decimal with multiple dots falls through to TrimRight",
+			input:    "1.2.3",
+			expected: "1.2.3",
+		},
+		{
+			name:     "valid decimal with trailing zeros parsed by decimal library",
+			input:    "1.200",
+			expected: "1.2",
+		},
+		{
+			name:     "invalid decimal with trailing zeros exercises TrimRight path",
+			input:    "1.2.300",
+			expected: "1.2.3",
+		},
+		{
+			name:     "invalid decimal that reduces to integer after TrimRight",
+			input:    "1.0.0",
+			expected: "1.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := cleanNumericString(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

@@ -13,25 +13,21 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_deleteTemplateByID(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestUseCase_DeleteTemplateByID(t *testing.T) {
+	t.Parallel()
 
-	mockTempRepo := template.NewMockRepository(ctrl)
 	tempID := uuid.New()
-	tempSvc := &UseCase{
-		TemplateRepo: mockTempRepo,
-	}
 
 	tests := []struct {
 		name           string
 		tempID         uuid.UUID
 		hardDelete     bool
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
 		expectedResult error
 	}{
@@ -39,10 +35,12 @@ func Test_deleteTemplateByID(t *testing.T) {
 			name:       "Success - Delete a template",
 			tempID:     tempID,
 			hardDelete: true,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      false,
 			expectedResult: nil,
@@ -51,10 +49,12 @@ func Test_deleteTemplateByID(t *testing.T) {
 			name:       "Error Bad Request - Delete a template",
 			tempID:     tempID,
 			hardDelete: true,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(constant.ErrBadRequest)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
 			expectedResult: constant.ErrBadRequest,
@@ -63,10 +63,12 @@ func Test_deleteTemplateByID(t *testing.T) {
 			name:       "Error Document Not found - Delete a template",
 			tempID:     tempID,
 			hardDelete: true,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					Delete(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mongo.ErrNoDocuments)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
 			expectedResult: mongo.ErrNoDocuments,
@@ -74,16 +76,22 @@ func Test_deleteTemplateByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tempSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.hardDelete)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedResult)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

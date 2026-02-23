@@ -7,6 +7,8 @@ package services
 import (
 	"context"
 
+	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
+
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/google/uuid"
@@ -17,7 +19,7 @@ import (
 func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id uuid.UUID, hardDelete bool) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.delete_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.template.delete")
 	defer span.End()
 
 	span.SetAttributes(
@@ -28,7 +30,12 @@ func (uc *UseCase) DeleteTemplateByID(ctx context.Context, id uuid.UUID, hardDel
 	logger.Infof("Remove template for id: %s", id)
 
 	if err := uc.TemplateRepo.Delete(ctx, id, hardDelete); err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to delete template on repo by id", err)
+		if pkgHTTP.IsBusinessError(err) {
+			opentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to delete template on repo by id", err)
+		} else {
+			opentelemetry.HandleSpanError(&span, "Failed to delete template on repo by id", err)
+		}
+
 		logger.Errorf("Error deleting template on repo by id: %v", err)
 
 		return err

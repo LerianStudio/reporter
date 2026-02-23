@@ -9,9 +9,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_Struct(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		Bucket:            "test-bucket",
 		S3Endpoint:        "http://localhost:9000",
@@ -32,16 +35,20 @@ func TestConfig_Struct(t *testing.T) {
 }
 
 func TestNewStorageClient_MissingBucket(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{
 		Bucket: "",
 	}
 
 	_, err := NewStorageClient(context.Background(), cfg)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bucket name is required")
 }
 
 func TestNewStorageClient_ConfigMapping(t *testing.T) {
+	t.Parallel()
+
 	// This test verifies that the config is correctly mapped to S3Config
 	// We can't fully test the client creation without actual S3 endpoint
 	cfg := Config{
@@ -64,6 +71,8 @@ func TestNewStorageClient_ConfigMapping(t *testing.T) {
 }
 
 func TestConfig_EmptyFields(t *testing.T) {
+	t.Parallel()
+
 	cfg := Config{}
 
 	assert.Empty(t, cfg.Bucket)
@@ -76,6 +85,8 @@ func TestConfig_EmptyFields(t *testing.T) {
 }
 
 func TestConfig_WithAllFields(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		config Config
@@ -119,7 +130,10 @@ func TestConfig_WithAllFields(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.NotEmpty(t, tt.config.Bucket)
 			// Other validations are config-specific
 		})
