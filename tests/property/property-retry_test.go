@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Property 1: Backoff exponencial deve crescer como 2^n
+// Property 1: Backoff exponential deve crescer como 2^n
 func TestProperty_Retry_ExponentialBackoff(t *testing.T) {
 	t.Parallel()
 

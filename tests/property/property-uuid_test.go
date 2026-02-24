@@ -213,7 +213,7 @@ func TestProperty_UUID_NeverNil(t *testing.T) {
 	}
 }
 
-// Property 8: Conversão UUID → String → UUID deve ser lossless
+// Property 8: Conversion UUID → String → UUID deve ser lossless
 func TestProperty_UUID_StringRoundTrip(t *testing.T) {
 	t.Parallel()
 

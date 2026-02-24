@@ -683,6 +683,76 @@ func BenchmarkConvertBsonToMap(b *testing.B) {
 	}
 }
 
+func assertSlicesEqual(t *testing.T, path string, expected, actual []any) {
+	t.Helper()
+
+	if len(expected) != len(actual) {
+		t.Errorf("Expected '%s' slice length %d, got %d", path, len(expected), len(actual))
+		return
+	}
+
+	for i, expectedItem := range expected {
+		if expectedItem != actual[i] {
+			t.Errorf("Expected '%s[%d]' = %v, got %v", path, i, expectedItem, actual[i])
+		}
+	}
+}
+
+func assertNestedMapEqual(t *testing.T, key string, expected map[string]any, actual any) {
+	t.Helper()
+
+	actualMap, ok := actual.(map[string]any)
+	if !ok {
+		t.Errorf("Expected '%s' to be map[string]any, got %T", key, actual)
+		return
+	}
+
+	for nestedKey, nestedExpected := range expected {
+		nestedActual, exists := actualMap[nestedKey]
+		if !exists {
+			t.Errorf("Expected nested field '%s.%s' not found", key, nestedKey)
+			continue
+		}
+
+		path := key + "." + nestedKey
+
+		if expectedSlice, ok := nestedExpected.([]any); ok {
+			actualSlice, ok := nestedActual.([]any)
+			if !ok {
+				t.Errorf("Expected '%s' to be []any, got %T", path, nestedActual)
+				continue
+			}
+
+			assertSlicesEqual(t, path, expectedSlice, actualSlice)
+		} else if nestedActual != nestedExpected {
+			t.Errorf("Expected '%s' = %v, got %v", path, nestedExpected, nestedActual)
+		}
+	}
+}
+
+func assertFilterMapsEqual(t *testing.T, expected, result map[string]any) {
+	t.Helper()
+
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d fields, got %d", len(expected), len(result))
+		return
+	}
+
+	for key, expectedValue := range expected {
+		actualValue, exists := result[key]
+		if !exists {
+			t.Errorf("Expected field '%s' not found", key)
+			continue
+		}
+
+		if expectedMap, ok := expectedValue.(map[string]any); ok {
+			assertNestedMapEqual(t, key, expectedMap, actualValue)
+		} else if actualValue != expectedValue {
+			t.Errorf("Expected '%s' = %v, got %v", key, expectedValue, actualValue)
+		}
+	}
+}
+
 // TestConvertFilterConditionToMongoFilter tests the conversion of FilterCondition to MongoDB filter
 func TestConvertFilterConditionToMongoFilter(t *testing.T) {
 	t.Parallel()
@@ -817,50 +887,7 @@ func TestConvertFilterConditionToMongoFilter(t *testing.T) {
 				return
 			}
 
-			if len(result) != len(tc.expected) {
-				t.Errorf("Expected %d fields, got %d", len(tc.expected), len(result))
-				return
-			}
-
-			for key, expectedValue := range tc.expected {
-				if actualValue, exists := result[key]; !exists {
-					t.Errorf("Expected field '%s' not found", key)
-				} else {
-					// For complex nested structures, we need to compare more carefully
-					if expectedMap, ok := expectedValue.(map[string]any); ok {
-						if actualMap, ok := actualValue.(map[string]any); ok {
-							for nestedKey, nestedExpected := range expectedMap {
-								if nestedActual, exists := actualMap[nestedKey]; !exists {
-									t.Errorf("Expected nested field '%s.%s' not found", key, nestedKey)
-								} else {
-									// Compare slices properly
-									if expectedSlice, ok := nestedExpected.([]any); ok {
-										if actualSlice, ok := nestedActual.([]any); ok {
-											if len(expectedSlice) != len(actualSlice) {
-												t.Errorf("Expected '%s.%s' slice length %d, got %d", key, nestedKey, len(expectedSlice), len(actualSlice))
-											} else {
-												for i, expectedItem := range expectedSlice {
-													if expectedItem != actualSlice[i] {
-														t.Errorf("Expected '%s.%s[%d]' = %v, got %v", key, nestedKey, i, expectedItem, actualSlice[i])
-													}
-												}
-											}
-										} else {
-											t.Errorf("Expected '%s.%s' to be []any, got %T", key, nestedKey, nestedActual)
-										}
-									} else if nestedActual != nestedExpected {
-										t.Errorf("Expected '%s.%s' = %v, got %v", key, nestedKey, nestedExpected, nestedActual)
-									}
-								}
-							}
-						} else {
-							t.Errorf("Expected '%s' to be map[string]any, got %T", key, actualValue)
-						}
-					} else if actualValue != expectedValue {
-						t.Errorf("Expected '%s' = %v, got %v", key, expectedValue, actualValue)
-					}
-				}
-			}
+			assertFilterMapsEqual(t, tc.expected, result)
 		})
 	}
 }

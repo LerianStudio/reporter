@@ -18,44 +18,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration simulates a failure of the
-// RabbitMQ queue during report generation following the 5-phase chaos test structure:
-// Phase 1 (Normal) -> Phase 2 (Inject) -> Phase 3 (Verify Failure) -> Phase 4 (Restore) -> Phase 5 (Verify Recovery)
-func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
-	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
+func skipIfNotChaos(t *testing.T) {
+	t.Helper()
+
 	if os.Getenv("CHAOS") != "1" {
 		t.Skip("Set CHAOS=1 to run chaos tests")
 	}
+
 	if testing.Short() {
 		t.Skip("Skipping chaos test in short mode")
 	}
+}
+
+func setupChaosClient(t *testing.T) (context.Context, *h.HTTPClient, map[string]string) {
+	t.Helper()
+
 	ctx := context.Background()
 	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
 	headers := h.AuthHeaders()
 
-	// Phase 1 (Normal): Verify system health and create a report under normal conditions
-	t.Log("Phase 1 (Normal): Verifying system health before chaos test...")
-	if err := h.WaitForSystemHealth(ctx, cli, 60*time.Second); err != nil {
-		t.Fatalf("Phase 1 (Normal): System not healthy before chaos test: %v", err)
-	}
-	t.Log("Phase 1 (Normal): System is healthy, creating report under normal conditions...")
+	return ctx, cli, headers
+}
 
-	templateID := "00000000-0000-0000-0000-000000000000"
+func waitForSystemHealthy(t *testing.T, ctx context.Context, cli *h.HTTPClient, timeout time.Duration) {
+	t.Helper()
 
-	payload := map[string]any{
-		"templateId": templateID,
-		"filters": map[string]any{
-			"status": map[string]any{
-				"in": []any{"active"},
-			},
-		},
+	if err := h.WaitForSystemHealth(ctx, cli, timeout); err != nil {
+		t.Fatalf("System not healthy: %v", err)
 	}
+}
+
+func createReportWithRetries(t *testing.T, ctx context.Context, cli *h.HTTPClient, headers map[string]string, payload map[string]any, maxRetries int) string {
+	t.Helper()
 
 	var code int
 	var body []byte
 	var err error
 
-	maxRetries := 5
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		code, body, err = cli.Request(ctx, "POST", "/v1/reports", headers, payload)
 		if err == nil && (code == 201 || (code >= 400 && code < 500)) {
@@ -63,31 +62,96 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 		}
 
 		if attempt < maxRetries {
-			t.Logf("Phase 1 (Normal): Request attempt %d/%d failed: %v (code: %d), retrying in 2s...", attempt, maxRetries, err, code)
+			t.Logf("Request attempt %d/%d failed: %v (code: %d), retrying in 2s...", attempt, maxRetries, err, code)
 			time.Sleep(2 * time.Second)
 		}
 	}
 
 	if err != nil {
-		t.Fatalf("Phase 1 (Normal): Request error after %d attempts: %v", maxRetries, err)
+		t.Fatalf("Request error after %d attempts: %v", maxRetries, err)
 	}
 
 	if code != 201 && (code < 400 || code >= 500) {
-		t.Fatalf("Phase 1 (Normal): Unexpected response code: %d, body: %s", code, string(body))
+		t.Fatalf("Unexpected response code: %d, body: %s", code, string(body))
+	}
+
+	if code != 201 {
+		t.Skipf("Report not created (code %d), skipping test", code)
 	}
 
 	var reportResponse struct {
 		ID string `json:"id"`
 	}
-	if code == 201 {
-		if err := json.Unmarshal(body, &reportResponse); err != nil {
-			t.Fatalf("Phase 1 (Normal): Error decoding response: %v", err)
-		}
-		t.Logf("Phase 1 (Normal): Report created with ID: %s", reportResponse.ID)
-	} else {
-		t.Logf("Phase 1 (Normal): Report not created (code %d), skipping chaos injection", code)
-		return
+
+	if err := json.Unmarshal(body, &reportResponse); err != nil {
+		t.Fatalf("Error decoding response: %v", err)
 	}
+
+	t.Logf("Report created with ID: %s", reportResponse.ID)
+
+	return reportResponse.ID
+}
+
+func waitForServiceReady(t *testing.T, ctx context.Context, cli *h.HTTPClient, timeout time.Duration) {
+	t.Helper()
+
+	require.Eventually(t, func() bool {
+		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
+		return err == nil && code == 200
+	}, timeout, 2*time.Second, "service did not become healthy after RabbitMQ restart")
+}
+
+func logRecoveryStatus(t *testing.T, ctx context.Context, cli *h.HTTPClient, reportID string, headers map[string]string) {
+	t.Helper()
+
+	finalReport, err := cli.WaitForReportStatus(ctx, reportID, headers, "Finished", 30*time.Second)
+	if err != nil {
+		currentReport, err2 := cli.GetReportStatus(ctx, reportID, headers)
+		if err2 != nil {
+			t.Fatalf("Phase 5 (Verify Recovery): Error fetching final status: %v", err2)
+		}
+
+		t.Logf("Phase 5 (Verify Recovery): Final report status: %s", currentReport.Status)
+
+		switch currentReport.Status {
+		case "Processing":
+			t.Log("Phase 5 (Verify Recovery): PROBLEM IDENTIFIED - Report stuck in 'Processing' status")
+			t.Log("Phase 5 (Verify Recovery): This indicates the message was lost when RabbitMQ crashed")
+			t.Log("Phase 5 (Verify Recovery): Chaos test PASSED - problem identified correctly")
+		case "Finished":
+			t.Log("Phase 5 (Verify Recovery): Report processed successfully after restart")
+		default:
+			t.Logf("Phase 5 (Verify Recovery): Unexpected status: %s", currentReport.Status)
+		}
+	} else {
+		t.Logf("Phase 5 (Verify Recovery): Report processed successfully! Status: %s", finalReport.Status)
+	}
+}
+
+// TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration simulates a failure of the
+// RabbitMQ queue during report generation following the 5-phase chaos test structure:
+// Phase 1 (Normal) -> Phase 2 (Inject) -> Phase 3 (Verify Failure) -> Phase 4 (Restore) -> Phase 5 (Verify Recovery)
+func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
+	skipIfNotChaos(t)
+
+	ctx, cli, headers := setupChaosClient(t)
+
+	// Phase 1 (Normal): Verify system health and create a report under normal conditions
+	t.Log("Phase 1 (Normal): Verifying system health before chaos test...")
+	waitForSystemHealthy(t, ctx, cli, 60*time.Second)
+	t.Log("Phase 1 (Normal): System is healthy, creating report under normal conditions...")
+
+	payload := map[string]any{
+		"templateId": "00000000-0000-0000-0000-000000000000",
+		"filters": map[string]any{
+			"status": map[string]any{
+				"in": []any{"active"},
+			},
+		},
+	}
+
+	reportID := createReportWithRetries(t, ctx, cli, headers, payload, 5)
 
 	// Intentional wait: allow time for message to be published before inducing chaos
 	t.Log("Phase 1 (Normal): Waiting for message to be sent to RabbitMQ...")
@@ -102,47 +166,21 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 
 	// Phase 3 (Verify Failure): Check report status during disruption
 	t.Log("Phase 3 (Verify Failure): Checking report status during RabbitMQ disruption...")
-	report, err := cli.GetReportStatus(ctx, reportResponse.ID, headers)
+	report, err := cli.GetReportStatus(ctx, reportID, headers)
 	if err != nil {
 		t.Logf("Phase 3 (Verify Failure): Could not fetch report (expected during disruption): %v", err)
 	} else {
 		t.Logf("Phase 3 (Verify Failure): Report status during disruption: %s", report.Status)
-		if report.Status == "Processing" {
-			t.Log("Phase 3 (Verify Failure): Report still processing - message may be in-flight or lost")
-		}
 	}
 
 	// Phase 4 (Restore): Wait for RabbitMQ and worker to recover
 	t.Log("Phase 4 (Restore): Waiting for worker to reconnect to RabbitMQ...")
-	require.Eventually(t, func() bool {
-		code, _, err := cli.Request(ctx, "GET", "/ready", nil, nil)
-		return err == nil && code == 200
-	}, 90*time.Second, 2*time.Second, "service did not become healthy after RabbitMQ restart")
+	waitForServiceReady(t, ctx, cli, 90*time.Second)
 	t.Log("Phase 4 (Restore): System is healthy again")
 
 	// Phase 5 (Verify Recovery): Check if report was eventually processed
 	t.Log("Phase 5 (Verify Recovery): Checking final report status after recovery...")
-	finalReport, err := cli.WaitForReportStatus(ctx, reportResponse.ID, headers, "Finished", 30*time.Second)
-	if err != nil {
-		currentReport, err2 := cli.GetReportStatus(ctx, reportResponse.ID, headers)
-		if err2 != nil {
-			t.Fatalf("Phase 5 (Verify Recovery): Error fetching final status: %v", err2)
-		}
-
-		t.Logf("Phase 5 (Verify Recovery): Final report status: %s", currentReport.Status)
-
-		if currentReport.Status == "Processing" {
-			t.Log("Phase 5 (Verify Recovery): PROBLEM IDENTIFIED - Report stuck in 'Processing' status")
-			t.Log("Phase 5 (Verify Recovery): This indicates the message was lost when RabbitMQ crashed")
-			t.Log("Phase 5 (Verify Recovery): Chaos test PASSED - problem identified correctly")
-		} else if currentReport.Status == "Finished" {
-			t.Log("Phase 5 (Verify Recovery): Report processed successfully after restart")
-		} else {
-			t.Logf("Phase 5 (Verify Recovery): Unexpected status: %s", currentReport.Status)
-		}
-	} else {
-		t.Logf("Phase 5 (Verify Recovery): Report processed successfully! Status: %s", finalReport.Status)
-	}
+	logRecoveryStatus(t, ctx, cli, reportID, headers)
 }
 
 // TestIntegration_Chaos_RabbitMQ_MessageLossSimulation simulates message loss in a more controlled way
@@ -150,16 +188,9 @@ func TestIntegration_Chaos_RabbitMQ_QueueFailureDuringReportGeneration(t *testin
 // Phase 1 (Normal) -> Phase 2 (Inject) -> Phase 3 (Verify Failure) -> Phase 4 (Restore) -> Phase 5 (Verify Recovery)
 func TestIntegration_Chaos_RabbitMQ_MessageLossSimulation(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because this test manipulates shared infrastructure (restarts RabbitMQ).
-	if os.Getenv("CHAOS") != "1" {
-		t.Skip("Set CHAOS=1 to run chaos tests")
-	}
-	if testing.Short() {
-		t.Skip("Skipping chaos test in short mode")
-	}
+	skipIfNotChaos(t)
 
-	ctx := context.Background()
-	cli := h.NewHTTPClient(GetManagerAddress(), 30*time.Second)
-	headers := h.AuthHeaders()
+	ctx, cli, headers := setupChaosClient(t)
 
 	// Phase 1 (Normal): Verify system health and create multiple reports under normal conditions
 	t.Log("Phase 1 (Normal): Verifying system health and creating reports...")

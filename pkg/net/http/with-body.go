@@ -498,32 +498,36 @@ type typeMismatchInfo struct {
 	value        any
 }
 
-// getTypeMismatch checks if there's a type mismatch and returns mismatch info
+type mismatchRule struct {
+	receivedType string
+	isIncompat   func(reflect.Kind) bool
+	preserveVal  bool
+}
+
+var mismatchRules = map[reflect.Type]mismatchRule{
+	reflect.TypeOf(""):               {receivedType: "string", isIncompat: func(k reflect.Kind) bool { return k == reflect.Map || k == reflect.Slice }, preserveVal: true},
+	reflect.TypeOf(map[string]any{}): {receivedType: "object", isIncompat: isSimpleType, preserveVal: false},
+	reflect.TypeOf([]any{}):          {receivedType: "array", isIncompat: isSimpleType, preserveVal: false},
+	reflect.TypeOf(float64(0)):       {receivedType: "number", isIncompat: func(k reflect.Kind) bool { return k == reflect.String || k == reflect.Map || k == reflect.Slice }, preserveVal: true},
+	reflect.TypeOf(false):            {receivedType: "boolean", isIncompat: func(k reflect.Kind) bool { return k == reflect.String || k == reflect.Map || k == reflect.Slice }, preserveVal: true},
+}
+
 func getTypeMismatch(originalValue any, fieldKind reflect.Kind) *typeMismatchInfo {
-	switch val := originalValue.(type) {
-	case string:
-		if fieldKind == reflect.Map || fieldKind == reflect.Slice {
-			return &typeMismatchInfo{receivedType: "string", value: val}
-		}
-	case map[string]any:
-		if isSimpleType(fieldKind) {
-			return &typeMismatchInfo{receivedType: "object", value: nil}
-		}
-	case []any:
-		if isSimpleType(fieldKind) {
-			return &typeMismatchInfo{receivedType: "array", value: nil}
-		}
-	case float64:
-		if fieldKind == reflect.String || fieldKind == reflect.Map || fieldKind == reflect.Slice {
-			return &typeMismatchInfo{receivedType: "number", value: val}
-		}
-	case bool:
-		if fieldKind == reflect.String || fieldKind == reflect.Map || fieldKind == reflect.Slice {
-			return &typeMismatchInfo{receivedType: "boolean", value: val}
-		}
+	if originalValue == nil {
+		return nil
 	}
 
-	return nil
+	rule, exists := mismatchRules[reflect.TypeOf(originalValue)]
+	if !exists || !rule.isIncompat(fieldKind) {
+		return nil
+	}
+
+	var val any
+	if rule.preserveVal {
+		val = originalValue
+	}
+
+	return &typeMismatchInfo{receivedType: rule.receivedType, value: val}
 }
 
 // isSimpleType checks if the field kind is a simple type
