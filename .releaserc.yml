@@ -27,17 +27,8 @@ plugins:
       - breaking: true
         release: major
 
-  # Plugin to version the CHANGELOG.md
-  - path: "@semantic-release/git"
-    assets:
-      - CHANGELOG.md
-    message: "chore(release): ${nextRelease.version}\n\nChangelog atualizado."
-
-  # Plugin to publish the CHANGELOG.md as an asset in the GitHub release
+  # Plugin to publish the GitHub release (no assets - changelog managed separately)
   - path: "@semantic-release/github"
-    assets:
-      - path: CHANGELOG.md
-        label: "Changelog"
     successComment: false
     failComment: false
     labels: []

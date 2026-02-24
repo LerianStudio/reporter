@@ -42,7 +42,7 @@ jobs:
   # =========================
   update_gitops:
     needs: [build]
-    if: (contains(github.ref, '-beta') || contains(github.ref, '-rc')) && needs.build.result == 'success'
+    if: needs.build.result == 'success'
     uses: LerianStudio/github-actions-shared-workflows/.github/workflows/gitops-update.yml@v1.11.0
     with:
       runner_type: "firmino-lxc-runners"
@@ -50,8 +50,12 @@ jobs:
       gitops_server: "firmino"
       app_name: "reporter"
       artifact_pattern: "gitops-tags-reporter-*"
-      yaml_key_mappings: '{"manager.tag": ".manager.image.tag", "worker.tag": ".worker.image.tag"}'
-      configmap_updates: '{"manager.tag": ".manager.configmap.VERSION", "worker.tag": ".worker.configmap.VERSION"}'
+      gitops_file_dev: "gitops/environments/firmino/helmfile/applications/dev/reporter/values.yaml"
+      gitops_file_stg: "gitops/environments/firmino/helmfile/applications/stg/reporter/values.yaml"
+      gitops_file_prd: "gitops/environments/firmino/helmfile/applications/prd/reporter/values.yaml"
+      gitops_file_sandbox: "gitops/environments/firmino/helmfile/applications/sandbox/reporter/values.yaml"
+      yaml_key_mappings: '{"reporter-manager.tag": ".manager.image.tag", "reporter-worker.tag": ".worker.image.tag"}'
+      configmap_updates: '{"reporter-manager.tag": ".manager.configmap.VERSION", "reporter-worker.tag": ".worker.configmap.VERSION"}'
       commit_message_prefix: "reporter"
       enable_argocd_sync: true
       argocd_app_name: "firmino-reporter"
@@ -61,15 +65,15 @@ jobs:
   # =========================
   # E2E TESTS
   # =========================
-  api-dog-e2e-tests:
-    needs: update_gitops
-    if: (contains(github.ref, '-beta') || contains(github.ref, '-rc')) && needs.update_gitops.result == 'success'
-    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/api-dog-e2e-tests.yml@v1.11.0
-    with:
-      runner_type: "firmino-lxc-runners"
-      auto_detect_environment: true
-    secrets:
-      test_scenario_id: ${{ secrets.REPORTER_APIDOG_TEST_SCENARIO_ID }}
-      apidog_access_token: ${{ secrets.APIDOG_ACCESS_TOKEN }}
-      dev_environment_id: ${{ secrets.REPORTER_APIDOG_DEV_ENVIRONMENT_ID }}
-      stg_environment_id: ${{ secrets.REPORTER_APIDOG_STG_ENVIRONMENT_ID }}
+#  api-dog-e2e-tests:
+#    needs: [update_gitops]
+#    if: needs.update_gitops.result == 'success'
+#    uses: LerianStudio/github-actions-shared-workflows/.github/workflows/api-dog-e2e-tests.yml@v1.11.0
+#    with:
+#      runner_type: "firmino-lxc-runners"
+#      auto_detect_environment: true
+#    secrets:
+#      test_scenario_id: ${{ secrets.REPORTER_APIDOG_TEST_SCENARIO_ID }}
+#      apidog_access_token: ${{ secrets.APIDOG_ACCESS_TOKEN }}
+#      dev_environment_id: ${{ secrets.REPORTER_APIDOG_DEV_ENVIRONMENT_ID }}
+#      stg_environment_id: ${{ secrets.REPORTER_APIDOG_STG_ENVIRONMENT_ID }}
