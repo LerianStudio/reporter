@@ -5,15 +5,20 @@
 package report
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReportMongoDBModel_ToEntity(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	id := uuid.New()
@@ -54,6 +59,8 @@ func TestReportMongoDBModel_ToEntity(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntity_NilFilters(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -75,6 +82,8 @@ func TestReportMongoDBModel_ToEntity_NilFilters(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntityFindByID(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -122,6 +131,8 @@ func TestReportMongoDBModel_ToEntityFindByID(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntityFindByID_EmptyFields(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -146,6 +157,8 @@ func TestReportMongoDBModel_ToEntityFindByID_EmptyFields(t *testing.T) {
 }
 
 func TestReportMongoDBModel_FromEntity(t *testing.T) {
+	t.Parallel()
+
 	id := uuid.New()
 	templateID := uuid.New()
 	completedAt := time.Now()
@@ -174,7 +187,7 @@ func TestReportMongoDBModel_FromEntity(t *testing.T) {
 	mongoModel := &ReportMongoDBModel{}
 	err := mongoModel.FromEntity(report)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, mongoModel.ID)
 	assert.Equal(t, templateID, mongoModel.TemplateID)
 	assert.Equal(t, "completed", mongoModel.Status)
@@ -187,6 +200,8 @@ func TestReportMongoDBModel_FromEntity(t *testing.T) {
 }
 
 func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
+	t.Parallel()
+
 	report := &Report{
 		ID:         uuid.New(),
 		TemplateID: uuid.New(),
@@ -196,7 +211,7 @@ func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
 	mongoModel := &ReportMongoDBModel{}
 	err := mongoModel.FromEntity(report)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, report.ID, mongoModel.ID)
 	assert.Equal(t, report.TemplateID, mongoModel.TemplateID)
 	assert.Equal(t, "pending", mongoModel.Status)
@@ -204,6 +219,8 @@ func TestReportMongoDBModel_FromEntity_EmptyReport(t *testing.T) {
 }
 
 func TestReport_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -249,6 +266,8 @@ func TestReport_Struct(t *testing.T) {
 }
 
 func TestReportMongoDBModel_Struct(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	completedAt := now.Add(time.Hour)
 	deletedAt := now.Add(2 * time.Hour)
@@ -293,10 +312,15 @@ func TestReportMongoDBModel_Struct(t *testing.T) {
 }
 
 func TestReportStatuses(t *testing.T) {
+	t.Parallel()
+
 	statuses := []string{"pending", "processing", "completed", "failed"}
 
 	for _, status := range statuses {
-		t.Run("Status_"+status, func(t *testing.T) {
+		status := status
+		t.Run("Success - Status_"+status, func(t *testing.T) {
+			t.Parallel()
+
 			report := Report{
 				ID:         uuid.New(),
 				TemplateID: uuid.New(),
@@ -311,6 +335,8 @@ func TestReportStatuses(t *testing.T) {
 }
 
 func TestReportMongoDBModel_ToEntity_WithComplexFilters(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	id := uuid.New()
 	templateID := uuid.New()
@@ -353,7 +379,242 @@ func TestReportMongoDBModel_ToEntity_WithComplexFilters(t *testing.T) {
 	assert.Len(t, entity.Filters["users"], 1)
 }
 
+func TestNewReport(t *testing.T) {
+	t.Parallel()
+
+	validTemplateID := uuid.New()
+	validFilters := map[string]map[string]map[string]model.FilterCondition{
+		"transactions": {
+			"amount": {
+				"range": {Equals: []any{"100"}},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		id          uuid.UUID
+		templateID  uuid.UUID
+		status      string
+		filters     map[string]map[string]map[string]model.FilterCondition
+		wantErr     bool
+		expectedErr error
+	}{
+		{
+			name:       "valid report with all fields",
+			id:         uuid.New(),
+			templateID: validTemplateID,
+			status:     constant.ProcessingStatus,
+			filters:    validFilters,
+			wantErr:    false,
+		},
+		{
+			name:       "valid report with nil filters",
+			id:         uuid.New(),
+			templateID: validTemplateID,
+			status:     constant.ProcessingStatus,
+			filters:    nil,
+			wantErr:    false,
+		},
+		{
+			name:        "nil ID returns error",
+			id:          uuid.Nil,
+			templateID:  validTemplateID,
+			status:      constant.ProcessingStatus,
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+		{
+			name:        "nil templateID returns error",
+			id:          uuid.New(),
+			templateID:  uuid.Nil,
+			status:      constant.ProcessingStatus,
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+		{
+			name:        "empty status returns error",
+			id:          uuid.New(),
+			templateID:  validTemplateID,
+			status:      "",
+			filters:     validFilters,
+			wantErr:     true,
+			expectedErr: constant.ErrMissingRequiredFields,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := NewReport(tt.id, tt.templateID, tt.status, tt.filters)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, got)
+
+				if tt.expectedErr != nil {
+					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				}
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, got)
+				assert.Equal(t, tt.id, got.ID)
+				assert.Equal(t, tt.templateID, got.TemplateID)
+				assert.Equal(t, tt.status, got.Status)
+				assert.Equal(t, tt.filters, got.Filters)
+				assert.False(t, got.CreatedAt.IsZero())
+				assert.False(t, got.UpdatedAt.IsZero())
+			}
+		})
+	}
+}
+
+func TestReconstructReport(t *testing.T) {
+	t.Parallel()
+
+	id := uuid.New()
+	templateID := uuid.New()
+	createdAt := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2025, 6, 16, 12, 0, 0, 0, time.UTC)
+	completedAt := time.Date(2025, 6, 16, 12, 30, 0, 0, time.UTC)
+	deletedAt := time.Date(2025, 6, 17, 8, 0, 0, 0, time.UTC)
+
+	filters := map[string]map[string]map[string]model.FilterCondition{
+		"transactions": {
+			"amount": {
+				"range": {Equals: []any{"100"}},
+			},
+		},
+	}
+
+	metadata := map[string]any{
+		"createdBy": "admin",
+		"priority":  1,
+	}
+
+	tests := []struct {
+		name        string
+		id          uuid.UUID
+		templateID  uuid.UUID
+		status      string
+		filters     map[string]map[string]map[string]model.FilterCondition
+		metadata    map[string]any
+		completedAt *time.Time
+		createdAt   time.Time
+		updatedAt   time.Time
+		deletedAt   *time.Time
+	}{
+		{
+			name:        "reconstruct with all fields populated",
+			id:          id,
+			templateID:  templateID,
+			status:      "completed",
+			filters:     filters,
+			metadata:    metadata,
+			completedAt: &completedAt,
+			createdAt:   createdAt,
+			updatedAt:   updatedAt,
+			deletedAt:   &deletedAt,
+		},
+		{
+			name:        "reconstruct with nil optional fields",
+			id:          id,
+			templateID:  templateID,
+			status:      "processing",
+			filters:     nil,
+			metadata:    nil,
+			completedAt: nil,
+			createdAt:   createdAt,
+			updatedAt:   updatedAt,
+			deletedAt:   nil,
+		},
+		{
+			name:        "reconstruct with zero values (trusts DB data)",
+			id:          uuid.Nil,
+			templateID:  uuid.Nil,
+			status:      "",
+			filters:     nil,
+			metadata:    nil,
+			completedAt: nil,
+			createdAt:   time.Time{},
+			updatedAt:   time.Time{},
+			deletedAt:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := ReconstructReport(tt.id, tt.templateID, tt.status, tt.filters, tt.metadata, tt.completedAt, tt.createdAt, tt.updatedAt, tt.deletedAt)
+
+			require.NotNil(t, got)
+			assert.Equal(t, tt.id, got.ID)
+			assert.Equal(t, tt.templateID, got.TemplateID)
+			assert.Equal(t, tt.status, got.Status)
+			assert.Equal(t, tt.filters, got.Filters)
+			assert.Equal(t, tt.metadata, got.Metadata)
+			assert.Equal(t, tt.completedAt, got.CompletedAt)
+			assert.Equal(t, tt.createdAt, got.CreatedAt)
+			assert.Equal(t, tt.updatedAt, got.UpdatedAt)
+			assert.Equal(t, tt.deletedAt, got.DeletedAt)
+		})
+	}
+}
+
+func TestReconstructReport_MatchesToEntityFindByID(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	completedAt := now.Add(time.Hour)
+	deletedAt := now.Add(2 * time.Hour)
+	id := uuid.New()
+	templateID := uuid.New()
+
+	filters := map[string]map[string]map[string]model.FilterCondition{
+		"users": {
+			"status": {
+				"active": {Equals: []any{true}},
+			},
+		},
+	}
+
+	metadata := map[string]any{
+		"createdBy": "admin",
+	}
+
+	mongoModel := &ReportMongoDBModel{
+		ID:          id,
+		TemplateID:  templateID,
+		Status:      "completed",
+		Filters:     filters,
+		Metadata:    metadata,
+		CompletedAt: &completedAt,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		DeletedAt:   &deletedAt,
+	}
+
+	fromToEntity := mongoModel.ToEntityFindByID()
+	fromReconstruct := ReconstructReport(id, templateID, "completed", filters, metadata, &completedAt, now, now, &deletedAt)
+
+	assert.Equal(t, fromToEntity.ID, fromReconstruct.ID)
+	assert.Equal(t, fromToEntity.TemplateID, fromReconstruct.TemplateID)
+	assert.Equal(t, fromToEntity.Status, fromReconstruct.Status)
+	assert.Equal(t, fromToEntity.Filters, fromReconstruct.Filters)
+	assert.Equal(t, fromToEntity.Metadata, fromReconstruct.Metadata)
+	assert.Equal(t, fromToEntity.CompletedAt, fromReconstruct.CompletedAt)
+	assert.Equal(t, fromToEntity.CreatedAt, fromReconstruct.CreatedAt)
+	assert.Equal(t, fromToEntity.UpdatedAt, fromReconstruct.UpdatedAt)
+	assert.Equal(t, fromToEntity.DeletedAt, fromReconstruct.DeletedAt)
+}
+
 func TestFilterCondition_AllOperators(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		filter model.FilterCondition
@@ -400,7 +661,10 @@ func TestFilterCondition_AllOperators(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			filters := map[string]map[string]map[string]model.FilterCondition{
 				"table": {
 					"column": {

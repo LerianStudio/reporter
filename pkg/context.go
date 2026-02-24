@@ -8,8 +8,10 @@ import (
 	"context"
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	"go.opentelemetry.io/otel"
+	// otel/trace is a structural dependency: this project-level wrapper returns trace.Tracer
+	// directly; no lib-commons abstraction wraps the Tracer interface itself.
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 type customContextKey string
@@ -38,7 +40,7 @@ func NewTracerFromContext(ctx context.Context) trace.Tracer {
 		return customContext.Tracer
 	}
 
-	return otel.Tracer("default")
+	return noop.Tracer{}
 }
 
 // ContextWithLogger returns a context within a Logger in "logger" value.

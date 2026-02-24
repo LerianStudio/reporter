@@ -10,7 +10,6 @@ check_command() {
 }
 
 check_command go "Install Go from https://golang.org/doc/install"
-check_command npm "Install Node.js and npm from https://nodejs.org/"
 
 # Print header
 echo "------------------------------------------"

@@ -13,6 +13,7 @@ import (
 type Service struct {
 	*Server
 	log.Logger
+	cleanup func()
 }
 
 // Run starts the application.
@@ -22,4 +23,13 @@ func (app *Service) Run() {
 		commons.WithLogger(app.Logger),
 		commons.RunApp("HTTP Service", app.Server),
 	).Run()
+
+	// Graceful shutdown
+	app.Info("Starting graceful shutdown...")
+
+	if app.cleanup != nil {
+		app.cleanup()
+	}
+
+	app.Info("Graceful shutdown complete")
 }

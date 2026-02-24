@@ -77,31 +77,31 @@ func IsOutputFormatValuesValid(outFormat *string) bool {
 	return outFormatUpper == "HTML" || outFormatUpper == "PDF" || outFormatUpper == "CSV" || outFormatUpper == "XML" || outFormatUpper == "TXT"
 }
 
+var formatValidators = map[string]func(string) bool{
+	"HTML": isValidHTML,
+	"PDF":  isValidHTML,
+	"XML": func(content string) bool {
+		return strings.Contains(content, "<?xml") || strings.Contains(content, "<")
+	},
+	"CSV": func(content string) bool {
+		lines := strings.Split(content, "\n")
+		return len(lines) >= 2 && (strings.Contains(lines[0], ",") || strings.Contains(lines[0], ";"))
+	},
+	"TXT": func(content string) bool {
+		return len(strings.TrimSpace(content)) > 0
+	},
+}
+
+func isValidHTML(content string) bool {
+	return strings.Contains(content, "<html") || strings.Contains(content, "<!DOCTYPE html")
+}
+
 // ValidateFileFormat returns error if the templateFile content is not the same of outputFormat
 func ValidateFileFormat(outFormat, templateFile string) error {
 	format := strings.ToUpper(outFormat)
 
-	switch format {
-	case "HTML":
-		if !strings.Contains(templateFile, "<html") && !strings.Contains(templateFile, "<!DOCTYPE html") {
-			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
-		}
-	case "PDF":
-		if !strings.Contains(templateFile, "<html") && !strings.Contains(templateFile, "<!DOCTYPE html") {
-			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
-		}
-	case "XML":
-		if !strings.Contains(templateFile, "<?xml") && !strings.Contains(templateFile, "<") {
-			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
-		}
-	case "CSV":
-		lines := strings.Split(templateFile, "\n")
-		if len(lines) < 2 || !strings.Contains(lines[0], ",") && !strings.Contains(lines[0], ";") {
-			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
-		}
-	case "TXT":
-		trimmed := strings.TrimSpace(templateFile)
-		if len(trimmed) == 0 {
+	if validate, ok := formatValidators[format]; ok {
+		if !validate(templateFile) {
 			return ValidateBusinessError(constant.ErrFileContentInvalid, "", outFormat)
 		}
 	}

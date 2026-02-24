@@ -6,24 +6,37 @@ package in
 
 import (
 	"bytes"
+	"context"
+	"errors"
 
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
-	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	_ "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/net/http"
-	templateUtils "github.com/LerianStudio/reporter/pkg/template_utils"
 
 	"github.com/LerianStudio/lib-commons/v2/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
+	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// ReportHandler handles HTTP requests for report operations.
 type ReportHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewReportHandler creates a new ReportHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewReportHandler(service *services.UseCase) (*ReportHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for ReportHandler")
+	}
+
+	return &ReportHandler{service: service}, nil
 }
 
 // CreateReport is a method that creates a report.
@@ -33,10 +46,13 @@ type ReportHandler struct {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization	header		string					false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
+//	@Param			X-Idempotency	header		string					false	"Client-provided idempotency key to prevent duplicate report creation"
 //	@Param			reports			body		model.CreateReportInput	true	"Report Input"
 //	@Success		201				{object}	report.Report
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [post]
@@ -44,8 +60,16 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.create_report")
+	ctx, span := tracer.Start(ctx, "handler.report.create")
 	defer span.End()
+
+	// Extract X-Idempotency header and inject into context for the service layer
+	if idempotencyKey := c.Get(libConstants.IdempotencyKey); idempotencyKey != "" {
+		ctx = context.WithValue(ctx, constant.IdempotencyKeyCtx, idempotencyKey)
+	}
+
+	replayed := false
+	ctx = context.WithValue(ctx, constant.IdempotencyReplayedCtx, &replayed)
 
 	c.SetUserContext(ctx)
 
@@ -61,16 +85,24 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert payload to JSON string", err)
 	}
 
-	reportOut, err := rh.Service.CreateReport(ctx, payload)
+	reportOut, err := rh.service.CreateReport(ctx, payload)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to create report", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to create report", err)
+		}
 
 		return http.WithError(c, err)
 	}
 
 	logger.Infof("Successfully created a report %v", reportOut)
 
-	return http.OK(c, reportOut)
+	if replayed {
+		c.Set(libConstants.IdempotencyReplayed, "true")
+	}
+
+	return commonsHttp.Created(c, reportOut)
 }
 
 // GetDownloadReport is a method to make download of a report.
@@ -80,10 +112,12 @@ func (rh *ReportHandler) CreateReport(p any, c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id				path		string	true	"Report ID"
 //	@Success		200				{file}		any
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}/download [get]
@@ -91,60 +125,34 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_report_download")
+	ctx, span := tracer.Start(ctx, "handler.report.get_download")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
-	logger.Infof("Initiating get a Report with ID: %s", id)
+	logger.Infof("Initiating download of Report with ID: %s", id)
 
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.report_id", id.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id)
+	fileBytes, fileName, contentType, err := rh.service.DownloadReport(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to download report", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to download report", err)
+		}
 
-		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
+		logger.Errorf("Failed to download Report with ID: %s, Error: %s", id, err.Error())
 
 		return http.WithError(c, err)
 	}
 
-	if reportModel.Status != constant.FinishedStatus {
-		errStatus := pkg.ValidateBusinessError(constant.ErrReportStatusNotFinished, "")
-		libOpentelemetry.HandleSpanError(&span, "Report is not Finished", errStatus)
-
-		logger.Errorf("Report with ID %s is not Finished", id)
-
-		return http.WithError(c, errStatus)
-	}
-
-	templateModel, err := rh.Service.GetTemplateByID(ctx, reportModel.TemplateID)
-	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve template on query", err)
-
-		logger.Errorf("Failed to retrieve Template with ID: %s, Error: %s", id, err.Error())
-
-		return http.WithError(c, err)
-	}
-
-	objectName := templateModel.ID.String() + "/" + reportModel.ID.String() + "." + templateModel.OutputFormat
-
-	fileBytes, errFile := rh.Service.ReportSeaweedFS.Get(ctx, objectName)
-	if errFile != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to download file from SeaweedFS", errFile)
-
-		logger.Errorf("Failed to download file from SeaweedFS: %s", errFile.Error())
-
-		return http.WithError(c, errFile)
-	}
-
-	logger.Infof("Downloaded report file from SeaweedFS: %s (size: %d bytes)", objectName, len(fileBytes))
-
-	contentType := templateUtils.GetMimeType(templateModel.OutputFormat)
 	c.Set("Content-Type", contentType)
-	c.Set("Content-Disposition", "attachment; filename=\""+objectName+"\"")
+	c.Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+
+	logger.Infof("Successfully downloaded Report with ID: %s", id)
 
 	return c.SendStream(bytes.NewReader(fileBytes))
 }
@@ -156,10 +164,12 @@ func (rh *ReportHandler) GetDownloadReport(c *fiber.Ctx) error {
 //	@Tags			Reports
 //	@Accept			json
 //	@Produce		json
-//	@Param			Authorization		header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			id					path		string	true	"Report ID"
 //	@Success		200					{object}	report.Report
 //	@Failure		400					{object}	pkg.HTTPError
+//	@Failure		401					{object}	pkg.HTTPError
+//	@Failure		403					{object}	pkg.HTTPError
 //	@Failure		404					{object}	pkg.HTTPError
 //	@Failure		500					{object}	pkg.HTTPError
 //	@Router			/v1/reports/{id}																					 [get]
@@ -168,7 +178,7 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_report")
+	ctx, span := tracer.Start(ctx, "handler.report.get")
 	defer span.End()
 
 	id := c.Locals("id").(uuid.UUID)
@@ -179,16 +189,20 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 		attribute.String("app.request.report_id", id.String()),
 	)
 
-	reportModel, err := rh.Service.GetReportByID(ctx, id)
+	reportModel, err := rh.service.GetReportByID(ctx, id)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve report on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve report on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve Report with ID: %s, Error: %s", id, err.Error())
 
 		return http.WithError(c, err)
 	}
 
-	return http.OK(c, reportModel)
+	return commonsHttp.OK(c, reportModel)
 }
 
 // GetAllReports is a method that recovery all Reports information.
@@ -197,14 +211,16 @@ func (rh *ReportHandler) GetReport(c *fiber.Ctx) error {
 //	@Description	List all the reports
 //	@Tags			Reports
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			status			query		string	false	"Report status (processing, finished, error)"
-//	@Param			templateId		query		string	false	"Template ID"
-//	@Param			createdAt		query		string	false	"Created at date (YYYY-MM-DD)"
+//	@Param			template_id		query		string	false	"Template ID (also accepts templateId)"
+//	@Param			created_at		query		string	false	"Created at date, YYYY-MM-DD (also accepts createdAt)"
 //	@Param			limit			query		int		false	"Limit"	default(10)
 //	@Param			page			query		int		false	"Page"	default(1)
 //	@Success		200				{object}	model.Pagination{items=[]report.Report,page=int,limit=int,total=int}
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/reports [get]
 func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
@@ -212,12 +228,12 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_all_reports")
+	ctx, span := tracer.Start(ctx, "handler.report.get_all")
 	defer span.End()
 
 	headerParams, err := http.ValidateParameters(c.Queries())
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to validate query parameters", err)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to validate query parameters", err)
 
 		logger.Errorf("Failed to validate query parameters, Error: %s", err.Error())
 
@@ -240,9 +256,13 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert query params to JSON string", err)
 	}
 
-	reports, err := rh.Service.GetAllReports(ctx, *headerParams)
+	reports, err := rh.service.GetAllReports(ctx, *headerParams)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve all Reports on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve all Reports on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve all Reports, Error: %s", err.Error())
 
@@ -254,5 +274,5 @@ func (rh *ReportHandler) GetAllReports(c *fiber.Ctx) error {
 	pagination.SetItems(reports)
 	pagination.SetTotal(len(reports))
 
-	return http.OK(c, pagination)
+	return commonsHttp.OK(c, pagination)
 }

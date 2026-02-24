@@ -1,3 +1,5 @@
+name: reporter-infra
+
 services:
   reporter-mongodb:
     container_name: reporter-mongodb
@@ -6,11 +8,13 @@ services:
       - .env
     restart: always
     healthcheck:
-      test: echo 'db.runCommand("ping").ok'
+      test: [ "CMD-SHELL", "mongosh --port ${MONGO_PORT} --eval 'db.adminCommand({ping:1})' --quiet" ]
       interval: 10s
       timeout: 5s
       retries: 5
-    user: root
+      start_period: 15s
+    # Inline env mapping required: the mongo image expects MONGO_INITDB_* vars
+    # which differ from our .env naming (MONGO_USER / MONGO_PASSWORD).
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
@@ -21,11 +25,29 @@ services:
       - reporter-mongodb-data:/data/db
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 
   reporter-rabbitmq:
     image: rabbitmq:4.0-management-alpine
     container_name: reporter-rabbitmq
     restart: always
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    env_file:
+      - .env
+    # Inline env mapping required: the rabbitmq image expects RABBITMQ_DEFAULT_*
+    # vars for initial credential setup at first boot.
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -35,22 +57,33 @@ services:
     volumes:
       - ./rabbitmq/etc/definitions.json:/etc/rabbitmq/definitions.json
       - ./rabbitmq/etc/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
-      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+      - reporter-rabbitmq-data:/var/lib/rabbitmq
+      - reporter-rabbitmq-log:/var/log/rabbitmq
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   reporter-seaweedfs:
-    image: chrislusf/seaweedfs:3.97
+    image: chrislusf/seaweedfs:4.05
     container_name: reporter-seaweedfs
-    command: server -s3 -dir=/data
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
+    env_file:
+      - .env
     ports:
-      - "8333:8333"  # S3 API
-      - "9333:9333"  # Admin/Master API (optional)
+      - "8333:8333" # S3 API
+      - "9333:9333" # Admin/Master API (optional)
     volumes:
       - reporter-seaweedfs-data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,11 +91,25 @@ services:
     networks:
       - reporter-infra-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   reporter-keda:
     image: ghcr.io/kedacore/keda:2.16.0
     container_name: reporter-keda
+    restart: always
+    env_file:
+      - .env
+    # Inline env mapping required: KEDA operator expects its own KEDA_OPERATOR_*
+    # prefixed vars, mapped from our .env RabbitMQ connection settings.
     environment:
+      - WATCH_NAMESPACE=
       - KEDA_OPERATOR_LOG_LEVEL=info
       - KEDA_OPERATOR_RABBITMQ_HOST=reporter-rabbitmq
       - KEDA_OPERATOR_RABBITMQ_PORT=${RABBITMQ_PORT_AMQP}
@@ -71,32 +118,70 @@ services:
       - KEDA_OPERATOR_RABBITMQ_QUEUE=reporter-queue
     ports:
       - "8000:8000"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1:8000/healthz || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
-      - reporter-rabbitmq
+      reporter-rabbitmq:
+        condition: service_healthy
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   reporter-valkey:
     container_name: reporter-valkey
-    image: valkey/valkey:latest
+    image: valkey/valkey:8.0-alpine
     restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -p ${REDIS_PORT} -a ${REDIS_PASSWORD} ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     env_file:
       - .env
+    # Inline env mapping required: Valkey/Redis image uses REDIS_USER and
+    # REDIS_PASSWORD for runtime auth configuration.
     environment:
       - REDIS_USER=${REDIS_USER}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}",  "--port", "${REDIS_PORT}" ]
+    # Config is generated at startup so the password is not exposed in process args.
+    command: >
+      sh -c 'echo "requirepass $$REDIS_PASSWORD" > /tmp/redis.conf &&
+             echo "port $$REDIS_PORT" >> /tmp/redis.conf &&
+             redis-server /tmp/redis.conf'
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
     volumes:
       - reporter-redis-data:/data
     networks:
       - reporter-infra-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.10'
 
 volumes:
   reporter-mongodb-data:
   reporter-seaweedfs-data:
   reporter-redis-data:
+  reporter-rabbitmq-data:
+  reporter-rabbitmq-log:
+
 
 networks:
   reporter-infra-network:

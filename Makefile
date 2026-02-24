@@ -7,6 +7,9 @@ SERVICE_NAME := reporter
 BIN_DIR := ./.bin
 ARTIFACTS_DIR := ./artifacts
 
+# Determine version: use git describe if available, else git short SHA
+VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo "dev")
+
 # Docker command detection (supports both docker compose and docker-compose)
 DOCKER_VERSION := $(shell docker version --format '{{.Server.Version}}' 2>/dev/null || echo "0")
 DOCKER_MIN_VERSION := 20.10.13
@@ -80,7 +83,8 @@ help:
 	@echo ""
 	@echo ""
 	@echo "Code Quality Commands:"
-	@echo "  make lint                        - Run linting (includes format and imports)"
+	@echo "  make lint                        - Run golangci-lint"
+	@echo "  make lint-fix                    - Run golangci-lint with auto-fix"
 	@echo "  make format                      - Format code with gofumpt"
 	@echo "  make imports                     - Organize imports with goimports"
 	@echo "  make tidy                        - Clean dependencies in root directory"
@@ -88,6 +92,7 @@ help:
 	@echo "  make sec                         - Run security checks (gosec + govulncheck)"
 	@echo "  make sec-gosec                   - Run gosec security scanner"
 	@echo "  make sec-govulncheck             - Run govulncheck vulnerability scanner"
+	@echo "  make sec-trivy                   - Run Trivy container vulnerability scan"
 	@echo ""
 	@echo ""
 	@echo "Git Hook Commands:"
@@ -97,6 +102,8 @@ help:
 	@echo ""
 	@echo ""
 	@echo "Setup Commands:"
+	@echo "  make check-tools                 - Verify all required development tools are installed"
+	@echo "  make dev-setup                   - Install all development tools and set up environment"
 	@echo "  make set-env                     - Copy .env.example to .env for all components"
 	@echo ""
 	@echo ""
@@ -107,21 +114,28 @@ help:
 	@echo "  make stop                         - Stop all containers"
 	@echo "  make restart                      - Restart all containers"
 	@echo "  make rebuild-up                   - Rebuild and restart all services"
+	@echo "  make wait-for-infra               - Wait for infrastructure services to become healthy"
 	@echo "  make clean-docker                 - Clean all Docker resources (containers, networks, volumes)"
 	@echo "  make logs                         - Show logs for all services"
 	@echo ""
 	@echo ""
+	@echo "Code Generation Commands:"
+	@echo "  make generate                    - Run code generation (go generate)"
+	@echo "  make generate-mocks              - Generate mock files"
+	@echo ""
+	@echo ""
 	@echo "Documentation Commands:"
 	@echo "  make generate-docs               - Generate Swagger documentation for all services"
+	@echo "  make serve-docs                  - Serve Swagger UI locally at http://localhost:8080"
 	@echo ""
 	@echo ""
 	@echo "Test Suite Aliases:"
 	@echo "  make test-unit                   - Run Go unit tests (exclude ./tests/**)"
 	@echo "  make test-integration            - Run Go integration tests (brings up backend)"
-	@echo "  make test-e2e                    - Run Apidog E2E tests (brings up backend)"
 	@echo "  make test-fuzzy                  - Run fuzz/robustness tests (brings up backend)"
 	@echo "  make test-chaos                  - Run chaos/resilience tests (brings up backend)"
 	@echo "  make test-property               - Run property-based tests"
+	@echo "  make test-all                    - Run all test suites (unit + integration + fuzz + chaos + property)"
 	@echo ""
 	@echo "Coverage Commands:"
 	@echo "  make coverage-unit               - Run unit tests with coverage report"
@@ -258,16 +272,14 @@ check-tests:
 .PHONY: lint
 lint: format imports
 	$(call print_title,"Running linters")
-	@if find . -name "*.go" -type f | grep -q .; then \
-		if ! command -v golangci-lint >/dev/null 2>&1; then \
-			echo "Installing golangci-lint..."; \
-			go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-		fi; \
-		golangci-lint run --fix ./... --verbose; \
-		echo "[ok] Linting completed successfully ✔️"; \
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found, installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
 	else \
-		echo "No Go files found, skipping linting"; \
+		echo "golangci-lint already installed ✔️"; \
 	fi
+	@golangci-lint run --fix ./... --verbose
+	@echo "[ok] Linting completed successfully"
 
 .PHONY: format
 format:
@@ -302,40 +314,42 @@ tidy:
 
 .PHONY: sec-gosec
 sec-gosec:
-	$(call print_title,"Running gosec security scanner")
 	@if ! command -v gosec >/dev/null 2>&1; then \
 		echo "Installing gosec..."; \
 		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
 	fi
 	@if find ./components ./pkg -name "*.go" -type f | grep -q .; then \
 		echo "Running gosec on components/ and pkg/ folders..."; \
-		gosec -quiet ./components/... ./pkg/...; \
-		echo "[ok] gosec completed ✔️"; \
+		if [ "$(SARIF)" = "1" ]; then \
+			echo "Generating SARIF output: gosec-report.sarif"; \
+			gosec -fmt sarif -out gosec-report.sarif ./components/... ./pkg/...; \
+			echo "[ok] SARIF report generated: gosec-report.sarif"; \
+		else \
+			gosec ./components/... ./pkg/...; \
+		fi; \
 	else \
 		echo "No Go files found, skipping gosec"; \
 	fi
 
 .PHONY: sec-govulncheck
 sec-govulncheck:
-	$(call print_title,"Running govulncheck vulnerability scanner")
 	@if ! command -v govulncheck >/dev/null 2>&1; then \
 		echo "Installing govulncheck..."; \
 		go install golang.org/x/vuln/cmd/govulncheck@latest; \
 	fi
-	@if find . -name "*.go" -type f | grep -q .; then \
-		echo "Running govulncheck..."; \
-		govulncheck ./...; \
-		echo "[ok] govulncheck completed ✔️"; \
+	@if find ./components ./pkg -name "*.go" -type f | grep -q .; then \
+		echo "Running govulncheck on components/ and pkg/ folders..."; \
+		govulncheck ./components/... ./pkg/...; \
 	else \
 		echo "No Go files found, skipping govulncheck"; \
 	fi
 
 .PHONY: sec
 sec:
-	$(call print_title,"Running security checks")
-	@$(MAKE) sec-gosec
+	$(call print_title,Running security checks)
+	@$(MAKE) sec-gosec SARIF=$(SARIF)
 	@$(MAKE) sec-govulncheck
-	@echo "[ok] All security checks completed ✔️"
+	@echo "[ok] Security checks completed"
 
 #-------------------------------------------------------
 # Clean Commands
@@ -368,15 +382,43 @@ clean-docker:
 
 .PHONY: run
 run:
-	$(call print_title,"Running the application with .env config")
-	@go run cmd/app/main.go .env
+	$(call print_title,"Running the manager application")
+	@cd components/manager && go run cmd/app/main.go
 	@echo "[ok] Application started successfully ✔️"
 
 .PHONY: build-docker
 build-docker:
 	$(call print_title,"Building Docker images")
-	@$(DOCKER_CMD) -f docker-compose.yml build $(c)
+	@for dir in $(BACKEND_COMPONENTS); do \
+		component_name=$$(basename $$dir); \
+		echo "Building Docker image for $$component_name (version: $(VERSION))..."; \
+		(cd $$dir && IMAGE_TAG=$(VERSION) $(DOCKER_CMD) -f docker-compose.yml build $(c)) || exit 1; \
+	done
 	@echo "[ok] Docker images built successfully ✔️"
+
+# Maximum time (in seconds) to wait for infrastructure health checks.
+INFRA_HEALTH_TIMEOUT ?= 60
+# Polling interval (in seconds) between health-check attempts.
+INFRA_HEALTH_INTERVAL ?= 2
+
+.PHONY: wait-for-infra
+wait-for-infra:
+	@echo "Waiting for infrastructure services to become healthy..."
+	@cd $(INFRA_DIR) && \
+		attempts=$$(( $(INFRA_HEALTH_TIMEOUT) / $(INFRA_HEALTH_INTERVAL) )); \
+		for i in $$(seq 1 $$attempts); do \
+			HEALTHY=$$($(DOCKER_CMD) -f docker-compose.yml ps --format '{{.Health}}' 2>/dev/null | grep -c "healthy" || true); \
+			TOTAL=$$($(DOCKER_CMD) -f docker-compose.yml ps --format '{{.Health}}' 2>/dev/null | grep -c "." || true); \
+			if [ "$$HEALTHY" = "$$TOTAL" ] && [ "$$TOTAL" -gt 0 ]; then \
+				echo "All $$TOTAL infrastructure services are healthy"; \
+				exit 0; \
+			fi; \
+			echo "Waiting... ($$HEALTHY/$$TOTAL healthy, attempt $$i/$$attempts)"; \
+			sleep $(INFRA_HEALTH_INTERVAL); \
+		done; \
+		echo "[error] Infrastructure services failed to become healthy after $(INFRA_HEALTH_TIMEOUT)s"; \
+		cd $(INFRA_DIR) && $(DOCKER_CMD) -f docker-compose.yml ps; \
+		exit 1
 
 .PHONY: up
 up:
@@ -384,6 +426,7 @@ up:
 	$(call check_env_files)
 	@echo "Starting infrastructure services first..."
 	@cd $(INFRA_DIR) && $(MAKE) up
+	@$(MAKE) wait-for-infra
 	@echo "Starting backend components..."
 	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
@@ -396,8 +439,13 @@ up:
 .PHONY: start
 start:
 	$(call print_title,"Starting existing containers")
-	@$(DOCKER_CMD) -f docker-compose.yml start $(c)
-	@echo "[ok] Containers started successfully ✔️"
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			echo "Starting containers in $$dir..."; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml start $(c)) || exit 1; \
+		fi; \
+	done
+	@echo "[ok] All containers started successfully ✔️"
 
 .PHONY: down
 down:
@@ -434,6 +482,7 @@ rebuild-up:
 	$(call print_title,"Rebuilding and restarting services")
 	@echo "Rebuilding infrastructure services..."
 	@cd $(INFRA_DIR) && ($(DOCKER_CMD) -f docker-compose.yml build --no-cache && $(DOCKER_CMD) -f docker-compose.yml up -d --force-recreate)
+	@$(MAKE) wait-for-infra
 	@echo "Rebuilding backend components..."
 	@for dir in $(BACKEND_COMPONENTS); do \
 		if [ -f "$$dir/docker-compose.yml" ]; then \
@@ -457,17 +506,32 @@ logs:
 
 .PHONY: logs-api
 logs-api:
-	$(call print_title,"Showing logs for reporter service")
-	@$(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter
+	$(call print_title,"Showing logs for reporter-manager service")
+	@cd $(MANAGER_DIR) && $(DOCKER_CMD) -f docker-compose.yml logs --tail=100 -f reporter-manager
 
 .PHONY: ps
 ps:
 	$(call print_title,"Listing container status")
-	@$(DOCKER_CMD) -f docker-compose.yml ps
+	@for dir in $(COMPONENTS); do \
+		if [ -f "$$dir/docker-compose.yml" ]; then \
+			component_name=$$(basename $$dir); \
+			echo "--- $$component_name ---"; \
+			(cd $$dir && $(DOCKER_CMD) -f docker-compose.yml ps) || true; \
+			echo ""; \
+		fi; \
+	done
 
 #-------------------------------------------------------
 # Docs Commands
 #-------------------------------------------------------
+
+.PHONY: serve-docs
+serve-docs:
+	@echo "Serving Swagger UI at http://localhost:8080"
+	@docker run --rm -p 8080:8080 \
+		-e SWAGGER_JSON=/api/swagger.json \
+		-v $(shell pwd)/components/manager/api:/api \
+		swaggerapi/swagger-ui
 
 .PHONY: generate-docs
 generate-docs:
@@ -500,8 +564,43 @@ validate-api-docs: generate-docs
 	fi
 
 #-------------------------------------------------------
+# Code Generation Commands
+#-------------------------------------------------------
+
+.PHONY: generate
+generate:
+	$(call print_title,"Running code generation")
+	@go generate ./...
+	@echo "[ok] Code generation completed ✔️"
+
+.PHONY: generate-mocks
+generate-mocks:
+	$(call print_title,"Generating mock files")
+	@go generate ./...
+	@echo "[ok] Mock generation completed ✔️"
+
+#-------------------------------------------------------
 # Developer Helper Commands
 #-------------------------------------------------------
+
+.PHONY: check-tools
+check-tools:
+	$(call print_title,"Checking required tools")
+	@err=0; \
+	for tool in go docker golangci-lint swag mockgen gosec govulncheck gofumpt goimports; do \
+		if command -v $$tool >/dev/null 2>&1; then \
+			echo "[ok] $$tool is installed"; \
+		else \
+			echo "[missing] $$tool is NOT installed"; \
+			err=1; \
+		fi; \
+	done; \
+	if [ $$err -eq 1 ]; then \
+		echo ""; \
+		echo "Run 'make dev-setup' to install missing tools"; \
+		exit 1; \
+	fi; \
+	echo "[ok] All tools available ✔️"
 
 .PHONY: dev-setup
 dev-setup:
@@ -509,7 +608,7 @@ dev-setup:
 	@echo "Installing development tools..."
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
 	fi
 	@if ! command -v swag >/dev/null 2>&1; then \
 		echo "Installing swag..."; \
@@ -517,7 +616,7 @@ dev-setup:
 	fi
 	@if ! command -v mockgen >/dev/null 2>&1; then \
 		echo "Installing mockgen..."; \
-		go install github.com/golang/mock/mockgen@latest; \
+		go install go.uber.org/mock/mockgen@v0.6.0; \
 	fi
 	@if ! command -v gosec >/dev/null 2>&1; then \
 		echo "Installing gosec..."; \

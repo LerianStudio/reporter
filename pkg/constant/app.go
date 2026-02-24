@@ -5,3 +5,16 @@
 package constant
 
 const ApplicationName = "reporter"
+
+// ErrFileAccepted is the Fiber error message when no file is associated with the given form key.
+const ErrFileAccepted = "there is no uploaded file associated with the given key"
+
+// DefaultPasswordPlaceholder is the placeholder value that must be replaced before production use.
+const DefaultPasswordPlaceholder = "CHANGE_ME"
+
+// RedactPlaceholder is the replacement value for masked credentials in connection strings.
+const RedactPlaceholder = "REDACTED"
+
+// MaxTagCollectionSize is the maximum number of items allowed in a collection
+// to prevent resource exhaustion attacks in template tags.
+const MaxTagCollectionSize = 100000

@@ -135,16 +135,16 @@ test-integration:
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/integration; \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration.xml -- -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration.xml -- -v -race -timeout 10m -count=1 -tags integration $(GO_TEST_LDFLAGS) ./tests/integration || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying integration tests once..."; \
-	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration-rerun.xml -- -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/integration/integration-rerun.xml -- -v -race -timeout 10m -count=1 -tags integration $(GO_TEST_LDFLAGS) ./tests/integration; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  go test -v -race -timeout 10m -count=1 $(GO_TEST_LDFLAGS) ./tests/integration; \
+	  go test -v -race -timeout 10m -count=1 -tags integration $(GO_TEST_LDFLAGS) ./tests/integration; \
 	fi
 
 # Fuzzy/robustness tests
@@ -154,16 +154,16 @@ test-fuzzy:
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/fuzzy; \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy.xml -- -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy.xml -- -v -race -timeout 20m -count=1 -tags fuzz $(GO_TEST_LDFLAGS) ./tests/fuzzy || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying fuzzy tests once..."; \
-	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy-rerun.xml -- -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/fuzzy/fuzzy-rerun.xml -- -v -race -timeout 20m -count=1 -tags fuzz $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  go test -v -race -timeout 20m -count=1 $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
+	  go test -v -race -timeout 20m -count=1 -tags fuzz $(GO_TEST_LDFLAGS) ./tests/fuzzy; \
 	fi
 
 # Property-based tests (no infrastructure required - pure Go tests)
@@ -173,16 +173,16 @@ test-property:
 	$(call check_command,go,"Install Go from https://golang.org/doc/install")
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/property; \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property.xml -- -v -race -count=1 -tags property $(GO_TEST_LDFLAGS) ./tests/property || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying property tests once..."; \
-	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property-rerun.xml -- -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/property/property-rerun.xml -- -v -race -count=1 -tags property $(GO_TEST_LDFLAGS) ./tests/property; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  go test -v -race -count=1 $(GO_TEST_LDFLAGS) ./tests/property; \
+	  go test -v -race -count=1 -tags property $(GO_TEST_LDFLAGS) ./tests/property; \
 	fi
 
 # Chaos tests
@@ -192,17 +192,35 @@ test-chaos:
 	$(call check_command,docker,"Install Docker from https://docs.docker.com/get-docker/")
 	@set -e; mkdir -p $(TEST_REPORTS_DIR)/chaos; \
 	if [ -n "$(GOTESTSUM)" ]; then \
-	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos || { \
+	  gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos.xml -- -v -race -timeout 30m -count=1 -tags chaos $(GO_TEST_LDFLAGS) ./tests/chaos || { \
 	    if [ "$(RETRY_ON_FAIL)" = "1" ]; then \
 	      echo "Retrying chaos tests once..."; \
-	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos-rerun.xml -- -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	      gotestsum --format testname --junitfile $(TEST_REPORTS_DIR)/chaos/chaos-rerun.xml -- -v -race -timeout 30m -count=1 -tags chaos $(GO_TEST_LDFLAGS) ./tests/chaos; \
 	    else \
 	      exit 1; \
 	    fi; \
 	  }; \
 	else \
-	  go test -v -race -timeout 30m -count=1 $(GO_TEST_LDFLAGS) ./tests/chaos; \
+	  go test -v -race -timeout 30m -count=1 -tags chaos $(GO_TEST_LDFLAGS) ./tests/chaos; \
 	fi
+
+# E2E tests (CI-only: requires deployed backend with Apidog)
+.PHONY: test-e2e
+test-e2e:
+	@echo "=========================================="
+	@echo "E2E tests run via CI/CD pipeline (Apidog)"
+	@echo "=========================================="
+	@echo ""
+	@echo "E2E tests require a deployed backend and are executed automatically"
+	@echo "in the CI/CD pipeline using Apidog after deployment."
+	@echo ""
+	@echo "See .github/workflows/build.yml for details."
+	@echo ""
+	@echo "To test locally, use:"
+	@echo "  make test-integration    - Integration tests with testcontainers"
+	@echo "  make test-fuzzy          - Fuzz/robustness tests"
+	@echo "  make test-chaos          - Chaos/resilience tests"
+	@echo ""
 
 # Run all test suites
 .PHONY: test-all

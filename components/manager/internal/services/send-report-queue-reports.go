@@ -6,7 +6,6 @@ package services
 
 import (
 	"context"
-	"os"
 
 	"github.com/LerianStudio/reporter/pkg/model"
 
@@ -17,10 +16,10 @@ import (
 
 // SendReportQueueReports sends a report to the queue of a generation reports message to a RabbitMQ queue for further processing.
 // It uses context for logger and tracer management and handles data serialization and queue message construction.
-func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) {
+func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage model.ReportMessage) error {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.send_report_queue")
+	ctx, span := tracer.Start(ctx, "service.report.send_queue")
 	defer span.End()
 
 	span.SetAttributes(
@@ -34,12 +33,18 @@ func (uc *UseCase) SendReportQueueReports(ctx context.Context, reportMessage mod
 
 	if _, err := uc.RabbitMQRepo.ProducerDefault(
 		ctx,
-		os.Getenv("RABBITMQ_EXCHANGE"),
-		os.Getenv("RABBITMQ_GENERATE_REPORT_KEY"),
+		uc.RabbitMQExchange,
+		uc.RabbitMQGenerateReportKey,
 		reportMessage,
 	); err != nil {
-		logger.Fatalf("Failed to send message: %s", err.Error())
+		libOpentelemetry.HandleSpanError(&span, "Failed to send message to queue", err)
+
+		logger.Errorf("Failed to send message: %s", err.Error())
+
+		return err
 	}
 
-	logger.Infof("Report sent to genrate report queue successfully")
+	logger.Infof("Report sent to generate report queue successfully")
+
+	return nil
 }

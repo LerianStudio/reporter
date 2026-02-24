@@ -14,22 +14,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getReportById(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestUseCase_GetReportByID(t *testing.T) {
+	t.Parallel()
 
-	mockReportRepo := report.NewMockRepository(ctrl)
 	reportId := uuid.New()
 	tempId := uuid.New()
 	timeNow := time.Now()
-
-	reportSvc := &UseCase{
-		ReportRepo: mockReportRepo,
-	}
 
 	reportModel := &report.Report{
 		ID:          reportId,
@@ -46,17 +41,20 @@ func Test_getReportById(t *testing.T) {
 		name           string
 		tempId         uuid.UUID
 		reportId       uuid.UUID
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
+		errContains    string
 		expectedResult *report.Report
 	}{
 		{
 			name:   "Success - Get a report by id",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(reportModel, nil)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr: false,
 			expectedResult: &report.Report{
@@ -73,40 +71,53 @@ func Test_getReportById(t *testing.T) {
 		{
 			name:   "Error - Get a report by id",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, constant.ErrInternalServer)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      true,
+			errContains:    constant.ErrInternalServer.Error(),
 			expectedResult: nil,
 		},
 		{
 			name:   "Error - Get a report by id not found",
 			tempId: tempId,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockReportRepo := report.NewMockRepository(ctrl)
 				mockReportRepo.EXPECT().
 					FindByID(gomock.Any(), gomock.Any()).
 					Return(nil, mongo.ErrNoDocuments)
+				return &UseCase{ReportRepo: mockReportRepo}
 			},
 			expectErr:      true,
+			errContains:    "No report entity was found",
 			expectedResult: nil,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			reportSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := reportSvc.GetReportByID(ctx, tt.reportId)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 			}
 		})
 	}

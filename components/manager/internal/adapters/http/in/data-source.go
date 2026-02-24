@@ -5,6 +5,8 @@
 package in
 
 import (
+	"errors"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	_ "github.com/LerianStudio/reporter/pkg"
 	_ "github.com/LerianStudio/reporter/pkg/model"
@@ -17,8 +19,19 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// DataSourceHandler handles HTTP requests for data source operations.
 type DataSourceHandler struct {
-	Service *services.UseCase
+	service *services.UseCase
+}
+
+// NewDataSourceHandler creates a new DataSourceHandler with the given service dependency.
+// It returns an error if service is nil.
+func NewDataSourceHandler(service *services.UseCase) (*DataSourceHandler, error) {
+	if service == nil {
+		return nil, errors.New("service must not be nil for DataSourceHandler")
+	}
+
+	return &DataSourceHandler{service: service}, nil
 }
 
 // GetDataSourceInformation retrieves all data sources connected on reporter.
@@ -27,8 +40,10 @@ type DataSourceHandler struct {
 //	@Description	Retrieves all data sources connected on plugin with all information from the database
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Success		200				{object}	[]model.DataSourceInformation
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/data-sources [get]
 func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
@@ -36,7 +51,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_data_source")
+	ctx, span := tracer.Start(ctx, "handler.data_source.get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -45,7 +60,7 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 
 	logger.Infof("Initiating retrieval data source information")
 
-	dataSourceInfo := ds.Service.GetDataSourceInformation(ctx)
+	dataSourceInfo := ds.service.GetDataSourceInformation(ctx)
 
 	logger.Infof("Successfully get all data source information.")
 
@@ -58,10 +73,12 @@ func (ds *DataSourceHandler) GetDataSourceInformation(c *fiber.Ctx) error {
 //	@Description	Retrieves a data sources information with data source id passed
 //	@Tags			Data source
 //	@Produce		json
-//	@Param			Authorization	header		string	false	"The authorization token in the 'Bearer	access_token' format. Only required when auth plugin is enabled."
+//	@Security		BearerAuth
 //	@Param			dataSourceId	path		string	true	"Data source ID"
 //	@Success		200				{object}	model.DataSourceDetails
 //	@Failure		400				{object}	pkg.HTTPError
+//	@Failure		401				{object}	pkg.HTTPError
+//	@Failure		403				{object}	pkg.HTTPError
 //	@Failure		404				{object}	pkg.HTTPError
 //	@Failure		500				{object}	pkg.HTTPError
 //	@Router			/v1/data-sources/{dataSourceId} [get]
@@ -70,10 +87,10 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "handler.get_data_source_details_by_id")
+	ctx, span := tracer.Start(ctx, "handler.data_source.get_details_by_id")
 	defer span.End()
 
-	dataSourceID := c.Params("dataSourceId")
+	dataSourceID := c.Locals("dataSourceId").(string)
 
 	logger.Infof("Initiating retrieval data source information with ID: %s", dataSourceID)
 
@@ -82,9 +99,13 @@ func (ds *DataSourceHandler) GetDataSourceInformationByID(c *fiber.Ctx) error {
 		attribute.String("app.request.data_source_id", dataSourceID),
 	)
 
-	dataSourceInfo, err := ds.Service.GetDataSourceDetailsByID(ctx, dataSourceID)
+	dataSourceInfo, err := ds.service.GetDataSourceDetailsByID(ctx, dataSourceID)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
+		if http.IsBusinessError(err) {
+			libOpentelemetry.HandleSpanBusinessErrorEvent(&span, "Failed to retrieve data source information on query", err)
+		} else {
+			libOpentelemetry.HandleSpanError(&span, "Failed to retrieve data source information on query", err)
+		}
 
 		logger.Errorf("Failed to retrieve data source information, Error: %s", err.Error())
 

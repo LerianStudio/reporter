@@ -18,8 +18,11 @@ import (
 	"github.com/LerianStudio/lib-commons/v2/commons"
 	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
+
+const pluginCRMDataSourceID = "plugin_crm"
 
 var (
 	// Define encrypted fields that should be excluded
@@ -63,7 +66,7 @@ var (
 func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID string) (*model.DataSourceDetails, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "get_data_source_details_by_id")
+	ctx, span := tracer.Start(ctx, "service.data_source.get_details_by_id")
 	defer span.End()
 
 	span.SetAttributes(
@@ -79,7 +82,12 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 		return cached, nil
 	}
 
-	dataSource, ok := uc.ExternalDataSources[dataSourceID]
+	if !pkg.IsValidDataSourceID(dataSourceID) {
+		logger.Errorf("Unknown data source: %s - not in immutable registry, rejecting request", dataSourceID)
+		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
+	}
+
+	dataSource, ok := uc.ExternalDataSources.Get(dataSourceID)
 	if !ok {
 		return nil, pkg.ValidateBusinessError(constant.ErrMissingDataSource, "", dataSourceID)
 	}
@@ -132,6 +140,16 @@ func (uc *UseCase) GetDataSourceDetailsByID(ctx context.Context, dataSourceID st
 
 // getDataSourceDetailsFromCache tries to get and unmarshal DataSourceDetails from Redis
 func (uc *UseCase) getDataSourceDetailsFromCache(ctx context.Context, cacheKey string) (*model.DataSourceDetails, bool) {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "service.data_source.get_cache")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.cache.key", cacheKey),
+	)
+
 	if uc.RedisRepo == nil {
 		return nil, false
 	}
@@ -151,12 +169,24 @@ func (uc *UseCase) getDataSourceDetailsFromCache(ctx context.Context, cacheKey s
 
 // setDataSourceDetailsToCache marshals and sets DataSourceDetails in Redis
 func (uc *UseCase) setDataSourceDetailsToCache(ctx context.Context, cacheKey string, details *model.DataSourceDetails) error {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "service.data_source.set_cache")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.cache.key", cacheKey),
+	)
+
 	if uc.RedisRepo == nil || details == nil {
 		return nil
 	}
 
 	if marshaled, err := json.Marshal(details); err == nil {
 		if errCache := uc.RedisRepo.Set(ctx, cacheKey, string(marshaled), time.Second*constant.RedisTTL); errCache != nil {
+			libOpentelemetry.HandleSpanError(&span, "Failed to set data source details to cache", errCache)
+
 			return errCache
 		}
 	}
@@ -175,12 +205,12 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 	case pkg.PostgreSQLType:
 		if !dataSource.Initialized || !dataSource.DatabaseConfig.Connected {
 			logger.Infof("Connecting to PostgreSQL datasource '%s' on-demand...", dataSourceID)
-			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
+			return uc.ExternalDataSources.ConnectDataSource(dataSourceID, dataSource, logger)
 		}
 	case pkg.MongoDBType:
 		if !dataSource.Initialized {
 			logger.Infof("Connecting to MongoDB datasource '%s' on-demand...", dataSourceID)
-			return pkg.ConnectToDataSource(dataSourceID, dataSource, logger, uc.ExternalDataSources)
+			return uc.ExternalDataSources.ConnectDataSource(dataSourceID, dataSource, logger)
 		}
 	}
 
@@ -189,6 +219,16 @@ func (uc *UseCase) ensureDataSourceConnected(logger log.Logger, dataSourceID str
 
 // getDataSourceDetailsOfMongoDBDatabase retrieves the data source information of a MongoDB database
 func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "service.data_source.get_details_mongodb")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.data_source_id", dataSourceID),
+	)
+
 	var (
 		schema []mongodb.CollectionSchema
 		err    error
@@ -203,7 +243,10 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 	}
 
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to get MongoDB schema", err)
+
 		logger.Errorf("Error get schemas of mongo db: %s", err.Error())
+
 		return nil, err
 	}
 
@@ -221,7 +264,7 @@ func (uc *UseCase) getDataSourceDetailsOfMongoDBDatabase(ctx context.Context, lo
 
 // processCollectionsForDataSource processes collections and returns table details
 func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSchema, dataSourceID string) []model.TableDetails {
-	tableDetails := make([]model.TableDetails, 0)
+	tableDetails := make([]model.TableDetails, 0, len(schema))
 
 	for _, collection := range schema {
 		fields := uc.getFieldsForCollection(collection, dataSourceID)
@@ -240,7 +283,7 @@ func (uc *UseCase) processCollectionsForDataSource(schema []mongodb.CollectionSc
 
 // getFieldsForCollection determines which fields to include for a collection
 func (uc *UseCase) getFieldsForCollection(collection mongodb.CollectionSchema, dataSourceID string) []string {
-	if dataSourceID == "plugin_crm" {
+	if dataSourceID == pluginCRMDataSourceID {
 		return uc.getFieldsForPluginCRM(collection)
 	}
 
@@ -290,7 +333,7 @@ func (uc *UseCase) getBaseCollectionName(collectionName string) string {
 
 // getDisplayNameForCollection gets the display name for a collection
 func (uc *UseCase) getDisplayNameForCollection(collectionName, dataSourceID string) string {
-	if dataSourceID == "plugin_crm" {
+	if dataSourceID == pluginCRMDataSourceID {
 		return uc.getBaseCollectionName(collectionName)
 	}
 
@@ -395,6 +438,16 @@ func (uc *UseCase) getExpandedFieldsForPluginCRM(collectionName string) []string
 
 // getDataSourceDetailsOfPostgresDatabase retrieves the data source information of a PostgresSQL database
 func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, logger log.Logger, dataSourceID string, dataSource pkg.DataSource) (*model.DataSourceDetails, error) {
+	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "service.data_source.get_details_postgres")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("app.request.request_id", reqId),
+		attribute.String("app.request.data_source_id", dataSourceID),
+	)
+
 	// Use configured schemas or default to public
 	configuredSchemas := dataSource.Schemas
 	if len(configuredSchemas) == 0 {
@@ -403,6 +456,8 @@ func (uc *UseCase) getDataSourceDetailsOfPostgresDatabase(ctx context.Context, l
 
 	schemas, err := dataSource.PostgresRepository.GetDatabaseSchema(ctx, configuredSchemas)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to get PostgreSQL schema", err)
+
 		logger.Errorf("Error get schemas of postgres: %s", err.Error())
 
 		return nil, err

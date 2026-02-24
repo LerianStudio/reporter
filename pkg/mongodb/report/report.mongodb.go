@@ -6,6 +6,7 @@ package report
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -24,7 +25,7 @@ import (
 
 // Repository provides an interface for operations related to reports collection in MongoDB.
 //
-//go:generate mockgen --destination=report.mongodb.mock.go --package=report . Repository
+//go:generate mockgen --destination=report.mongodb.mock.go --package=report --copyright_file=../../../COPYRIGHT . Repository
 type Repository interface {
 	UpdateReportStatusById(ctx context.Context, status string, id uuid.UUID, completedAt time.Time, metadata map[string]any) error
 	Create(ctx context.Context, record *Report) (*Report, error)
@@ -38,17 +39,20 @@ type ReportMongoDBRepository struct {
 	Database   string
 }
 
+// Compile-time interface satisfaction check.
+var _ Repository = (*ReportMongoDBRepository)(nil)
+
 // NewReportMongoDBRepository returns a new instance of ReportMongoDBRepository using the given MongoDB connection.
-func NewReportMongoDBRepository(mc *libMongo.MongoConnection) *ReportMongoDBRepository {
+func NewReportMongoDBRepository(mc *libMongo.MongoConnection) (*ReportMongoDBRepository, error) {
 	r := &ReportMongoDBRepository{
 		connection: mc,
 		Database:   mc.Database,
 	}
 	if _, err := r.connection.GetDB(context.Background()); err != nil {
-		panic("Failed to connect mongo")
+		return nil, fmt.Errorf("failed to connect to mongodb for reports: %w", err)
 	}
 
-	return r
+	return r, nil
 }
 
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.
@@ -61,7 +65,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 ) error {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongo.update_report_status")
+	ctx, span := tracer.Start(ctx, "repository.report.update_status")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -84,7 +88,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	// Create a filter using the UUID directly for matching the _id field stored as BinData
 	filter := bson.M{"_id": id}
 
-	ctx, spanUpdate := tracer.Start(ctx, "mongo.update_report_status.update")
+	ctx, spanUpdate := tracer.Start(ctx, "repository.report.update_status_exec")
 	defer spanUpdate.End()
 
 	spanUpdate.SetAttributes(attributes...)
@@ -123,7 +127,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	}
 
 	if result.MatchedCount == 0 {
-		libOpentelemetry.HandleSpanError(&spanUpdate, "No report found with the provided UUID", nil)
+		libOpentelemetry.HandleSpanBusinessErrorEvent(&spanUpdate, "No report found with the provided UUID", constant.ErrEntityNotFound)
 	}
 
 	return nil
@@ -133,7 +137,7 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongo.create_report")
+	ctx, span := tracer.Start(ctx, "repository.report.create")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -163,7 +167,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 		return nil, err
 	}
 
-	ctx, spanInsert := tracer.Start(ctx, "mongo.create_report.insert")
+	ctx, spanInsert := tracer.Start(ctx, "repository.report.create_exec")
 
 	spanInsert.SetAttributes(attributes...)
 
@@ -188,7 +192,7 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_by_entity")
+	ctx, span := tracer.Start(ctx, "repository.report.find_by_id")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -209,7 +213,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 
 	var record *ReportMongoDBModel
 
-	ctx, spanFindOne := tracer.Start(ctx, "mongodb.find_by_entity.find_one")
+	ctx, spanFindOne := tracer.Start(ctx, "repository.report.find_by_id_exec")
 
 	spanFindOne.SetAttributes(attributes...)
 
@@ -236,7 +240,7 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.QueryHeader) ([]*Report, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "mongodb.find_all_reports")
+	ctx, span := tracer.Start(ctx, "repository.report.find_list")
 	defer span.End()
 
 	attributes := []attribute.KeyValue{
@@ -272,7 +276,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 
 	// Filter by created_at date range
 	if !filters.CreatedAt.IsZero() {
-		end := filters.CreatedAt.Add(24 * time.Hour)
+		end := filters.CreatedAt.Add(constant.HoursPerDay * time.Hour)
 		queryFilter["created_at"] = bson.M{
 			"$gte": filters.CreatedAt,
 			"$lt":  end,
@@ -291,7 +295,7 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 		Sort:  bson.D{{Key: "created_at", Value: -1}}, // Sort by created_at desc
 	}
 
-	ctx, spanFind := tracer.Start(ctx, "mongodb.find_reports.find")
+	ctx, spanFind := tracer.Start(ctx, "repository.report.find_list_exec")
 
 	spanFind.SetAttributes(attributes...)
 

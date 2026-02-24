@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"regexp"
+	"time"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -27,7 +29,7 @@ import (
 
 // Repository defines an interface for querying data from MongoDB collections.
 //
-//go:generate mockgen --destination=datasource.mongodb.mock.go --package=mongodb . Repository
+//go:generate mockgen --destination=datasource.mongodb.mock.go --package=mongodb --copyright_file=../../COPYRIGHT . Repository
 type Repository interface {
 	Query(ctx context.Context, collection string, fields []string, filter map[string][]any) ([]map[string]any, error)
 	QueryWithAdvancedFilters(ctx context.Context, collection string, fields []string, filter map[string]model.FilterCondition) ([]map[string]any, error)
@@ -54,13 +56,18 @@ type ExternalDataSource struct {
 	Database   string
 }
 
+const unknownDataType = "unknown"
+
+// Compile-time interface satisfaction check.
+var _ Repository = (*ExternalDataSource)(nil)
+
 // NewDataSourceRepository creates a new ExternalDataSource instance using the provided MongoDB connection string and database name.
 // Returns nil and error if connection fails.
 func NewDataSourceRepository(mongoURI string, dbName string, logger log.Logger) (*ExternalDataSource, error) {
 	mongoConnection := &libMongo.MongoConnection{
 		ConnectionStringSource: mongoURI,
 		Database:               dbName,
-		MaxPoolSize:            100,
+		MaxPoolSize:            constant.MongoMaxPoolSizeExternal,
 		Logger:                 logger,
 	}
 
@@ -101,7 +108,7 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 
 	logger.Infof("Querying %s collection with fields %v", collection, fields)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.query")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query")
 	defer span.End()
 
 	span.SetAttributes(
@@ -122,7 +129,31 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		return nil, err
 	}
 
-	// Convert filter to MongoDB format
+	mongoFilter := buildSimpleMongoFilter(filter)
+	findOptions := ds.buildFindOptions(fields)
+
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
+	defer cancel()
+
+	database := client.Database(ds.Database)
+
+	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
+	if err != nil {
+		return nil, wrapQueryError(queryCtx, constant.QueryTimeoutMedium, collection, "mongodb query timeout after %v for collection %s: %w", err)
+	}
+
+	defer cursor.Close(queryCtx)
+
+	results := decodeCursorResults(queryCtx, cursor, logger)
+
+	if err := cursor.Err(); err != nil {
+		return nil, wrapQueryError(queryCtx, constant.QueryTimeoutMedium, collection, "mongodb query result iteration timeout after %v for collection %s: %w", err)
+	}
+
+	return results, nil
+}
+
+func buildSimpleMongoFilter(filter map[string][]any) bson.M {
 	mongoFilter := bson.M{}
 
 	for key, values := range filter {
@@ -133,42 +164,13 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		}
 	}
 
-	// Create projection for specified fields
-	// Filter nested fields to avoid MongoDB projection conflicts
-	projection := bson.M{}
+	return mongoFilter
+}
 
-	if len(fields) > 0 && fields[0] != "*" {
-		filteredFields := FilterNestedFields(fields)
-		for _, field := range filteredFields {
-			projection[field] = 1
-		}
-	}
-
-	findOptions := options.Find()
-	if len(projection) > 0 {
-		findOptions.SetProjection(projection)
-	}
-
-	// Create timeout context for query execution
-	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
-	defer cancel()
-
-	database := client.Database(ds.Database)
-
-	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
-	if err != nil {
-		if queryCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("mongodb query timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
-		}
-
-		return nil, err
-	}
-
-	defer cursor.Close(queryCtx)
-
+func decodeCursorResults(ctx context.Context, cursor *mongo.Cursor, logger log.Logger) []map[string]any {
 	var results []map[string]any
 
-	for cursor.Next(queryCtx) {
+	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
 			logger.Warnf("Error decoding document: %v", err)
@@ -179,15 +181,15 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		results = append(results, resultMap)
 	}
 
-	if err := cursor.Err(); err != nil {
-		if queryCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("mongodb query result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
-		}
+	return results
+}
 
-		return nil, err
+func wrapQueryError(queryCtx context.Context, timeout time.Duration, collection string, timeoutMsg string, err error) error {
+	if queryCtx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf(timeoutMsg, timeout, collection, err)
 	}
 
-	return results, nil
+	return err
 }
 
 // convertBsonToMap converts a bson.M to map[string]any recursively
@@ -237,7 +239,7 @@ func convertBsonValue(value any) any {
 
 	case primitive.Binary:
 		// Check if Binary is a UUID
-		if len(v.Data) == 16 {
+		if len(v.Data) == constant.MongoUUIDByteLength {
 			u, err := uuid.FromBytes(v.Data)
 			if err == nil {
 				return u.String() // Retorna UUID formatado
@@ -260,7 +262,7 @@ func convertBsonValue(value any) any {
 func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]CollectionSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema")
+	ctx, span := tracer.Start(ctx, "repository.datasource.get_database_schema")
 	defer span.End()
 
 	span.SetAttributes(
@@ -323,7 +325,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 		for fieldName := range allFields {
 			dataType := fieldTypes[fieldName]
 			if dataType == "" {
-				dataType = "unknown"
+				dataType = unknownDataType
 			}
 
 			collSchema.Fields = append(collSchema.Fields, FieldInformation{
@@ -346,7 +348,7 @@ func (ds *ExternalDataSource) GetDatabaseSchema(ctx context.Context) ([]Collecti
 func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Context, organizationID string) ([]CollectionSchema, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.get_database_schema_for_organization")
+	ctx, span := tracer.Start(ctx, "repository.datasource.get_database_schema_for_organization")
 	defer span.End()
 
 	span.SetAttributes(
@@ -368,7 +370,7 @@ func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Conte
 
 	// Filter collections that end with _organizationID
 	filter := bson.M{
-		"name": bson.M{"$regex": "_" + organizationID + "$"},
+		"name": bson.M{"$regex": "_" + regexp.QuoteMeta(organizationID) + "$"},
 	}
 
 	collections, err := database.ListCollectionNames(schemaCtx, filter)
@@ -416,7 +418,7 @@ func (ds *ExternalDataSource) GetDatabaseSchemaForOrganization(ctx context.Conte
 		for fieldName := range allFields {
 			dataType := fieldTypes[fieldName]
 			if dataType == "" {
-				dataType = "unknown"
+				dataType = unknownDataType
 			}
 
 			collSchema.Fields = append(collSchema.Fields, FieldInformation{
@@ -442,7 +444,7 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 	}
 
 	// For large collections (>10k docs), use sampling instead of full aggregation
-	if count > 10000 {
+	if count > constant.MongoLargeCollectionThreshold {
 		return ds.discoverFieldsWithSampling(ctx, coll, count)
 	}
 
@@ -451,9 +453,10 @@ func (ds *ExternalDataSource) discoverAllFieldsWithAggregation(ctx context.Conte
 		// Limit processing to a reasonable sample size even for small collections
 		{
 			"$limit": func() int64 {
-				if count > 1000 {
-					return 1000
+				if count > constant.MongoSmallCollectionLimit {
+					return constant.MongoSmallCollectionLimit
 				}
+
 				return count
 			}(),
 		},
@@ -547,16 +550,16 @@ func (ds *ExternalDataSource) calculateOptimalSampleSize(totalDocs int64) int {
 	// Statistical sampling: 95% confidence, 5% margin of error
 	// For schema discovery, we don't need perfect accuracy, just good coverage
 	switch {
-	case totalDocs <= 1000:
+	case totalDocs <= constant.MongoSmallCollectionDocLimit:
 		return int(totalDocs) // Use all documents for small collections
-	case totalDocs <= 10000:
-		return 1000 // 10% sample
-	case totalDocs <= 100000:
-		return 2000 // 2% sample
-	case totalDocs <= 1000000:
-		return 5000 // 0.5% sample
+	case totalDocs <= constant.MongoMediumCollectionDocLimit:
+		return constant.MongoDefaultSampleSize // 10% sample
+	case totalDocs <= constant.MongoLargeCollectionDocLimit:
+		return constant.MongoMediumSampleSize // 2% sample
+	case totalDocs <= constant.MongoVeryLargeCollectionDocLimit:
+		return constant.MongoLargeSampleSize // 0.5% sample
 	default:
-		return 10000 // 0.1% sample for very large collections
+		return constant.MongoMaxSampleSize // 0.1% sample for very large collections
 	}
 }
 
@@ -567,14 +570,14 @@ func (ds *ExternalDataSource) sampleMultipleDocuments(ctx context.Context, coll 
 		return nil, nil, err
 	}
 
-	sampleSize := 50
-	if count < 50 {
+	sampleSize := constant.MongoMinDocsForSampling
+	if count < constant.MongoMinDocsForSampling {
 		sampleSize = int(count)
 	}
 
 	var cursor *mongo.Cursor
 
-	if count > 1000 {
+	if count > constant.MongoMaxDocsForSmallSample {
 		pipeline := []bson.M{
 			{"$sample": bson.M{"size": sampleSize}},
 		}
@@ -643,26 +646,26 @@ func (ds *ExternalDataSource) inferDataType(value any) string {
 	case primitive.MinKey, primitive.MaxKey:
 		return "minKey/maxKey"
 	default:
-		return "unknown"
+		return unknownDataType
 	}
 }
 
 // isMoreSpecificType determines if one type is more specific than another
 func (ds *ExternalDataSource) isMoreSpecificType(newType, currentType string) bool {
 	typeHierarchy := map[string]int{
-		"objectId":      10,
-		"date":          9,
-		"timestamp":     8,
-		"decimal":       7,
-		"binData":       6,
-		"regex":         5,
-		"minKey/maxKey": 4,
-		"number":        3,
-		"string":        2,
-		"boolean":       2,
-		"array":         2,
-		"object":        2,
-		"unknown":       1,
+		"objectId":      constant.BSONPriorityObjectID,
+		"date":          constant.BSONPriorityDate,
+		"timestamp":     constant.BSONPriorityTimestamp,
+		"decimal":       constant.BSONPriorityDecimal,
+		"binData":       constant.BSONPriorityBinData,
+		"regex":         constant.BSONPriorityRegex,
+		"minKey/maxKey": constant.BSONPriorityMinMaxKey,
+		"number":        constant.BSONPriorityNumber,
+		"string":        constant.BSONPriorityDefault,
+		"boolean":       constant.BSONPriorityDefault,
+		"array":         constant.BSONPriorityDefault,
+		"object":        constant.BSONPriorityDefault,
+		"unknown":       constant.BSONPriorityUnknown,
 	}
 
 	newLevel := typeHierarchy[newType]
@@ -677,7 +680,7 @@ func (ds *ExternalDataSource) QueryWithAdvancedFilters(ctx context.Context, coll
 
 	logger.Infof("Querying %s collection with advanced filters on fields %v", collection, fields)
 
-	_, span := tracer.Start(ctx, "mongodb.data_source.query_with_advanced_filters")
+	ctx, span := tracer.Start(ctx, "repository.datasource.query_with_advanced_filters")
 	defer span.End()
 
 	span.SetAttributes(

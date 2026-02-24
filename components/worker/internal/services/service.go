@@ -20,21 +20,27 @@ type UseCase struct {
 	// ReportSeaweedFS is a repository interface for storing report files in SeaweedFS.
 	ReportSeaweedFS reportSeaweedFS.Repository
 
-	// ExternalDataSources holds a map of external data sources identified by their names, each mapped to a DataSource object.
-	ExternalDataSources map[string]pkg.DataSource
+	// ExternalDataSources holds a thread-safe map of external data sources identified by their names.
+	ExternalDataSources *pkg.SafeDataSources
 
 	// ReportDataRepo is an interface for operations related to report data storage used in the reporting use case
 	ReportDataRepo reportData.Repository
 
 	// CircuitBreakerManager manages circuit breakers for external datasources
-	CircuitBreakerManager *pkg.CircuitBreakerManager
+	CircuitBreakerManager pkg.CircuitBreakerExecutor
 
 	// HealthChecker performs periodic health checks and reconnection attempts
-	HealthChecker *pkg.HealthChecker
+	HealthChecker pkg.HealthCheckRunner
 
 	// ReportTTL defines the Time To Live for reports (e.g., "1m", "1h", "7d", "30d"). Empty means no TTL.
 	ReportTTL string
 
 	// PdfPool provides PDF generation capabilities using Chrome headless
-	PdfPool *pdf.WorkerPool
+	PdfPool pdf.PDFGenerator
+
+	// CryptoHashSecretKeyPluginCRM is the hash secret key for plugin_crm data operations.
+	CryptoHashSecretKeyPluginCRM string
+
+	// CryptoEncryptSecretKeyPluginCRM is the encryption secret key for plugin_crm data operations.
+	CryptoEncryptSecretKeyPluginCRM string
 }

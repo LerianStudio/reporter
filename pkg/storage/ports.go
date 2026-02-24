@@ -1,7 +1,11 @@
+// Copyright (c) 2026 Lerian Studio. All rights reserved.
+// Use of this source code is governed by the Elastic License 2.0
+// that can be found in the LICENSE file.
+
 // Package storage defines interfaces for object storage operations.
 package storage
 
-//go:generate mockgen -source=ports.go -destination=mocks/object_storage_mock.go -package=mocks
+//go:generate mockgen --destination=ports.mock.go --package=storage --copyright_file=../../COPYRIGHT . ObjectStorage
 
 import (
 	"context"

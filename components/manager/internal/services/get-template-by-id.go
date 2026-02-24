@@ -23,7 +23,7 @@ import (
 func (uc *UseCase) GetTemplateByID(ctx context.Context, id uuid.UUID) (*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_template_by_id")
+	ctx, span := tracer.Start(ctx, "service.template.get_by_id")
 	defer span.End()
 
 	span.SetAttributes(
@@ -35,13 +35,17 @@ func (uc *UseCase) GetTemplateByID(ctx context.Context, id uuid.UUID) (*template
 
 	templateModel, err := uc.TemplateRepo.FindByID(ctx, id)
 	if err != nil {
-		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
-
 		logger.Errorf("Error getting template on repo by id: %v", err)
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+			errNotFound := pkg.ValidateBusinessError(constant.ErrEntityNotFound, "", constant.MongoCollectionTemplate)
+
+			opentelemetry.HandleSpanBusinessErrorEvent(&span, "Template not found", errNotFound)
+
+			return nil, errNotFound
 		}
+
+		opentelemetry.HandleSpanError(&span, "Failed to get template on repo by id", err)
 
 		return nil, err
 	}

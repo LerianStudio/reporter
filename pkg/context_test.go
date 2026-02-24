@@ -10,11 +10,13 @@ import (
 
 	"github.com/LerianStudio/lib-commons/v2/commons/log"
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func TestNewLoggerFromContext(t *testing.T) {
+	t.Parallel()
+
 	// Create a shared logger instance for the "with logger" test case
 	sharedLogger := &log.NoneLogger{}
 
@@ -50,7 +52,10 @@ func TestNewLoggerFromContext(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := tt.setupCtx()
 			logger := NewLoggerFromContext(ctx)
 
@@ -67,8 +72,10 @@ func TestNewLoggerFromContext(t *testing.T) {
 }
 
 func TestNewTracerFromContext(t *testing.T) {
+	t.Parallel()
+
 	// Create a shared tracer instance for the "with tracer" test case
-	sharedTracer := otel.Tracer("test-shared")
+	sharedTracer := noop.Tracer{}
 
 	tests := []struct {
 		name       string
@@ -83,25 +90,28 @@ func TestNewTracerFromContext(t *testing.T) {
 			expectSame: sharedTracer,
 		},
 		{
-			name: "Empty context - returns default tracer",
+			name: "Empty context - returns noop tracer",
 			setupCtx: func() context.Context {
 				return context.Background()
 			},
-			expectSame: nil, // Just verify not nil
+			expectSame: noop.Tracer{},
 		},
 		{
-			name: "Context with CustomContextKeyValue but nil tracer",
+			name: "Context with CustomContextKeyValue but nil tracer - returns noop tracer",
 			setupCtx: func() context.Context {
 				return context.WithValue(context.Background(), CustomContextKey, &CustomContextKeyValue{
 					Tracer: nil,
 				})
 			},
-			expectSame: nil, // Just verify not nil
+			expectSame: noop.Tracer{},
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := tt.setupCtx()
 			tracer := NewTracerFromContext(ctx)
 
@@ -116,7 +126,11 @@ func TestNewTracerFromContext(t *testing.T) {
 }
 
 func TestContextWithLogger(t *testing.T) {
-	t.Run("Add logger to empty context", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Success - Add logger to empty context", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger)
 
@@ -127,8 +141,10 @@ func TestContextWithLogger(t *testing.T) {
 		assert.Equal(t, logger, retrievedLogger)
 	})
 
-	t.Run("Add logger to context with existing tracer", func(t *testing.T) {
-		tracer := otel.Tracer("test")
+	t.Run("Success - Add logger to context with existing tracer", func(t *testing.T) {
+		t.Parallel()
+
+		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
 		logger := &log.NoneLogger{}
@@ -142,7 +158,9 @@ func TestContextWithLogger(t *testing.T) {
 		assert.NotNil(t, retrievedTracer)
 	})
 
-	t.Run("Replace existing logger", func(t *testing.T) {
+	t.Run("Success - Replace existing logger", func(t *testing.T) {
+		t.Parallel()
+
 		logger1 := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger1)
 
@@ -155,8 +173,12 @@ func TestContextWithLogger(t *testing.T) {
 }
 
 func TestContextWithTracer(t *testing.T) {
-	t.Run("Add tracer to empty context", func(t *testing.T) {
-		tracer := otel.Tracer("test")
+	t.Parallel()
+
+	t.Run("Success - Add tracer to empty context", func(t *testing.T) {
+		t.Parallel()
+
+		tracer := noop.Tracer{}
 		ctx := ContextWithTracer(context.Background(), tracer)
 
 		assert.NotNil(t, ctx)
@@ -166,11 +188,13 @@ func TestContextWithTracer(t *testing.T) {
 		assert.NotNil(t, retrievedTracer)
 	})
 
-	t.Run("Add tracer to context with existing logger", func(t *testing.T) {
+	t.Run("Success - Add tracer to context with existing logger", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
 		ctx := ContextWithLogger(context.Background(), logger)
 
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 		ctx = ContextWithTracer(ctx, tracer)
 
 		// Both should be retrievable
@@ -183,14 +207,20 @@ func TestContextWithTracer(t *testing.T) {
 }
 
 func TestCustomContextKey(t *testing.T) {
+	t.Parallel()
+
 	// Verify the key is defined and is the expected type
 	assert.Equal(t, customContextKey("custom_context"), CustomContextKey)
 }
 
 func TestCustomContextKeyValue(t *testing.T) {
-	t.Run("Create with both values", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Success - Create with both values", func(t *testing.T) {
+		t.Parallel()
+
 		logger := &log.NoneLogger{}
-		tracer := otel.Tracer("test")
+		tracer := noop.Tracer{}
 
 		value := &CustomContextKeyValue{
 			Logger: logger,
@@ -201,7 +231,9 @@ func TestCustomContextKeyValue(t *testing.T) {
 		assert.Equal(t, tracer, value.Tracer)
 	})
 
-	t.Run("Create with nil values", func(t *testing.T) {
+	t.Run("Success - Create with nil values", func(t *testing.T) {
+		t.Parallel()
+
 		value := &CustomContextKeyValue{}
 
 		assert.Nil(t, value.Logger)

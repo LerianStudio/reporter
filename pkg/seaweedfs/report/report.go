@@ -13,11 +13,15 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/storage"
+
+	"github.com/LerianStudio/lib-commons/v2/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Repository provides an interface for storage operations
 //
-//go:generate mockgen --destination=report.mock.go --package=report . Repository
+//go:generate mockgen --destination=report.mock.go --package=report --copyright_file=../../../COPYRIGHT . Repository
 type Repository interface {
 	Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error
 	Get(ctx context.Context, objectName string) ([]byte, error)
@@ -27,6 +31,9 @@ type Repository interface {
 type StorageRepository struct {
 	storage storage.ObjectStorage
 }
+
+// Compile-time interface satisfaction check.
+var _ Repository = (*StorageRepository)(nil)
 
 // NewStorageRepository creates a new instance of StorageRepository with the given storage client.
 func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepository {
@@ -39,11 +46,22 @@ func NewStorageRepository(storageClient storage.ObjectStorage) *StorageRepositor
 // TTL format: 3m (3 minutes), 4h (4 hours), 5d (5 days), 6w (6 weeks), 7M (7 months), 8y (8 years)
 // If ttl is empty string, no TTL is applied and the file will be stored permanently
 func (repo *StorageRepository) Put(ctx context.Context, objectName string, contentType string, data []byte, ttl string) error {
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.report_storage.put")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
+
 	// Add reports prefix
 	key := fmt.Sprintf("reports/%s", objectName)
 
+	logger.Infof("Putting report to storage: %s", key)
+
 	_, err := repo.storage.UploadWithTTL(ctx, key, bytes.NewReader(data), contentType, ttl)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to upload report to storage", err)
+
 		return pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 
@@ -52,17 +70,30 @@ func (repo *StorageRepository) Put(ctx context.Context, objectName string, conte
 
 // Get download data from storage with the given object name
 func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]byte, error) {
+	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
+
+	ctx, span := tracer.Start(ctx, "repository.report_storage.get")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("app.request.request_id", reqId))
+
 	// Add reports prefix
 	key := fmt.Sprintf("reports/%s", objectName)
 
+	logger.Infof("Getting report from storage: %s", key)
+
 	reader, err := repo.storage.Download(ctx, key)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to download report from storage", err)
+
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 	defer reader.Close()
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
+		libOpentelemetry.HandleSpanError(&span, "Failed to read report data", err)
+
 		return nil, pkg.ValidateBusinessError(constant.ErrCommunicateSeaweedFS, "")
 	}
 

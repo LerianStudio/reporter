@@ -13,9 +13,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSeaweedFSClient(t *testing.T) {
+	t.Parallel()
+
 	client := NewSeaweedFSClient("http://localhost:8888")
 
 	assert.NotNil(t, client)
@@ -25,6 +28,8 @@ func TestNewSeaweedFSClient(t *testing.T) {
 }
 
 func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		baseURL string
@@ -44,7 +49,10 @@ func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			client := NewSeaweedFSClient(tt.baseURL)
 			assert.Equal(t, tt.baseURL, client.GetBaseURL())
 		})
@@ -52,13 +60,15 @@ func TestSeaweedFSClient_GetBaseURL(t *testing.T) {
 }
 
 func TestSeaweedFSClient_UploadFile(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
 		assert.Equal(t, "/bucket/test-file.txt", r.URL.Path)
 		assert.Equal(t, "application/octet-stream", r.Header.Get("Content-Type"))
 
 		body, err := io.ReadAll(r.Body)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "test content", string(body))
 
 		w.WriteHeader(http.StatusOK)
@@ -67,10 +77,12 @@ func TestSeaweedFSClient_UploadFile(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.UploadFile(context.Background(), "/bucket/test-file.txt", []byte("test content"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		ttl         string
@@ -99,7 +111,10 @@ func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				if tt.ttl != "" {
@@ -113,12 +128,14 @@ func TestSeaweedFSClient_UploadFileWithTTL(t *testing.T) {
 
 			client := NewSeaweedFSClient(server.URL)
 			err := client.UploadFileWithTTL(context.Background(), "/test-file", []byte("content"), tt.ttl)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
 
 func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -142,7 +159,10 @@ func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				w.Write([]byte(tt.response))
@@ -151,13 +171,15 @@ func TestSeaweedFSClient_UploadFile_Error(t *testing.T) {
 
 			client := NewSeaweedFSClient(server.URL)
 			err := client.UploadFile(context.Background(), "/test-file", []byte("content"))
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Contains(t, err.Error(), "upload failed")
 		})
 	}
 }
 
 func TestSeaweedFSClient_DownloadFile(t *testing.T) {
+	t.Parallel()
+
 	expectedContent := "downloaded file content"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -170,11 +192,13 @@ func TestSeaweedFSClient_DownloadFile(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	data, err := client.DownloadFile(context.Background(), "/bucket/download-file.txt")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expectedContent, string(data))
 }
 
 func TestSeaweedFSClient_DownloadFile_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("file not found"))
@@ -183,11 +207,13 @@ func TestSeaweedFSClient_DownloadFile_Error(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	_, err := client.DownloadFile(context.Background(), "/non-existent-file")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "download failed")
 }
 
 func TestSeaweedFSClient_DeleteFile(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/bucket/delete-file.txt", r.URL.Path)
@@ -197,10 +223,12 @@ func TestSeaweedFSClient_DeleteFile(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.DeleteFile(context.Background(), "/bucket/delete-file.txt")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSClient_DeleteFile_NoContent(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -208,10 +236,12 @@ func TestSeaweedFSClient_DeleteFile_NoContent(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.DeleteFile(context.Background(), "/bucket/delete-file.txt")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSClient_DeleteFile_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("delete failed"))
@@ -220,11 +250,13 @@ func TestSeaweedFSClient_DeleteFile_Error(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.DeleteFile(context.Background(), "/bucket/delete-file.txt")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "delete failed")
 }
 
 func TestSeaweedFSClient_HealthCheck(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/status", r.URL.Path)
@@ -235,10 +267,12 @@ func TestSeaweedFSClient_HealthCheck(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.HealthCheck(context.Background())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSClient_HealthCheck_Error(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
@@ -246,11 +280,13 @@ func TestSeaweedFSClient_HealthCheck_Error(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.HealthCheck(context.Background())
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "health check failed")
 }
 
 func TestSeaweedFSClient_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate slow response
 		time.Sleep(2 * time.Second)
@@ -264,10 +300,12 @@ func TestSeaweedFSClient_ContextCancellation(t *testing.T) {
 	defer cancel()
 
 	err := client.UploadFile(ctx, "/test-file", []byte("content"))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestSeaweedFSClient_UploadFile_Created(t *testing.T) {
+	t.Parallel()
+
 	// Test that HTTP 201 Created is also accepted
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
@@ -276,10 +314,12 @@ func TestSeaweedFSClient_UploadFile_Created(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.UploadFile(context.Background(), "/new-file", []byte("content"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSeaweedFSClient_LargeFile(t *testing.T) {
+	t.Parallel()
+
 	// Create a 1MB file
 	largeContent := make([]byte, 1024*1024)
 	for i := range largeContent {
@@ -297,8 +337,79 @@ func TestSeaweedFSClient_LargeFile(t *testing.T) {
 
 	client := NewSeaweedFSClient(server.URL)
 	err := client.UploadFile(context.Background(), "/large-file", largeContent)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	receivedSize := <-receivedSizeChan
 	assert.Equal(t, len(largeContent), receivedSize)
+}
+
+// ---------------------------------------------------------------------------
+// Tests covering invalid URL paths (NewRequestWithContext failure)
+// ---------------------------------------------------------------------------
+
+func TestSeaweedFSClient_DownloadFile_InvalidURL(t *testing.T) {
+	t.Parallel()
+
+	client := NewSeaweedFSClient("http://\x00invalid")
+	_, err := client.DownloadFile(context.Background(), "/some-file")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create request")
+}
+
+func TestSeaweedFSClient_DeleteFile_InvalidURL(t *testing.T) {
+	t.Parallel()
+
+	client := NewSeaweedFSClient("http://\x00invalid")
+	err := client.DeleteFile(context.Background(), "/some-file")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create request")
+}
+
+func TestSeaweedFSClient_HealthCheck_InvalidURL(t *testing.T) {
+	t.Parallel()
+
+	client := NewSeaweedFSClient("http://\x00invalid")
+	err := client.HealthCheck(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create health check request")
+}
+
+// ---------------------------------------------------------------------------
+// Tests covering network error paths (connection refused)
+// ---------------------------------------------------------------------------
+
+func TestSeaweedFSClient_DownloadFile_NetworkError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.Close() // Close immediately so connections are refused
+
+	client := NewSeaweedFSClient(server.URL)
+	_, err := client.DownloadFile(context.Background(), "/some-file")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to download file")
+}
+
+func TestSeaweedFSClient_DeleteFile_NetworkError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.Close()
+
+	client := NewSeaweedFSClient(server.URL)
+	err := client.DeleteFile(context.Background(), "/some-file")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete file")
+}
+
+func TestSeaweedFSClient_HealthCheck_NetworkError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.Close()
+
+	client := NewSeaweedFSClient(server.URL)
+	err := client.HealthCheck(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "health check failed")
 }

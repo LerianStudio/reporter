@@ -5,17 +5,35 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+
 	"github.com/LerianStudio/reporter/components/manager/internal/bootstrap"
-	"github.com/LerianStudio/reporter/pkg"
 )
 
-// @title			Reporter
-// @version		1.0.0
-// @description	This is a swagger documentation for Reporter
-// @termsOfService	http://swagger.io/terms/
-// @host			localhost:4005
-// @BasePath		/
+// @title						Reporter
+// @version					1.0.0
+// @description				This is a swagger documentation for Reporter
+// @termsOfService				http://swagger.io/terms/
+// @host						localhost:4005
+// @BasePath					/
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				The authorization token in the 'Bearer access_token' format. Only required when auth plugin is enabled.
 func main() {
-	pkg.InitLocalEnvConfig()
-	bootstrap.InitServers().Run()
+	libCommons.InitLocalEnvConfig()
+
+	svc, err := bootstrap.InitServers()
+	if err != nil {
+		// fmt.Fprintf is used here because the structured logger (zap) is not yet
+		// available — it is initialized inside InitServers. This is the only place
+		// where fmt output is acceptable per Ring standards.
+		fmt.Fprintf(os.Stderr, "Failed to initialize manager: %v\n", err)
+		os.Exit(1)
+	}
+
+	svc.Run()
 }
