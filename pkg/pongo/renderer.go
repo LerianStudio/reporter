@@ -29,7 +29,15 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 	// Pre-process template to convert schema syntax (database:schema.table) to Pongo2 compatible syntax
 	processedTemplate := preprocessSchemaReferences(string(templateBytes))
 
-	tpl, err := pongo2.FromString(processedTemplate)
+	// Create a per-call TemplateSet to avoid a race condition on pongo2's
+	// shared DefaultSet.  TemplateSet.FromString() writes to the unsynchronized
+	// field firstTemplateCreated, so concurrent renders through the global
+	// DefaultSet trigger the Go race detector.  A fresh set per render is cheap
+	// (no caching benefit is lost because each template string is unique) and
+	// eliminates the shared mutable state entirely.
+	ts := pongo2.NewSet("render", pongo2.DefaultLoader)
+
+	tpl, err := ts.FromString(processedTemplate)
 	if err != nil {
 		logger.Errorf("Error parsing template: %s", err.Error())
 		return "", err
@@ -57,6 +65,7 @@ func (r *TemplateRenderer) RenderFromBytes(ctx context.Context, templateBytes []
 		"contains": func(str1 any, str2 any) bool {
 			s1 := strings.ToUpper(fmt.Sprintf("%v", str1))
 			s2 := strings.ToUpper(fmt.Sprintf("%v", str2))
+
 			return strings.Contains(s1, s2)
 		},
 	}

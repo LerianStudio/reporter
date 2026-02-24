@@ -5,117 +5,58 @@
 package http
 
 import (
-	"net/http"
-
 	"github.com/LerianStudio/reporter/pkg"
 
+	commonsHTTP "github.com/LerianStudio/lib-commons/v2/commons/net/http"
 	"github.com/gofiber/fiber/v2"
 )
 
 // Unauthorized sends an HTTP 401 Unauthorized response with a custom code, title and message.
+// Delegates to lib-commons commonsHTTP.Unauthorized for consistency.
 func Unauthorized(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
+	return commonsHTTP.Unauthorized(c, code, title, message)
 }
 
 // Forbidden sends an HTTP 403 Forbidden response with a custom code, title and message.
+// Delegates to lib-commons commonsHTTP.Forbidden for consistency.
 func Forbidden(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusForbidden).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
+	return commonsHTTP.Forbidden(c, code, title, message)
 }
 
 // BadRequest sends an HTTP 400 Bad Request response with a custom body.
+// Delegates to lib-commons commonsHTTP.BadRequest for consistency.
 func BadRequest(c *fiber.Ctx, s any) error {
-	return c.Status(http.StatusBadRequest).JSON(s)
-}
-
-// Created sends an HTTP 201 Created response with a custom body.
-func Created(c *fiber.Ctx, s any) error {
-	return c.Status(http.StatusCreated).JSON(s)
-}
-
-// OK sends an HTTP 200 OK response with a custom body.
-func OK(c *fiber.Ctx, s any) error {
-	return c.Status(http.StatusOK).JSON(s)
-}
-
-// NoContent sends an HTTP 204 No Content response without any body.
-func NoContent(c *fiber.Ctx) error {
-	return c.SendStatus(http.StatusNoContent)
-}
-
-// Accepted sends an HTTP 202 Accepted response with a custom body.
-func Accepted(c *fiber.Ctx, s any) error {
-	return c.Status(http.StatusAccepted).JSON(s)
-}
-
-// PartialContent sends an HTTP 206 Partial Content response with a custom body.
-func PartialContent(c *fiber.Ctx, s any) error {
-	return c.Status(http.StatusPartialContent).JSON(s)
-}
-
-// RangeNotSatisfiable sends an HTTP 416 Requested Range Not Satisfiable response.
-func RangeNotSatisfiable(c *fiber.Ctx) error {
-	return c.SendStatus(http.StatusRequestedRangeNotSatisfiable)
+	return commonsHTTP.BadRequest(c, s)
 }
 
 // NotFound sends an HTTP 404 Not Found response with a custom code, title and message.
+// Delegates to lib-commons commonsHTTP.NotFound for consistency.
 func NotFound(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusNotFound).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
+	return commonsHTTP.NotFound(c, code, title, message)
 }
 
 // Conflict sends an HTTP 409 Conflict response with a custom code, title and message.
+// Delegates to lib-commons commonsHTTP.Conflict for consistency.
 func Conflict(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusConflict).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
-}
-
-// NotImplemented sends an HTTP 501 Not Implemented response with a custom message.
-func NotImplemented(c *fiber.Ctx, message string) error {
-	return c.Status(http.StatusNotImplemented).JSON(fiber.Map{
-		"code":    http.StatusNotImplemented,
-		"title":   "Not Implemented",
-		"message": message,
-	})
+	return commonsHTTP.Conflict(c, code, title, message)
 }
 
 // UnprocessableEntity sends an HTTP 422 Unprocessable Entity response with a custom code, title and message.
+// Delegates to lib-commons commonsHTTP.UnprocessableEntity for consistency.
 func UnprocessableEntity(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
+	return commonsHTTP.UnprocessableEntity(c, code, title, message)
 }
 
-// InternalServerError sends an HTTP 500 Internal Server Error response
+// InternalServerError sends an HTTP 500 Internal Server Error response.
+// Delegates to lib-commons commonsHTTP.InternalServerError for consistency.
 func InternalServerError(c *fiber.Ctx, code, title, message string) error {
-	return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-		"code":    code,
-		"title":   title,
-		"message": message,
-	})
+	return commonsHTTP.InternalServerError(c, code, title, message)
 }
 
 // JSONResponseError sends a JSON formatted error response with a custom error struct.
+// Note: This uses project-level pkg.ResponseError (not commons.Response) because the
+// type includes a Code int field for HTTP status, which differs from lib-commons' Response type.
+// This is an accepted deviation documented for future migration.
 func JSONResponseError(c *fiber.Ctx, err pkg.ResponseError) error {
 	return c.Status(err.Code).JSON(err)
-}
-
-// JSONResponse sends a custom status code and body as a JSON response.
-func JSONResponse(c *fiber.Ctx, status int, s any) error {
-	return c.Status(status).JSON(s)
 }

@@ -16,7 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_GetDataSourceInformation(t *testing.T) {
+func TestUseCase_GetDataSourceInformation(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because ResetRegisteredDataSourceIDsForTesting mutates global state
 	ctx := context.Background()
 
 	// Register datasource IDs for testing
@@ -34,7 +35,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			name: "Success - Both MongoDB and PostgreSQL present",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
@@ -45,7 +46,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 							DatabaseConfig:     pgConfig,
 							PostgresRepository: postgres.NewMockRepository(nil),
 						},
-					},
+					}),
 				}
 			},
 			expectResult: []*model.DataSourceInformation{
@@ -65,13 +66,13 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			name: "Success - Only MongoDB present",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"mongo_ds": {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mongodb.NewMockRepository(nil),
 						},
-					},
+					}),
 				}
 			},
 			expectResult: []*model.DataSourceInformation{
@@ -86,13 +87,13 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			name: "Success - Only PostgreSQL present",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"pg_ds": {
 							DatabaseType:       pkg.PostgreSQLType,
 							DatabaseConfig:     pgConfig,
 							PostgresRepository: postgres.NewMockRepository(nil),
 						},
-					},
+					}),
 				}
 			},
 			expectResult: []*model.DataSourceInformation{
@@ -106,7 +107,7 @@ func Test_GetDataSourceInformation(t *testing.T) {
 		{
 			name: "Success - No data sources",
 			setupSvc: func() *UseCase {
-				return &UseCase{ExternalDataSources: map[string]pkg.DataSource{}}
+				return &UseCase{ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{})}
 			},
 			expectResult: []*model.DataSourceInformation{},
 		},
@@ -114,11 +115,11 @@ func Test_GetDataSourceInformation(t *testing.T) {
 			name: "Unknown type - should return empty slice",
 			setupSvc: func() *UseCase {
 				return &UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
 						"unknown_ds": {
 							DatabaseType: "unknown",
 						},
-					},
+					}),
 				}
 			},
 			expectResult: []*model.DataSourceInformation{},
@@ -126,7 +127,10 @@ func Test_GetDataSourceInformation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			svc := tt.setupSvc()
 			result := svc.GetDataSourceInformation(ctx)
 			assert.ElementsMatch(t, tt.expectResult, result)

@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
+
 	"github.com/flosch/pongo2/v6"
 	"github.com/shopspring/decimal"
 )
@@ -82,10 +84,10 @@ func percentOfFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pon
 		}
 	}
 
-	hundred := decimal.NewFromInt(100)
+	hundred := decimal.NewFromInt(constant.PercentBase)
 	pct := num.Mul(hundred).Div(den)
 
-	return pongo2.AsValue(pct.StringFixed(2) + "%"), nil
+	return pongo2.AsValue(pct.StringFixed(constant.DecimalPrecisionPercent) + "%"), nil
 }
 
 // sliceFilter extracts a substring from the input string based on the specified "start:end" slice format in the parameter.
@@ -94,7 +96,7 @@ func sliceFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.
 	s := in.String()
 
 	parts := strings.Split(param.String(), ":")
-	if len(parts) != 2 {
+	if len(parts) != constant.SliceFormatParts {
 		return nil, &pongo2.Error{
 			Sender:    "slice",
 			OrigError: fmt.Errorf("invalid slice format, expected 'start:end'"),
@@ -180,7 +182,7 @@ func parseNextToken(expression string, i int, prevTokens []token) (token, int, e
 
 	// Check for ** operator (must check before single *)
 	if ch == '*' && i+1 < len(expression) && expression[i+1] == '*' {
-		return token{isOperator: true, operator: "**"}, 2, nil
+		return token{isOperator: true, operator: "**"}, constant.PowerOperatorTokenLength, nil
 	}
 
 	// Check for single character operators (+, *, /)

@@ -16,10 +16,12 @@ const (
 
 // Circuit Breaker Configuration
 const (
-	CircuitBreakerMaxRequests uint32 = 3
-	CircuitBreakerInterval           = 2 * time.Minute
-	CircuitBreakerTimeout            = 30 * time.Second
-	CircuitBreakerThreshold   uint32 = 15
+	CircuitBreakerMaxRequests  uint32  = 3
+	CircuitBreakerInterval             = 2 * time.Minute
+	CircuitBreakerTimeout              = 30 * time.Second
+	CircuitBreakerThreshold    uint32  = 15
+	CircuitBreakerMinRequests  uint32  = 10
+	CircuitBreakerFailureRatio float64 = 0.5
 )
 
 // PostgreSQL Pool Configuration

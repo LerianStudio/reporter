@@ -199,12 +199,6 @@ paths:
     get:
       description: Retrieves all data sources connected on plugin with all information
         from the database
-      parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       produces:
       - application/json
       responses:
@@ -214,10 +208,20 @@ paths:
             items:
               $ref: '#/definitions/DataSourceInformation'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get all data sources connected on reporter
       tags:
       - Data source
@@ -225,11 +229,6 @@ paths:
     get:
       description: Retrieves a data sources information with data source id passed
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Data source ID
         in: path
         name: dataSourceId
@@ -246,6 +245,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -254,6 +261,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get a data sources information
       tags:
       - Data source
@@ -261,11 +270,6 @@ paths:
     get:
       description: List all the reports
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Report status (processing, finished, error)
         in: query
         name: status
@@ -312,10 +316,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get all reports
       tags:
       - Reports
@@ -324,10 +338,9 @@ paths:
       - application/json
       description: Create a Report of existent template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
+      - description: Client-provided idempotency key to prevent duplicate report creation
         in: header
-        name: Authorization
+        name: X-Idempotency
         type: string
       - description: Report Input
         in: body
@@ -346,6 +359,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -354,6 +375,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Create a Report
       tags:
       - Reports
@@ -363,11 +386,6 @@ paths:
       - application/json
       description: Get information of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Report ID
         in: path
         name: id
@@ -384,6 +402,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -392,6 +418,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get a Report
       tags:
       - Reports
@@ -401,11 +429,6 @@ paths:
       - application/json
       description: Make a download of a Report passing the ID
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Report ID
         in: path
         name: id
@@ -422,6 +445,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -430,6 +461,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Download a Report
       tags:
       - Reports
@@ -437,11 +470,6 @@ paths:
     get:
       description: List all the templates
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: XML, HTML, TXT and CSV
         in: query
         name: outputFormat
@@ -484,10 +512,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get all templates
       tags:
       - Templates
@@ -496,10 +534,10 @@ paths:
       - multipart/form-data
       description: Create a Template for reports with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
+      - description: Client-provided idempotency key to prevent duplicate template
+          creation
         in: header
-        name: Authorization
+        name: X-Idempotency
         type: string
       - description: Template file (.tpl)
         in: formData
@@ -527,10 +565,24 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Create a Template for reports
       tags:
       - Templates
@@ -539,11 +591,6 @@ paths:
       description: SoftDelete a Template with the input ID. Returns 204 with no content
         on success.
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Template ID
         in: path
         name: id
@@ -558,6 +605,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -566,17 +621,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: SoftDelete a Template by ID
       tags:
       - Templates
     get:
       description: Get a template by id
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Template ID
         in: path
         name: id
@@ -593,6 +645,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -601,6 +661,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Get template
       tags:
       - Templates
@@ -609,11 +671,6 @@ paths:
       - multipart/form-data
       description: Update a template with the input payload
       parameters:
-      - description: "The authorization token in the 'Bearer\taccess_token' format.
-          Only required when auth plugin is enabled."
-        in: header
-        name: Authorization
-        type: string
       - description: Template file (.tpl)
         in: formData
         name: templateFile
@@ -645,6 +702,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -653,7 +718,16 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.HTTPError'
+      security:
+      - BearerAuth: []
       summary: Update a template
       tags:
       - Templates
+securityDefinitions:
+  BearerAuth:
+    description: The authorization token in the 'Bearer access_token' format. Only
+      required when auth plugin is enabled.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

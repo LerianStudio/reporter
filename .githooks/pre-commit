@@ -10,42 +10,22 @@ if [[ $branch == "main" || $branch == "develop" || $branch == release/* ]]; then
   exit 1
 fi
 
-commit_msg_type_regex='feature|fix|refactor|style|test|docs|build'
-commit_msg_scope_regex='.{1,20}'
-commit_msg_description_regex='.{1,100}'
-commit_msg_regex="^(${commit_msg_type_regex})(\(${commit_msg_scope_regex}\))?: (${commit_msg_description_regex})\$"
-merge_msg_regex="^Merge branch '.+'\$"
+# Block .env files from being committed
+env_files=$(git diff --cached --name-only | grep -E '\.env($|\.)')
+if [[ -n "$env_files" ]]; then
+  echo "${bold}Blocked: .env files must not be committed:${normal}"
+  echo "$env_files"
+  exit 1
+fi
 
-zero_commit="0000000000000000000000000000000000000000"
-
-# Do not traverse over commits that are already in the repository
-excludeExisting="--not --all"
-
-error=""
-while read oldrev newrev refname; do
-    # branch or tag get deleted
-    if [ "$newrev" = "$zero_commit" ]; then
-        continue
-    fi
-
-    # Check for new branch or tag
-    if [ "$oldrev" = "$zero_commit" ]; then
-        rev_span=$(git rev-list $newrev $excludeExisting)
-    else
-        rev_span=$(git rev-list $oldrev..$newrev $excludeExisting)
-    fi
-
-    for commit in $rev_span; do
-        commit_msg_header=$(git show -s --format=%s $commit)
-        if ! [[ "$commit_msg_header" =~ (${commit_msg_regex})|(${merge_msg_regex}) ]]; then
-            echo "$commit" >&2
-            echo "ERROR: Invalid commit message format" >&2
-            echo "$commit_msg_header" >&2
-            error="true"
-        fi
-    done
-done
-
-if [ -n "$error" ]; then
+# Run gofmt on staged .go files
+staged_go_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$')
+if [[ -n "$staged_go_files" ]]; then
+  unformatted=$(echo "$staged_go_files" | xargs gofmt -l 2>/dev/null)
+  if [[ -n "$unformatted" ]]; then
+    echo "${bold}The following Go files need formatting (gofmt):${normal}"
+    echo "$unformatted"
+    echo "Run: gofmt -w <file>"
     exit 1
+  fi
 fi

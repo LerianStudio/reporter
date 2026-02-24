@@ -19,7 +19,7 @@ import (
 func (uc *UseCase) GetAllTemplates(ctx context.Context, filters http.QueryHeader) ([]*template.Template, error) {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 
-	ctx, span := tracer.Start(ctx, "service.get_all_templates")
+	ctx, span := tracer.Start(ctx, "service.template.get_all")
 	defer span.End()
 
 	span.SetAttributes(

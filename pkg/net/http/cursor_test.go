@@ -10,9 +10,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeCursor_Success(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		cursor         Cursor
@@ -58,15 +61,18 @@ func TestDecodeCursor_Success(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Encode cursor to base64
 			jsonData, err := json.Marshal(tt.cursor)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			encodedCursor := base64.StdEncoding.EncodeToString(jsonData)
 
 			// Decode cursor
 			result, err := DecodeCursor(encodedCursor)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedID, result.ID)
 			assert.Equal(t, tt.expectedPoints, result.PointsNext)
 		})
@@ -74,6 +80,8 @@ func TestDecodeCursor_Success(t *testing.T) {
 }
 
 func TestDecodeCursor_InvalidBase64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		cursor string
@@ -89,14 +97,19 @@ func TestDecodeCursor_InvalidBase64(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := DecodeCursor(tt.cursor)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	}
 }
 
 func TestDecodeCursor_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		data string
@@ -116,20 +129,27 @@ func TestDecodeCursor_InvalidJSON(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			encoded := base64.StdEncoding.EncodeToString([]byte(tt.data))
 			_, err := DecodeCursor(encoded)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	}
 }
 
 func TestDecodeCursor_EmptyString(t *testing.T) {
+	t.Parallel()
+
 	_, err := DecodeCursor("")
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestCursor_Struct(t *testing.T) {
+	t.Parallel()
+
 	cursor := Cursor{
 		ID:         "test-id",
 		PointsNext: true,
@@ -140,17 +160,19 @@ func TestCursor_Struct(t *testing.T) {
 }
 
 func TestCursor_JSONTags(t *testing.T) {
+	t.Parallel()
+
 	cursor := Cursor{
 		ID:         "123",
 		PointsNext: true,
 	}
 
 	data, err := json.Marshal(cursor)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Check JSON field names
 	assert.Contains(t, result, "id")

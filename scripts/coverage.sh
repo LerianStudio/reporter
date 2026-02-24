@@ -9,4 +9,4 @@ echo "Running tests on packages:"
 echo "$PACKAGES"
 
 # Run the tests and generate coverage profile
-go test -cover $PACKAGES -coverprofile=coverage.out
+go test -v -race -count=1 -cover $PACKAGES -coverprofile=coverage.out

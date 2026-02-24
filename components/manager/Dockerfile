@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Set the working directory for the build
 WORKDIR /reporter
@@ -20,35 +20,27 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo \
   -ldflags='-w -s -extldflags "-static"' \
   -o /manager ./components/manager/cmd/app/main.go
 
-# Stage 2: Final image with Chrome/Chromium for PDF generation
-FROM alpine:latest
+# Stage 2: Final image (Manager is REST API only, no PDF generation needed)
+FROM alpine:3.23
+
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
+
+LABEL org.opencontainers.image.source="https://github.com/LerianStudio/reporter"
+LABEL org.opencontainers.image.description="Reporter Manager API"
+LABEL org.opencontainers.image.vendor="Lerian Studio"
+LABEL org.opencontainers.image.licenses="Elastic-2.0"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
 
 WORKDIR /app
 
-# Install Chromium and all required dependencies for chromedp
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ttf-freefont \
-    ttf-dejavu \
-    ttf-liberation \
-    font-noto \
-    font-noto-cjk \
-    font-noto-emoji \
-    font-noto-extra \
-    && rm -rf /var/cache/apk/*
+# Install only essential runtime dependencies
+RUN apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
-
-# Set Chrome/Chromium environment variables for headless operation
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV CHROME_PATH=/usr/bin/chromium-browser
-ENV CHROMEDP_SKIP_CHROMEDP_DOWNLOAD=true
-ENV CHROMEDP_USE_SYSTEM_CHROME=true
 
 # Copy the binary from the builder stage
 COPY --from=builder /manager /app/manager
@@ -60,7 +52,11 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Expose the application port
-EXPOSE 4004
+EXPOSE 4005
+
+# Health check for container orchestrators
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=15s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4005/health || exit 1
 
 # Set the entrypoint to the manager binary
 ENTRYPOINT ["/app/manager"]

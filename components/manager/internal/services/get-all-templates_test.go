@@ -14,12 +14,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_getAllTemplates(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestUseCase_GetAllTemplates(t *testing.T) {
+	t.Parallel()
 
 	tempID := uuid.New()
 	resultEntity := []*template.Template{
@@ -31,31 +31,28 @@ func Test_getAllTemplates(t *testing.T) {
 		},
 	}
 
-	mockTempRepo := template.NewMockRepository(ctrl)
-
 	filter := httpUtils.QueryHeader{
 		Limit: 10,
 		Page:  1,
 	}
 
-	tempSvc := &UseCase{
-		TemplateRepo: mockTempRepo,
-	}
-
 	tests := []struct {
 		name           string
 		filter         httpUtils.QueryHeader
-		mockSetup      func()
+		mockSetup      func(ctrl *gomock.Controller) *UseCase
 		expectErr      bool
+		expectedErr    error
 		expectedResult []*template.Template
 	}{
 		{
 			name:   "Success - Get all templates",
 			filter: filter,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindList(gomock.Any(), filter).
 					Return(resultEntity, nil)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr: false,
 			expectedResult: []*template.Template{
@@ -70,29 +67,39 @@ func Test_getAllTemplates(t *testing.T) {
 		{
 			name:   "Error - Get all templates",
 			filter: filter,
-			mockSetup: func() {
+			mockSetup: func(ctrl *gomock.Controller) *UseCase {
+				mockTempRepo := template.NewMockRepository(ctrl)
 				mockTempRepo.EXPECT().
 					FindList(gomock.Any(), filter).
 					Return(nil, constant.ErrBadRequest)
+				return &UseCase{TemplateRepo: mockTempRepo}
 			},
 			expectErr:      true,
+			expectedErr:    constant.ErrBadRequest,
 			expectedResult: nil,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tempSvc := tt.mockSetup(ctrl)
 
 			ctx := context.Background()
 			result, err := tempSvc.GetAllTemplates(ctx, tt.filter)
 
 			if tt.expectErr {
-				assert.Error(t, err)
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NoError(t, err)
+				require.NotNil(t, result)
 			}
 		})
 	}

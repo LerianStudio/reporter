@@ -12,11 +12,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/reporter/components/manager/internal/adapters/redis"
 	"github.com/LerianStudio/reporter/components/manager/internal/services"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
+	"github.com/LerianStudio/reporter/pkg/redis"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +31,8 @@ func setupTestApp() *fiber.App {
 }
 
 func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		setupService   func() *services.UseCase
@@ -40,7 +42,7 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 			name: "Success - Returns empty list when no data sources",
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{},
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 				}
 			},
 			expectedStatus: fiber.StatusOK,
@@ -48,11 +50,14 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			app := setupTestApp()
 
 			handler := &DataSourceHandler{
-				Service: tt.setupService(),
+				service: tt.setupService(),
 			}
 
 			app.Get("/v1/data-sources", func(c *fiber.Ctx) error {
@@ -73,6 +78,11 @@ func TestDataSourceHandler_GetDataSourceInformation(t *testing.T) {
 }
 
 func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
+	// NOTE: Cannot use t.Parallel() because it modifies global state (immutable registry)
+	pkg.ResetRegisteredDataSourceIDsForTesting()
+	pkg.RegisterDataSourceIDsForTesting([]string{"midaz_onboarding"})
+	t.Cleanup(func() { pkg.ResetRegisteredDataSourceIDsForTesting() })
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -89,6 +99,9 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 		},
 	}
 
+	const mongoDSID = "midaz_onboarding"
+	const notFoundDSID = "not_found_ds"
+
 	tests := []struct {
 		name           string
 		dataSourceID   string
@@ -99,17 +112,17 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	}{
 		{
 			name:         "Success - Returns MongoDB data source details",
-			dataSourceID: "mongo_ds",
+			dataSourceID: mongoDSID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
-						"mongo_ds": {
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						mongoDSID: {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -124,10 +137,10 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 		},
 		{
 			name:         "Error - Data source not found",
-			dataSourceID: "not_found",
+			dataSourceID: notFoundDSID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{},
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
 					RedisRepo:           mockRedisRepo,
 				}
 			},
@@ -139,17 +152,17 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 		},
 		{
 			name:         "Error - Database schema retrieval fails",
-			dataSourceID: "mongo_ds",
+			dataSourceID: mongoDSID,
 			setupService: func() *services.UseCase {
 				return &services.UseCase{
-					ExternalDataSources: map[string]pkg.DataSource{
-						"mongo_ds": {
+					ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{
+						mongoDSID: {
 							DatabaseType:      pkg.MongoDBType,
 							MongoDBName:       "mongo_db",
 							MongoDBRepository: mockMongoRepo,
 							Initialized:       true,
 						},
-					},
+					}),
 					RedisRepo: mockRedisRepo,
 				}
 			},
@@ -164,16 +177,19 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup()
 
 			app := setupTestApp()
 
 			handler := &DataSourceHandler{
-				Service: tt.setupService(),
+				service: tt.setupService(),
 			}
 
-			app.Get("/v1/data-sources/:dataSourceId", func(c *fiber.Ctx) error {
+			// Use the string middleware so c.Locals("dataSourceId") is a string,
+			// matching the production route wiring.
+			app.Get("/v1/data-sources/:dataSourceId", ParseStringPathParam("dataSourceId"), func(c *fiber.Ctx) error {
 				c.SetUserContext(context.Background())
 				return handler.GetDataSourceInformationByID(c)
 			})
@@ -199,4 +215,85 @@ func TestDataSourceHandler_GetDataSourceInformationByID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDataSourceHandler_GetDataSourceInformationByID_InvalidID(t *testing.T) {
+	t.Parallel()
+
+	app := setupTestApp()
+
+	handler := &DataSourceHandler{
+		service: &services.UseCase{
+			ExternalDataSources: pkg.NewSafeDataSources(map[string]pkg.DataSource{}),
+		},
+	}
+
+	app.Get("/v1/data-sources/:dataSourceId", ParseStringPathParam("dataSourceId"), func(c *fiber.Ctx) error {
+		c.SetUserContext(context.Background())
+		return handler.GetDataSourceInformationByID(c)
+	})
+
+	tests := []struct {
+		name         string
+		dataSourceID string
+	}{
+		{
+			name:         "Error - Path traversal attempt",
+			dataSourceID: "..%2F..%2Fetc%2Fpasswd",
+		},
+		{
+			name:         "Error - Special characters",
+			dataSourceID: "id;DROP%20TABLE",
+		},
+		{
+			name:         "Error - Starts with number",
+			dataSourceID: "123invalid",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest("GET", "/v1/data-sources/"+tt.dataSourceID, nil)
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var errorResponse map[string]interface{}
+			err = json.Unmarshal(body, &errorResponse)
+			require.NoError(t, err)
+
+			assert.Contains(t, errorResponse, "code")
+		})
+	}
+}
+
+func TestNewDataSourceHandler_NilService(t *testing.T) {
+	t.Parallel()
+
+	handler, err := NewDataSourceHandler(nil)
+
+	assert.Nil(t, handler)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "service must not be nil")
+}
+
+func TestNewDataSourceHandler_ValidService(t *testing.T) {
+	t.Parallel()
+
+	svc := &services.UseCase{}
+
+	handler, err := NewDataSourceHandler(svc)
+
+	assert.NotNil(t, handler)
+	require.NoError(t, err)
 }

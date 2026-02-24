@@ -11,7 +11,7 @@ BOLD='\033[1m'
 HOOKS_DIR=".git/hooks"
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-echo "${CYAN}Setting up git hooks for Midaz project...${NC}"
+echo "${CYAN}Setting up git hooks for Reporter project...${NC}"
 
 # Check if .git directory exists
 if [ ! -d ".git" ]; then
@@ -126,6 +126,10 @@ exit 0
 EOF
     chmod +x "$HOOKS_DIR/pre-push"
 fi
+
+# Enforce GPG signing for all commits
+echo "${CYAN}Configuring GPG commit signing...${NC}"
+git config commit.gpgsign true
 
 # List installed hooks in a portable way
 echo "${GREEN}${BOLD}[ok]${NC} Git hooks installed successfully."

@@ -5,14 +5,18 @@
 package report
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 
 	"github.com/google/uuid"
 )
 
-// Report represents the entity model for a report
+// Report represents the entity model for a report.
+// Public fields are required for JSON serialization (json tags) and Swagger documentation.
+// This is a documented deviation from Ring's private-field pattern; use NewReport() for programmatic creation.
 type Report struct {
 	ID          uuid.UUID                                              `json:"id" example:"00000000-0000-0000-0000-000000000000"`
 	TemplateID  uuid.UUID                                              `json:"templateId" example:"00000000-0000-0000-0000-000000000000"`
@@ -23,6 +27,71 @@ type Report struct {
 	CreatedAt   time.Time                                              `json:"createdAt"`
 	UpdatedAt   time.Time                                              `json:"updatedAt"`
 	DeletedAt   *time.Time                                             `json:"deletedAt"`
+}
+
+// NewReport creates a new Report entity with invariant validation.
+// This constructor ensures the Report can never exist in an invalid state.
+//
+// Parameters:
+//   - id: The report UUID (must not be uuid.Nil)
+//   - templateID: The template UUID (must not be uuid.Nil)
+//   - status: The report status (must not be empty)
+//   - filters: Optional filter conditions for report generation (can be nil)
+//
+// Returns:
+//   - *Report: A validated Report entity
+//   - error: Wrapped ErrMissingRequiredFields if any invariant is violated
+func NewReport(
+	id, templateID uuid.UUID,
+	status string,
+	filters map[string]map[string]map[string]model.FilterCondition,
+) (*Report, error) {
+	if id == uuid.Nil {
+		return nil, fmt.Errorf("report id must not be nil: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if templateID == uuid.Nil {
+		return nil, fmt.Errorf("report templateID must not be nil: %w", constant.ErrMissingRequiredFields)
+	}
+
+	if status == "" {
+		return nil, fmt.Errorf("report status must not be empty: %w", constant.ErrMissingRequiredFields)
+	}
+
+	now := time.Now()
+
+	return &Report{
+		ID:         id,
+		TemplateID: templateID,
+		Status:     status,
+		Filters:    filters,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}, nil
+}
+
+// ReconstructReport creates a Report from persisted data without validation.
+// Used only for database hydration where data integrity is already ensured.
+func ReconstructReport(
+	id, templateID uuid.UUID,
+	status string,
+	filters map[string]map[string]map[string]model.FilterCondition,
+	metadata map[string]any,
+	completedAt *time.Time,
+	createdAt, updatedAt time.Time,
+	deletedAt *time.Time,
+) *Report {
+	return &Report{
+		ID:          id,
+		TemplateID:  templateID,
+		Status:      status,
+		Filters:     filters,
+		Metadata:    metadata,
+		CompletedAt: completedAt,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+		DeletedAt:   deletedAt,
+	}
 }
 
 // ReportMongoDBModel represents the MongoDB model for a report
@@ -38,33 +107,14 @@ type ReportMongoDBModel struct {
 	DeletedAt   *time.Time                                             `bson:"deleted_at"`
 }
 
-// ToEntity converts ReportMongoDBModel to Report
+// ToEntity converts ReportMongoDBModel to Report using ReconstructReport.
 func (rm *ReportMongoDBModel) ToEntity(filters map[string]map[string]map[string]model.FilterCondition) *Report {
-	return &Report{
-		ID:          rm.ID,
-		TemplateID:  rm.TemplateID,
-		Status:      rm.Status,
-		Filters:     filters,
-		CompletedAt: rm.CompletedAt,
-		CreatedAt:   rm.CreatedAt,
-		UpdatedAt:   rm.UpdatedAt,
-		DeletedAt:   rm.DeletedAt,
-	}
+	return ReconstructReport(rm.ID, rm.TemplateID, rm.Status, filters, nil, rm.CompletedAt, rm.CreatedAt, rm.UpdatedAt, rm.DeletedAt)
 }
 
-// ToEntityFindByID converts ReportMongoDBModel to Report
+// ToEntityFindByID converts ReportMongoDBModel to Report using ReconstructReport.
 func (rm *ReportMongoDBModel) ToEntityFindByID() *Report {
-	return &Report{
-		ID:          rm.ID,
-		TemplateID:  rm.TemplateID,
-		Status:      rm.Status,
-		Filters:     rm.Filters,
-		Metadata:    rm.Metadata,
-		CompletedAt: rm.CompletedAt,
-		CreatedAt:   rm.CreatedAt,
-		UpdatedAt:   rm.UpdatedAt,
-		DeletedAt:   rm.DeletedAt,
-	}
+	return ReconstructReport(rm.ID, rm.TemplateID, rm.Status, rm.Filters, rm.Metadata, rm.CompletedAt, rm.CreatedAt, rm.UpdatedAt, rm.DeletedAt)
 }
 
 // FromEntity converts Report to ReportMongoDBModel
