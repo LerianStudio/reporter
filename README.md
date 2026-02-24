@@ -475,7 +475,7 @@ Project maintainers may remove, edit, or reject contributions that do not align 
 
 ## Community & Support
 
-- If you want to raise anything to the attention of the community, open a Discussion in our [GitHub](https://github.com/LerianStudio/midaz/v3/discussions).
+- If you want to raise anything to the attention of the community, open a Discussion in our [GitHub](https://github.com/LerianStudio/reporter/discussions).
 - Follow us on [Twitter](https://twitter.com/LerianStudio), [Instagram](https://www.instagram.com/lerian.studio/) and [Linkedin](https://www.linkedin.com/company/lerianstudio/) for the latest news and announcements.
 
 
