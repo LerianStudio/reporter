@@ -54,8 +54,8 @@ jobs:
       gitops_file_stg: "gitops/environments/firmino/helmfile/applications/stg/reporter/values.yaml"
       gitops_file_prd: "gitops/environments/firmino/helmfile/applications/prd/reporter/values.yaml"
       gitops_file_sandbox: "gitops/environments/firmino/helmfile/applications/sandbox/reporter/values.yaml"
-      yaml_key_mappings: '{"manager.tag": ".manager.image.tag", "worker.tag": ".worker.image.tag"}'
-      configmap_updates: '{"manager.tag": ".manager.configmap.VERSION", "worker.tag": ".worker.configmap.VERSION"}'
+      yaml_key_mappings: '{"reporter-manager.tag": ".manager.image.tag", "reporter-worker.tag": ".worker.image.tag"}'
+      configmap_updates: '{"reporter-manager.tag": ".manager.configmap.VERSION", "reporter-worker.tag": ".worker.configmap.VERSION"}'
       commit_message_prefix: "reporter"
       enable_argocd_sync: true
       argocd_app_name: "firmino-reporter"
