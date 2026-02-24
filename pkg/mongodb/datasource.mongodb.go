@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
@@ -128,7 +129,31 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		return nil, err
 	}
 
-	// Convert filter to MongoDB format
+	mongoFilter := buildSimpleMongoFilter(filter)
+	findOptions := ds.buildFindOptions(fields)
+
+	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
+	defer cancel()
+
+	database := client.Database(ds.Database)
+
+	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
+	if err != nil {
+		return nil, wrapQueryError(queryCtx, constant.QueryTimeoutMedium, collection, "mongodb query timeout after %v for collection %s: %w", err)
+	}
+
+	defer cursor.Close(queryCtx)
+
+	results := decodeCursorResults(queryCtx, cursor, logger)
+
+	if err := cursor.Err(); err != nil {
+		return nil, wrapQueryError(queryCtx, constant.QueryTimeoutMedium, collection, "mongodb query result iteration timeout after %v for collection %s: %w", err)
+	}
+
+	return results, nil
+}
+
+func buildSimpleMongoFilter(filter map[string][]any) bson.M {
 	mongoFilter := bson.M{}
 
 	for key, values := range filter {
@@ -139,42 +164,13 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		}
 	}
 
-	// Create projection for specified fields
-	// Filter nested fields to avoid MongoDB projection conflicts
-	projection := bson.M{}
+	return mongoFilter
+}
 
-	if len(fields) > 0 && fields[0] != "*" {
-		filteredFields := FilterNestedFields(fields)
-		for _, field := range filteredFields {
-			projection[field] = 1
-		}
-	}
-
-	findOptions := options.Find()
-	if len(projection) > 0 {
-		findOptions.SetProjection(projection)
-	}
-
-	// Create timeout context for query execution
-	queryCtx, cancel := context.WithTimeout(ctx, constant.QueryTimeoutMedium)
-	defer cancel()
-
-	database := client.Database(ds.Database)
-
-	cursor, err := database.Collection(collection).Find(queryCtx, mongoFilter, findOptions)
-	if err != nil {
-		if queryCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("mongodb query timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
-		}
-
-		return nil, err
-	}
-
-	defer cursor.Close(queryCtx)
-
+func decodeCursorResults(ctx context.Context, cursor *mongo.Cursor, logger log.Logger) []map[string]any {
 	var results []map[string]any
 
-	for cursor.Next(queryCtx) {
+	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
 			logger.Warnf("Error decoding document: %v", err)
@@ -185,15 +181,15 @@ func (ds *ExternalDataSource) Query(ctx context.Context, collection string, fiel
 		results = append(results, resultMap)
 	}
 
-	if err := cursor.Err(); err != nil {
-		if queryCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("mongodb query result iteration timeout after %v for collection %s: %w", constant.QueryTimeoutMedium, collection, err)
-		}
+	return results
+}
 
-		return nil, err
+func wrapQueryError(queryCtx context.Context, timeout time.Duration, collection string, timeoutMsg string, err error) error {
+	if queryCtx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf(timeoutMsg, timeout, collection, err)
 	}
 
-	return results, nil
+	return err
 }
 
 // convertBsonToMap converts a bson.M to map[string]any recursively

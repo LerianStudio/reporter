@@ -14,6 +14,58 @@ import (
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
 
+func fetchDataSources(t *testing.T, ctx context.Context, cli *h.HTTPClient, headers map[string]string) []map[string]any {
+	t.Helper()
+
+	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
+	if err != nil || code != 200 {
+		t.Fatalf("failed to get data sources: code=%d err=%v body=%s", code, err, string(body))
+	}
+
+	var dataSources []map[string]any
+	if err := json.Unmarshal(body, &dataSources); err != nil {
+		t.Fatalf("failed to unmarshal data sources: %v", err)
+	}
+
+	return dataSources
+}
+
+func extractIDs(dataSources []map[string]any) map[string]bool {
+	ids := make(map[string]bool)
+
+	for _, ds := range dataSources {
+		if id, ok := ds["id"].(string); ok {
+			ids[id] = true
+		}
+	}
+
+	return ids
+}
+
+func assertNoNewIDs(t *testing.T, finalDataSources []map[string]any, initialIDs map[string]bool, forbiddenIDs []string) {
+	t.Helper()
+
+	forbiddenSet := make(map[string]bool, len(forbiddenIDs))
+	for _, id := range forbiddenIDs {
+		forbiddenSet[id] = true
+	}
+
+	for _, ds := range finalDataSources {
+		id, ok := ds["id"].(string)
+		if !ok {
+			continue
+		}
+
+		if !initialIDs[id] {
+			t.Errorf("data source map was corrupted: unexpected ID %q appeared after invalid request", id)
+		}
+
+		if forbiddenSet[id] {
+			t.Errorf("data source map was corrupted with template ID fragment: %q", id)
+		}
+	}
+}
+
 // TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap tests that sending
 func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing.T) {
 	// NOTE: Cannot use t.Parallel() because this test communicates with shared external services (MongoDB, HTTP API).
@@ -23,22 +75,8 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 	headers := h.AuthHeaders()
 
 	// Step 1: Get initial data sources to establish baseline
-	code, body, err := cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
-	if err != nil || code != 200 {
-		t.Fatalf("failed to get initial data sources: code=%d err=%v body=%s", code, err, string(body))
-	}
-
-	var initialDataSources []map[string]any
-	if err := json.Unmarshal(body, &initialDataSources); err != nil {
-		t.Fatalf("failed to unmarshal initial data sources: %v", err)
-	}
-
-	initialIDs := make(map[string]bool)
-	for _, ds := range initialDataSources {
-		if id, ok := ds["id"].(string); ok {
-			initialIDs[id] = true
-		}
-	}
+	initialDataSources := fetchDataSources(t, ctx, cli, headers)
+	initialIDs := extractIDs(initialDataSources)
 
 	// Step 2: Try to create a report with invalid datasource name in filters
 	// Using a fake template ID as the datasource name (simulating the frontend bug)
@@ -57,7 +95,7 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 	}
 
 	// This request should fail with a validation error (missing datasource)
-	code, body, err = cli.Request(ctx, "POST", "/v1/reports", headers, invalidPayload)
+	code, body, err := cli.Request(ctx, "POST", "/v1/reports", headers, invalidPayload)
 	if err != nil {
 		t.Fatalf("request error: %v", err)
 	}
@@ -68,33 +106,8 @@ func TestIntegration_DataSources_InvalidFilterKeysShouldNotCorruptMap(t *testing
 	}
 
 	// Step 3: Verify the data sources were NOT corrupted
-	code, body, err = cli.Request(ctx, "GET", "/v1/data-sources", headers, nil)
-	if err != nil || code != 200 {
-		t.Fatalf("failed to get data sources after invalid request: code=%d err=%v body=%s", code, err, string(body))
-	}
-
-	var finalDataSources []map[string]any
-	if err := json.Unmarshal(body, &finalDataSources); err != nil {
-		t.Fatalf("failed to unmarshal final data sources: %v", err)
-	}
-
-	// Check that no new invalid IDs were added
-	for _, ds := range finalDataSources {
-		id, ok := ds["id"].(string)
-		if !ok {
-			continue
-		}
-
-		// If this ID wasn't in the initial set, it's a corruption
-		if !initialIDs[id] {
-			t.Errorf("data source map was corrupted: unexpected ID %q appeared after invalid request", id)
-		}
-
-		// Specifically check for the fake template ID or fragments of it
-		if id == fakeTemplateID || id == "abd3d-13c8-7" || id == "abd3d-13c8-7692-" {
-			t.Errorf("data source map was corrupted with template ID fragment: %q", id)
-		}
-	}
+	finalDataSources := fetchDataSources(t, ctx, cli, headers)
+	assertNoNewIDs(t, finalDataSources, initialIDs, []string{fakeTemplateID, "abd3d-13c8-7", "abd3d-13c8-7692-"})
 
 	// Verify count hasn't changed unexpectedly
 	if len(finalDataSources) != len(initialDataSources) {

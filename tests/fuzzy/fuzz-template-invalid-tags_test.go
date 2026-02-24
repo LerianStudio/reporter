@@ -8,13 +8,61 @@ package fuzzy
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	h "github.com/LerianStudio/reporter/tests/utils"
 )
+
+func fuzzAssertNoServerError(t *testing.T, label string, code int, body []byte, templateContent string) {
+	t.Helper()
+
+	if code >= 500 {
+		t.Fatalf("SERVER ERROR on %s: code=%d body=%s template=%q", label, code, string(body), templateContent)
+	}
+}
+
+func fuzzTryReportGeneration(t *testing.T, ctx context.Context, cli *h.HTTPClient, headers map[string]string, templateID, testOrgID, templateContent string) {
+	t.Helper()
+
+	payload := map[string]any{
+		"templateId": templateID,
+		"filters": map[string]any{
+			"midaz_onboarding": map[string]any{
+				"organization": map[string]any{
+					"id": map[string]any{
+						"eq": []string{testOrgID},
+					},
+				},
+			},
+		},
+	}
+
+	reportCode, reportBody, reportErr := cli.Request(ctx, "POST", "/v1/reports", headers, payload)
+	if reportErr != nil {
+		t.Logf("Report generation failed (expected): %v", reportErr)
+		return
+	}
+
+	fuzzAssertNoServerError(t, "report generation", reportCode, reportBody, templateContent)
+
+	if reportCode != 200 && reportCode != 201 {
+		return
+	}
+
+	reportID := unmarshalID(reportBody)
+	if reportID == "" {
+		return
+	}
+
+	time.Sleep(2 * time.Second)
+
+	statusCode, statusBody, _ := cli.Request(ctx, "GET", "/v1/reports/"+reportID, headers, nil)
+	fuzzAssertNoServerError(t, "status check", statusCode, statusBody, templateContent)
+
+	t.Logf("Report generated or failed gracefully: %s", reportID)
+}
 
 // FuzzTemplate_InvalidTags tests templates with non-existent or malformed tags
 // Expected: Should return 4xx errors, never 5xx (server errors)
@@ -41,17 +89,14 @@ func FuzzTemplate_InvalidTags(f *testing.F) {
 	testOrgID := "00000000-0000-0000-0000-000000000001"
 
 	f.Fuzz(func(t *testing.T, templateContent string) {
-		// Limit template size
 		if len(templateContent) > 10000 {
 			templateContent = templateContent[:10000]
 		}
 
-		// Empty input is valid for fuzz testing - function should handle gracefully
 		if strings.TrimSpace(templateContent) == "" {
 			return
 		}
 
-		// Create template with potentially invalid content
 		files := map[string][]byte{
 			"template": []byte(templateContent),
 		}
@@ -67,62 +112,18 @@ func FuzzTemplate_InvalidTags(f *testing.F) {
 			return
 		}
 
-		// Server should NEVER crash (5xx)
-		if code >= 500 {
-			t.Fatalf("SERVER ERROR on invalid template: code=%d body=%s template=%q", code, string(body), templateContent)
+		fuzzAssertNoServerError(t, "invalid template", code, body, templateContent)
+
+		if code != 200 && code != 201 {
+			return
 		}
 
-		// If template creation succeeded (unlikely but possible), try to generate report
-		if code == 200 || code == 201 {
-			var resp struct {
-				ID string `json:"id"`
-			}
-			if err := json.Unmarshal(body, &resp); err == nil && resp.ID != "" {
-				t.Logf("Template accepted: %s", resp.ID)
-
-				// Try to generate report (should fail gracefully if tags don't exist)
-				payload := map[string]any{
-					"templateId": resp.ID,
-					"filters": map[string]any{
-						"midaz_onboarding": map[string]any{
-							"organization": map[string]any{
-								"id": map[string]any{
-									"eq": []string{testOrgID},
-								},
-							},
-						},
-					},
-				}
-
-				reportCode, reportBody, reportErr := cli.Request(ctx, "POST", "/v1/reports", headers, payload)
-				if reportErr != nil {
-					t.Logf("Report generation failed (expected): %v", reportErr)
-					return
-				}
-
-				// Server should NEVER crash on report generation
-				if reportCode >= 500 {
-					t.Fatalf("SERVER ERROR on report generation: code=%d body=%s template=%q", reportCode, string(reportBody), templateContent)
-				}
-
-				// If report was accepted, wait a bit and check status
-				if reportCode == 200 || reportCode == 201 {
-					var reportResp struct {
-						ID string `json:"id"`
-					}
-					if err := json.Unmarshal(reportBody, &reportResp); err == nil && reportResp.ID != "" {
-						time.Sleep(2 * time.Second)
-
-						// Check report status
-						statusCode, statusBody, _ := cli.Request(ctx, "GET", "/v1/reports/"+reportResp.ID, headers, nil)
-						if statusCode >= 500 {
-							t.Fatalf("SERVER ERROR on status check: code=%d body=%s", statusCode, string(statusBody))
-						}
-
-						t.Logf("Report generated or failed gracefully: %s", reportResp.ID)
-					}
-				}
-			}
+		templateID := unmarshalID(body)
+		if templateID == "" {
+			return
 		}
+
+		t.Logf("Template accepted: %s", templateID)
+		fuzzTryReportGeneration(t, ctx, cli, headers, templateID, testOrgID, templateContent)
 	})
 }
