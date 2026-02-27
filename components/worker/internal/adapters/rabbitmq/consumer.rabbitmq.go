@@ -44,8 +44,6 @@ type ConsumerRoutes struct {
 	sleepFunc       func(time.Duration)
 	mongoManager    *tmmongo.Manager // nil in single-tenant mode
 	mongoRepository *mongoRepository.ReportMongoDBRepository
-	tenantIndexMu   sync.Mutex
-	tenantIndexed   map[string]struct{}
 	log.Logger
 	opentelemetry.Telemetry
 }
@@ -78,7 +76,6 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		Logger:          logger,
 		Telemetry:       *telemetry,
 		mongoRepository: reportMongoDBRepository,
-		tenantIndexed:   make(map[string]struct{}),
 	}
 
 	_, err := conn.GetNewConnect()
