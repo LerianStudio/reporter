@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/Masterminds/squirrel"
 	"github.com/stretchr/testify/assert"

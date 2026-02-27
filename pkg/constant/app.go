@@ -6,6 +6,16 @@ package constant
 
 const ApplicationName = "reporter"
 
+// HeaderXTenantID is the AMQP header name used to propagate tenant identity
+// between the manager producer and worker consumer.
+const HeaderXTenantID = "X-Tenant-ID"
+
+// ModuleManager identifies the manager component (REST API) for multi-tenant context.
+const ModuleManager = "manager"
+
+// ModuleWorker identifies the worker component (RabbitMQ consumer) for multi-tenant context.
+const ModuleWorker = "worker"
+
 // ErrFileAccepted is the Fiber error message when no file is associated with the given form key.
 const ErrFileAccepted = "there is no uploaded file associated with the given key"
 

@@ -11,8 +11,8 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libConstants "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 )
 
 //go:generate mockgen --destination=health-checker.mock.go --package=pkg --copyright_file=../COPYRIGHT . HealthCheckRunner

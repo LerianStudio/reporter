@@ -6,6 +6,7 @@ package template
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -15,9 +16,10 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	tmCore "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/core"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -60,6 +62,31 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) (*TemplateMongoD
 	return r, nil
 }
 
+// getCollection returns the MongoDB collection for templates, using tenant-scoped connection when
+// available (multi-tenant mode) or falling back to the static connection (single-tenant mode).
+func (tm *TemplateMongoDBRepository) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantDB, err := tmCore.GetMongoForTenant(ctx)
+	if err == nil {
+		if tenantDB == nil {
+			return nil, fmt.Errorf("tenant mongodb database is nil despite no error")
+		}
+
+		return tenantDB.Collection(strings.ToLower(constant.MongoCollectionTemplate)), nil
+	}
+
+	if !errors.Is(err, tmCore.ErrTenantContextRequired) {
+		return nil, fmt.Errorf("getting tenant mongodb connection: %w", err)
+	}
+
+	// Single-tenant fallback: no tenant context set, use the static connection.
+	client, err := tm.connection.GetDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting static mongodb connection: %w", err)
+	}
+
+	return client.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate)), nil
+}
+
 // FindByID retrieves a template from the mongodb using the provided entity_id.
 func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (*Template, error) {
 	_, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
@@ -74,14 +101,12 @@ func (tm *TemplateMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID)
 
 	span.SetAttributes(attributes...)
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record *TemplateMongoDBModel
 
@@ -126,13 +151,11 @@ func (tm *TemplateMongoDBRepository) FindList(ctx context.Context, filters http.
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	queryFilter := bson.M{}
 
@@ -220,14 +243,12 @@ func (tm *TemplateMongoDBRepository) FindOutputFormatByID(ctx context.Context, i
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record struct {
 		OutputFormat string `bson:"output_format"`
@@ -268,14 +289,12 @@ func (tm *TemplateMongoDBRepository) Create(ctx context.Context, record *Templat
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert template record to JSON string", err)
 	}
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	ctx, spanInsert := tracer.Start(ctx, "repository.template.create_exec")
 
@@ -316,13 +335,12 @@ func (tm *TemplateMongoDBRepository) Update(ctx context.Context, id uuid.UUID, u
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert template record to JSON string", err)
 	}
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return err
 	}
 
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 	opts := options.Update().SetUpsert(false)
 
 	ctx, spanUpdate := tracer.Start(ctx, "repository.template.update_exec")
@@ -361,7 +379,7 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, h
 
 	span.SetAttributes(attributes...)
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
@@ -369,8 +387,6 @@ func (tm *TemplateMongoDBRepository) Delete(ctx context.Context, id uuid.UUID, h
 	}
 
 	opts := options.Delete()
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	ctx, spanDelete := tracer.Start(ctx, "repository.template.delete_exec")
 
@@ -432,14 +448,12 @@ func (tm *TemplateMongoDBRepository) FindMappedFieldsAndOutputFormatByID(ctx con
 		attribute.String("app.request.template_id", id.String()),
 	)
 
-	db, err := tm.connection.GetDB(ctx)
+	coll, err := tm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, nil, err
 	}
-
-	coll := db.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate))
 
 	var record struct {
 		OutputFormat string                         `bson:"output_format"`

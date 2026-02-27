@@ -6,6 +6,7 @@ package report
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,9 +14,10 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libMongo "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	tmCore "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/core"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -55,6 +57,31 @@ func NewReportMongoDBRepository(mc *libMongo.MongoConnection) (*ReportMongoDBRep
 	return r, nil
 }
 
+// getCollection returns the MongoDB collection for reports, using tenant-scoped connection when
+// available (multi-tenant mode) or falling back to the static connection (single-tenant mode).
+func (rm *ReportMongoDBRepository) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantDB, err := tmCore.GetMongoForTenant(ctx)
+	if err == nil {
+		if tenantDB == nil {
+			return nil, fmt.Errorf("tenant mongodb database is nil despite no error")
+		}
+
+		return tenantDB.Collection(strings.ToLower(constant.MongoCollectionReport)), nil
+	}
+
+	if !errors.Is(err, tmCore.ErrTenantContextRequired) {
+		return nil, fmt.Errorf("getting tenant mongodb connection: %w", err)
+	}
+
+	// Single-tenant fallback: no tenant context set, use the static connection.
+	client, err := rm.connection.GetDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting static mongodb connection: %w", err)
+	}
+
+	return client.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport)), nil
+}
+
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.
 func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 	ctx context.Context,
@@ -77,13 +104,11 @@ func (rm *ReportMongoDBRepository) UpdateReportStatusById(
 
 	span.SetAttributes(attributes...)
 
-	db, err := rm.connection.GetDB(ctx)
+	coll, err := rm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return err
 	}
-
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	// Create a filter using the UUID directly for matching the _id field stored as BinData
 	filter := bson.M{"_id": id}
@@ -151,14 +176,13 @@ func (rm *ReportMongoDBRepository) Create(ctx context.Context, report *Report) (
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert report record to JSON string", err)
 	}
 
-	db, err := rm.connection.GetDB(ctx)
+	coll, err := rm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
 
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 	record := &ReportMongoDBModel{}
 
 	if err := record.FromEntity(report); err != nil {
@@ -202,14 +226,12 @@ func (rm *ReportMongoDBRepository) FindByID(ctx context.Context, id uuid.UUID) (
 
 	span.SetAttributes(attributes...)
 
-	db, err := rm.connection.GetDB(ctx)
+	coll, err := rm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	var record *ReportMongoDBModel
 
@@ -254,13 +276,11 @@ func (rm *ReportMongoDBRepository) FindList(ctx context.Context, filters http.Qu
 		libOpentelemetry.HandleSpanError(&span, "Failed to convert filters to JSON string", err)
 	}
 
-	db, err := rm.connection.GetDB(ctx)
+	coll, err := rm.getCollection(ctx)
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
 		return nil, err
 	}
-
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	queryFilter := bson.M{}
 

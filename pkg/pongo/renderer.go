@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/shopspring/decimal"

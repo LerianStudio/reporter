@@ -7,7 +7,7 @@ package pkg
 import (
 	"context"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 	// otel/trace is a structural dependency: this project-level wrapper returns trace.Tracer
 	// directly; no lib-commons abstraction wraps the Tracer interface itself.
 	"go.opentelemetry.io/otel/trace"

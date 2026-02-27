@@ -7,7 +7,7 @@ package pkg
 import (
 	"runtime/debug"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 )
 
 // Go starts a goroutine with panic recovery and stack trace logging.

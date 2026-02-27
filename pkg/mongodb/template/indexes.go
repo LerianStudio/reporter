@@ -10,15 +10,19 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// EnsureIndexes creates all indexes for the templates collection.
+// EnsureIndexes creates the required MongoDB indexes for the template collection.
+// This method intentionally uses the static (admin) database connection via
+// tm.connection.GetDB, NOT the per-tenant getCollection helper. Index creation
+// is a bootstrap operation that must target the default database for all tenants,
+// not a specific tenant's database. Do NOT change this to use getCollection.
 func (tm *TemplateMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 	logger, tracer, reqId, _ := commons.NewTrackingFromContext(ctx)
 

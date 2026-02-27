@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 )
 
 // SafeDataSources provides thread-safe access to a map of DataSource values.

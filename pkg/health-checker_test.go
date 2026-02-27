@@ -13,8 +13,8 @@ import (
 	mongoMock "github.com/LerianStudio/reporter/pkg/mongodb"
 	pgMock "github.com/LerianStudio/reporter/pkg/postgres"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v3/commons/constants"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

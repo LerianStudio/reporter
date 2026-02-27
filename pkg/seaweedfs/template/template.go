@@ -15,8 +15,9 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	tmS3 "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/s3"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -55,7 +56,9 @@ func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]by
 
 	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
 	objectName = strings.TrimSuffix(objectName, ".tpl")
-	key := fmt.Sprintf("templates/%s.tpl", objectName)
+	// Add templates prefix, then apply tenant prefix if in multi-tenant mode
+	baseKey := fmt.Sprintf("templates/%s.tpl", objectName)
+	key := tmS3.GetObjectStorageKeyForTenant(ctx, baseKey)
 
 	logger.Infof("Getting template from storage: %s", key)
 
@@ -89,7 +92,9 @@ func (repo *StorageRepository) Put(ctx context.Context, objectName string, conte
 
 	// Normalize: ensure .tpl extension (handles both "uuid" and "uuid.tpl")
 	objectName = strings.TrimSuffix(objectName, ".tpl")
-	key := fmt.Sprintf("templates/%s.tpl", objectName)
+	// Add templates prefix, then apply tenant prefix if in multi-tenant mode
+	baseKey := fmt.Sprintf("templates/%s.tpl", objectName)
+	key := tmS3.GetObjectStorageKeyForTenant(ctx, baseKey)
 
 	logger.Infof("Putting template to storage: %s", key)
 

@@ -8,8 +8,8 @@ import (
 	"context"
 	"testing"
 
-	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libMongo "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	"github.com/LerianStudio/lib-commons/v3/commons/zap"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )

@@ -7,7 +7,7 @@ package http
 import (
 	"github.com/LerianStudio/reporter/pkg"
 
-	commonsHTTP "github.com/LerianStudio/lib-commons/v2/commons/net/http"
+	commonsHTTP "github.com/LerianStudio/lib-commons/v3/commons/net/http"
 	"github.com/gofiber/fiber/v2"
 )
 
