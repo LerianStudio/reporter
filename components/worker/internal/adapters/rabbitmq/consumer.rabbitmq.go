@@ -59,10 +59,6 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		return nil, fmt.Errorf("telemetry must not be nil")
 	}
 
-	if (mongoManager == nil) != (reportMongoDBRepository == nil) {
-		return nil, fmt.Errorf("mongoManager and reportMongoDBRepository must be both nil or both non-nil")
-	}
-
 	if numWorkers == 0 {
 		numWorkers = pkgConstant.DefaultWorkerCount
 	}
