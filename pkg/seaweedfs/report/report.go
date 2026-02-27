@@ -14,8 +14,9 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	tmS3 "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/s3"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -53,8 +54,9 @@ func (repo *StorageRepository) Put(ctx context.Context, objectName string, conte
 
 	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
-	// Add reports prefix
-	key := fmt.Sprintf("reports/%s", objectName)
+	// Add reports prefix, then apply tenant prefix if in multi-tenant mode
+	baseKey := fmt.Sprintf("reports/%s", objectName)
+	key := tmS3.GetObjectStorageKeyForTenant(ctx, baseKey)
 
 	logger.Infof("Putting report to storage: %s", key)
 
@@ -77,8 +79,9 @@ func (repo *StorageRepository) Get(ctx context.Context, objectName string) ([]by
 
 	span.SetAttributes(attribute.String("app.request.request_id", reqId))
 
-	// Add reports prefix
-	key := fmt.Sprintf("reports/%s", objectName)
+	// Add reports prefix, then apply tenant prefix if in multi-tenant mode
+	baseKey := fmt.Sprintf("reports/%s", objectName)
+	key := tmS3.GetObjectStorageKeyForTenant(ctx, baseKey)
 
 	logger.Infof("Getting report from storage: %s", key)
 

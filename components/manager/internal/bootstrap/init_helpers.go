@@ -18,15 +18,16 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
+	"github.com/LerianStudio/reporter/pkg/multitenant"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	mongoDB "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
+	"github.com/LerianStudio/lib-commons/v3/commons/zap"
 )
 
 // mongoResources holds MongoDB-related resources created during initialization.
@@ -271,4 +272,27 @@ func initRedis(cfg *Config, logger log.Logger) (*redis.RedisConsumerRepository, 
 	}
 
 	return redisConsumerRepository, redisConnection, cleanup, nil
+}
+
+// initMultiTenantMetrics creates the multi-tenant OTel metrics instruments.
+// When multi-tenant mode is enabled, real OTel instruments are registered on the
+// telemetry MeterProvider so they are exported to the configured collector.
+// When disabled, no-op instruments are returned with zero runtime overhead.
+func initMultiTenantMetrics(cfg *Config, telemetry *libOtel.Telemetry, logger log.Logger) *multitenant.Metrics {
+	if !cfg.MultiTenantEnabled {
+		logger.Info("Multi-tenant metrics: using noop instruments (multi-tenant disabled)")
+		return multitenant.NoopMetrics()
+	}
+
+	meter := telemetry.MetricProvider.Meter(cfg.OtelLibraryName)
+
+	m, err := multitenant.NewMetrics(meter)
+	if err != nil {
+		logger.Errorf("Failed to create multi-tenant metrics, falling back to noop: %v", err)
+		return multitenant.NoopMetrics()
+	}
+
+	logger.Info("Multi-tenant metrics: 4 instruments registered (tenant_connections_total, tenant_connection_errors_total, tenant_consumers_active, tenant_messages_processed_total)")
+
+	return m
 }

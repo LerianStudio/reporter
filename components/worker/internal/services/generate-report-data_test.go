@@ -15,8 +15,8 @@ import (
 	mongodb2 "github.com/LerianStudio/reporter/pkg/mongodb"
 	postgres2 "github.com/LerianStudio/reporter/pkg/postgres"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libCrypto "github.com/LerianStudio/lib-commons/v3/commons/crypto"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

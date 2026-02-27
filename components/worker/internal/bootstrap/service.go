@@ -8,13 +8,14 @@ import (
 	"context"
 
 	"github.com/LerianStudio/reporter/pkg"
+	"github.com/LerianStudio/reporter/pkg/multitenant"
 	"github.com/LerianStudio/reporter/pkg/pdf"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libMongo "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libMongo "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 )
 
 // Service is the application glue where we put all top level components to be used.
@@ -27,6 +28,10 @@ type Service struct {
 	rabbitMQConnection *libRabbitMQ.RabbitMQConnection
 	pdfPool            *pdf.WorkerPool
 	telemetry          *libOtel.Telemetry
+	// mtMetrics holds the 4 canonical multi-tenant OTel instruments.
+	// TODO: Wire to actual tenant connection/error events in a follow-up PR.
+	// The instruments are registered (or noop when disabled) but not yet recording.
+	mtMetrics *multitenant.Metrics
 }
 
 // Run starts the application.

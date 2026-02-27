@@ -20,11 +20,14 @@ import (
 	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
 	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	constant "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	"github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	constant "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	tmcore "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/core"
+	tmmongo "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/mongo"
+	mongoRepository "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/rabbitmq/amqp091-go"
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
@@ -35,10 +38,12 @@ import (
 
 // ConsumerRoutes struct
 type ConsumerRoutes struct {
-	conn       *rabbitmq.RabbitMQConnection
-	routes     map[string]pkgRabbitmq.QueueHandlerFunc
-	numWorkers int
-	sleepFunc  func(time.Duration)
+	conn            *rabbitmq.RabbitMQConnection
+	routes          map[string]pkgRabbitmq.QueueHandlerFunc
+	numWorkers      int
+	sleepFunc       func(time.Duration)
+	mongoManager    *tmmongo.Manager // nil in single-tenant mode
+	mongoRepository *mongoRepository.ReportMongoDBRepository
 	log.Logger
 	opentelemetry.Telemetry
 }
@@ -47,7 +52,9 @@ type ConsumerRoutes struct {
 var _ pkgRabbitmq.ConsumerRepository = (*ConsumerRoutes)(nil)
 
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
-func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry) (*ConsumerRoutes, error) {
+// mongoManager is optional: pass nil for single-tenant mode. When non-nil, the
+// consumer will resolve per-tenant MongoDB connections from message headers.
+func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry, mongoManager *tmmongo.Manager, reportMongoDBRepository *mongoRepository.ReportMongoDBRepository) (*ConsumerRoutes, error) {
 	if telemetry == nil {
 		return nil, fmt.Errorf("telemetry must not be nil")
 	}
@@ -57,12 +64,14 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 	}
 
 	cr := &ConsumerRoutes{
-		conn:       conn,
-		routes:     make(map[string]pkgRabbitmq.QueueHandlerFunc),
-		numWorkers: numWorkers,
-		sleepFunc:  time.Sleep,
-		Logger:     logger,
-		Telemetry:  *telemetry,
+		conn:            conn,
+		routes:          make(map[string]pkgRabbitmq.QueueHandlerFunc),
+		numWorkers:      numWorkers,
+		sleepFunc:       time.Sleep,
+		mongoManager:    mongoManager,
+		Logger:          logger,
+		Telemetry:       *telemetry,
+		mongoRepository: reportMongoDBRepository,
 	}
 
 	_, err := conn.GetNewConnect()
@@ -130,6 +139,10 @@ func (cr *ConsumerRoutes) startWorkers(ctx context.Context, wg *sync.WaitGroup, 
 
 // processMessage processes a single message from a specified queue using the provided handler function.
 func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc pkgRabbitmq.QueueHandlerFunc, message amqp091.Delivery) {
+	if message.Headers == nil {
+		message.Headers = amqp091.Table{}
+	}
+
 	requestID, found := message.Headers[constant.HeaderID]
 	if !found {
 		requestID = commons.GenerateUUIDv7().String()
@@ -149,12 +162,42 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		logWithFields,
 	)
 
-	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
-
 	tracer := pkg.NewTracerFromContext(ctx)
 
 	ctx, spanConsumer := tracer.Start(ctx, "repository.rabbitmq.process_message")
 	defer spanConsumer.End()
+
+	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
+	ctx = extractTenantIDFromHeaders(ctx, message.Headers)
+
+	// When a tenant MongoDB manager is available and a tenant ID was extracted
+	// from the message headers, resolve the per-tenant MongoDB connection and
+	// inject it into context. Downstream repository calls (getCollection) then
+	// find tmcore.GetMongoForTenant succeeding and use the correct tenant DB.
+	//
+	// When mongoManager is nil (single-tenant mode) or the tenant ID is absent
+	// (legacy messages), this block is skipped entirely and the static MongoDB
+	// fallback behaviour is preserved — no change to existing single-tenant paths.
+	if cr.mongoManager != nil {
+		if tenantID := tmcore.GetTenantIDFromContext(ctx); tenantID != "" {
+			tenantDB, tenantDBErr := cr.mongoManager.GetDatabaseForTenant(ctx, tenantID)
+			if tenantDBErr != nil {
+				cr.Errorf("Worker %d: failed to resolve tenant MongoDB for tenant %s: %v",
+					workerID, tenantID, tenantDBErr)
+
+				retryCount := getRetryCount(message)
+
+				cr.handleFailedMessage(workerID, queue, message, tenantDBErr, retryCount, &spanConsumer)
+
+				return
+			}
+
+			ctx = tmcore.ContextWithTenantMongo(ctx, tenantDB)
+
+			logWithFields.Info("Ensuring MongoDB indexes exist for reports...")
+			cr.mongoRepository.EnsureIndexes(ctx)
+		}
+	}
 
 	spanConsumer.SetAttributes(
 		attribute.String("app.request.request_id", requestIDStr),
@@ -445,6 +488,26 @@ func sanitizeFailureReason(reason string) string {
 	}
 
 	return reason[:pkgConstant.RetryFailureReasonMaxLen]
+}
+
+// extractTenantIDFromHeaders reads the X-Tenant-ID header from an AMQP message
+// and, if present and non-empty, stores the tenant ID in the returned context
+// using the lib-commons tenant-manager API.
+//
+// When the header is absent or not a string (e.g. legacy single-tenant messages),
+// the context is returned unchanged, preserving full backward compatibility.
+// All downstream repository calls that depend on tenant context will fall back
+// to their single-tenant code path, exactly as before multi-tenant support was added.
+func extractTenantIDFromHeaders(ctx context.Context, headers amqp091.Table) context.Context {
+	if headers == nil {
+		return ctx
+	}
+
+	if tenantID, ok := headers[pkgConstant.HeaderXTenantID].(string); ok && tenantID != "" {
+		return tmcore.SetTenantIDInContext(ctx, tenantID)
+	}
+
+	return ctx
 }
 
 // calculateBackoff computes the delay before the next retry attempt using exponential backoff with jitter.

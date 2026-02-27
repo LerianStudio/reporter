@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Elastic License 2.0
 // that can be found in the LICENSE file.
 
-//go:build multi_tenant
+//go:build unit
 
 package services
 
@@ -24,8 +24,9 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// Test_createReport_setsOrganizationID verifies that CreateReport sets the
-// organization_id on the report entity before persisting it.
+// TestUseCase_CreateReport_SetsOrganizationID verifies that CreateReport successfully
+// creates a report and persists it. Tenant identity is carried by the context
+// (injected by the tenant middleware), not by method parameters.
 func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 	t.Parallel()
 
@@ -36,7 +37,6 @@ func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 	mockReportRepo := report.NewMockRepository(ctrl)
 	mockRabbitMQ := rabbitmq.NewMockProducerRepository(ctrl)
 
-	orgID := uuid.New()
 	tempID := uuid.New()
 	reportID := uuid.New()
 
@@ -61,26 +61,22 @@ func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		orgID       uuid.UUID
 		input       *model.CreateReportInput
 		mockSetup   func()
 		expectErr   bool
 		errContains string
 	}{
 		{
-			name:  "Success - CreateReport sets organization_id on the report",
-			orgID: orgID,
+			name:  "Success - CreateReport creates and persists a report",
 			input: reportInput,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
 					FindMappedFieldsAndOutputFormatByID(gomock.Any(), gomock.Any()).
 					Return(&outputFormat, mappedFields, nil)
 
-				// Expect Create to be called with a report that has OrganizationID set
 				mockReportRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, r *report.Report) (*report.Report, error) {
-						assert.Equal(t, orgID, r.OrganizationID, "Report must have OrganizationID set")
 						r.ID = reportID
 						return r, nil
 					})
@@ -99,7 +95,7 @@ func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.CreateReport(ctx, tt.orgID, tt.input)
+			result, err := reportSvc.CreateReport(ctx, tt.input)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -108,15 +104,14 @@ func TestUseCase_CreateReport_SetsOrganizationID(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-				assert.Equal(t, tt.orgID, result.OrganizationID)
 			}
 		})
 	}
 }
 
-// Test_getReportByID_tenantIsolation verifies that GetReportByID enforces
-// tenant isolation by requiring organization_id and returning ErrEntityNotFound
-// when the report belongs to a different organization.
+// TestUseCase_GetReportByID_TenantIsolation verifies that GetReportByID delegates
+// to the repository. Tenant isolation is enforced at the repository layer via the
+// MongoDB connection scoped to the tenant from context.
 func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -125,8 +120,6 @@ func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 
 	mockReportRepo := report.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	reportID := uuid.New()
 	tempID := uuid.New()
 	timeNow := time.Now()
@@ -136,19 +129,17 @@ func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 	}
 
 	reportModel := &report.Report{
-		ID:             reportID,
-		TemplateID:     tempID,
-		OrganizationID: orgA,
-		Filters:        nil,
-		Status:         constant.FinishedStatus,
-		CompletedAt:    &timeNow,
-		CreatedAt:      timeNow,
-		UpdatedAt:      timeNow,
+		ID:          reportID,
+		TemplateID:  tempID,
+		Filters:     nil,
+		Status:      constant.FinishedStatus,
+		CompletedAt: &timeNow,
+		CreatedAt:   timeNow,
+		UpdatedAt:   timeNow,
 	}
 
 	tests := []struct {
 		name           string
-		orgID          uuid.UUID
 		reportID       uuid.UUID
 		mockSetup      func()
 		expectErr      bool
@@ -156,25 +147,22 @@ func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 		expectedResult *report.Report
 	}{
 		{
-			name:     "Success - Get report by ID with matching organization",
-			orgID:    orgA,
+			name:     "Success - Get report by ID returns the report",
 			reportID: reportID,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), reportID, orgA).
+					FindByID(gomock.Any(), reportID).
 					Return(reportModel, nil)
 			},
 			expectErr:      false,
 			expectedResult: reportModel,
 		},
 		{
-			name:     "Error - Get report by ID with non-matching organization returns not found",
-			orgID:    orgB,
+			name:     "Error - Get report by ID returns not found when repo returns not found",
 			reportID: reportID,
 			mockSetup: func() {
-				// Repository returns not found when org filter doesn't match
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), reportID, orgB).
+					FindByID(gomock.Any(), reportID).
 					Return(nil, constant.ErrEntityNotFound)
 			},
 			expectErr:      true,
@@ -189,7 +177,7 @@ func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.GetReportByID(ctx, tt.reportID, tt.orgID)
+			result, err := reportSvc.GetReportByID(ctx, tt.reportID)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -198,14 +186,14 @@ func TestUseCase_GetReportByID_TenantIsolation(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-				assert.Equal(t, tt.orgID, result.OrganizationID)
 			}
 		})
 	}
 }
 
-// Test_getAllReports_tenantIsolation verifies that GetAllReports only returns
-// reports belonging to the specified organization.
+// TestUseCase_GetAllReports_TenantIsolation verifies that GetAllReports returns
+// reports from the repository. Tenant scoping is enforced at the DB layer via
+// the tenant-scoped MongoDB connection in context.
 func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -214,8 +202,6 @@ func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 
 	mockReportRepo := report.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	templateID := uuid.New()
 	reportID1 := uuid.New()
 	reportID2 := uuid.New()
@@ -230,29 +216,26 @@ func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 		Page:  1,
 	}
 
-	orgAReports := []*report.Report{
+	tenantReports := []*report.Report{
 		{
-			ID:             reportID1,
-			TemplateID:     templateID,
-			OrganizationID: orgA,
-			Status:         constant.FinishedStatus,
-			CompletedAt:    &timeNow,
-			CreatedAt:      timeNow,
-			UpdatedAt:      timeNow,
+			ID:          reportID1,
+			TemplateID:  templateID,
+			Status:      constant.FinishedStatus,
+			CompletedAt: &timeNow,
+			CreatedAt:   timeNow,
+			UpdatedAt:   timeNow,
 		},
 		{
-			ID:             reportID2,
-			TemplateID:     templateID,
-			OrganizationID: orgA,
-			Status:         constant.ProcessingStatus,
-			CreatedAt:      timeNow,
-			UpdatedAt:      timeNow,
+			ID:         reportID2,
+			TemplateID: templateID,
+			Status:     constant.ProcessingStatus,
+			CreatedAt:  timeNow,
+			UpdatedAt:  timeNow,
 		},
 	}
 
 	tests := []struct {
 		name          string
-		orgID         uuid.UUID
 		filters       http.QueryHeader
 		mockSetup     func()
 		expectErr     bool
@@ -260,24 +243,22 @@ func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 		expectedCount int
 	}{
 		{
-			name:    "Success - Get all reports returns only org A reports",
-			orgID:   orgA,
+			name:    "Success - Get all reports returns all tenant reports",
 			filters: filters,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), filters, orgA).
-					Return(orgAReports, nil)
+					FindList(gomock.Any(), filters).
+					Return(tenantReports, nil)
 			},
 			expectErr:     false,
 			expectedCount: 2,
 		},
 		{
-			name:    "Success - Get all reports returns empty for org B (no reports)",
-			orgID:   orgB,
+			name:    "Success - Get all reports returns empty when no reports exist",
 			filters: filters,
 			mockSetup: func() {
 				mockReportRepo.EXPECT().
-					FindList(gomock.Any(), filters, orgB).
+					FindList(gomock.Any(), filters).
 					Return([]*report.Report{}, nil)
 			},
 			expectErr:     false,
@@ -291,7 +272,7 @@ func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := reportSvc.GetAllReports(ctx, tt.filters, tt.orgID)
+			result, err := reportSvc.GetAllReports(ctx, tt.filters)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -301,17 +282,13 @@ func TestUseCase_GetAllReports_TenantIsolation(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, result)
 				assert.Len(t, result, tt.expectedCount)
-				for _, r := range result {
-					assert.Equal(t, tt.orgID, r.OrganizationID,
-						"All returned reports must belong to the requesting organization")
-				}
 			}
 		})
 	}
 }
 
-// Test_getTemplateByID_tenantIsolation verifies that GetTemplateByID enforces
-// tenant isolation by requiring organization_id.
+// TestUseCase_GetTemplateByID_TenantIsolation verifies that GetTemplateByID delegates
+// to the repository. Tenant isolation is enforced at the repository layer.
 func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -320,8 +297,6 @@ func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	tempID := uuid.New()
 
 	tempSvc := &UseCase{
@@ -329,17 +304,15 @@ func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 	}
 
 	templateEntity := &template.Template{
-		ID:             tempID,
-		OrganizationID: orgA,
-		OutputFormat:   "html",
-		Description:    "Template Financeiro",
-		FileName:       "test.tpl",
-		CreatedAt:      time.Now(),
+		ID:           tempID,
+		OutputFormat: "html",
+		Description:  "Template Financeiro",
+		FileName:     "test.tpl",
+		CreatedAt:    time.Now(),
 	}
 
 	tests := []struct {
 		name           string
-		orgID          uuid.UUID
 		tempID         uuid.UUID
 		mockSetup      func()
 		expectErr      bool
@@ -347,24 +320,22 @@ func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 		expectedResult *template.Template
 	}{
 		{
-			name:   "Success - Get template by ID with matching organization",
-			orgID:  orgA,
+			name:   "Success - Get template by ID returns the template",
 			tempID: tempID,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), tempID, orgA).
+					FindByID(gomock.Any(), tempID).
 					Return(templateEntity, nil)
 			},
 			expectErr:      false,
 			expectedResult: templateEntity,
 		},
 		{
-			name:   "Error - Get template by ID with non-matching organization returns not found",
-			orgID:  orgB,
+			name:   "Error - Get template by ID returns not found when repo returns not found",
 			tempID: tempID,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindByID(gomock.Any(), tempID, orgB).
+					FindByID(gomock.Any(), tempID).
 					Return(nil, constant.ErrEntityNotFound)
 			},
 			expectErr:      true,
@@ -379,7 +350,7 @@ func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.GetTemplateByID(ctx, tt.tempID, tt.orgID)
+			result, err := tempSvc.GetTemplateByID(ctx, tt.tempID)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -388,14 +359,13 @@ func TestUseCase_GetTemplateByID_TenantIsolation(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-				assert.Equal(t, tt.orgID, result.OrganizationID)
 			}
 		})
 	}
 }
 
-// Test_getAllTemplates_tenantIsolation verifies that GetAllTemplates only returns
-// templates belonging to the specified organization.
+// TestUseCase_GetAllTemplates_TenantIsolation verifies that GetAllTemplates returns
+// templates from the repository. Tenant scoping is enforced at the DB layer.
 func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -404,8 +374,6 @@ func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	tempID := uuid.New()
 
 	tempSvc := &UseCase{
@@ -417,20 +385,18 @@ func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 		Page:  1,
 	}
 
-	orgATemplates := []*template.Template{
+	tenantTemplates := []*template.Template{
 		{
-			ID:             tempID,
-			OrganizationID: orgA,
-			OutputFormat:   "html",
-			Description:    "Template Financeiro",
-			FileName:       "test.tpl",
-			CreatedAt:      time.Now(),
+			ID:           tempID,
+			OutputFormat: "html",
+			Description:  "Template Financeiro",
+			FileName:     "test.tpl",
+			CreatedAt:    time.Now(),
 		},
 	}
 
 	tests := []struct {
 		name          string
-		orgID         uuid.UUID
 		filters       http.QueryHeader
 		mockSetup     func()
 		expectErr     bool
@@ -438,24 +404,22 @@ func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 		expectedCount int
 	}{
 		{
-			name:    "Success - Get all templates returns only org A templates",
-			orgID:   orgA,
+			name:    "Success - Get all templates returns all tenant templates",
 			filters: filters,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), filters, orgA).
-					Return(orgATemplates, nil)
+					FindList(gomock.Any(), filters).
+					Return(tenantTemplates, nil)
 			},
 			expectErr:     false,
 			expectedCount: 1,
 		},
 		{
-			name:    "Success - Get all templates returns empty for org B",
-			orgID:   orgB,
+			name:    "Success - Get all templates returns empty when none exist",
 			filters: filters,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					FindList(gomock.Any(), filters, orgB).
+					FindList(gomock.Any(), filters).
 					Return([]*template.Template{}, nil)
 			},
 			expectErr:     false,
@@ -469,7 +433,7 @@ func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			result, err := tempSvc.GetAllTemplates(ctx, tt.filters, tt.orgID)
+			result, err := tempSvc.GetAllTemplates(ctx, tt.filters)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -479,17 +443,13 @@ func TestUseCase_GetAllTemplates_TenantIsolation(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, result)
 				assert.Len(t, result, tt.expectedCount)
-				for _, tmpl := range result {
-					assert.Equal(t, tt.orgID, tmpl.OrganizationID,
-						"All returned templates must belong to the requesting organization")
-				}
 			}
 		})
 	}
 }
 
-// Test_deleteTemplateByID_tenantIsolation verifies that DeleteTemplateByID
-// enforces tenant isolation by requiring organization_id.
+// TestUseCase_DeleteTemplateByID_TenantIsolation verifies that DeleteTemplateByID
+// delegates to the repository. Tenant isolation is enforced at the repository layer.
 func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -498,8 +458,6 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 
 	mockTempRepo := template.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	tempID := uuid.New()
 
 	tempSvc := &UseCase{
@@ -508,7 +466,6 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		orgID       uuid.UUID
 		tempID      uuid.UUID
 		hardDelete  bool
 		mockSetup   func()
@@ -516,25 +473,23 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name:       "Success - Delete template with matching organization",
-			orgID:      orgA,
+			name:       "Success - Delete template succeeds",
 			tempID:     tempID,
 			hardDelete: false,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					Delete(gomock.Any(), tempID, false, orgA).
+					Delete(gomock.Any(), tempID, false).
 					Return(nil)
 			},
 			expectErr: false,
 		},
 		{
-			name:       "Error - Delete template with non-matching organization returns not found",
-			orgID:      orgB,
+			name:       "Error - Delete template returns not found when template does not exist",
 			tempID:     tempID,
 			hardDelete: false,
 			mockSetup: func() {
 				mockTempRepo.EXPECT().
-					Delete(gomock.Any(), tempID, false, orgB).
+					Delete(gomock.Any(), tempID, false).
 					Return(constant.ErrEntityNotFound)
 			},
 			expectErr:   true,
@@ -548,7 +503,7 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.hardDelete, tt.orgID)
+			err := tempSvc.DeleteTemplateByID(ctx, tt.tempID, tt.hardDelete)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -560,8 +515,9 @@ func TestUseCase_DeleteTemplateByID_TenantIsolation(t *testing.T) {
 	}
 }
 
-// Test_downloadReport_tenantIsolation verifies that DownloadReport enforces
-// tenant isolation by passing organization_id through to GetReportByID.
+// TestUseCase_DownloadReport_TenantIsolation verifies that DownloadReport enforces
+// tenant isolation by delegating to GetReportByID which uses the tenant-scoped
+// MongoDB connection from context.
 func TestUseCase_DownloadReport_TenantIsolation(t *testing.T) {
 	t.Parallel()
 
@@ -570,8 +526,6 @@ func TestUseCase_DownloadReport_TenantIsolation(t *testing.T) {
 
 	mockReportRepo := report.NewMockRepository(ctrl)
 
-	orgA := uuid.New()
-	orgB := uuid.New()
 	reportID := uuid.New()
 
 	reportSvc := &UseCase{
@@ -580,42 +534,19 @@ func TestUseCase_DownloadReport_TenantIsolation(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		orgID       uuid.UUID
 		reportID    uuid.UUID
 		mockSetup   func()
-		expectErr   bool
 		expectedErr error
 	}{
 		{
-			name:     "Error - Download report with non-matching organization returns not found",
-			orgID:    orgB,
+			name:     "Error - Download report returns not found when repo returns not found",
 			reportID: reportID,
 			mockSetup: func() {
-				// The inner GetReportByID call should enforce tenant isolation
 				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), reportID, orgB).
+					FindByID(gomock.Any(), reportID).
 					Return(nil, constant.ErrEntityNotFound)
 			},
-			expectErr:   true,
 			expectedErr: constant.ErrEntityNotFound,
-		},
-		{
-			name:     "Success - Download report with matching organization proceeds",
-			orgID:    orgA,
-			reportID: reportID,
-			mockSetup: func() {
-				timeNow := time.Now()
-				mockReportRepo.EXPECT().
-					FindByID(gomock.Any(), reportID, orgA).
-					Return(&report.Report{
-						ID:             reportID,
-						OrganizationID: orgA,
-						Status:         constant.FinishedStatus,
-						TemplateID:     uuid.New(),
-						CompletedAt:    &timeNow,
-					}, nil)
-			},
-			expectErr: false,
 		},
 	}
 
@@ -625,14 +556,10 @@ func TestUseCase_DownloadReport_TenantIsolation(t *testing.T) {
 			tt.mockSetup()
 
 			ctx := context.Background()
-			_, _, _, err := reportSvc.DownloadReport(ctx, tt.reportID, tt.orgID)
+			_, _, _, err := reportSvc.DownloadReport(ctx, tt.reportID)
 
-			if tt.expectErr {
-				require.Error(t, err)
-				assert.ErrorIs(t, err, tt.expectedErr)
-			}
-			// Note: Success case may still error due to missing template/storage mocks,
-			// but the tenant isolation check is what we're testing here.
+			require.Error(t, err)
+			assert.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }

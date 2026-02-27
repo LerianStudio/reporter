@@ -17,8 +17,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/attribute"

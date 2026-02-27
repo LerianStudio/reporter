@@ -10,7 +10,7 @@ import (
 
 	"github.com/LerianStudio/reporter/components/worker/internal/bootstrap"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
 )
 
 func main() {

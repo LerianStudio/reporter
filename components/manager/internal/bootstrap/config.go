@@ -18,8 +18,8 @@ import (
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
 	"github.com/LerianStudio/lib-auth/v2/auth/middleware"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
 )
 
 // Config is the top-level configuration struct for the entire application.
@@ -93,6 +93,14 @@ type Config struct {
 	RateLimitWindow   int  `env:"RATE_LIMIT_WINDOW_SECONDS" default:"60"`
 	// Trusted proxies configuration
 	TrustedProxies string `env:"TRUSTED_PROXIES"`
+	// Multi-tenant configuration envs
+	MultiTenantEnabled                  bool   `env:"MULTI_TENANT_ENABLED" default:"false"`
+	MultiTenantURL                      string `env:"MULTI_TENANT_URL"`
+	MultiTenantEnvironment              string `env:"MULTI_TENANT_ENVIRONMENT" default:"staging"`
+	MultiTenantMaxTenantPools           int    `env:"MULTI_TENANT_MAX_TENANT_POOLS" default:"100"`
+	MultiTenantIdleTimeoutSec           int    `env:"MULTI_TENANT_IDLE_TIMEOUT_SEC" default:"300"`
+	MultiTenantCircuitBreakerThreshold  int    `env:"MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD" default:"5"`
+	MultiTenantCircuitBreakerTimeoutSec int    `env:"MULTI_TENANT_CIRCUIT_BREAKER_TIMEOUT_SEC" default:"30"`
 }
 
 // Validate checks that all required configuration fields are present
@@ -136,6 +144,20 @@ func (c *Config) validateRequiredFields(errs []string) []string {
 	for _, r := range required {
 		if r.value == "" {
 			errs = append(errs, r.name+" is required")
+		}
+	}
+
+	if c.MultiTenantEnabled && c.MultiTenantURL == "" {
+		errs = append(errs, "MULTI_TENANT_URL is required when MULTI_TENANT_ENABLED=true")
+	}
+
+	if c.MultiTenantEnabled {
+		if c.MultiTenantCircuitBreakerThreshold == 0 {
+			errs = append(errs, "MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD must be > 0 when MULTI_TENANT_ENABLED=true (default: 5)")
+		}
+
+		if c.MultiTenantCircuitBreakerThreshold > 0 && c.MultiTenantCircuitBreakerTimeoutSec == 0 {
+			errs = append(errs, "MULTI_TENANT_CIRCUIT_BREAKER_TIMEOUT_SEC must be > 0 when MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD > 0 (default: 30)")
 		}
 	}
 
@@ -288,6 +310,15 @@ func InitServers() (_ *Service, err error) {
 
 	cleanups = append(cleanups, telemetryCleanup)
 
+	// Init multi-tenant metrics (noop when disabled, real instruments when enabled)
+	mtMetrics := initMultiTenantMetrics(cfg, telemetry, logger)
+
+	if cfg.MultiTenantEnabled {
+		logger.Info("Multi-tenant mode enabled — TenantMiddleware will be activated")
+	} else {
+		logger.Info("Running in SINGLE-TENANT MODE — TenantMiddleware disabled")
+	}
+
 	// Create single storage client for both templates and reports (using prefixes)
 	storageClient, err := initStorage(cfg, logger)
 	if err != nil {
@@ -374,7 +405,9 @@ func InitServers() (_ *Service, err error) {
 	rateLimitConfig := buildRateLimitConfig(cfg, redisConnection, logger)
 	trustedProxies := parseTrustedProxies(cfg.TrustedProxies)
 
-	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps, corsConfig, rateLimitConfig, trustedProxies)
+	tenantMiddleware := initTenantMiddleware(cfg, logger)
+
+	httpApp := httpIn.NewRoutes(logger, telemetry, templateHandler, reportHandler, dataSourceHandler, authClient, readinessDeps, corsConfig, rateLimitConfig, trustedProxies, tenantMiddleware)
 	serverAPI := NewServer(cfg, httpApp, logger, telemetry)
 
 	// Build consolidated shutdown cleanup from the same cleanup stack used for
@@ -396,9 +429,10 @@ func InitServers() (_ *Service, err error) {
 	}
 
 	return &Service{
-		Server:  serverAPI,
-		Logger:  logger,
-		cleanup: shutdown,
+		Server:    serverAPI,
+		Logger:    logger,
+		cleanup:   shutdown,
+		mtMetrics: mtMetrics,
 	}, nil
 }
 

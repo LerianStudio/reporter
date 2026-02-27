@@ -10,8 +10,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/constant"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 )
 
 // tickerFactory creates a channel that receives ticks and a stop function.

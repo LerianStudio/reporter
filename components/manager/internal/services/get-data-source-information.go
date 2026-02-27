@@ -11,8 +11,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/LerianStudio/reporter/pkg/model"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
 

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	"github.com/LerianStudio/lib-commons/v3/commons/zap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

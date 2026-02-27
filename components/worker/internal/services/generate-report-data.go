@@ -14,11 +14,11 @@ import (
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/postgres"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	libCrypto "github.com/LerianStudio/lib-commons/v3/commons/crypto"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
 	"go.opentelemetry.io/otel/attribute"

@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"

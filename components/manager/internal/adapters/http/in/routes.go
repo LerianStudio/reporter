@@ -8,24 +8,24 @@ import (
 	"context"
 	"time"
 
+	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
 	middlewareAuth "github.com/LerianStudio/lib-auth/v2/auth/middleware"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
-	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	mongoDB "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	commonsHttp "github.com/LerianStudio/lib-commons/v3/commons/net/http"
+	"github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
 	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
 const (
-	applicationName       = "reporter"
 	templateResource      = "templates"
 	reportResource        = "reports"
 	dataSourceResource    = "data-source"
@@ -41,7 +41,8 @@ type ReadinessDeps struct {
 }
 
 // NewRoutes creates a new fiber router with the specified handlers and middleware.
-func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, deps *ReadinessDeps, corsConfig CORSConfig, rateLimitConfig RateLimitConfig, trustedProxies []string) *fiber.App {
+// tenantMiddleware is optional: pass nil to disable multi-tenant DB resolution (single-tenant mode).
+func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *TemplateHandler, reportHandler *ReportHandler, dataSourceHandler *DataSourceHandler, auth *middlewareAuth.AuthClient, deps *ReadinessDeps, corsConfig CORSConfig, rateLimitConfig RateLimitConfig, trustedProxies []string, tenantMiddleware fiber.Handler) *fiber.App {
 	fiberCfg := fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
@@ -69,26 +70,31 @@ func NewRoutes(lg log.Logger, tl *opentelemetry.Telemetry, templateHandler *Temp
 	))
 	f.Use(SecurityHeaders())
 	f.Use(CORSMiddleware(corsConfig))
+
+	if tenantMiddleware != nil {
+		f.Use(tenantMiddleware)
+	}
+
 	f.Use(RateLimiterMiddleware(rateLimitConfig))
 	f.Use(commonsHttp.WithHTTPLogging(commonsHttp.WithCustomLogger(lg)))
 
 	// Plugin templates routes
 	// Template routes
-	f.Post("/v1/templates", auth.Authorize(applicationName, templateResource, "post"), templateHandler.CreateTemplate)
-	f.Patch("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "patch"), ParsePathParametersUUID, templateHandler.UpdateTemplateByID)
-	f.Get("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "get"), ParsePathParametersUUID, templateHandler.GetTemplateByID)
-	f.Get("/v1/templates", auth.Authorize(applicationName, templateResource, "get"), templateHandler.GetAllTemplates)
-	f.Delete("/v1/templates/:id", auth.Authorize(applicationName, templateResource, "delete"), ParsePathParametersUUID, templateHandler.DeleteTemplateByID)
+	f.Post("/v1/templates", auth.Authorize(constant.ApplicationName, templateResource, "post"), templateHandler.CreateTemplate)
+	f.Patch("/v1/templates/:id", auth.Authorize(constant.ApplicationName, templateResource, "patch"), ParsePathParametersUUID, templateHandler.UpdateTemplateByID)
+	f.Get("/v1/templates/:id", auth.Authorize(constant.ApplicationName, templateResource, "get"), ParsePathParametersUUID, templateHandler.GetTemplateByID)
+	f.Get("/v1/templates", auth.Authorize(constant.ApplicationName, templateResource, "get"), templateHandler.GetAllTemplates)
+	f.Delete("/v1/templates/:id", auth.Authorize(constant.ApplicationName, templateResource, "delete"), ParsePathParametersUUID, templateHandler.DeleteTemplateByID)
 
 	// Report routes
-	f.Post("/v1/reports", auth.Authorize(applicationName, reportResource, "post"), http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
-	f.Get("/v1/reports/:id/download", auth.Authorize(applicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetDownloadReport)
-	f.Get("/v1/reports/:id", auth.Authorize(applicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetReport)
-	f.Get("/v1/reports", auth.Authorize(applicationName, reportResource, "get"), reportHandler.GetAllReports)
+	f.Post("/v1/reports", auth.Authorize(constant.ApplicationName, reportResource, "post"), http.WithBody(new(model.CreateReportInput), reportHandler.CreateReport))
+	f.Get("/v1/reports/:id/download", auth.Authorize(constant.ApplicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetDownloadReport)
+	f.Get("/v1/reports/:id", auth.Authorize(constant.ApplicationName, reportResource, "get"), ParsePathParametersUUID, reportHandler.GetReport)
+	f.Get("/v1/reports", auth.Authorize(constant.ApplicationName, reportResource, "get"), reportHandler.GetAllReports)
 
 	// Data source routes
-	f.Get("/v1/data-sources", auth.Authorize(applicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformation)
-	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(applicationName, dataSourceResource, "get"), ParseStringPathParam("dataSourceId"), dataSourceHandler.GetDataSourceInformationByID)
+	f.Get("/v1/data-sources", auth.Authorize(constant.ApplicationName, dataSourceResource, "get"), dataSourceHandler.GetDataSourceInformation)
+	f.Get("/v1/data-sources/:dataSourceId", auth.Authorize(constant.ApplicationName, dataSourceResource, "get"), ParseStringPathParam("dataSourceId"), dataSourceHandler.GetDataSourceInformationByID)
 
 	// Doc Swagger
 	f.Get("/swagger/*", WithSwaggerEnvConfig(), fiberSwagger.WrapHandler)

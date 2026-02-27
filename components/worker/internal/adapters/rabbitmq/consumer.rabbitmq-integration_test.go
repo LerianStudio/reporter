@@ -20,10 +20,10 @@ import (
 	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
 	"github.com/LerianStudio/reporter/tests/utils/containers"
 
-	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libConstant "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	libZap "github.com/LerianStudio/lib-commons/v3/commons/zap"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/stretchr/testify/assert"
@@ -105,7 +105,7 @@ func setupConsumer(t *testing.T, handler pkgRabbitmq.QueueHandlerFunc) {
 		Logger:                 logger,
 	}
 
-	cr, err := NewConsumerRoutes(conn, 1, logger, telemetry)
+	cr, err := NewConsumerRoutes(conn, 1, logger, telemetry, nil, nil)
 	require.NoError(t, err, "NewConsumerRoutes should connect successfully")
 
 	// Override sleepFunc to no-op for fast tests (eliminates real backoff delays)

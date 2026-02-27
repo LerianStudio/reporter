@@ -17,8 +17,8 @@ import (
 	pkgHTTP "github.com/LerianStudio/reporter/pkg/net/http"
 	templateUtils "github.com/LerianStudio/reporter/pkg/templateutils"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

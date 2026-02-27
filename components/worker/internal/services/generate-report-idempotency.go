@@ -9,9 +9,9 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 )

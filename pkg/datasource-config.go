@@ -17,8 +17,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 	pg "github.com/LerianStudio/reporter/pkg/postgres"
 
-	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	libConstant "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

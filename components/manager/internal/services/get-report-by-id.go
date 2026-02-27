@@ -12,8 +12,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/mongodb/report"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/attribute"

@@ -8,8 +8,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
 	"github.com/gofiber/fiber/v2"
 )
 

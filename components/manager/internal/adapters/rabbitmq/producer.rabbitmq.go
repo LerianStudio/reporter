@@ -14,10 +14,11 @@ import (
 	"github.com/LerianStudio/reporter/pkg/model"
 	pkgRabbitmq "github.com/LerianStudio/reporter/pkg/rabbitmq"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	tmcore "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/core"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -88,10 +89,8 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 
 	retryCount := 0
 
-	headers := amqp.Table{
-		libConstants.HeaderID: reqId,
-		"x-retry-count":       retryCount,
-	}
+	headers := buildProducerHeaders(ctx, reqId)
+	headers["x-retry-count"] = retryCount
 
 	libOpentelemetry.InjectTraceHeadersIntoQueue(ctx, (*map[string]any)(&headers))
 
@@ -169,4 +168,24 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 	}
 
 	return nil, publishErr
+}
+
+// buildProducerHeaders constructs the base AMQP header table for a new message.
+// It always sets the request-ID header. When a tenant ID is present in ctx
+// (multi-tenant mode), it also injects the X-Tenant-ID header so that the
+// worker consumer can propagate tenant context downstream.
+//
+// When no tenant ID is in context (single-tenant / legacy mode),
+// GetTenantIDFromContext returns "" and the X-Tenant-ID header is omitted,
+// preserving full backward compatibility with existing single-tenant deployments.
+func buildProducerHeaders(ctx context.Context, reqID string) amqp.Table {
+	headers := amqp.Table{
+		libConstants.HeaderID: reqID,
+	}
+
+	if tenantID := tmcore.GetTenantIDFromContext(ctx); tenantID != "" {
+		headers[constant.HeaderXTenantID] = tenantID
+	}
+
+	return headers
 }

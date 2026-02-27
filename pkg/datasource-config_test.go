@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libConstant "github.com/LerianStudio/lib-commons/v2/commons/constants"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libConstant "github.com/LerianStudio/lib-commons/v3/commons/constants"
 	pg "github.com/LerianStudio/reporter/pkg/postgres"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/sony/gobreaker"
 	"github.com/stretchr/testify/assert"

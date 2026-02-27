@@ -12,9 +12,10 @@ import (
 
 	pkgRedis "github.com/LerianStudio/reporter/pkg/redis"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRedis "github.com/LerianStudio/lib-commons/v2/commons/redis"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
+	tmValkey "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/valkey"
 	goRedis "github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -49,7 +50,6 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.key", key),
-		attribute.String("app.request.value", value),
 		attribute.String("app.request.ttl", ttl.String()),
 	)
 
@@ -60,9 +60,11 @@ func (rc *RedisConsumerRepository) Set(ctx context.Context, key, value string, t
 		return err
 	}
 
+	tenantKey := tmValkey.GetKeyFromContext(ctx, key)
+
 	logger.Infof("value of ttl: %v", ttl)
 
-	err = rds.Set(ctx, key, value, ttl).Err()
+	err = rds.Set(ctx, tenantKey, value, ttl).Err()
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set on redis", err)
 
@@ -83,7 +85,6 @@ func (rc *RedisConsumerRepository) SetNX(ctx context.Context, key, value string,
 	span.SetAttributes(
 		attribute.String("app.request.request_id", reqId),
 		attribute.String("app.request.key", key),
-		attribute.String("app.request.value", value),
 		attribute.String("app.request.ttl", ttl.String()),
 	)
 
@@ -94,9 +95,11 @@ func (rc *RedisConsumerRepository) SetNX(ctx context.Context, key, value string,
 		return false, err
 	}
 
-	logger.Infof("SetNX key: %s, ttl: %v", key, ttl)
+	tenantKey := tmValkey.GetKeyFromContext(ctx, key)
 
-	result, err := rds.SetNX(ctx, key, value, ttl).Result()
+	logger.Infof("SetNX key: %s, ttl: %v", tenantKey, ttl)
+
+	result, err := rds.SetNX(ctx, tenantKey, value, ttl).Result()
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to set_nx on redis", err)
 
@@ -129,7 +132,9 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 		return "", err
 	}
 
-	val, err := rds.Get(ctx, key).Result()
+	tenantKey := tmValkey.GetKeyFromContext(ctx, key)
+
+	val, err := rds.Get(ctx, tenantKey).Result()
 	if err != nil {
 		if errors.Is(err, goRedis.Nil) {
 			span.SetAttributes(attribute.Bool("app.cache.hit", false))
@@ -143,10 +148,6 @@ func (rc *RedisConsumerRepository) Get(ctx context.Context, key string) (string,
 	}
 
 	span.SetAttributes(attribute.Bool("app.cache.hit", true))
-
-	span.SetAttributes(
-		attribute.String("app.response.value", val),
-	)
 
 	logger.Infof("value : %v", val)
 
@@ -172,7 +173,9 @@ func (rc *RedisConsumerRepository) Del(ctx context.Context, key string) error {
 		return err
 	}
 
-	val, err := rds.Del(ctx, key).Result()
+	tenantKey := tmValkey.GetKeyFromContext(ctx, key)
+
+	val, err := rds.Del(ctx, tenantKey).Result()
 	if err != nil {
 		libOpentelemetry.HandleSpanError(&span, "Failed to del on redis", err)
 
