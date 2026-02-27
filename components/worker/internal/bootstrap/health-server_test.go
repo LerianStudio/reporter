@@ -10,8 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

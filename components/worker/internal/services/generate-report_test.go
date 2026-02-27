@@ -18,8 +18,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	"github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	libCrypto "github.com/LerianStudio/lib-commons/v2/commons/crypto"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	libCrypto "github.com/LerianStudio/lib-commons/v3/commons/crypto"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

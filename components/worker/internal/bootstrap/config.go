@@ -16,18 +16,21 @@ import (
 	"github.com/LerianStudio/reporter/pkg"
 	pkgConstant "github.com/LerianStudio/reporter/pkg/constant"
 	reportData "github.com/LerianStudio/reporter/pkg/mongodb/report"
+	"github.com/LerianStudio/reporter/pkg/multitenant"
 	"github.com/LerianStudio/reporter/pkg/pdf"
 	"github.com/LerianStudio/reporter/pkg/pongo"
 	reportSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/report"
 	templateSeaweedFS "github.com/LerianStudio/reporter/pkg/seaweedfs/template"
 	"github.com/LerianStudio/reporter/pkg/storage"
 
-	libCommons "github.com/LerianStudio/lib-commons/v2/commons"
-	clog "github.com/LerianStudio/lib-commons/v2/commons/log"
-	mongoDB "github.com/LerianStudio/lib-commons/v2/commons/mongo"
-	libOtel "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
-	libRabbitMQ "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	libZap "github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libCommons "github.com/LerianStudio/lib-commons/v3/commons"
+	clog "github.com/LerianStudio/lib-commons/v3/commons/log"
+	mongoDB "github.com/LerianStudio/lib-commons/v3/commons/mongo"
+	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
+	libRabbitMQ "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	tmclient "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/client"
+	tmmongo "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/mongo"
+	libZap "github.com/LerianStudio/lib-commons/v3/commons/zap"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -73,6 +76,14 @@ type Config struct {
 	// PDF Pool configuration envs
 	PdfPoolWorkers        int `env:"PDF_POOL_WORKERS" default:"2"`
 	PdfPoolTimeoutSeconds int `env:"PDF_TIMEOUT_SECONDS" default:"90"`
+	// Multi-tenant configuration envs
+	MultiTenantEnabled                  bool   `env:"MULTI_TENANT_ENABLED" default:"false"`
+	MultiTenantURL                      string `env:"MULTI_TENANT_URL"`
+	MultiTenantEnvironment              string `env:"MULTI_TENANT_ENVIRONMENT" default:"staging"`
+	MultiTenantMaxTenantPools           int    `env:"MULTI_TENANT_MAX_TENANT_POOLS" default:"100"`
+	MultiTenantIdleTimeoutSec           int    `env:"MULTI_TENANT_IDLE_TIMEOUT_SEC" default:"300"`
+	MultiTenantCircuitBreakerThreshold  int    `env:"MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD" default:"5"`
+	MultiTenantCircuitBreakerTimeoutSec int    `env:"MULTI_TENANT_CIRCUIT_BREAKER_TIMEOUT_SEC" default:"30"`
 }
 
 // Validate checks that all required configuration fields are present.
@@ -106,6 +117,20 @@ func (c *Config) Validate() error {
 
 	if c.MongoDBName == "" {
 		errs = append(errs, "MONGO_NAME is required")
+	}
+
+	if c.MultiTenantEnabled && c.MultiTenantURL == "" {
+		errs = append(errs, "MULTI_TENANT_URL is required when MULTI_TENANT_ENABLED=true")
+	}
+
+	if c.MultiTenantEnabled {
+		if c.MultiTenantCircuitBreakerThreshold == 0 {
+			errs = append(errs, "MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD must be > 0 when MULTI_TENANT_ENABLED=true (default: 5)")
+		}
+
+		if c.MultiTenantCircuitBreakerThreshold > 0 && c.MultiTenantCircuitBreakerTimeoutSec == 0 {
+			errs = append(errs, "MULTI_TENANT_CIRCUIT_BREAKER_TIMEOUT_SEC must be > 0 when MULTI_TENANT_CIRCUIT_BREAKER_THRESHOLD > 0 (default: 30)")
+		}
 	}
 
 	errs = c.validateProductionConfig(errs)
@@ -174,6 +199,44 @@ func InitWorker() (_ *Service, err error) {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
+	if cfg.MultiTenantEnabled {
+		logger.Info("Worker: multi-tenant mode enabled")
+	} else {
+		logger.Info("Worker: running in SINGLE-TENANT MODE")
+	}
+
+	// Build tenant MongoDB manager when multi-tenant mode is active and the
+	// Tenant Manager URL is configured. Uses the same construction pattern
+	// as the manager component (init_tenant.go) but scoped to ModuleWorker.
+	// When either condition is false the manager remains nil and the worker
+	// falls back to the static MongoDB connection (single-tenant behaviour).
+	var tenantMongoManager *tmmongo.Manager
+
+	if cfg.MultiTenantEnabled && cfg.MultiTenantURL != "" {
+		var clientOpts []tmclient.ClientOption
+
+		if cfg.MultiTenantCircuitBreakerThreshold > 0 {
+			cbTimeout := time.Duration(cfg.MultiTenantCircuitBreakerTimeoutSec) * time.Second
+			clientOpts = append(clientOpts,
+				tmclient.WithCircuitBreaker(
+					cfg.MultiTenantCircuitBreakerThreshold,
+					cbTimeout,
+				),
+			)
+		}
+
+		tmClient := tmclient.NewClient(cfg.MultiTenantURL, logger, clientOpts...)
+		tenantMongoManager = tmmongo.NewManager(
+			tmClient,
+			pkgConstant.ApplicationName,
+			tmmongo.WithModule(pkgConstant.ModuleWorker),
+			tmmongo.WithLogger(logger),
+			tmmongo.WithMaxTenantPools(cfg.MultiTenantMaxTenantPools),
+			tmmongo.WithIdleTimeout(time.Duration(cfg.MultiTenantIdleTimeoutSec)*time.Second),
+		)
+		logger.Info("Worker: tenant MongoDB manager initialized")
+	}
+
 	// Cleanup stack: on failure, close resources in reverse order
 	var cleanups []func()
 
@@ -205,6 +268,9 @@ func InitWorker() (_ *Service, err error) {
 		telemetry.ShutdownTelemetry()
 	})
 
+	// Init multi-tenant metrics (noop when disabled, real instruments when enabled)
+	mtMetrics := initMultiTenantMetrics(cfg, telemetry, logger)
+
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
 
@@ -221,7 +287,7 @@ func InitWorker() (_ *Service, err error) {
 		Logger:                 logger,
 	}
 
-	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry)
+	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry, tenantMongoManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
 	}
@@ -336,6 +402,7 @@ func InitWorker() (_ *Service, err error) {
 		rabbitMQConnection: rabbitMQConnection,
 		pdfPool:            pdfPool,
 		telemetry:          telemetry,
+		mtMetrics:          mtMetrics,
 	}, nil
 }
 
@@ -382,4 +449,27 @@ func closeRabbitMQ(conn *libRabbitMQ.RabbitMQConnection, logger clog.Logger) fun
 			}
 		}
 	}
+}
+
+// initMultiTenantMetrics creates the multi-tenant OTel metrics instruments.
+// When multi-tenant mode is enabled, real OTel instruments are registered on the
+// telemetry MeterProvider so they are exported to the configured collector.
+// When disabled, no-op instruments are returned with zero runtime overhead.
+func initMultiTenantMetrics(cfg *Config, telemetry *libOtel.Telemetry, logger clog.Logger) *multitenant.Metrics {
+	if !cfg.MultiTenantEnabled {
+		logger.Info("Multi-tenant metrics: using noop instruments (multi-tenant disabled)")
+		return multitenant.NoopMetrics()
+	}
+
+	meter := telemetry.MetricProvider.Meter(cfg.OtelLibraryName)
+
+	m, err := multitenant.NewMetrics(meter)
+	if err != nil {
+		logger.Errorf("Failed to create multi-tenant metrics, falling back to noop: %v", err)
+		return multitenant.NoopMetrics()
+	}
+
+	logger.Info("Multi-tenant metrics: 4 instruments registered (tenant_connections_total, tenant_connection_errors_total, tenant_consumers_active, tenant_messages_processed_total)")
+
+	return m
 }
