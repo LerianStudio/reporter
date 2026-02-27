@@ -317,12 +317,12 @@ func InitWorker() (_ *Service, err error) {
 		}
 	})
 
-	// Create MongoDB indexes for the static (default) database on startup.
-	// Per-tenant indexes are created lazily by the consumer on first message.
-	logger.Info("Ensuring MongoDB indexes exist for reports...")
+	if !cfg.MultiTenantEnabled {
+		logger.Info("Ensuring MongoDB indexes exist for reports...")
 
-	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
+		if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+			return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
+		}
 	}
 
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
@@ -385,14 +385,6 @@ func InitWorker() (_ *Service, err error) {
 		logger.Info("Cleanup: stopping health checker")
 		healthChecker.Stop()
 	})
-
-	if !cfg.MultiTenantEnabled {
-		logger.Info("Ensuring MongoDB indexes exist for reports...")
-
-		if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
-			return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
-		}
-	}
 
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue, logger)
 
