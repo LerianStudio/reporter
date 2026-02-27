@@ -271,29 +271,6 @@ func InitWorker() (_ *Service, err error) {
 	// Init multi-tenant metrics (noop when disabled, real instruments when enabled)
 	mtMetrics := initMultiTenantMetrics(cfg, telemetry, logger)
 
-	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
-		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
-
-	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
-
-	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
-		ConnectionStringSource: rabbitSource,
-		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
-		Host:                   cfg.RabbitMQHost,
-		Port:                   cfg.RabbitMQPortHost,
-		User:                   cfg.RabbitMQUser,
-		Pass:                   cfg.RabbitMQPass,
-		Queue:                  cfg.RabbitMQGenerateReportQueue,
-		Logger:                 logger,
-	}
-
-	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry, tenantMongoManager)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
-	}
-
-	cleanups = append(cleanups, closeRabbitMQ(rabbitMQConnection, logger))
-
 	// Create single storage client for both templates and reports (using prefixes)
 	storageConfig := storage.Config{
 		Bucket:            cfg.ObjectStorageBucket,
@@ -340,15 +317,36 @@ func InitWorker() (_ *Service, err error) {
 		}
 	})
 
-	// Create MongoDB indexes for optimal performance
-	// Indexes are created automatically on startup to ensure they exist
-	// This is idempotent and safe to run multiple times
-	// Index failure is treated as fatal to match the manager component behavior
+	// Create MongoDB indexes for the static (default) database on startup.
+	// Per-tenant indexes are created lazily by the consumer on first message.
 	logger.Info("Ensuring MongoDB indexes exist for reports...")
 
 	if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
 	}
+
+	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
+		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
+
+	logger.Infof("RabbitMQ connecting to %s", pkg.RedactConnectionString(rabbitSource))
+
+	rabbitMQConnection := &libRabbitMQ.RabbitMQConnection{
+		ConnectionStringSource: rabbitSource,
+		HealthCheckURL:         cfg.RabbitMQHealthCheckURL,
+		Host:                   cfg.RabbitMQHost,
+		Port:                   cfg.RabbitMQPortHost,
+		User:                   cfg.RabbitMQUser,
+		Pass:                   cfg.RabbitMQPass,
+		Queue:                  cfg.RabbitMQGenerateReportQueue,
+		Logger:                 logger,
+	}
+
+	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry, tenantMongoManager, reportMongoDBRepository)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
+	}
+
+	cleanups = append(cleanups, closeRabbitMQ(rabbitMQConnection, logger))
 
 	// Initialize circuit breaker manager for datasource resilience
 	circuitBreakerManager := pkg.NewCircuitBreakerManager(logger)

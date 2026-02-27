@@ -44,6 +44,8 @@ type ConsumerRoutes struct {
 	sleepFunc       func(time.Duration)
 	mongoManager    *tmmongo.Manager // nil in single-tenant mode
 	mongoRepository *mongoRepository.ReportMongoDBRepository
+	tenantIndexMu   sync.Mutex
+	tenantIndexed   map[string]struct{}
 	log.Logger
 	opentelemetry.Telemetry
 }
@@ -59,6 +61,10 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		return nil, fmt.Errorf("telemetry must not be nil")
 	}
 
+	if (mongoManager == nil) != (reportMongoDBRepository == nil) {
+		return nil, fmt.Errorf("mongoManager and reportMongoDBRepository must be both nil or both non-nil")
+	}
+
 	if numWorkers == 0 {
 		numWorkers = pkgConstant.DefaultWorkerCount
 	}
@@ -72,6 +78,7 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		Logger:          logger,
 		Telemetry:       *telemetry,
 		mongoRepository: reportMongoDBRepository,
+		tenantIndexed:   make(map[string]struct{}),
 	}
 
 	_, err := conn.GetNewConnect()
@@ -162,6 +169,11 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		logWithFields,
 	)
 
+	tracer := pkg.NewTracerFromContext(ctx)
+
+	ctx, spanConsumer := tracer.Start(ctx, "repository.rabbitmq.process_message")
+	defer spanConsumer.End()
+
 	ctx = opentelemetry.ExtractTraceContextFromQueueHeaders(ctx, message.Headers)
 	ctx = extractTenantIDFromHeaders(ctx, message.Headers)
 
@@ -177,25 +189,22 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 		if tenantID := tmcore.GetTenantIDFromContext(ctx); tenantID != "" {
 			tenantDB, tenantDBErr := cr.mongoManager.GetDatabaseForTenant(ctx, tenantID)
 			if tenantDBErr != nil {
-				cr.Errorf("Worker %d: failed to resolve tenant MongoDB for tenant %s, falling back to static DB: %v",
+				cr.Errorf("Worker %d: failed to resolve tenant MongoDB for tenant %s: %v",
 					workerID, tenantID, tenantDBErr)
-			} else {
-				ctx = tmcore.ContextWithTenantMongo(ctx, tenantDB)
+
+				retryCount := getRetryCount(message)
+
+				cr.handleFailedMessage(workerID, queue, message, tenantDBErr, retryCount, &spanConsumer)
+
+				return
 			}
 
-			// Create MongoDB indexes for optimal performance
-			// Indexes are created automatically on startup to ensure they exist
-			// This is idempotent and safe to run multiple times
-			// Index failure is treated as fatal to match the manager component behavior
+			ctx = tmcore.ContextWithTenantMongo(ctx, tenantDB)
+
 			logWithFields.Info("Ensuring MongoDB indexes exist for reports...")
 			cr.mongoRepository.EnsureIndexes(ctx)
 		}
 	}
-
-	tracer := pkg.NewTracerFromContext(ctx)
-
-	ctx, spanConsumer := tracer.Start(ctx, "repository.rabbitmq.process_message")
-	defer spanConsumer.End()
 
 	spanConsumer.SetAttributes(
 		attribute.String("app.request.request_id", requestIDStr),
