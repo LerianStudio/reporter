@@ -27,6 +27,7 @@ import (
 	"github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 	tmcore "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/core"
 	tmmongo "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/mongo"
+	mongoRepository "github.com/LerianStudio/reporter/pkg/mongodb/report"
 	"github.com/rabbitmq/amqp091-go"
 
 	// otel/attribute is used for span attribute types (no lib-commons wrapper available)
@@ -37,11 +38,12 @@ import (
 
 // ConsumerRoutes struct
 type ConsumerRoutes struct {
-	conn         *rabbitmq.RabbitMQConnection
-	routes       map[string]pkgRabbitmq.QueueHandlerFunc
-	numWorkers   int
-	sleepFunc    func(time.Duration)
-	mongoManager *tmmongo.Manager // nil in single-tenant mode
+	conn            *rabbitmq.RabbitMQConnection
+	routes          map[string]pkgRabbitmq.QueueHandlerFunc
+	numWorkers      int
+	sleepFunc       func(time.Duration)
+	mongoManager    *tmmongo.Manager // nil in single-tenant mode
+	mongoRepository *mongoRepository.ReportMongoDBRepository
 	log.Logger
 	opentelemetry.Telemetry
 }
@@ -52,7 +54,7 @@ var _ pkgRabbitmq.ConsumerRepository = (*ConsumerRoutes)(nil)
 // NewConsumerRoutes creates a new instance of ConsumerRoutes.
 // mongoManager is optional: pass nil for single-tenant mode. When non-nil, the
 // consumer will resolve per-tenant MongoDB connections from message headers.
-func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry, mongoManager *tmmongo.Manager) (*ConsumerRoutes, error) {
+func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry, mongoManager *tmmongo.Manager, reportMongoDBRepository *mongoRepository.ReportMongoDBRepository) (*ConsumerRoutes, error) {
 	if telemetry == nil {
 		return nil, fmt.Errorf("telemetry must not be nil")
 	}
@@ -62,13 +64,14 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 	}
 
 	cr := &ConsumerRoutes{
-		conn:         conn,
-		routes:       make(map[string]pkgRabbitmq.QueueHandlerFunc),
-		numWorkers:   numWorkers,
-		sleepFunc:    time.Sleep,
-		mongoManager: mongoManager,
-		Logger:       logger,
-		Telemetry:    *telemetry,
+		conn:            conn,
+		routes:          make(map[string]pkgRabbitmq.QueueHandlerFunc),
+		numWorkers:      numWorkers,
+		sleepFunc:       time.Sleep,
+		mongoManager:    mongoManager,
+		Logger:          logger,
+		Telemetry:       *telemetry,
+		mongoRepository: reportMongoDBRepository,
 	}
 
 	_, err := conn.GetNewConnect()
@@ -179,6 +182,13 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 			} else {
 				ctx = tmcore.ContextWithTenantMongo(ctx, tenantDB)
 			}
+
+			// Create MongoDB indexes for optimal performance
+			// Indexes are created automatically on startup to ensure they exist
+			// This is idempotent and safe to run multiple times
+			// Index failure is treated as fatal to match the manager component behavior
+			logWithFields.Info("Ensuring MongoDB indexes exist for reports...")
+			cr.mongoRepository.EnsureIndexes(ctx)
 		}
 	}
 
