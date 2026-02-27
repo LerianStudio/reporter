@@ -36,13 +36,11 @@ func (rm *ReportMongoDBRepository) EnsureIndexes(ctx context.Context) error {
 
 	logger.Infof("Creating indexes for %s collection", constant.MongoCollectionReport)
 
-	db, err := rm.connection.GetDB(ctx)
+	coll, err := rm.getCollection(ctx)
 	if err != nil {
-		libOpentelemetry.HandleSpanError(&span, "Failed to get database", err)
+		libOpentelemetry.HandleSpanError(&span, "Failed to get collection", err)
 		return err
 	}
-
-	coll := db.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport))
 
 	indexes := []mongo.IndexModel{
 		{
