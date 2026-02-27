@@ -386,6 +386,14 @@ func InitWorker() (_ *Service, err error) {
 		healthChecker.Stop()
 	})
 
+	if !cfg.MultiTenantEnabled {
+		logger.Info("Ensuring MongoDB indexes exist for reports...")
+
+		if err = reportMongoDBRepository.EnsureIndexes(ctx); err != nil {
+			return nil, fmt.Errorf("failed to ensure report indexes: %w", err)
+		}
+	}
+
 	multiQueueConsumer := NewMultiQueueConsumer(routes, service, cfg.RabbitMQGenerateReportQueue, logger)
 
 	healthServer := NewHealthServer(cfg.HealthPort, rabbitMQConnection, logger)
