@@ -265,6 +265,10 @@ check-tests:
 		echo "No Go files found, skipping test coverage check"; \
 	fi
 
+.PHONY: test-multi-tenant
+test-multi-tenant: ## Run multi-tenant tagged tests
+	go test -tags multi_tenant ./...
+
 #-------------------------------------------------------
 # Code Quality Commands
 #-------------------------------------------------------

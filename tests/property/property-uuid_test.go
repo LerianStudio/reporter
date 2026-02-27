@@ -11,7 +11,7 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons"
 	"github.com/google/uuid"
 )
 

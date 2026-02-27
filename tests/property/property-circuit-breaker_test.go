@@ -12,7 +12,7 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	"github.com/LerianStudio/lib-commons/v3/commons/zap"
 	"github.com/LerianStudio/reporter/pkg"
 	"github.com/sony/gobreaker"
 )
