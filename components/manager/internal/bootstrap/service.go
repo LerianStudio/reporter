@@ -5,8 +5,9 @@
 package bootstrap
 
 import (
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	"github.com/LerianStudio/reporter/pkg/multitenant"
 )
 
 // Service is the application glue where we put all top-level components to be used.
@@ -14,6 +15,10 @@ type Service struct {
 	*Server
 	log.Logger
 	cleanup func()
+	// mtMetrics holds the 4 canonical multi-tenant OTel instruments.
+	// TODO: Wire to actual tenant connection/error events in a follow-up PR.
+	// The instruments are registered (or noop when disabled) but not yet recording.
+	mtMetrics *multitenant.Metrics
 }
 
 // Run starts the application.

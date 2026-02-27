@@ -11,8 +11,8 @@ import (
 
 	"github.com/LerianStudio/reporter/pkg/constant"
 
-	libRabbitmq "github.com/LerianStudio/lib-commons/v2/commons/rabbitmq"
-	"github.com/LerianStudio/lib-commons/v2/commons/zap"
+	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
+	"github.com/LerianStudio/lib-commons/v3/commons/zap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

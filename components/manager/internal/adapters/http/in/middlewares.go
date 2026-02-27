@@ -11,7 +11,7 @@ import (
 	"github.com/LerianStudio/reporter/pkg/constant"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/google/uuid"

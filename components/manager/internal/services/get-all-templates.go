@@ -10,8 +10,8 @@ import (
 	"github.com/LerianStudio/reporter/pkg/mongodb/template"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	"github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	"github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
 

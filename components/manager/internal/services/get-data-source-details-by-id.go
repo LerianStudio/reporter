@@ -15,10 +15,10 @@ import (
 	"github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/mongodb"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	libConstants "github.com/LerianStudio/lib-commons/v2/commons/constants"
-	"github.com/LerianStudio/lib-commons/v2/commons/log"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	libConstants "github.com/LerianStudio/lib-commons/v3/commons/constants"
+	"github.com/LerianStudio/lib-commons/v3/commons/log"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"go.opentelemetry.io/otel/attribute"
 )
 

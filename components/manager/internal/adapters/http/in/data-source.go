@@ -12,9 +12,9 @@ import (
 	_ "github.com/LerianStudio/reporter/pkg/model"
 	"github.com/LerianStudio/reporter/pkg/net/http"
 
-	"github.com/LerianStudio/lib-commons/v2/commons"
-	commonsHttp "github.com/LerianStudio/lib-commons/v2/commons/net/http"
-	libOpentelemetry "github.com/LerianStudio/lib-commons/v2/commons/opentelemetry"
+	"github.com/LerianStudio/lib-commons/v3/commons"
+	commonsHttp "github.com/LerianStudio/lib-commons/v3/commons/net/http"
+	libOpentelemetry "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	"github.com/gofiber/fiber/v2"
 	"go.opentelemetry.io/otel/attribute"
 )
