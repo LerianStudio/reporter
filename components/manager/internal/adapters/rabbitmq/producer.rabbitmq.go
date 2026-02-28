@@ -7,6 +7,7 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/LerianStudio/reporter/pkg"
@@ -27,9 +28,23 @@ import (
 // Overridable in tests for deterministic behavior.
 var sleepFunc = time.Sleep
 
+// RabbitMQChannel is an interface for the AMQP channel used by the producer.
+// This allows mocking the channel in tests for multi-tenant scenarios.
+type RabbitMQChannel interface {
+	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+}
+
+// RabbitMQManagerInterface is an interface for the tenant-manager RabbitMQ manager.
+// It abstracts the tmrabbitmq.Manager to allow mocking in unit tests.
+type RabbitMQManagerInterface interface {
+	GetChannel(ctx context.Context, tenantID string) (RabbitMQChannel, error)
+}
+
 // ProducerRabbitMQRepository is a rabbitmq implementation of the producer
 type ProducerRabbitMQRepository struct {
-	conn *libRabbitmq.RabbitMQConnection
+	conn            *libRabbitmq.RabbitMQConnection
+	rabbitMQManager RabbitMQManagerInterface
+	multiTenantMode bool
 }
 
 // Compile-time interface satisfaction check.
@@ -37,9 +52,11 @@ var _ pkgRabbitmq.ProducerRepository = (*ProducerRabbitMQRepository)(nil)
 
 // NewProducerRabbitMQ returns a new instance of ProducerRabbitMQRepository using the given rabbitmq connection.
 // Connection is established lazily on first use to avoid panic during initialization.
+// This constructor is used for single-tenant mode.
 func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRepository {
 	prmq := &ProducerRabbitMQRepository{
-		conn: c,
+		conn:            c,
+		multiTenantMode: false,
 	}
 
 	// Try to connect but don't panic if it fails
@@ -55,10 +72,26 @@ func NewProducerRabbitMQ(c *libRabbitmq.RabbitMQConnection) *ProducerRabbitMQRep
 	return prmq
 }
 
+// NewProducerRabbitMQMultiTenant returns a new instance of ProducerRabbitMQRepository
+// configured for multi-tenant mode using tmrabbitmq.Manager for per-tenant vhost isolation.
+// This constructor is used for multi-tenant mode (Layer 1: Vhost Isolation).
+func NewProducerRabbitMQMultiTenant(manager RabbitMQManagerInterface) *ProducerRabbitMQRepository {
+	return &ProducerRabbitMQRepository{
+		rabbitMQManager: manager,
+		multiTenantMode: true,
+	}
+}
+
 // ProducerDefault publishes a message to RabbitMQ with midaz-style retry logic.
 // On each attempt it calls EnsureChannel() to restore the channel if the connection
 // dropped, then publishes. Retries up to ProducerMaxRetries with exponential backoff
 // and full jitter to prevent thundering herd after a broker restart.
+//
+// In multi-tenant mode (Layer 1 + Layer 2):
+// - Layer 1: Uses rabbitMQManager.GetChannel(ctx, tenantID) for per-tenant vhost isolation
+// - Layer 2: Injects X-Tenant-ID header for audit/tracing (preserved in both modes)
+//
+// In single-tenant mode: Uses the static connection with retry logic.
 func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exchange, key string, queueMessage model.ReportMessage) (*string, error) {
 	logger, tracer, reqId, _ := libCommons.NewTrackingFromContext(ctx)
 
@@ -94,7 +127,48 @@ func (prmq *ProducerRabbitMQRepository) ProducerDefault(ctx context.Context, exc
 
 	libOpentelemetry.InjectTraceHeadersIntoQueue(ctx, (*map[string]any)(&headers))
 
-	// Midaz-style retry loop: EnsureChannel + publish with exponential backoff
+	// Multi-tenant mode: use rabbitMQManager for per-tenant vhost isolation (Layer 1)
+	if prmq.multiTenantMode {
+		tenantID := tmcore.GetTenantIDFromContext(ctx)
+		if tenantID == "" {
+			libOpentelemetry.HandleSpanError(&spanProducer, "Tenant ID is required in multi-tenant mode", fmt.Errorf("missing tenant ID"))
+			return nil, fmt.Errorf("tenant ID is required in multi-tenant mode")
+		}
+
+		spanProducer.SetAttributes(
+			attribute.String("app.request.tenant_id", tenantID),
+		)
+
+		// Get tenant-specific channel from vhost pool (Layer 1: Vhost Isolation)
+		channel, err := prmq.rabbitMQManager.GetChannel(ctx, tenantID)
+		if err != nil {
+			logger.Errorf("Failed to get tenant channel for tenant %s: %v", tenantID, err)
+			libOpentelemetry.HandleSpanError(&spanProducer, "Failed to get tenant channel", err)
+
+			return nil, fmt.Errorf("failed to get tenant channel: %w", err)
+		}
+
+		// Publish to tenant's vhost
+		err = channel.PublishWithContext(ctx, exchange, key, false, false,
+			amqp.Publishing{
+				ContentType:  "application/json",
+				DeliveryMode: amqp.Persistent,
+				Headers:      headers,
+				Body:         message,
+			})
+		if err != nil {
+			logger.Errorf("Multi-tenant publish failed for tenant %s: %v", tenantID, err)
+			libOpentelemetry.HandleSpanError(&spanProducer, "Failed to publish message to tenant vhost", err)
+
+			return nil, fmt.Errorf("failed to publish message to tenant vhost: %w", err)
+		}
+
+		logger.Infof("Message sent successfully to tenant %s vhost", tenantID)
+
+		return nil, nil
+	}
+
+	// Single-tenant mode: Midaz-style retry loop: EnsureChannel + publish with exponential backoff
 	backoff := constant.ProducerInitialBackoff
 
 	var publishErr error

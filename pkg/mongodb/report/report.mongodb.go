@@ -6,7 +6,6 @@ package report
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -60,26 +59,12 @@ func NewReportMongoDBRepository(mc *libMongo.MongoConnection) (*ReportMongoDBRep
 // getCollection returns the MongoDB collection for reports, using tenant-scoped connection when
 // available (multi-tenant mode) or falling back to the static connection (single-tenant mode).
 func (rm *ReportMongoDBRepository) getCollection(ctx context.Context) (*mongo.Collection, error) {
-	tenantDB, err := tmCore.GetMongoForTenant(ctx)
-	if err == nil {
-		if tenantDB == nil {
-			return nil, fmt.Errorf("tenant mongodb database is nil despite no error")
-		}
-
-		return tenantDB.Collection(strings.ToLower(constant.MongoCollectionReport)), nil
-	}
-
-	if !errors.Is(err, tmCore.ErrTenantContextRequired) {
-		return nil, fmt.Errorf("getting tenant mongodb connection: %w", err)
-	}
-
-	// Single-tenant fallback: no tenant context set, use the static connection.
-	client, err := rm.connection.GetDB(ctx)
+	db, err := tmCore.ResolveMongo(ctx, rm.connection, rm.Database)
 	if err != nil {
-		return nil, fmt.Errorf("getting static mongodb connection: %w", err)
+		return nil, fmt.Errorf("resolving mongodb connection: %w", err)
 	}
 
-	return client.Database(strings.ToLower(rm.Database)).Collection(strings.ToLower(constant.MongoCollectionReport)), nil
+	return db.Collection(strings.ToLower(constant.MongoCollectionReport)), nil
 }
 
 // UpdateReportStatusById updates only the status, completedAt and metadata fields of a report document by UUID.

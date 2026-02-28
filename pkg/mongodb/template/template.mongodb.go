@@ -6,7 +6,6 @@ package template
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -65,26 +64,12 @@ func NewTemplateMongoDBRepository(mc *libMongo.MongoConnection) (*TemplateMongoD
 // getCollection returns the MongoDB collection for templates, using tenant-scoped connection when
 // available (multi-tenant mode) or falling back to the static connection (single-tenant mode).
 func (tm *TemplateMongoDBRepository) getCollection(ctx context.Context) (*mongo.Collection, error) {
-	tenantDB, err := tmCore.GetMongoForTenant(ctx)
-	if err == nil {
-		if tenantDB == nil {
-			return nil, fmt.Errorf("tenant mongodb database is nil despite no error")
-		}
-
-		return tenantDB.Collection(strings.ToLower(constant.MongoCollectionTemplate)), nil
-	}
-
-	if !errors.Is(err, tmCore.ErrTenantContextRequired) {
-		return nil, fmt.Errorf("getting tenant mongodb connection: %w", err)
-	}
-
-	// Single-tenant fallback: no tenant context set, use the static connection.
-	client, err := tm.connection.GetDB(ctx)
+	db, err := tmCore.ResolveMongo(ctx, tm.connection, tm.Database)
 	if err != nil {
-		return nil, fmt.Errorf("getting static mongodb connection: %w", err)
+		return nil, fmt.Errorf("resolving mongodb connection: %w", err)
 	}
 
-	return client.Database(strings.ToLower(tm.Database)).Collection(strings.ToLower(constant.MongoCollectionTemplate)), nil
+	return db.Collection(strings.ToLower(constant.MongoCollectionTemplate)), nil
 }
 
 // FindByID retrieves a template from the mongodb using the provided entity_id.

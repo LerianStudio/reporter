@@ -36,13 +36,27 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// RabbitMQConnectionChannel is an interface for the AMQP channel used by the consumer.
+// This allows mocking the channel in tests for multi-tenant scenarios.
+type RabbitMQConnectionChannel interface {
+	Publish(exchange, key string, mandatory, immediate bool, msg amqp091.Publishing) error
+}
+
+// RabbitMQManagerConsumerInterface is an interface for the tenant-manager RabbitMQ manager
+// used by the consumer for per-tenant vhost isolation during message republishing.
+type RabbitMQManagerConsumerInterface interface {
+	GetConnection(ctx context.Context, tenantID string) (RabbitMQConnectionChannel, error)
+}
+
 // ConsumerRoutes struct
 type ConsumerRoutes struct {
 	conn            *rabbitmq.RabbitMQConnection
 	routes          map[string]pkgRabbitmq.QueueHandlerFunc
 	numWorkers      int
 	sleepFunc       func(time.Duration)
-	mongoManager    *tmmongo.Manager // nil in single-tenant mode
+	mongoManager    *tmmongo.Manager                 // nil in single-tenant mode
+	rabbitMQManager RabbitMQManagerConsumerInterface // nil in single-tenant mode
+	multiTenantMode bool
 	mongoRepository *mongoRepository.ReportMongoDBRepository
 	log.Logger
 	opentelemetry.Telemetry
@@ -51,7 +65,7 @@ type ConsumerRoutes struct {
 // Compile-time interface satisfaction check.
 var _ pkgRabbitmq.ConsumerRepository = (*ConsumerRoutes)(nil)
 
-// NewConsumerRoutes creates a new instance of ConsumerRoutes.
+// NewConsumerRoutes creates a new instance of ConsumerRoutes for single-tenant mode.
 // mongoManager is optional: pass nil for single-tenant mode. When non-nil, the
 // consumer will resolve per-tenant MongoDB connections from message headers.
 func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger log.Logger, telemetry *opentelemetry.Telemetry, mongoManager *tmmongo.Manager, reportMongoDBRepository *mongoRepository.ReportMongoDBRepository) (*ConsumerRoutes, error) {
@@ -69,6 +83,50 @@ func NewConsumerRoutes(conn *rabbitmq.RabbitMQConnection, numWorkers int, logger
 		numWorkers:      numWorkers,
 		sleepFunc:       time.Sleep,
 		mongoManager:    mongoManager,
+		multiTenantMode: false,
+		Logger:          logger,
+		Telemetry:       *telemetry,
+		mongoRepository: reportMongoDBRepository,
+	}
+
+	_, err := conn.GetNewConnect()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to rabbitmq: %w", err)
+	}
+
+	return cr, nil
+}
+
+// NewConsumerRoutesMultiTenant creates a new instance of ConsumerRoutes for multi-tenant mode.
+// In multi-tenant mode:
+// - Layer 1: Uses rabbitMQManager for per-tenant vhost isolation during message republishing
+// - Layer 2: X-Tenant-ID header extraction is already implemented (preserved in both modes)
+// - MongoDB: Uses mongoManager for per-tenant database connections
+func NewConsumerRoutesMultiTenant(
+	conn *rabbitmq.RabbitMQConnection,
+	numWorkers int,
+	logger log.Logger,
+	telemetry *opentelemetry.Telemetry,
+	mongoManager *tmmongo.Manager,
+	rabbitMQManager RabbitMQManagerConsumerInterface,
+	reportMongoDBRepository *mongoRepository.ReportMongoDBRepository,
+) (*ConsumerRoutes, error) {
+	if telemetry == nil {
+		return nil, fmt.Errorf("telemetry must not be nil")
+	}
+
+	if numWorkers == 0 {
+		numWorkers = pkgConstant.DefaultWorkerCount
+	}
+
+	cr := &ConsumerRoutes{
+		conn:            conn,
+		routes:          make(map[string]pkgRabbitmq.QueueHandlerFunc),
+		numWorkers:      numWorkers,
+		sleepFunc:       time.Sleep,
+		mongoManager:    mongoManager,
+		rabbitMQManager: rabbitMQManager,
+		multiTenantMode: true,
 		Logger:          logger,
 		Telemetry:       *telemetry,
 		mongoRepository: reportMongoDBRepository,
@@ -195,7 +253,11 @@ func (cr *ConsumerRoutes) processMessage(workerID int, queue string, handlerFunc
 			ctx = tmcore.ContextWithTenantMongo(ctx, tenantDB)
 
 			logWithFields.Info("Ensuring MongoDB indexes exist for reports...")
-			cr.mongoRepository.EnsureIndexes(ctx)
+
+			if indexErr := cr.mongoRepository.EnsureIndexes(ctx); indexErr != nil {
+				cr.Errorf("Worker %d: failed to ensure MongoDB indexes for tenant %s: %v",
+					workerID, tmcore.GetTenantIDFromContext(ctx), indexErr)
+			}
 		}
 	}
 
