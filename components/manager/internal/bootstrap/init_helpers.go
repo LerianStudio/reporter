@@ -27,7 +27,10 @@ import (
 	libOtel "github.com/LerianStudio/lib-commons/v3/commons/opentelemetry"
 	libRabbitmq "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 	libRedis "github.com/LerianStudio/lib-commons/v3/commons/redis"
+	tmclient "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/client"
+	tmrabbitmq "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/rabbitmq"
 	"github.com/LerianStudio/lib-commons/v3/commons/zap"
+	amqp091 "github.com/rabbitmq/amqp091-go"
 )
 
 // mongoResources holds MongoDB-related resources created during initialization.
@@ -182,6 +185,12 @@ func initMongoDB(cfg *Config, logger log.Logger) (*mongoResources, func(), error
 // initRabbitMQ establishes the RabbitMQ connection, creates the producer,
 // starts the background connection monitor, and returns cleanup functions for
 // the monitor and the connection itself.
+//
+// In multi-tenant mode (Layer 1 + Layer 2):
+// - Layer 1: Uses tmrabbitmq.Manager for per-tenant vhost isolation
+// - Layer 2: X-Tenant-ID header injection is handled in the producer (preserved in both modes)
+//
+// In single-tenant mode: Uses the static connection with retry logic.
 func initRabbitMQ(cfg *Config, logger log.Logger) (*rabbitResources, []func()) {
 	rabbitSource := fmt.Sprintf("%s://%s:%s@%s:%s",
 		cfg.RabbitURI, cfg.RabbitMQUser, cfg.RabbitMQPass, cfg.RabbitMQHost, cfg.RabbitMQPortAMQP)
@@ -199,7 +208,45 @@ func initRabbitMQ(cfg *Config, logger log.Logger) (*rabbitResources, []func()) {
 		Logger:                 logger,
 	}
 
-	producerRabbitMQRepository := rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
+	var producerRabbitMQRepository *rabbitmq.ProducerRabbitMQRepository
+
+	// Multi-tenant mode: use tmrabbitmq.Manager for per-tenant vhost isolation (Layer 1)
+	if cfg.MultiTenantEnabled && cfg.MultiTenantURL != "" {
+		logger.Info("RabbitMQ: initializing multi-tenant producer with vhost isolation")
+
+		var clientOpts []tmclient.ClientOption
+
+		if cfg.MultiTenantCircuitBreakerThreshold > 0 {
+			cbTimeout := time.Duration(cfg.MultiTenantCircuitBreakerTimeoutSec) * time.Second
+			clientOpts = append(clientOpts,
+				tmclient.WithCircuitBreaker(
+					cfg.MultiTenantCircuitBreakerThreshold,
+					cbTimeout,
+				),
+			)
+		}
+
+		tmClient := tmclient.NewClient(cfg.MultiTenantURL, logger, clientOpts...)
+
+		rabbitMQManager := tmrabbitmq.NewManager(
+			tmClient,
+			constant.ApplicationName,
+			tmrabbitmq.WithModule(constant.ModuleManager),
+			tmrabbitmq.WithLogger(logger),
+			tmrabbitmq.WithMaxTenantPools(cfg.MultiTenantMaxTenantPools),
+			tmrabbitmq.WithIdleTimeout(time.Duration(cfg.MultiTenantIdleTimeoutSec)*time.Second),
+		)
+
+		// Wrap the tmrabbitmq.Manager to satisfy our interface
+		producerRabbitMQRepository = rabbitmq.NewProducerRabbitMQMultiTenant(
+			newRabbitMQManagerAdapter(rabbitMQManager),
+		)
+
+		logger.Info("RabbitMQ: multi-tenant producer initialized with tmrabbitmq.Manager")
+	} else {
+		// Single-tenant mode: use static connection
+		producerRabbitMQRepository = rabbitmq.NewProducerRabbitMQ(rabbitMQConnection)
+	}
 
 	// Start background RabbitMQ connection monitor.
 	// This goroutine periodically checks if the connection is alive and
@@ -237,6 +284,35 @@ func initRabbitMQ(cfg *Config, logger log.Logger) (*rabbitResources, []func()) {
 		producer:   producerRabbitMQRepository,
 		monitor:    rabbitMQMonitor,
 	}, cleanups
+}
+
+// rabbitMQManagerAdapter wraps tmrabbitmq.Manager to satisfy the RabbitMQManagerInterface.
+type rabbitMQManagerAdapter struct {
+	manager *tmrabbitmq.Manager
+}
+
+func newRabbitMQManagerAdapter(manager *tmrabbitmq.Manager) *rabbitMQManagerAdapter {
+	return &rabbitMQManagerAdapter{manager: manager}
+}
+
+// GetChannel wraps tmrabbitmq.Manager.GetChannel and converts the returned *amqp091.Channel
+// to our RabbitMQChannel interface.
+func (a *rabbitMQManagerAdapter) GetChannel(ctx context.Context, tenantID string) (rabbitmq.RabbitMQChannel, error) {
+	channel, err := a.manager.GetChannel(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &amqpChannelAdapter{channel: channel}, nil
+}
+
+// amqpChannelAdapter wraps *amqp091.Channel to implement RabbitMQChannel interface.
+type amqpChannelAdapter struct {
+	channel *amqp091.Channel
+}
+
+func (a *amqpChannelAdapter) PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp091.Publishing) error {
+	return a.channel.PublishWithContext(ctx, exchange, key, mandatory, immediate, msg)
 }
 
 // initRedis establishes the Redis/Valkey connection and returns the consumer

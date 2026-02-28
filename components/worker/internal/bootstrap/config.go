@@ -30,7 +30,9 @@ import (
 	libRabbitMQ "github.com/LerianStudio/lib-commons/v3/commons/rabbitmq"
 	tmclient "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/client"
 	tmmongo "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/mongo"
+	tmrabbitmq "github.com/LerianStudio/lib-commons/v3/commons/tenant-manager/rabbitmq"
 	libZap "github.com/LerianStudio/lib-commons/v3/commons/zap"
+	amqp091 "github.com/rabbitmq/amqp091-go"
 )
 
 // Config holds the application's configurable parameters read from environment variables.
@@ -341,9 +343,9 @@ func InitWorker() (_ *Service, err error) {
 		Logger:                 logger,
 	}
 
-	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry, tenantMongoManager, reportMongoDBRepository)
+	routes, err := initConsumerRoutes(cfg, rabbitMQConnection, logger, telemetry, tenantMongoManager, reportMongoDBRepository)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
+		return nil, err
 	}
 
 	cleanups = append(cleanups, closeRabbitMQ(rabbitMQConnection, logger))
@@ -429,6 +431,63 @@ func buildMongoConnection(cfg *Config, logger clog.Logger) *mongoDB.MongoConnect
 	}
 }
 
+// initConsumerRoutes creates consumer routes with the appropriate constructor based on multi-tenant mode.
+func initConsumerRoutes(
+	cfg *Config,
+	rabbitMQConnection *libRabbitMQ.RabbitMQConnection,
+	logger clog.Logger,
+	telemetry *libOtel.Telemetry,
+	tenantMongoManager *tmmongo.Manager,
+	reportMongoDBRepository *reportData.ReportMongoDBRepository,
+) (*rabbitmq.ConsumerRoutes, error) {
+	if cfg.MultiTenantEnabled && cfg.MultiTenantURL != "" {
+		logger.Info("RabbitMQ Consumer: initializing multi-tenant consumer with vhost isolation")
+
+		var clientOpts []tmclient.ClientOption
+
+		if cfg.MultiTenantCircuitBreakerThreshold > 0 {
+			cbTimeout := time.Duration(cfg.MultiTenantCircuitBreakerTimeoutSec) * time.Second
+			clientOpts = append(clientOpts,
+				tmclient.WithCircuitBreaker(
+					cfg.MultiTenantCircuitBreakerThreshold,
+					cbTimeout,
+				),
+			)
+		}
+
+		tmClient := tmclient.NewClient(cfg.MultiTenantURL, logger, clientOpts...)
+
+		rabbitMQManager := tmrabbitmq.NewManager(
+			tmClient,
+			pkgConstant.ApplicationName,
+			tmrabbitmq.WithModule(pkgConstant.ModuleWorker),
+			tmrabbitmq.WithLogger(logger),
+			tmrabbitmq.WithMaxTenantPools(cfg.MultiTenantMaxTenantPools),
+			tmrabbitmq.WithIdleTimeout(time.Duration(cfg.MultiTenantIdleTimeoutSec)*time.Second),
+		)
+
+		rabbitMQManagerAdapter := newWorkerRabbitMQManagerAdapter(rabbitMQManager)
+
+		routes, err := rabbitmq.NewConsumerRoutesMultiTenant(
+			rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry,
+			tenantMongoManager, rabbitMQManagerAdapter, reportMongoDBRepository)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize multi-tenant rabbitmq consumer: %w", err)
+		}
+
+		logger.Info("RabbitMQ Consumer: multi-tenant consumer initialized with tmrabbitmq.Manager")
+
+		return routes, nil
+	}
+
+	routes, err := rabbitmq.NewConsumerRoutes(rabbitMQConnection, cfg.RabbitMQNumWorkers, logger, telemetry, tenantMongoManager, reportMongoDBRepository)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize rabbitmq consumer: %w", err)
+	}
+
+	return routes, nil
+}
+
 // closeRabbitMQ returns a cleanup function that safely closes
 // the RabbitMQ channel and connection.
 func closeRabbitMQ(conn *libRabbitMQ.RabbitMQConnection, logger clog.Logger) func() {
@@ -470,4 +529,33 @@ func initMultiTenantMetrics(cfg *Config, telemetry *libOtel.Telemetry, logger cl
 	logger.Info("Multi-tenant metrics: 4 instruments registered (tenant_connections_total, tenant_connection_errors_total, tenant_consumers_active, tenant_messages_processed_total)")
 
 	return m
+}
+
+// workerRabbitMQManagerAdapter wraps tmrabbitmq.Manager to satisfy the RabbitMQManagerConsumerInterface.
+type workerRabbitMQManagerAdapter struct {
+	manager *tmrabbitmq.Manager
+}
+
+func newWorkerRabbitMQManagerAdapter(manager *tmrabbitmq.Manager) *workerRabbitMQManagerAdapter {
+	return &workerRabbitMQManagerAdapter{manager: manager}
+}
+
+// GetConnection wraps tmrabbitmq.Manager.GetConnection and converts the returned connection
+// to our RabbitMQConnectionChannel interface.
+func (a *workerRabbitMQManagerAdapter) GetConnection(ctx context.Context, tenantID string) (rabbitmq.RabbitMQConnectionChannel, error) {
+	channel, err := a.manager.GetChannel(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &workerAmqpChannelAdapter{channel: channel}, nil
+}
+
+// workerAmqpChannelAdapter wraps *amqp091.Channel to implement RabbitMQConnectionChannel interface.
+type workerAmqpChannelAdapter struct {
+	channel *amqp091.Channel
+}
+
+func (a *workerAmqpChannelAdapter) Publish(exchange, key string, mandatory, immediate bool, msg amqp091.Publishing) error {
+	return a.channel.Publish(exchange, key, mandatory, immediate, msg)
 }
